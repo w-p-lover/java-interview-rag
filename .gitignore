@@ -1,4 +1,6 @@
 target/
+.m2/
+.tmp/
 .idea/
 *.iml
 .env
