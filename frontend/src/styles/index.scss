@@ -8,7 +8,7 @@
 
 html {
   min-width: 320px;
-  background: var(--paper);
+  background: var(--page);
 }
 
 body {
@@ -16,13 +16,8 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--ink);
-  background:
-    linear-gradient(rgba(79, 143, 137, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(79, 143, 137, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 82% 8%, rgba(199, 90, 69, 0.11), transparent 28rem),
-    var(--paper);
-  background-size: 32px 32px, 32px 32px, auto, auto;
-  font-family: var(--font-body);
+  background: var(--page);
+  font-family: var(--font-ui);
   line-height: 1.6;
   text-rendering: optimizeLegibility;
 }
@@ -44,14 +39,15 @@ input[type="file"] {
 
 button:focus-visible,
 input:focus-visible,
+a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--jade) 65%, transparent);
-  outline-offset: 3px;
+  outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 2px;
 }
 
 ::selection {
-  color: var(--surface);
-  background: var(--cinnabar);
+  color: #fff;
+  background: var(--accent);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -43,11 +43,11 @@ function handleDrop(event: DragEvent): void {
 
 function submitImport(): void {
   if (!selectedFile.value) {
-    localError.value = "请先选择一份 Markdown 文件。";
+    localError.value = "请先选择一份 Markdown 简历或资料。";
     return;
   }
   if (!source.value.trim()) {
-    localError.value = "请填写稳定的逻辑来源。";
+    localError.value = "请填写这份资料的稳定来源。";
     return;
   }
   localError.value = "";
@@ -64,13 +64,14 @@ function formatFileSize(size: number): string {
 
 <template>
   <section class="import-panel" aria-labelledby="import-title">
-    <div class="section-heading">
-      <span class="section-index">A</span>
+    <header class="panel-heading">
       <div>
-        <p class="eyebrow">Source intake</p>
-        <h2 id="import-title">送入一份 Markdown</h2>
+        <span class="panel-kicker">资料准备</span>
+        <h2 id="import-title">导入简历或岗位资料</h2>
+        <p class="panel-intro">当前先完成原文导入和结构检查，后续会用它辅助面试训练。</p>
       </div>
-    </div>
+      <span class="available-state">当前可用</span>
+    </header>
 
     <form class="import-form" @submit.prevent="submitImport">
       <label
@@ -90,24 +91,22 @@ function formatFileSize(size: number): string {
           @change="handleFileInput"
         />
         <span class="file-mark" aria-hidden="true">MD</span>
-        <strong>{{ selectedFile ? selectedFile.name : "选择或拖入文件" }}</strong>
-        <span>
-          {{ selectedFile ? formatFileSize(selectedFile.size) : "第一版按 UTF-8 读取单个文件" }}
-        </span>
+        <strong>{{ selectedFile ? selectedFile.name : "选择一份 Markdown 文件" }}</strong>
+        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "简历、岗位描述或面试资料" }}</span>
       </label>
 
       <div class="field-group">
-        <label for="document-source">逻辑来源</label>
+        <label for="document-source">资料来源</label>
         <input
           id="document-source"
           v-model="source"
           name="source"
           type="text"
           autocomplete="off"
-          placeholder="例如 java/collections.md"
+          placeholder="例如 resume/java-backend.md"
           :disabled="busy"
         />
-        <p>用于版本去重和后续来源引用，不使用本机绝对路径。</p>
+        <p>使用稳定名称记录版本，不会保存本机绝对路径。</p>
       </div>
 
       <div v-if="visibleError" class="error-message" role="alert">
@@ -116,89 +115,89 @@ function formatFileSize(size: number): string {
       </div>
 
       <button class="submit-button" type="submit" :disabled="busy">
-        <span>{{ busy ? "正在解析" : "解析并登记" }}</span>
-        <span class="button-arrow" aria-hidden="true">↗</span>
+        {{ busy ? "正在检查资料" : "导入并检查" }}
       </button>
     </form>
 
     <footer class="session-note">
-      <span class="pulse" aria-hidden="true"></span>
-      当前为内存会话，后端重启后登记状态会清空
+      当前结果只保存在本次会话；候选人画像和模拟面试尚未接入。
     </footer>
   </section>
 </template>
 
 <style scoped lang="scss">
 .import-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 34rem;
-  padding: clamp(1.35rem, 3vw, 2rem);
-  border: 1px solid var(--lead);
-  border-radius: var(--radius-large);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
-.section-heading {
+.panel-heading {
   display: flex;
   align-items: flex-start;
-  gap: 0.9rem;
-  margin-bottom: 1.7rem;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
 }
 
-.section-index {
-  display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
-  place-items: center;
-  border: 1px solid var(--jade);
-  border-radius: 50%;
-  color: var(--jade);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.2rem;
-  color: var(--cinnabar);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.panel-kicker {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.55rem;
-  font-weight: 700;
+  color: var(--ink);
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.panel-intro {
+  max-width: 34rem;
+  margin: 0.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.available-state {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--success-border);
+  border-radius: 0.35rem;
+  color: var(--success);
+  background: var(--success-soft);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 .import-form {
   display: grid;
-  gap: 1.3rem;
+  gap: 1rem;
 }
 
 .drop-zone {
   display: grid;
-  min-height: 11.5rem;
-  padding: 1.5rem;
+  min-height: 10rem;
+  padding: 1.25rem;
   place-items: center;
   align-content: center;
-  border: 1px dashed var(--lead-dark);
-  border-radius: var(--radius-medium);
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--jade-soft) 58%, transparent), transparent),
-    var(--surface-strong);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
   text-align: center;
-  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
 
 .drop-zone:hover,
 .drop-zone.is-dragging {
-  border-color: var(--jade);
-  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .drop-zone.has-file {
@@ -206,14 +205,19 @@ h2 {
 }
 
 .drop-zone strong {
+  max-width: 100%;
   margin-top: 0.7rem;
-  font-size: 1rem;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .drop-zone > span:last-child {
   margin-top: 0.2rem;
-  color: var(--ink-soft);
-  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
 }
 
 .file-input {
@@ -228,87 +232,89 @@ h2 {
 
 .file-mark {
   display: grid;
-  width: 3.2rem;
-  height: 3.7rem;
+  width: 2.75rem;
+  height: 2.25rem;
   place-items: center;
-  border: 1px solid var(--jade);
-  border-radius: 0.45rem 0.85rem 0.45rem 0.45rem;
-  color: var(--jade);
-  background: var(--jade-soft);
+  border: 1px solid var(--border-strong);
+  border-radius: 0.35rem;
+  color: var(--accent);
+  background: var(--surface);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
 }
 
 .field-group {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .field-group label {
-  font-size: 0.82rem;
-  font-weight: 700;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .field-group input {
   width: 100%;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--lead);
-  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.4rem;
   color: var(--ink);
-  background: var(--surface-strong);
+  background: var(--surface);
   font-family: var(--font-mono);
+  font-size: 0.78rem;
 }
 
 .field-group input:focus {
-  border-color: var(--jade);
+  border-color: var(--accent);
 }
 
 .field-group p {
   margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.72rem;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
 }
 
 .error-message {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid color-mix(in srgb, var(--cinnabar) 35%, transparent);
-  border-radius: 0.7rem;
-  color: var(--cinnabar);
-  background: var(--cinnabar-soft);
-  font-size: 0.82rem;
+  gap: 0.55rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--danger-border);
+  border-radius: 0.4rem;
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-size: 0.78rem;
 }
 
 .error-message span {
   display: grid;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
   place-items: center;
   border: 1px solid currentColor;
   border-radius: 50%;
   font-family: var(--font-mono);
+  font-size: 0.65rem;
 }
 
 .submit-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.9rem 1rem 0.9rem 1.2rem;
-  border: 0;
-  border-radius: 0.8rem;
+  min-height: 2.55rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.4rem;
   color: #fff;
-  background: var(--ink);
-  font-weight: 700;
-  transition: transform 180ms ease, background 180ms ease;
+  background: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 650;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
 .submit-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: var(--jade);
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
 }
 
 .submit-button:disabled {
@@ -316,25 +322,12 @@ h2 {
   opacity: 0.65;
 }
 
-.button-arrow {
-  font-size: 1.2rem;
-}
-
 .session-note {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-top: auto;
-  padding-top: 1.4rem;
-  color: var(--ink-soft);
-  font-size: 0.72rem;
-}
-
-.pulse {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--cinnabar);
-  box-shadow: 0 0 0 0.25rem var(--cinnabar-soft);
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
 }
 </style>

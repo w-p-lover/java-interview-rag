@@ -8,46 +8,48 @@ defineProps<{
 
 <template>
   <section class="ledger" aria-labelledby="ledger-title" aria-live="polite">
-    <div class="section-heading">
-      <span class="section-index">B</span>
+    <header class="panel-heading">
       <div>
-        <p class="eyebrow">Chunk ledger</p>
-        <h2 id="ledger-title">系统如何理解它</h2>
+        <span class="panel-kicker">资料检查</span>
+        <h2 id="ledger-title">导入结果</h2>
       </div>
-      <span v-if="result" class="chunk-count">{{ result.chunkCount }} chunks</span>
-    </div>
+      <span v-if="result" class="chunk-count">{{ result.chunkCount }} 个切片</span>
+    </header>
 
     <div v-if="!result" class="empty-ledger">
-      <span class="empty-symbol" aria-hidden="true">{ }</span>
-      <strong>等待第一份资料</strong>
-      <p>导入后，这里会按标题路径和原文顺序展示可追踪的知识切片。</p>
+      <span class="empty-symbol" aria-hidden="true">--</span>
+      <strong>等待导入资料</strong>
+      <p>导入后，这里会显示版本状态、标题结构和可供后续训练引用的切片。</p>
     </div>
 
     <template v-else>
-      <div class="document-stamp" :class="{ 'is-duplicate': !result.imported }">
-        <div>
-          <span>{{ result.imported ? "NEW VERSION" : "KNOWN VERSION" }}</span>
+      <div class="document-summary" :class="{ 'is-duplicate': !result.imported }">
+        <div class="summary-source">
+          <span class="summary-label">{{ result.imported ? "已导入" : "已存在" }}</span>
           <strong>{{ result.source }}</strong>
         </div>
-        <code :title="result.version">{{ result.version }}</code>
+        <div class="version-summary">
+          <span class="summary-label">内容版本</span>
+          <code :title="result.version">{{ result.version }}</code>
+        </div>
       </div>
 
-      <div v-if="!result.imported" class="duplicate-note">
-        该来源与内容版本已经登记，本次没有重复生成 chunk。
+      <div v-if="!result.imported" class="status-note is-warning">
+        这份资料的来源和内容版本已经登记，本次没有重复生成切片。
       </div>
 
-      <div v-else-if="result.chunks.length === 0" class="duplicate-note is-empty">
-        文档已登记，但正文没有生成可用 chunk。
+      <div v-else-if="result.chunks.length === 0" class="status-note">
+        资料已登记，但正文没有生成可用切片。
       </div>
 
       <ol v-else class="chunk-list">
-        <li v-for="chunk in result.chunks" :key="chunk.order" class="chunk-card">
+        <li v-for="chunk in result.chunks" :key="chunk.order" class="chunk-row">
           <header>
-            <span class="chunk-order">#{{ String(chunk.order).padStart(2, "0") }}</span>
+            <span class="chunk-order">切片 {{ String(chunk.order + 1).padStart(2, "0") }}</span>
             <span class="heading-path">
               {{ chunk.headingPath.length ? chunk.headingPath.join(" / ") : "文档导语" }}
             </span>
-            <span class="section-order">S{{ chunk.sectionOrder }}</span>
+            <span class="section-order">段落 {{ chunk.sectionOrder + 1 }}</span>
           </header>
           <pre>{{ chunk.content }}</pre>
         </li>
@@ -58,181 +60,181 @@ defineProps<{
 
 <style scoped lang="scss">
 .ledger {
-  min-height: 34rem;
-  padding: clamp(1.35rem, 3vw, 2rem);
-  border: 1px solid var(--lead);
-  border-radius: var(--radius-large);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  box-shadow: var(--shadow);
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
-.section-heading {
+.panel-heading {
   display: flex;
   align-items: flex-start;
-  gap: 0.9rem;
-  margin-bottom: 1.7rem;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
 }
 
-.section-index {
-  display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid var(--cinnabar);
-  border-radius: 50%;
-  color: var(--cinnabar);
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.2rem;
-  color: var(--jade);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.panel-kicker {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.55rem;
+  color: var(--ink);
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 
 .chunk-count {
-  margin-left: auto;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid var(--lead);
-  border-radius: 999px;
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--ink-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
 }
 
 .empty-ledger {
   display: grid;
-  min-height: 24rem;
+  min-height: 19rem;
   place-items: center;
   align-content: center;
   padding: 2rem;
-  border: 1px solid var(--lead);
-  border-radius: var(--radius-medium);
-  background: var(--surface-strong);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-subtle);
   text-align: center;
 }
 
 .empty-symbol {
-  color: var(--lead-dark);
+  color: var(--ink-faint);
   font-family: var(--font-mono);
-  font-size: 2.3rem;
+  font-size: 1.6rem;
 }
 
 .empty-ledger strong {
-  margin-top: 0.7rem;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
+  margin-top: 0.75rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 650;
 }
 
 .empty-ledger p {
   max-width: 24rem;
-  margin: 0.4rem 0 0;
-  color: var(--ink-soft);
-  font-size: 0.8rem;
+  margin: 0.45rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
 }
 
-.document-stamp {
+.document-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.9fr);
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border-left: 3px solid var(--jade);
-  border-radius: 0.2rem 0.8rem 0.8rem 0.2rem;
-  background: var(--jade-soft);
+  margin-bottom: 0.9rem;
+  padding: 0.85rem;
+  border: 1px solid var(--success-border);
+  border-radius: 0.4rem;
+  background: var(--success-soft);
 }
 
-.document-stamp.is-duplicate {
-  border-left-color: var(--cinnabar);
-  background: var(--cinnabar-soft);
+.document-summary.is-duplicate {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
 }
 
-.document-stamp div {
+.summary-source,
+.version-summary {
   display: grid;
   min-width: 0;
+  gap: 0.25rem;
 }
 
-.document-stamp span {
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-}
-
-.document-stamp strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.document-stamp code {
-  align-self: center;
-  overflow: hidden;
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
+.summary-label {
+  color: var(--ink-muted);
   font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.summary-source strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.82rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.duplicate-note {
-  padding: 1rem;
-  border: 1px solid color-mix(in srgb, var(--cinnabar) 30%, transparent);
-  border-radius: 0.8rem;
-  color: var(--cinnabar);
-  background: var(--surface-strong);
-  font-size: 0.82rem;
+.version-summary code {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.duplicate-note.is-empty {
-  border-color: var(--lead);
-  color: var(--ink-soft);
+.status-note {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--ink-muted);
+  background: var(--surface-subtle);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.status-note.is-warning {
+  border-color: var(--warning-border);
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .chunk-list {
   display: grid;
-  gap: 0.8rem;
-  max-height: 40rem;
+  max-height: 39rem;
   margin: 0;
-  padding: 0 0.25rem 0 0;
+  padding: 0;
   overflow-y: auto;
   list-style: none;
 }
 
-.chunk-card {
+.chunk-row {
   overflow: hidden;
-  border: 1px solid var(--lead);
-  border-radius: 0.9rem;
-  background: var(--surface-strong);
-  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  background: var(--surface);
 }
 
-.chunk-card header {
+.chunk-row:first-child {
+  border-radius: 0.4rem 0.4rem 0 0;
+}
+
+.chunk-row:last-child {
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 0.4rem 0.4rem;
+}
+
+.chunk-row header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.65rem 0.8rem;
-  border-bottom: 1px solid var(--lead);
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-size: 0.68rem;
 }
 
 .chunk-order {
-  color: var(--cinnabar);
-  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 650;
 }
 
 .heading-path {
@@ -243,34 +245,34 @@ h2 {
 }
 
 .section-order {
-  color: var(--jade);
+  color: var(--ink-muted);
+  white-space: nowrap;
 }
 
-.chunk-card pre {
+.chunk-row pre {
   margin: 0;
-  padding: 1rem;
+  padding: 0.85rem;
   overflow-x: auto;
   color: var(--code-text);
   background: var(--code-bg);
   font-family: var(--font-mono);
-  font-size: 0.76rem;
-  line-height: 1.7;
+  font-size: 0.74rem;
+  line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 @media (max-width: 620px) {
-  .section-heading {
-    flex-wrap: wrap;
-  }
-
-  .chunk-count {
-    width: fit-content;
-    margin-left: 3.2rem;
-  }
-
-  .document-stamp {
+  .document-summary {
     grid-template-columns: 1fr;
+  }
+
+  .chunk-row header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .section-order {
+    grid-column: 2;
   }
 }
 </style>

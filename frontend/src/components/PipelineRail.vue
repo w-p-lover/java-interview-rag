@@ -6,35 +6,28 @@ const props = defineProps<{
 }>();
 
 const steps = [
-  { key: "source", label: "SOURCE", note: "逻辑来源" },
-  { key: "hash", label: "HASH", note: "内容版本" },
-  { key: "section", label: "SECTION", note: "标题路径" },
-  { key: "chunk", label: "CHUNK", note: "有序切片" },
+  { key: "goal", label: "求职目标", note: "先确定方向" },
+  { key: "materials", label: "资料准备", note: "简历和岗位资料" },
+  { key: "interview", label: "模拟面试", note: "提问与追问" },
+  { key: "review", label: "训练复盘", note: "反馈与复习" },
 ] as const;
 
 function stepClass(index: number): string[] {
   if (props.state === "success" || props.state === "duplicate") {
-    return ["is-complete"];
-  }
-  if (props.state === "loading") {
-    return index === 0 ? ["is-complete"] : index === 1 ? ["is-active"] : [];
+    return index === 1 ? ["is-complete"] : index === 2 ? ["is-current"] : [];
   }
   if (props.state === "error") {
-    return index === 0 ? ["is-error"] : [];
+    return index === 1 ? ["is-error"] : [];
   }
-  return index === 0 ? ["is-active"] : [];
+  return index === 1 ? ["is-current"] : [];
 }
 </script>
 
 <template>
-  <ol class="pipeline" aria-label="文档处理链">
-    <li
-      v-for="(step, index) in steps"
-      :key="step.key"
-      :class="stepClass(index)"
-    >
-      <span class="node">{{ String(index + 1).padStart(2, "0") }}</span>
-      <span class="label">
+  <ol class="workflow-steps" aria-label="求职训练阶段">
+    <li v-for="(step, index) in steps" :key="step.key" :class="stepClass(index)">
+      <span class="step-node">{{ index + 1 }}</span>
+      <span class="step-copy">
         <strong>{{ step.label }}</strong>
         <small>{{ step.note }}</small>
       </span>
@@ -43,110 +36,133 @@ function stepClass(index: number): string[] {
 </template>
 
 <style scoped lang="scss">
-.pipeline {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  width: min(100%, 42rem);
-  margin: 0;
+.workflow-steps {
+  display: flex;
+  gap: 0;
+  margin: 0 0 1.5rem;
   padding: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   list-style: none;
 }
 
-.pipeline li {
+.workflow-steps li {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.55rem;
+  flex: 1 1 0;
   min-width: 0;
+  padding: 0.75rem 0.75rem 0.75rem 0;
 }
 
-.pipeline li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 2rem;
-  width: calc(100% - 2.3rem);
-  height: 1px;
-  background: var(--lead);
-  transform: translateY(-50%);
+.workflow-steps li + li {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border);
 }
 
-.node {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 2rem;
-  height: 2rem;
+.step-node {
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
   place-items: center;
-  border: 1px solid var(--lead-dark);
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
-  color: var(--ink-soft);
-  background: var(--paper);
+  color: var(--ink-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  transition: all 180ms ease;
+  font-size: 0.64rem;
 }
 
-.label {
-  position: relative;
-  z-index: 1;
+.step-copy {
   display: grid;
   min-width: 0;
-  padding-right: 0.5rem;
-  background: var(--paper);
 }
 
-.label strong {
+.step-copy strong {
   overflow: hidden;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.label small {
-  color: var(--ink-soft);
-  font-size: 0.62rem;
+.step-copy small {
+  overflow: hidden;
+  color: var(--ink-faint);
+  font-size: 0.66rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.is-active .node {
-  border-color: var(--cinnabar);
-  color: var(--cinnabar);
-  box-shadow: 0 0 0 0.3rem var(--cinnabar-soft);
+.workflow-steps li.is-current::after {
+  position: absolute;
+  right: 0.75rem;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  content: "";
 }
 
-.is-complete .node {
-  border-color: var(--jade);
-  color: var(--surface);
-  background: var(--jade);
+.is-current .step-node {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.is-complete:not(:last-child)::after {
-  background: var(--jade);
+.is-current .step-copy strong {
+  color: var(--ink);
 }
 
-.is-error .node {
-  border-color: var(--cinnabar);
-  color: var(--surface);
-  background: var(--cinnabar);
+.workflow-steps li.is-complete {
+  color: var(--success);
+}
+
+.is-complete .step-node {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.is-complete .step-copy strong {
+  color: var(--success);
+}
+
+.workflow-steps li.is-error {
+  color: var(--danger);
+}
+
+.is-error .step-node,
+.is-error .step-copy strong {
+  color: var(--danger);
 }
 
 @media (max-width: 720px) {
-  .pipeline {
+  .workflow-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    gap: 0.5rem;
+    border: 0;
+  }
+
+  .workflow-steps li,
+  .workflow-steps li + li {
+    margin: 0;
+    padding: 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .workflow-steps li.is-current::after {
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .workflow-steps {
     grid-template-columns: 1fr;
-    gap: 0.55rem;
-  }
-
-  .pipeline li:not(:last-child)::after {
-    top: 1.8rem;
-    left: 0.98rem;
-    width: 1px;
-    height: 1.1rem;
-  }
-
-  .label {
-    background: transparent;
   }
 }
 </style>
