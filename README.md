@@ -2,7 +2,14 @@
 
 Java 面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，后续按需接入 Spring AI 和向量数据库，逐步实现知识文档管理、RAG 检索与评估、文本模拟面试和轻量 Agent 能力。
 
-阶段 0 的项目治理与 Spring Boot 最小骨架已经完成，当前处于阶段 1：Markdown 知识库，已建立最小文档模型、稳定内容版本标识、ATX 标题解析、段落优先的最大长度切分、进程内导入去重登记和 UTF-8 单文件导入编排能力。
+阶段 0 的项目治理与 Spring Boot 最小骨架已经完成，当前处于阶段 1：Markdown 知识库。项目已建立文档模型、稳定内容版本标识、ATX 标题解析、段落优先切分、进程内去重和 UTF-8 导入编排，并提供首个 Markdown 上传 API 与 Vue 知识工坊页面。
+
+## 当前 Web 功能
+
+- `POST /api/knowledge/documents/import` 接收 Markdown 文件与显式逻辑来源。
+- 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
+- Vue 页面支持选择或拖入文件、编辑逻辑来源，并展示版本指纹、重复提示和 chunk 账页。
+- 当前登记仅保存在 Spring Boot 进程内；尚未接入数据库、Embedding、向量库或 RAG 问答。
 
 ## 项目主线
 
@@ -26,12 +33,30 @@ Markdown 知识库
 - 第一阶段优先完成 RAG 核心闭环和评估，不提前建设复杂 Agent 平台。
 - 外部参考项目只用于设计借鉴，是否采用由真实需求和评估结果决定。
 
-## 本地验证
+## 本地运行
 
-准备 Java 17 或更高版本的 JDK 后执行：
+准备 Java 17 或更高版本的 JDK。先在仓库根目录启动后端：
 
 ```shell
-./mvnw test
+.\mvnw.cmd spring-boot:run
+```
+
+后端默认监听 `http://127.0.0.1:18080`。再启动前端：
+
+```shell
+cd frontend
+npm install
+npm run dev
+```
+
+浏览器访问 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到本地后端。
+
+## 本地验证
+
+```shell
+.\mvnw.cmd test
+cd frontend
+npm run build
 ```
 
 ## 文档入口

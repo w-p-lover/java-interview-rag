@@ -1,0 +1,66 @@
+@use "./theme";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background:
+    linear-gradient(rgba(79, 143, 137, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79, 143, 137, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 82% 8%, rgba(199, 90, 69, 0.11), transparent 28rem),
+    var(--paper);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+  font-family: var(--font-body);
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button,
+label,
+input[type="file"] {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--jade) 65%, transparent);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--surface);
+  background: var(--cinnabar);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

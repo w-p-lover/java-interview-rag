@@ -1,3 +1,6 @@
 spring:
   application:
     name: java-interview-rag
+
+server:
+  port: 18080

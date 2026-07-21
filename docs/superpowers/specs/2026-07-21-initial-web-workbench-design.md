@@ -11,6 +11,7 @@
 ### 后端
 
 - 增加 Spring MVC 与 multipart 支持，保持单体 Spring Boot。
+- 独立项目开发端口使用 `18080`，避开本机已有 Tomcat 占用的 `8080`。
 - 新增字符串内容导入器，作为文件导入与 HTTP 上传的共同核心，避免 Web 层创建临时文件或复制解析逻辑。
 - HTTP 接口接收 `file` 与显式逻辑来源 `source`，返回结构化文档版本和 chunk 元数据。
 - 登记仍使用现有进程内 `MarkdownImportRegistry`；接口和页面必须明确该限制。

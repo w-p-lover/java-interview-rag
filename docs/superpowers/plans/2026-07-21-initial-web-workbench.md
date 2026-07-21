@@ -64,10 +64,10 @@
 - Create: `frontend/src/styles/theme.scss`
 - Create: `frontend/src/styles/index.scss`
 
-- [ ] 建立 Vue 3、Vite、TypeScript、Vue Router、Axios、Sass 依赖和脚本。
-- [ ] 配置 `@` 别名及 `/api` 到 `http://localhost:8080` 的开发代理。
-- [ ] 建立与 `shoka-blog` 相似但更精简的 API、路由、视图、组件和样式分层。
-- [ ] 运行 npm 安装、类型检查和空壳生产构建。
+- [x] 建立 Vue 3、Vite、TypeScript、Vue Router、Axios、Sass 依赖和脚本。
+- [x] 配置 `@` 别名及 `/api` 到 `http://localhost:18080` 的开发代理。
+- [x] 建立与 `shoka-blog` 相似但更精简的 API、路由、视图、组件和样式分层。
+- [x] 运行 npm 安装、类型检查和空壳生产构建。
 
 ### Task 4: 实现知识工坊界面并接入 API
 
@@ -77,11 +77,11 @@
 - Create: `frontend/src/components/PipelineRail.vue`
 - Create: `frontend/src/components/ChunkLedger.vue`
 
-- [ ] 实现文件选择、拖放、逻辑来源编辑、提交中和错误状态。
-- [ ] 实现 `SOURCE → HASH → SECTION → CHUNK` 处理链脊柱。
-- [ ] 实现导入结果、版本指纹、重复提示和 chunk 账页。
-- [ ] 完成桌面、移动端、暗色偏好、键盘焦点和减少动效适配。
-- [ ] 执行类型检查和生产构建。
+- [x] 实现文件选择、拖放、逻辑来源编辑、提交中和错误状态。
+- [x] 实现 `SOURCE → HASH → SECTION → CHUNK` 处理链脊柱。
+- [x] 实现导入结果、版本指纹、重复提示和 chunk 账页。
+- [x] 完成桌面、移动端、暗色偏好、键盘焦点和减少动效适配。
+- [x] 执行类型检查和生产构建。
 
 ### Task 5: 集成 QA 与项目文档闭环
 
@@ -93,8 +93,8 @@
 - Modify: `docs/07-技术决策记录.md`
 - Modify: `docs/superpowers/plans/2026-07-21-initial-web-workbench.md`
 
-- [ ] 启动后端和前端，使用 Playwright CLI 完成真实上传、成功结果、重复结果和移动端布局检查。
-- [ ] 保存桌面与移动端截图到已忽略的 `output/playwright/`。
-- [ ] 重新执行后端相关测试、前端类型检查和生产构建。
-- [ ] 同步实际能力、技术边界、Shoka 参考判断和未持久化风险。
-- [ ] 审查仅包含本轮文件后提交 `feat: 搭建知识工坊前端`。
+- [x] 启动后端和前端，使用 Playwright CLI 完成真实上传、成功结果、重复结果和移动端布局检查。
+- [x] 保存桌面与移动端截图到已忽略的 `output/playwright/`。
+- [x] 重新执行后端相关测试、前端类型检查和生产构建。
+- [x] 同步实际能力、技术边界、Shoka 参考判断和未持久化风险。
+- [x] 审查仅包含本轮文件后提交 `feat: 搭建知识工坊前端`。
