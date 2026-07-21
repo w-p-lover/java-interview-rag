@@ -30,7 +30,7 @@ class MarkdownFileImporterTest {
                 ## 集合
                 HashMap
                 """);
-        MarkdownFileImporter importer = new MarkdownFileImporter(new MarkdownImportRegistry(), 8);
+        MarkdownFileImporter importer = new MarkdownFileImporter(new InMemoryMarkdownImportRegistry(), 8);
 
         MarkdownImportResult result = importer.importFile(file, "java/basic.md");
 
@@ -44,7 +44,7 @@ class MarkdownFileImporterTest {
     @Test
     void skipsPreviouslyImportedSourceAndVersion() throws IOException {
         Path file = writeFile("# Java\n集合");
-        MarkdownFileImporter importer = new MarkdownFileImporter(new MarkdownImportRegistry(), 100);
+        MarkdownFileImporter importer = new MarkdownFileImporter(new InMemoryMarkdownImportRegistry(), 100);
 
         MarkdownImportResult first = importer.importFile(file, "java/basic.md");
         MarkdownImportResult duplicate = importer.importFile(file, "java/basic.md");
@@ -58,7 +58,7 @@ class MarkdownFileImporterTest {
     @Test
     void importsChangedContentForSameSource() throws IOException {
         Path file = writeFile("# Java\n原内容");
-        MarkdownFileImporter importer = new MarkdownFileImporter(new MarkdownImportRegistry(), 100);
+        MarkdownFileImporter importer = new MarkdownFileImporter(new InMemoryMarkdownImportRegistry(), 100);
         MarkdownImportResult original = importer.importFile(file, "java/basic.md");
         Files.writeString(file, "# Java\n新内容", StandardCharsets.UTF_8);
 
@@ -72,7 +72,7 @@ class MarkdownFileImporterTest {
     @Test
     void rejectsInvalidMaxChunkLength() {
         assertThrows(IllegalArgumentException.class,
-                () -> new MarkdownFileImporter(new MarkdownImportRegistry(), 0));
+                () -> new MarkdownFileImporter(new InMemoryMarkdownImportRegistry(), 0));
     }
 
     private Path writeFile(String content) throws IOException {

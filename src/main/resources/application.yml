@@ -1,6 +1,12 @@
 spring:
   application:
     name: java-interview-rag
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:./config/application-private.yml
 
 server:
   port: 18080

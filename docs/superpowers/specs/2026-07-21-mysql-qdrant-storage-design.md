@@ -16,7 +16,7 @@
 
 本轮不实现 chunk 向量写入、更新、删除、重建、RAG 检索或模拟面试。原因是当前导入编排只有“版本登记”和“切片返回”，尚未定义向量状态机；提前写入向量会留下关系数据与 Qdrant 不一致的半成品。
 
-不复用 `blog-springboot` 的数据库、collection、账号、密码或 API Key，也不引入 Redis、RabbitMQ、Elasticsearch和主项目应用容器。
+不复用 `blog-springboot` 的数据库、collection、账号、密码或 API Key，也不引入 Redis、RabbitMQ、Elasticsearch 和主项目应用容器。
 
 ## Profile 设计
 
@@ -25,10 +25,9 @@
 | Profile | 职责 |
 | --- | --- |
 | `local` | 默认 profile；禁用外部数据源和 AI 自动配置，使用进程内登记器 |
-| `mysql` | 配置 Druid、MySQL、MyBatis-Plus，并使用 MySQL 登记器 |
-| `vector` | 配置 DashScope Embedding、Qdrant 和非阻塞健康检查 |
+| `storage` | 配置 Druid、MySQL、MyBatis-Plus、DashScope Embedding、Qdrant 和非阻塞健康检查 |
 
-`storage` 是 profile 组，展开为 `mysql,vector`。这样正式接入可以使用 `--spring.profiles.active=storage`，针对性排查时也可以只启用 `mysql` 或 `vector`。
+正式接入使用 `--spring.profiles.active=storage`。保持一个外部存储 profile，可以避免多个配置文档对自动配置排除列表产生不确定的覆盖顺序。
 
 私有值通过 `.env` 或 `config/application-private.yml` 注入，环境变量统一使用 `JAVA_INTERVIEW_RAG_` 前缀。示例文件只提供占位值。
 
@@ -67,7 +66,7 @@ public interface MarkdownImportRegistry {
 
 ## Qdrant 设计
 
-沿用 `blog-springboot` 的 Spring AI 1.0.0、Spring AI Alibaba 1.0.0.2、DashScope `text-embedding-v3` 和 Qdrant 1.10.1 接入方式，但使用独立 collection：
+沿用 `blog-springboot` 的 Spring AI 1.0.0、Spring AI Alibaba 1.0.0.2、DashScope `text-embedding-v3` 和 Qdrant 1.10.1 接入方式，但使用独立 collection。Druid 保持相同产品，使用与 Spring Boot 3.5 兼容的 Boot 3 专用 Starter 1.2.28：
 
 ```text
 java-interview-rag-chunks

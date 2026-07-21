@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MarkdownImportRegistryTest {
 
-    private final MarkdownImportRegistry registry = new MarkdownImportRegistry();
+    private final MarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
 
     @Test
     void rejectsDuplicateSourceAndVersion() {

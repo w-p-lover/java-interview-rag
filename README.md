@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理与 Spring Boot 最小骨架已经完成，当前处于阶段 1：资料知识库。项目已建立文档模型、稳定内容版本标识、ATX 标题解析、段落优先切分、进程内去重和 UTF-8 导入编排，并提供首个 Markdown 上传 API 与 Vue 求职面试工作台。
+阶段 0 的项目治理与 Spring Boot 最小骨架已经完成，当前处于阶段 1：资料知识库。项目已建立文档模型、稳定内容版本标识、ATX 标题解析、段落优先切分、可切换导入登记和 UTF-8 导入编排，并提供首个 Markdown 上传 API 与 Vue 求职面试工作台。
 
 ## 当前 Web 功能
 
@@ -10,7 +10,8 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 首页以求职面试工作台表达“求职目标 → 资料准备 → 模拟面试 → 训练复盘”的产品主线。
 - 当前可用区域支持选择或拖入简历、岗位描述和面试资料，并展示版本指纹、重复提示和 chunk 明细。
-- 当前登记仅保存在 Spring Boot 进程内；尚未接入数据库、Embedding、向量库或 RAG 问答。
+- 默认 `local` profile 的登记仅保存在 Spring Boot 进程内；`storage` profile 已提供 MySQL 持久化登记与 DashScope/Qdrant 接入配置。
+- 当前尚未执行 chunk 向量写入，也未实现 RAG 问答。
 
 ## 项目主线
 
@@ -52,6 +53,24 @@ npm run dev
 ```
 
 浏览器访问 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到本地后端。
+
+## MySQL 与 Qdrant
+
+项目采用独立数据库 `java_interview_rag` 和独立 Qdrant collection `java-interview-rag-chunks`，不会写入 `blog-springboot` 的业务数据。
+
+本机具备 Docker Compose 时，先根据 [`.env.example`](.env.example) 创建本地 `.env`，再启动基础设施：
+
+```shell
+docker compose up -d mysql qdrant
+```
+
+提供有效的 `JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY` 后，以存储 profile 启动后端：
+
+```shell
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
+```
+
+`storage` 会使用 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并创建 Spring AI 的 DashScope Embedding 与 Qdrant 客户端。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。当前 Qdrant schema 自动初始化关闭，collection 的创建和 chunk 写入将在向量生命周期闭环中统一实现。
 
 ## 本地验证
 

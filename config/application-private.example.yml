@@ -1,0 +1,8 @@
+# 可选：复制为 config/application-private.yml 后填写本地私有值。
+spring:
+  datasource:
+    username: ${JAVA_INTERVIEW_RAG_DB_USERNAME:java_interview_rag}
+    password: ${JAVA_INTERVIEW_RAG_DB_PASSWORD:replace-me}
+  ai:
+    dashscope:
+      api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:replace-me}

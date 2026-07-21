@@ -1,0 +1,44 @@
+spring:
+  config:
+    activate:
+      on-profile: storage
+  autoconfigure:
+    exclude:
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeImageAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioTranscriptionAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeRerankAutoConfiguration
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${JAVA_INTERVIEW_RAG_DB_URL:jdbc:mysql://127.0.0.1:3306/java_interview_rag?serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8&connectTimeout=5000&socketTimeout=15000&tcpKeepAlive=true}
+    username: ${JAVA_INTERVIEW_RAG_DB_USERNAME:java_interview_rag}
+    password: ${JAVA_INTERVIEW_RAG_DB_PASSWORD:}
+    druid:
+      initial-size: 1
+      min-idle: 1
+      max-active: 8
+      max-wait: 10000
+      validation-query: SELECT 1
+      validation-query-timeout: 3
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+  ai:
+    dashscope:
+      api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:}
+      embedding:
+        options:
+          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_EMBED_MODEL:text-embedding-v3}
+    vectorstore:
+      qdrant:
+        host: ${JAVA_INTERVIEW_RAG_QDRANT_HOST:127.0.0.1}
+        port: ${JAVA_INTERVIEW_RAG_QDRANT_PORT:6334}
+        collection-name: ${JAVA_INTERVIEW_RAG_QDRANT_COLLECTION:java-interview-rag-chunks}
+        initialize-schema: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
