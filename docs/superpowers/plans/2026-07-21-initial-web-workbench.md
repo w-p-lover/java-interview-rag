@@ -24,10 +24,10 @@
 - Modify: `pom.xml`
 - Create: `src/test/java/com/javainterview/rag/knowledge/web/MarkdownDocumentControllerTest.java`
 
-- [ ] 增加 `spring-boot-starter-web`，不增加数据库或其他基础设施依赖。
-- [ ] 编写一次测试内连续上传相同 Markdown 的 MockMvc 用例，断言首次响应包含版本与 chunk，第二次响应为重复且 chunk 为空。
-- [ ] 编写空逻辑来源返回 HTTP 400 和中文消息的用例。
-- [ ] 执行控制器测试并确认因生产类型缺失而 RED。
+- [x] 增加 `spring-boot-starter-web`，不增加数据库或其他基础设施依赖。
+- [x] 编写一次测试内连续上传相同 Markdown 的 MockMvc 用例，断言首次响应包含版本与 chunk，第二次响应为重复且 chunk 为空。
+- [x] 编写空逻辑来源返回 HTTP 400 和中文消息的用例。
+- [x] 执行控制器测试并确认因生产类型缺失而 RED。
 
 ### Task 2: 实现内容导入核心与 HTTP 接口
 
@@ -38,12 +38,12 @@
 - Create: `src/main/java/com/javainterview/rag/knowledge/web/MarkdownDocumentController.java`
 - Create: `src/main/java/com/javainterview/rag/knowledge/web/MarkdownImportResponse.java`
 
-- [ ] 将来源与字符串内容导入编排集中到 `MarkdownContentImporter`，文件导入器只负责 UTF-8 读取并委托。
-- [ ] 注册进程内登记器和固定最大 chunk 长度的内容导入器 Bean。
-- [ ] 实现 `POST /api/knowledge/documents/import` multipart 接口及结构化响应。
-- [ ] 将调用方参数错误映射为 HTTP 400 与中文 `message`。
-- [ ] 执行控制器测试和现有 Markdown 链路测试并确认 GREEN。
-- [ ] 审查后提交 `feat: 提供 Markdown 导入接口`。
+- [x] 将来源与字符串内容导入编排集中到 `MarkdownContentImporter`，文件导入器只负责 UTF-8 读取并委托。
+- [x] 注册进程内登记器和固定最大 chunk 长度的内容导入器 Bean。
+- [x] 实现 `POST /api/knowledge/documents/import` multipart 接口及结构化响应。
+- [x] 将调用方参数错误映射为 HTTP 400 与中文 `message`。
+- [x] 执行控制器测试和现有 Markdown 链路测试并确认 GREEN。
+- [x] 审查后提交 `feat: 提供 Markdown 导入接口`。
 
 ### Task 3: 搭建精简 Vue 工程骨架
 
