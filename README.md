@@ -58,19 +58,21 @@ npm run dev
 
 项目采用独立数据库 `java_interview_rag` 和独立 Qdrant collection `java-interview-rag-chunks`，不会写入 `blog-springboot` 的业务数据。
 
-本机具备 Docker Compose 时，先根据 [`.env.example`](.env.example) 创建本地 `.env`，再启动基础设施：
+本机具备 Docker Compose 且需要新建本地基础设施时，先根据 [`.env.example`](.env.example) 创建本地 `.env`，再启动基础设施：
 
 ```shell
 docker compose up -d mysql qdrant
 ```
 
-提供有效的 `JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY` 后，以存储 profile 启动后端：
+项目也会只读导入 `D:/IdeaProjects/blog/blog-springboot/.env`。因此在已有服务器环境下，不需要复制主项目密码或 API Key；新项目会复用其中的 MySQL 主机、端口、账号、密码、Qdrant 地址和 DashScope Key，但强制使用独立数据库 `java_interview_rag` 与 collection `java-interview-rag-chunks`。如需覆盖，可使用 `JAVA_INTERVIEW_RAG_` 前缀变量。
+
+以存储 profile 启动后端：
 
 ```shell
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
 ```
 
-`storage` 会使用 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并创建 Spring AI 的 DashScope Embedding 与 Qdrant 客户端。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。当前 Qdrant schema 自动初始化关闭，collection 的创建和 chunk 写入将在向量生命周期闭环中统一实现。
+`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并创建 Spring AI 的 DashScope Embedding 与 Qdrant 客户端。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。当前 Qdrant schema 自动初始化关闭，collection 的创建和 chunk 写入将在向量生命周期闭环中统一实现。服务器 MySQL 中需要预先创建 `java_interview_rag` 数据库并执行仓库内初始化 SQL。
 
 ## 本地验证
 

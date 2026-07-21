@@ -16,7 +16,7 @@
 
 本轮不实现 chunk 向量写入、更新、删除、重建、RAG 检索或模拟面试。原因是当前导入编排只有“版本登记”和“切片返回”，尚未定义向量状态机；提前写入向量会留下关系数据与 Qdrant 不一致的半成品。
 
-不复用 `blog-springboot` 的数据库、collection、账号、密码或 API Key，也不引入 Redis、RabbitMQ、Elasticsearch 和主项目应用容器。
+不复用 `blog-springboot` 的数据库和 collection；可以只读复用其服务器连接地址、账号、密码和 API Key。新项目仍固定连接独立数据库 `java_interview_rag` 和独立 collection `java-interview-rag-chunks`，也不引入 Redis、RabbitMQ、Elasticsearch 和主项目应用容器。
 
 ## Profile 设计
 
@@ -29,7 +29,7 @@
 
 正式接入使用 `--spring.profiles.active=storage`。保持一个外部存储 profile，可以避免多个配置文档对自动配置排除列表产生不确定的覆盖顺序。
 
-私有值通过 `.env` 或 `config/application-private.yml` 注入，环境变量统一使用 `JAVA_INTERVIEW_RAG_` 前缀。示例文件只提供占位值。
+私有值优先通过当前项目 `.env` 或 `config/application-private.yml` 注入；服务器环境额外只读导入 `D:/IdeaProjects/blog/blog-springboot/.env`，复用其服务器地址、账号、密码和 API Key。示例文件只提供占位值，当前项目自己的覆盖变量统一使用 `JAVA_INTERVIEW_RAG_` 前缀。
 
 ## 导入登记边界
 
