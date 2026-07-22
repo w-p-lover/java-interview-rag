@@ -1,10 +1,13 @@
 package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
+import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownImportRegistry;
+import com.javainterview.rag.knowledge.vector.QdrantMarkdownChunkIndexer;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -27,7 +30,20 @@ public class MarkdownImportConfiguration {
     }
 
     @Bean
-    MarkdownContentImporter markdownContentImporter(MarkdownImportRegistry registry) {
-        return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH);
+    @Profile("!storage")
+    MarkdownChunkIndexer markdownChunkIndexer() {
+        return MarkdownChunkIndexer.noOp();
+    }
+
+    @Bean
+    @Profile("storage")
+    MarkdownChunkIndexer qdrantMarkdownChunkIndexer(VectorStore vectorStore) {
+        return new QdrantMarkdownChunkIndexer(vectorStore);
+    }
+
+    @Bean
+    MarkdownContentImporter markdownContentImporter(MarkdownImportRegistry registry,
+                                                     MarkdownChunkIndexer chunkIndexer) {
+        return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH, chunkIndexer);
     }
 }

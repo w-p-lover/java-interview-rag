@@ -50,4 +50,14 @@ class MySqlMarkdownImportRegistryTest {
         assertThrows(DataAccessResourceFailureException.class,
                 () -> registry.register(MarkdownDocument.create("resume/backend.md", "Java 后端")));
     }
+
+    @Test
+    void removesTheSameSourceAndVersionForFailedVectorIndexing() {
+        MarkdownDocument document = MarkdownDocument.create("resume/backend.md", "Java 后端");
+        when(mapper.deleteBySourceAndVersion(document.source(), document.version())).thenReturn(1);
+
+        assertTrue(registry.unregister(document));
+
+        verify(mapper).deleteBySourceAndVersion(document.source(), document.version());
+    }
 }
