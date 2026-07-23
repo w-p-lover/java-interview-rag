@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.persistence;
 
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Select;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DuplicateKeyException;
@@ -72,7 +73,20 @@ class MySqlMarkdownImportRegistryTest {
     }
 
     @Test
-    void usesExactSourceMatchingForDeleteStatements() throws NoSuchMethodException {
+    void findsRegisteredSourceAndVersion() {
+        MarkdownDocument document = MarkdownDocument.create("resume/backend.md", "Java 后端");
+        when(mapper.countBySourceAndVersion(document.source(), document.version())).thenReturn(1);
+
+        assertTrue(registry.isRegistered(document));
+
+        verify(mapper).countBySourceAndVersion(document.source(), document.version());
+    }
+
+    @Test
+    void usesExactSourceMatchingForMapperStatements() throws NoSuchMethodException {
+        Select registeredSelect = KnowledgeDocumentVersionMapper.class
+                .getMethod("countBySourceAndVersion", String.class, String.class)
+                .getAnnotation(Select.class);
         Delete versionDelete = KnowledgeDocumentVersionMapper.class
                 .getMethod("deleteBySourceAndVersion", String.class, String.class)
                 .getAnnotation(Delete.class);
@@ -80,6 +94,9 @@ class MySqlMarkdownImportRegistryTest {
                 .getMethod("deleteBySource", String.class)
                 .getAnnotation(Delete.class);
 
+        assertEquals("SELECT COUNT(*) FROM t_knowledge_document_version "
+                        + "WHERE BINARY source = BINARY #{source} AND version = #{version}",
+                registeredSelect.value()[0]);
         assertEquals("DELETE FROM t_knowledge_document_version "
                 + "WHERE BINARY source = BINARY #{source} AND version = #{version}",
                 versionDelete.value()[0]);

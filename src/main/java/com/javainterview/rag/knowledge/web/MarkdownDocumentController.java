@@ -35,6 +35,13 @@ public class MarkdownDocumentController {
         return MarkdownImportResponse.from(result);
     }
 
+    @PostMapping(value = "/rebuild", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public MarkdownRebuildResponse rebuildDocument(@RequestParam MultipartFile file,
+                                                    @RequestParam String source) throws IOException {
+        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+        return MarkdownRebuildResponse.from(contentImporter.rebuildContent(source, content));
+    }
+
     @DeleteMapping
     public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
         return new MarkdownDeleteResponse(source, contentImporter.deleteBySource(source));

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,6 +75,57 @@ class MarkdownContentImporterVectorTest {
         assertTrue(retried.imported());
         verify(chunkIndexer, times(2)).index(any(MarkdownDocument.class), any());
         verify(chunkIndexer, times(2)).deleteOtherVersions(any(MarkdownDocument.class));
+    }
+
+    @Test
+    void rebuildsARegisteredHistoricalVersionWithoutChangingRegistration() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownImportResult original = sourceImporter.importContent(
+                "java/rebuild.md", "# Java\n原内容");
+        sourceImporter.importContent("java/rebuild.md", "# Java\n新内容");
+
+        MarkdownRebuildResult rebuilt = sourceImporter.rebuildContent(
+                "java/rebuild.md", "# Java\n原内容");
+
+        assertEquals(original.document().source(), rebuilt.document().source());
+        assertEquals(original.document().content(), rebuilt.document().content());
+        assertEquals(original.document().version(), rebuilt.document().version());
+        assertEquals(original.chunks(), rebuilt.chunks());
+        assertTrue(registry.isRegistered(original.document()));
+        verify(indexer).rebuild(rebuilt.document(), rebuilt.chunks());
+    }
+
+    @Test
+    void rejectsRebuildForAnUnregisteredVersionBeforeIndexing() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> importer.rebuildContent("java/missing.md", "# Java\n未导入"));
+
+        assertEquals("文档版本尚未导入，不能重建", exception.getMessage());
+        verify(chunkIndexer, never()).rebuild(any(), any());
+    }
+
+    @Test
+    void keepsRegistrationWhenRebuildFailsSoTheVersionCanRetry() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownImportResult imported = sourceImporter.importContent(
+                "java/retry-rebuild.md", "# Java\n重试");
+        doThrow(new IllegalStateException("Qdrant unavailable"))
+                .doNothing()
+                .when(indexer).rebuild(any(MarkdownDocument.class), any());
+
+        assertThrows(IllegalStateException.class,
+                () -> sourceImporter.rebuildContent("java/retry-rebuild.md", "# Java\n重试"));
+        MarkdownRebuildResult retried = sourceImporter.rebuildContent(
+                "java/retry-rebuild.md", "# Java\n重试");
+
+        assertEquals(imported.document().source(), retried.document().source());
+        assertEquals(imported.document().version(), retried.document().version());
+        assertTrue(registry.isRegistered(imported.document()));
+        verify(indexer, times(2)).rebuild(any(MarkdownDocument.class), any());
     }
 
     @Test

@@ -2,18 +2,19 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理与阶段 1 的 Markdown 资料知识库已经完成，当前进入阶段 2：向量生命周期。项目已建立文档模型、稳定内容版本标识、ATX 标题解析、段落优先切分、可切换导入登记和 UTF-8 导入编排，并提供 Markdown 上传 API 与 Vue 求职面试工作台。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成。项目已建立文档模型、稳定内容版本标识、ATX 标题解析、段落优先切分、可切换导入登记和 UTF-8 导入编排，并提供 Markdown 上传 API 与 Vue 求职面试工作台；下一步进入阶段 3 的最小 RAG 检索与真实来源返回。
 
 ## 当前 Web 功能
 
 - `POST /api/knowledge/documents/import` 接收 Markdown 文件与显式逻辑来源。
+- `POST /api/knowledge/documents/rebuild` 重传已登记版本的来源与 Markdown 文件，修复缺失或残留向量。
 - `DELETE /api/knowledge/documents?source=...` 清理逻辑来源下的全部向量与版本登记。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 首页以求职面试工作台表达“求职目标 → 资料准备 → 模拟面试 → 训练复盘”的产品主线。
 - 当前可用区域支持选择或拖入简历、岗位描述和面试资料，并展示版本指纹、重复提示和 chunk 明细。
 - 默认 `local` profile 的登记仅保存在 Spring Boot 进程内且不写向量；`storage` profile 使用 MySQL 持久化登记，并通过 DashScope Embedding 将首次导入的 chunk 批量写入 Qdrant。
-- 相同来源和版本的重复导入会在向量化前短路；同一来源导入新内容时先写入新版本，再清理旧版本向量。当前尚未实现手动向量重建和 RAG 问答。
+- 相同来源和版本的重复导入会在向量化前短路；同一来源导入新内容时先写入新版本，再清理旧版本向量。已登记版本可以手动重建并收敛同来源其他版本和同版本多余 chunk；当前尚未实现 RAG 问答。
 
 ## 项目主线
 
@@ -74,7 +75,7 @@ docker compose up -d mysql qdrant
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
 ```
 
-`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。新版本成功写入后会按结构化元数据过滤删除同来源旧向量；显式删除先清理 Qdrant，再删除该来源的全部 MySQL 登记。MySQL `source` 使用 `utf8mb4_bin`，删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
+`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。新版本成功写入后会按结构化元数据过滤删除同来源旧向量；手动重建要求重传精确来源和 Markdown 文件，只允许已登记版本，写入失败时保留登记以便重试；显式删除先清理 Qdrant，再删除该来源的全部 MySQL 登记。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
 
 ## 本地验证
 

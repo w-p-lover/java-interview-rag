@@ -13,6 +13,11 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
     }
 
     @Override
+    public boolean isRegistered(MarkdownDocument document) {
+        return registeredImports.contains(new ImportKey(document.source(), document.version()));
+    }
+
+    @Override
     public boolean unregister(MarkdownDocument document) {
         return registeredImports.remove(new ImportKey(document.source(), document.version()));
     }

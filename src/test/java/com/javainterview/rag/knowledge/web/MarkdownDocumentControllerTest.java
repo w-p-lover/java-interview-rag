@@ -96,6 +96,34 @@ class MarkdownDocumentControllerTest {
                 .andExpect(jsonPath("$.imported").value(true));
     }
 
+    @Test
+    void rebuildsARegisteredMultipartMarkdownVersion() throws Exception {
+        MockMultipartFile file = markdownFile("# Java\n重建内容");
+        String source = "java/web-rebuild.md";
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(file)
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(true));
+
+        mockMvc.perform(multipart("/api/knowledge/documents/rebuild")
+                        .file(file)
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value(source))
+                .andExpect(jsonPath("$.version").isNotEmpty())
+                .andExpect(jsonPath("$.chunkCount").value(1));
+    }
+
+    @Test
+    void rejectsRebuildForAnUnregisteredMultipartMarkdownVersion() throws Exception {
+        mockMvc.perform(multipart("/api/knowledge/documents/rebuild")
+                        .file(markdownFile("# Java\n未导入"))
+                        .param("source", "java/web-missing.md"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("文档版本尚未导入，不能重建"));
+    }
+
     private MockMultipartFile markdownFile(String content) {
         return new MockMultipartFile("file", "basic.md", "text/markdown",
                 content.getBytes(StandardCharsets.UTF_8));

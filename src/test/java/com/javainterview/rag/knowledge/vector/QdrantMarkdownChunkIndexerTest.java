@@ -14,7 +14,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -80,5 +83,52 @@ class QdrantMarkdownChunkIndexerTest {
         verify(vectorStore).delete(captor.capture());
         FilterExpressionBuilder builder = new FilterExpressionBuilder();
         assertEquals(builder.eq("source", "java/basic.md").build(), captor.getValue());
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void rebuildsExpectedChunksBeforeRemovingOtherVersionsAndStaleChunkOrders() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create(
+                "java/rebuild.md", "# Java\n集合\n\n并发");
+        List<MarkdownChunk> chunks = List.of(
+                new MarkdownChunk(document.source(), 0, 0, 1, List.of("Java"), "集合"),
+                new MarkdownChunk(document.source(), 1, 0, 1, List.of("Java"), "并发")
+        );
+
+        indexer.rebuild(document, chunks);
+
+        var orderedCalls = inOrder(vectorStore);
+        orderedCalls.verify(vectorStore).add(anyList());
+        ArgumentCaptor<Filter.Expression> filters = ArgumentCaptor.forClass(Filter.Expression.class);
+        orderedCalls.verify(vectorStore, times(2)).delete(filters.capture());
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        assertEquals(builder.and(
+                builder.eq("source", document.source()),
+                builder.ne("document_version", document.version())
+        ).build(), filters.getAllValues().get(0));
+        assertEquals(builder.and(
+                builder.and(
+                        builder.eq("source", document.source()),
+                        builder.eq("document_version", document.version())
+                ),
+                builder.gte("chunk_order", chunks.size())
+        ).build(), filters.getAllValues().get(1));
+    }
+
+    @Test
+    void rebuildsAnEmptyDocumentByDeletingTheWholeSource() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/empty.md", "");
+
+        indexer.rebuild(document, List.of());
+
+        verify(vectorStore, never()).add(anyList());
+        ArgumentCaptor<Filter.Expression> filter = ArgumentCaptor.forClass(Filter.Expression.class);
+        verify(vectorStore).delete(filter.capture());
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        assertEquals(builder.eq("source", document.source()).build(), filter.getValue());
     }
 }

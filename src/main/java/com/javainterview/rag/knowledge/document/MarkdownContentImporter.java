@@ -47,6 +47,18 @@ public final class MarkdownContentImporter {
         return new MarkdownImportResult(document, true, chunks);
     }
 
+    public MarkdownRebuildResult rebuildContent(String source, String content) {
+        MarkdownDocument document = MarkdownDocument.create(source, content);
+        if (!registry.isRegistered(document)) {
+            throw new IllegalArgumentException("文档版本尚未导入，不能重建");
+        }
+
+        List<MarkdownSection> sections = headingParser.parse(document);
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        chunkIndexer.rebuild(document, chunks);
+        return new MarkdownRebuildResult(document, chunks);
+    }
+
     public boolean deleteBySource(String source) {
         Objects.requireNonNull(source, "文档来源不能为空");
         if (source.isBlank()) {

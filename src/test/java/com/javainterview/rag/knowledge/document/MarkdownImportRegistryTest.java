@@ -37,6 +37,16 @@ class MarkdownImportRegistryTest {
     }
 
     @Test
+    void findsOnlyTheRegisteredSourceAndVersion() {
+        MarkdownDocument registered = MarkdownDocument.create("java/basic.md", "已登记");
+        registry.register(registered);
+
+        assertTrue(registry.isRegistered(registered));
+        assertFalse(registry.isRegistered(MarkdownDocument.create("JAVA/basic.md", "已登记")));
+        assertFalse(registry.isRegistered(MarkdownDocument.create("java/basic.md", "新内容")));
+    }
+
+    @Test
     void removesAllVersionsForTheSameSource() {
         MarkdownDocument original = MarkdownDocument.create("java/basic.md", "原内容");
         MarkdownDocument changed = MarkdownDocument.create("java/basic.md", "新内容");
