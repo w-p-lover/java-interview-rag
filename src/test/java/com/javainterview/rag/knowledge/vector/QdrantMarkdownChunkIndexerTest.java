@@ -11,6 +11,7 @@ import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -53,6 +54,29 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(0, firstWrite.get(0).getMetadata().get("section_order"));
         assertEquals(1, firstWrite.get(0).getMetadata().get("heading_level"));
         assertEquals(List.of("Java"), firstWrite.get(0).getMetadata().get("heading_path"));
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void writesAtMostTenDocumentsPerVectorStoreCall() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/large.md", "大文档");
+        List<MarkdownChunk> chunks = IntStream.range(0, 26)
+                .mapToObj(order -> new MarkdownChunk(document.source(), order, order,
+                        1, List.of("Java"), "内容" + order))
+                .toList();
+
+        indexer.index(document, chunks);
+
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(vectorStore, times(3)).add(captor.capture());
+        assertEquals(List.of(10, 10, 6),
+                captor.getAllValues().stream().map(List::size).toList());
+        assertEquals(0, ((Document) captor.getAllValues().get(0).get(0))
+                .getMetadata().get("chunk_order"));
+        assertEquals(25, ((Document) captor.getAllValues().get(2).get(5))
+                .getMetadata().get("chunk_order"));
     }
 
     @Test

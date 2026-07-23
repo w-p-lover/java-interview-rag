@@ -15,6 +15,8 @@ import java.util.UUID;
 
 public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
 
+    private static final int EMBEDDING_BATCH_SIZE = 10;
+
     private final VectorStore vectorStore;
 
     public QdrantMarkdownChunkIndexer(VectorStore vectorStore) {
@@ -32,7 +34,10 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
         List<Document> vectorDocuments = chunks.stream()
                 .map(chunk -> toVectorDocument(document, chunk))
                 .toList();
-        vectorStore.add(vectorDocuments);
+        for (int start = 0; start < vectorDocuments.size(); start += EMBEDDING_BATCH_SIZE) {
+            int end = Math.min(start + EMBEDDING_BATCH_SIZE, vectorDocuments.size());
+            vectorStore.add(vectorDocuments.subList(start, end));
+        }
     }
 
     @Override

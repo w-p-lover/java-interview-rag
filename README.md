@@ -75,7 +75,7 @@ docker compose up -d mysql qdrant
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
 ```
 
-`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。新版本成功写入后会按结构化元数据过滤删除同来源旧向量；手动重建要求重传精确来源和 Markdown 文件，只允许已登记版本，写入失败时保留登记以便重试；显式删除先清理 Qdrant，再删除该来源的全部 MySQL 登记。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
+`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量；手动重建要求重传精确来源和 Markdown 文件，只允许已登记版本，写入失败时保留登记以便重试；显式删除先清理 Qdrant，再删除该来源的全部 MySQL 登记。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
 
 ## 本地验证
 
