@@ -6,12 +6,16 @@ interface SubmitPayload {
   source: string;
 }
 
+type ImportState = "idle" | "loading" | "success" | "duplicate" | "error";
+
 const props = defineProps<{
   busy: boolean;
   error: string;
+  status: ImportState;
 }>();
 
 const emit = defineEmits<{
+  reset: [];
   submit: [payload: SubmitPayload];
 }>();
 
@@ -21,19 +25,52 @@ const localError = shallowRef("");
 const dragActive = shallowRef(false);
 
 const visibleError = computed(() => localError.value || props.error);
+const submitLabel = computed(() => {
+  if (props.busy) {
+    return "正在检查资料";
+  }
+  if (props.status === "success") {
+    return "资料检查完成";
+  }
+  if (props.status === "duplicate") {
+    return "版本已经登记";
+  }
+  if (props.status === "error") {
+    return "修正后重新导入";
+  }
+  return "导入并检查";
+});
+
+function resetParentState(): void {
+  if (props.status !== "idle") {
+    emit("reset");
+  }
+}
 
 function selectFile(file: File | undefined): void {
-  if (!file) {
+  if (!file || props.busy) {
     return;
   }
   selectedFile.value = file;
   source.value = file.name;
   localError.value = "";
+  resetParentState();
+}
+
+function setDragActive(active: boolean): void {
+  if (!props.busy) {
+    dragActive.value = active;
+  }
 }
 
 function handleFileInput(event: Event): void {
   const input = event.target as HTMLInputElement;
   selectFile(input.files?.[0]);
+}
+
+function handleSourceInput(): void {
+  localError.value = "";
+  resetParentState();
 }
 
 function handleDrop(event: DragEvent): void {
@@ -66,21 +103,25 @@ function formatFileSize(size: number): string {
   <section class="import-panel" aria-labelledby="import-title">
     <header class="panel-heading">
       <div>
-        <span class="panel-kicker">资料准备</span>
-        <h2 id="import-title">导入简历或岗位资料</h2>
-        <p class="panel-intro">当前先完成原文导入和结构检查，后续会用它辅助面试训练。</p>
+        <h3 id="import-title">导入资料</h3>
+        <p class="panel-intro">简历、岗位描述或 Java 面试笔记均使用 Markdown。</p>
       </div>
-      <span class="available-state">当前可用</span>
+      <span class="available-state">可操作</span>
     </header>
 
     <form class="import-form" @submit.prevent="submitImport">
       <label
         class="drop-zone"
-        :class="{ 'is-dragging': dragActive, 'has-file': selectedFile }"
+        :class="{
+          'is-dragging': dragActive,
+          'has-file': selectedFile,
+          'is-disabled': busy,
+          'is-error': visibleError,
+        }"
         for="markdown-file"
-        @dragenter.prevent="dragActive = true"
-        @dragover.prevent="dragActive = true"
-        @dragleave.prevent="dragActive = false"
+        @dragenter.prevent="setDragActive(true)"
+        @dragover.prevent="setDragActive(true)"
+        @dragleave.prevent="setDragActive(false)"
         @drop.prevent="handleDrop"
       >
         <input
@@ -88,11 +129,12 @@ function formatFileSize(size: number): string {
           class="file-input"
           type="file"
           accept=".md,text/markdown,text/plain"
+          :disabled="busy"
           @change="handleFileInput"
         />
         <span class="file-mark" aria-hidden="true">MD</span>
-        <strong>{{ selectedFile ? selectedFile.name : "选择一份 Markdown 文件" }}</strong>
-        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "简历、岗位描述或面试资料" }}</span>
+        <strong>{{ selectedFile ? selectedFile.name : "选择 Markdown 文件" }}</strong>
+        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "点击选择，或拖放到这里" }}</span>
       </label>
 
       <div class="field-group">
@@ -105,229 +147,333 @@ function formatFileSize(size: number): string {
           autocomplete="off"
           placeholder="例如 resume/java-backend.md"
           :disabled="busy"
+          :aria-invalid="Boolean(visibleError)"
+          aria-describedby="source-helper"
+          @input="handleSourceInput"
         />
-        <p>使用稳定名称记录版本，不会保存本机绝对路径。</p>
+        <p id="source-helper">使用稳定名称记录版本；不会保存本机绝对路径。</p>
       </div>
 
       <div v-if="visibleError" class="error-message" role="alert">
-        <span aria-hidden="true">!</span>
+        <span aria-hidden="true">×</span>
         {{ visibleError }}
       </div>
 
-      <button class="submit-button" type="submit" :disabled="busy">
-        {{ busy ? "正在检查资料" : "导入并检查" }}
+      <button
+        class="submit-button"
+        :class="{
+          'is-success': status === 'success' || status === 'duplicate',
+          'is-error': status === 'error',
+        }"
+        type="submit"
+        :disabled="busy"
+        :aria-busy="busy"
+      >
+        <span v-if="busy" class="loading-mark" aria-hidden="true"></span>
+        {{ submitLabel }}
       </button>
     </form>
 
-    <footer class="session-note">
-      当前结果只保存在本次会话；候选人画像和模拟面试尚未接入。
-    </footer>
+    <footer class="session-note">逻辑来源与内容版本共同决定是否重复导入。</footer>
   </section>
 </template>
 
 <style scoped lang="scss">
 .import-panel {
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: var(--space-lg);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
 }
 
 .panel-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.2rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
-.panel-kicker {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--ink-muted);
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-h2 {
+h3 {
   margin: 0;
-  color: var(--ink);
-  font-size: 1.15rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 .panel-intro {
-  max-width: 34rem;
-  margin: 0.5rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.8rem;
-  line-height: 1.5;
+  max-width: 45ch;
+  margin: var(--space-xs) 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
 }
 
 .available-state {
   flex: 0 0 auto;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid var(--success-border);
-  border-radius: 0.35rem;
-  color: var(--success);
-  background: var(--success-soft);
-  font-size: 0.68rem;
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-thin) solid var(--color-success-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.import-form {
+.import-form,
+.field-group {
   display: grid;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .drop-zone {
   display: grid;
-  min-height: 10rem;
-  padding: 1.25rem;
+  min-height: 11rem;
+  padding: var(--space-lg);
   place-items: center;
   align-content: center;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface-subtle);
+  border: var(--rule-thin) dashed var(--color-rule-2);
+  border-radius: var(--radius-control);
+  outline: var(--rule-focus) solid transparent;
+  outline-offset: var(--space-3xs);
+  color: var(--color-ink);
+  background: var(--color-paper);
   text-align: center;
-  transition: border-color 160ms ease, background-color 160ms ease;
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
 }
 
-.drop-zone:hover,
 .drop-zone.is-dragging {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .drop-zone.has-file {
   border-style: solid;
 }
 
+.drop-zone:focus-within {
+  border-color: var(--color-accent);
+  outline-color: var(--color-focus);
+}
+
+.drop-zone.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.drop-zone.is-error {
+  border-color: var(--color-error);
+}
+
 .drop-zone strong {
   max-width: 100%;
-  margin-top: 0.7rem;
+  margin-top: var(--space-sm);
   overflow: hidden;
-  color: var(--ink);
-  font-size: 0.9rem;
+  color: var(--color-ink);
+  font-size: var(--text-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .drop-zone > span:last-child {
-  margin-top: 0.2rem;
-  color: var(--ink-muted);
-  font-size: 0.75rem;
+  margin-top: var(--space-2xs);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
 }
 
 .file-input {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: var(--rule-thin);
+  height: var(--rule-thin);
   overflow: hidden;
-  clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
 }
 
 .file-mark {
   display: grid;
-  width: 2.75rem;
-  height: 2.25rem;
+  width: 3rem;
+  height: 2.5rem;
   place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 0.35rem;
-  color: var(--accent);
-  background: var(--surface);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-accent);
+  background: var(--color-surface);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
 .field-group {
-  display: grid;
-  gap: 0.45rem;
+  gap: var(--space-xs);
 }
 
 .field-group label {
-  color: var(--ink);
-  font-size: 0.8rem;
+  color: var(--color-ink);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .field-group input {
   width: 100%;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--border-strong);
-  border-radius: 0.4rem;
-  color: var(--ink);
-  background: var(--surface);
+  min-height: 2.75rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  outline: var(--rule-focus) solid transparent;
+  outline-offset: var(--space-3xs);
+  color: var(--color-ink);
+  background: var(--color-surface);
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
 }
 
-.field-group input:focus {
-  border-color: var(--accent);
+.field-group input:focus-visible {
+  border-color: var(--color-ink-2);
+  outline-color: var(--color-focus);
+}
+
+.field-group input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.field-group input[aria-invalid="true"] {
+  border-color: var(--color-error);
 }
 
 .field-group p {
+  min-height: 1lh;
   margin: 0;
-  color: var(--ink-muted);
-  font-size: 0.7rem;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
 }
 
 .error-message {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid var(--danger-border);
-  border-radius: 0.4rem;
-  color: var(--danger);
-  background: var(--danger-soft);
-  font-size: 0.78rem;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-error-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-error);
+  background: var(--color-error-soft);
+  font-size: var(--text-sm);
 }
 
 .error-message span {
   display: grid;
-  width: 1.1rem;
-  height: 1.1rem;
+  width: var(--space-md);
+  height: var(--space-md);
   flex: 0 0 auto;
   place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 50%;
+  border: var(--rule-thin) solid currentColor;
+  border-radius: var(--radius-round);
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: var(--text-xs);
 }
 
 .submit-button {
-  min-height: 2.55rem;
-  padding: 0.65rem 0.9rem;
-  border: 1px solid var(--accent);
-  border-radius: 0.4rem;
-  color: #fff;
-  background: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 650;
-  transition: background-color 160ms ease, border-color 160ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--rule-thin) solid var(--color-accent);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
 }
 
-.submit-button:hover:not(:disabled) {
-  border-color: var(--accent-strong);
-  background: var(--accent-strong);
+.submit-button:active:not(:disabled) {
+  transform: translateY(var(--rule-thin));
 }
 
 .submit-button:disabled {
   cursor: wait;
-  opacity: 0.65;
+  opacity: 0.6;
+}
+
+.submit-button.is-success {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.submit-button.is-error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+
+.loading-mark {
+  width: var(--space-sm);
+  height: var(--space-sm);
+  border: var(--rule-focus) solid var(--color-accent-soft);
+  border-top-color: var(--color-accent-ink);
+  border-radius: var(--radius-round);
+  animation: loading-spin 1s linear infinite;
 }
 
 .session-note {
-  margin: 1rem 0 0;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--border);
-  color: var(--ink-muted);
-  font-size: 0.7rem;
+  margin: var(--space-md) 0 0;
+  padding-top: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-rule);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
   line-height: 1.5;
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .drop-zone:hover:not(.is-disabled) {
+    background: var(--color-accent-soft);
+  }
+
+  .field-group input:hover:not(:disabled) {
+    background: var(--color-paper-2);
+  }
+
+  .submit-button:hover:not(:disabled) {
+    background: var(--color-accent-strong);
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .import-panel {
+    padding: var(--space-md);
+  }
+
+  .panel-heading {
+    display: grid;
+  }
+
+  .available-state {
+    justify-self: start;
+  }
+
+  .drop-zone {
+    min-height: 9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark {
+    animation-duration: 1.5s !important;
+  }
 }
 </style>

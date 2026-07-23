@@ -6,6 +6,7 @@ import { resolveApiError } from "@/api/request";
 import ChunkLedger from "@/components/ChunkLedger.vue";
 import ImportPanel from "@/components/ImportPanel.vue";
 import PipelineRail from "@/components/PipelineRail.vue";
+import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 
 type WorkbenchState = "idle" | "loading" | "success" | "duplicate" | "error";
 
@@ -32,396 +33,378 @@ async function handleImport(payload: ImportPayload): Promise<void> {
     state.value = "error";
   }
 }
+
+function resetImportState(): void {
+  if (state.value === "loading") {
+    return;
+  }
+  state.value = "idle";
+  error.value = "";
+  result.value = null;
+}
 </script>
 
 <template>
-  <main class="workspace">
-    <header class="topbar">
-      <a class="brand" href="#main-content" aria-label="面试准备台首页">
-        <span class="brand-mark" aria-hidden="true">RAG</span>
-        <span class="brand-copy">
-          <strong>面试准备台</strong>
-          <small>Java 求职训练</small>
-        </span>
-      </a>
+  <WorkspaceHeader />
 
-      <nav class="primary-nav" aria-label="主导航">
-        <a class="nav-item is-current" href="#main-content" aria-current="page">准备工作</a>
-        <span class="nav-item is-muted">模拟面试</span>
-        <span class="nav-item is-muted">训练记录</span>
-      </nav>
-
-      <div class="session-state">
-        <span class="session-dot" aria-hidden="true"></span>
-        <span>当前会话</span>
-      </div>
-    </header>
-
-    <section id="main-content" class="workspace-heading" aria-labelledby="page-title">
-      <div>
-        <p class="section-label">求职准备 / 阶段 1</p>
-        <h1 id="page-title">先把简历和资料准备好</h1>
-        <p class="heading-note">
-          导入简历、岗位描述或面试资料，先完成版本和结构检查，再进入模拟面试。
+  <main id="main-content" class="workspace" tabindex="-1">
+    <section class="readiness-brief" aria-labelledby="page-title">
+      <div class="brief-copy">
+        <h1 id="page-title">把面试资料变成可检索上下文</h1>
+        <p>
+          上传简历、岗位描述或 Java 面试资料。工作台会先确认内容版本、标题路径和切片结果，再为后续 RAG 问答与模拟面试提供资料基础。
         </p>
       </div>
-      <div class="phase-summary">
-        <span class="phase-label">当前可用</span>
-        <strong>资料导入与检查</strong>
-        <small>候选人画像和面试模块将在后续接入</small>
+
+      <dl class="readiness-readout" aria-label="当前准备状态">
+        <div>
+          <dt>当前入口</dt>
+          <dd>Markdown 导入</dd>
+        </div>
+        <div>
+          <dt>检查输出</dt>
+          <dd>版本与 Chunk</dd>
+        </div>
+        <div>
+          <dt>下一阶段</dt>
+          <dd>最小 RAG 检索</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="workbench-intro" aria-labelledby="workbench-title">
+      <div>
+        <h2 id="workbench-title">资料准备工作台</h2>
+        <p>一次完成文件选择、导入处理和结果核对。</p>
+      </div>
+      <p class="workbench-status" aria-live="polite">
+        <span aria-hidden="true"></span>
+        {{ state === "loading" ? "正在处理资料" : "等待本地输入" }}
+      </p>
+    </section>
+
+    <div id="pipeline" class="pipeline-strip" tabindex="-1">
+      <PipelineRail :state="state" />
+    </div>
+
+    <section class="workbench-grid" aria-label="资料准备工作区">
+      <div id="import-workbench" class="workbench-pane" tabindex="-1">
+        <ImportPanel
+          :busy="state === 'loading'"
+          :error="error"
+          :status="state"
+          @reset="resetImportState"
+          @submit="handleImport"
+        />
+      </div>
+
+      <div id="import-result" class="workbench-pane" tabindex="-1">
+        <ChunkLedger :result="result" :state="state" />
       </div>
     </section>
 
-    <PipelineRail :state="state" />
-
-    <section class="content-grid" aria-label="资料准备工作区">
-      <div class="main-column">
-        <ImportPanel :busy="state === 'loading'" :error="error" @submit="handleImport" />
-
-        <section class="roadmap-panel" aria-labelledby="roadmap-title">
-          <header class="panel-heading compact-heading">
-            <div>
-              <span class="panel-kicker">求职训练主线</span>
-              <h2 id="roadmap-title">从资料到面试</h2>
-            </div>
-            <span class="panel-note">后续模块</span>
-          </header>
-          <ol class="roadmap-list">
-            <li class="is-available">
-              <span class="roadmap-step">1</span>
-              <span>导入简历和岗位资料</span>
-              <small>当前可用</small>
-            </li>
-            <li>
-              <span class="roadmap-step">2</span>
-              <span>确认候选人画像</span>
-              <small>待接入</small>
-            </li>
-            <li>
-              <span class="roadmap-step">3</span>
-              <span>开始模拟面试与追问</span>
-              <small>待接入</small>
-            </li>
-            <li>
-              <span class="roadmap-step">4</span>
-              <span>查看反馈和复习计划</span>
-              <small>待接入</small>
-            </li>
-          </ol>
-        </section>
+    <section
+      id="capability-boundary"
+      class="capability-boundary"
+      tabindex="-1"
+      aria-labelledby="boundary-title"
+    >
+      <div class="boundary-heading">
+        <h2 id="boundary-title">当前能力边界</h2>
+        <p>只展示已实现链路；尚未接入的模块不会生成假数据。</p>
       </div>
 
-      <div class="results-column">
-        <ChunkLedger :result="result" />
-      </div>
+      <dl class="boundary-list">
+        <div>
+          <dt>前端可操作</dt>
+          <dd>Markdown 上传、来源校验、重复提示、版本与 Chunk 检查</dd>
+        </div>
+        <div>
+          <dt>后端已具备</dt>
+          <dd>存储模式下的向量写入、更新、删除与手动重建</dd>
+        </div>
+        <div>
+          <dt>下一步开发</dt>
+          <dd>问题向量化、相似度召回、真实来源返回与知识不足兜底</dd>
+        </div>
+      </dl>
     </section>
 
     <footer class="workspace-footer">
-      <span>当前版本支持 Markdown 资料导入和结构检查</span>
-      <span>登记状态只保存在本次会话</span>
+      <strong>Java Interview RAG</strong>
+      <span aria-hidden="true">·</span>
+      <span>资料准备工作台</span>
+      <span aria-hidden="true">·</span>
+      <span>当前阶段：RAG 检索闭环</span>
     </footer>
   </main>
 </template>
 
 <style scoped lang="scss">
 .workspace {
-  width: min(100% - 3rem, 78rem);
-  margin: 0 auto;
-  padding: 1.25rem 0 2.5rem;
+  width: min(calc(100% - (var(--space-lg) * 2)), 84rem);
+  margin-inline: auto;
+  padding-block: var(--space-xl) var(--space-2xl);
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  min-height: 3.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.brand-mark {
-  display: inline-grid;
-  width: 2.5rem;
-  height: 2rem;
-  place-items: center;
-  border: 1px solid var(--accent);
-  border-radius: 0.35rem;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.brand-copy {
+.readiness-brief {
   display: grid;
-  gap: 0.05rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.75fr);
+  align-items: end;
+  gap: var(--space-2xl);
+  padding-block: var(--space-xl) var(--space-2xl);
 }
 
-.brand-copy strong {
-  font-size: 0.9rem;
-  font-weight: 650;
+.brief-copy {
+  display: grid;
+  gap: var(--space-lg);
 }
 
-.brand-copy small,
-.session-state,
-.nav-item,
-.section-label,
-.panel-kicker,
-.phase-label,
-.panel-note,
-.workspace-footer {
-  color: var(--ink-muted);
-  font-size: 0.72rem;
-}
-
-.brand-copy small {
-  font-size: 0.68rem;
-}
-
-.primary-nav {
-  display: flex;
-  gap: 1.2rem;
-  margin-left: 3rem;
-}
-
-.nav-item {
-  padding: 0.55rem 0;
-  color: var(--ink-muted);
-  text-decoration: none;
-}
-
-.nav-item.is-current {
-  color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--accent);
-}
-
-.nav-item.is-muted {
-  color: var(--ink-faint);
-}
-
-.session-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-}
-
-.session-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--success);
-}
-
-.workspace-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 2.75rem 0 1.75rem;
-}
-
-.section-label,
-.panel-kicker,
-.phase-label {
-  display: block;
-  margin: 0 0 0.55rem;
-  color: var(--accent);
-  font-weight: 650;
-}
-
-h1,
-h2 {
+.brief-copy h1 {
+  max-width: 15ch;
   margin: 0;
-  color: var(--ink);
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  font-size: var(--text-display-s);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
   text-wrap: balance;
 }
 
-h1 {
-  max-width: 34rem;
-  font-size: 2.25rem;
-  line-height: 1.14;
-}
-
-.heading-note {
-  max-width: 42rem;
-  margin: 0.8rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.92rem;
+.brief-copy p {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-base);
+  line-height: 1.65;
   text-wrap: pretty;
 }
 
-.phase-summary {
+.readiness-readout {
   display: grid;
-  min-width: 14rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  margin: 0;
+  border-top: var(--rule-thin) solid var(--color-rule-2);
 }
 
-.phase-summary strong {
-  font-size: 0.88rem;
-  font-weight: 650;
-}
-
-.phase-summary small {
-  margin-top: 0.3rem;
-  color: var(--ink-muted);
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-
-.content-grid {
+.readiness-readout div {
   display: grid;
-  grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.15fr);
-  align-items: start;
-  gap: 1rem;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: var(--space-md);
+  padding-block: var(--space-sm);
+  border-bottom: var(--rule-thin) solid var(--color-rule);
 }
 
-.main-column,
-.results-column {
-  display: grid;
-  gap: 1rem;
-  min-width: 0;
+.readiness-readout dt,
+.readiness-readout dd {
+  margin: 0;
 }
 
-.roadmap-panel {
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+.readiness-readout dt {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
 
-.panel-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.15rem;
-}
-
-.compact-heading {
-  margin-bottom: 0.85rem;
-}
-
-.panel-kicker {
-  margin-bottom: 0.25rem;
-  color: var(--ink-muted);
-  font-size: 0.68rem;
+.readiness-readout dd {
+  color: var(--color-ink);
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 
-.panel-note {
-  padding-top: 0.15rem;
+.workbench-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.workbench-intro > div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.workbench-intro h2,
+.capability-boundary h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.workbench-intro p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.workbench-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
   white-space: nowrap;
 }
 
-h2 {
-  font-size: 1.15rem;
-  line-height: 1.3;
+.workbench-status span {
+  width: var(--space-xs);
+  height: var(--space-xs);
+  border-radius: var(--radius-round);
+  background: var(--color-accent);
 }
 
-.roadmap-list {
+.workbench-grid {
   display: grid;
-  gap: 0.1rem;
+  grid-template-columns: minmax(18rem, 0.82fr) minmax(22rem, 1.18fr);
+  align-items: start;
+  gap: var(--space-lg);
+  padding-block: var(--space-lg) var(--space-3xl);
+}
+
+.workbench-pane,
+.pipeline-strip {
+  min-width: 0;
+  scroll-margin-top: calc(var(--space-3xl) + var(--space-md));
+}
+
+.capability-boundary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-2xl);
+  padding: var(--space-2xl);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: calc(var(--radius-surface) * 1.35);
+  scroll-margin-top: calc(var(--space-3xl) + var(--space-md));
+  color: var(--color-ink);
+  background: var(--color-paper-2);
+  box-shadow: var(--shadow-whisper);
+}
+
+.boundary-heading {
+  display: grid;
+  align-content: start;
+  gap: var(--space-md);
+}
+
+.boundary-heading p {
+  max-width: 45ch;
   margin: 0;
-  padding: 0;
-  list-style: none;
+  color: var(--color-muted);
+  line-height: 1.6;
 }
 
-.roadmap-list li {
+.boundary-list {
   display: grid;
-  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 2.35rem;
-  color: var(--ink-muted);
-  font-size: 0.82rem;
+  margin: 0;
+  border-top: var(--rule-thin) solid var(--color-rule-2);
 }
 
-.roadmap-list li.is-available {
-  color: var(--ink);
-  font-weight: 600;
+.boundary-list div {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: var(--space-lg);
+  padding-block: var(--space-md);
+  border-bottom: var(--rule-thin) solid var(--color-rule);
 }
 
-.roadmap-step {
-  display: inline-grid;
-  width: 1.35rem;
-  height: 1.35rem;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  color: var(--ink-muted);
+.boundary-list dt,
+.boundary-list dd {
+  margin: 0;
+}
+
+.boundary-list dt {
+  color: var(--color-accent);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-xs);
 }
 
-.is-available .roadmap-step {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.roadmap-list small {
-  color: var(--ink-faint);
-  font-size: 0.68rem;
+.boundary-list dd {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+  line-height: 1.6;
 }
 
 .workspace-footer {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-top: 1.25rem;
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-top: var(--space-lg);
+  border-top: var(--rule-thin) solid var(--color-rule);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
 }
 
-@media (max-width: 820px) {
-  .workspace-heading {
-    display: grid;
-    gap: 1.25rem;
+.workspace-footer strong {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+@media (max-width: 52rem) {
+  .readiness-brief,
+  .capability-boundary {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .phase-summary {
-    min-width: 0;
+  .readiness-brief {
+    gap: var(--space-xl);
   }
 
-  .content-grid {
-    grid-template-columns: 1fr;
+  .workbench-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .capability-boundary {
+    gap: var(--space-xl);
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 39.99rem) {
   .workspace {
-    width: min(100% - 1.5rem, 78rem);
-    padding-top: 0.75rem;
+    width: calc(100% - (var(--space-md) * 2));
+    padding-block: var(--space-lg) var(--space-xl);
   }
 
-  .primary-nav {
-    display: none;
+  .readiness-brief {
+    padding-block: var(--space-lg) var(--space-xl);
   }
 
-  .workspace-heading {
-    padding: 2.25rem 0 1.5rem;
+  .brief-copy h1 {
+    max-width: 18ch;
+    font-size: clamp(2rem, 11vw, 2.75rem);
   }
 
-  h1 {
-    font-size: 1.8rem;
+  .workbench-intro {
+    display: grid;
+    align-items: start;
+  }
+
+  .workbench-grid {
+    padding-bottom: var(--space-2xl);
+  }
+
+  .capability-boundary {
+    padding: var(--space-xl) var(--space-md);
+    border-radius: var(--radius-surface);
+  }
+
+  .boundary-list div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xs);
   }
 
   .workspace-footer {
-    flex-direction: column;
+    display: grid;
+    justify-items: start;
+    gap: var(--space-xs);
+    white-space: normal;
+  }
+
+  .workspace-footer > span[aria-hidden="true"] {
+    display: none;
   }
 }
 </style>

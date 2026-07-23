@@ -1,0 +1,89 @@
+/* Hallmark · macrostructure: Workbench · genre: modern-minimal · theme: Coral · tone: soft + utilitarian · anchor hue: coral · nav: N13 · footer: Ft2
+ * Hallmark · pre-emit critique: P5 H5 E4 S5 R5 V5
+ * Hallmark · contrast: pass (40–41) · nav: N13 · footer: Ft2 · slop: pass (42–45)
+ * Hallmark · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49)
+ * Hallmark · mobile: pass (34, 49, 50–57) · icons: pass (30) · slop test: 58/58
+ * Audience: 有后端经验、准备 Java 岗位面试的求职者 · Use: 导入资料并确认面试准备状态
+ */
+:root {
+  color-scheme: light;
+
+  --color-paper: oklch(97.5% 0.008 62);
+  --color-paper-2: oklch(94.5% 0.012 62);
+  --color-paper-3: oklch(91.5% 0.016 62);
+  --color-surface: oklch(99% 0.005 62);
+  --color-ink: oklch(25% 0.018 48);
+  --color-ink-2: oklch(34% 0.016 48);
+  --color-muted: oklch(43% 0.014 48);
+  --color-faint: oklch(52% 0.012 48);
+  --color-rule: oklch(88% 0.014 62);
+  --color-rule-2: oklch(79% 0.022 62);
+  --color-accent: oklch(55% 0.145 29);
+  --color-accent-strong: oklch(47% 0.14 29);
+  --color-accent-soft: oklch(94% 0.028 29);
+  --color-accent-ink: oklch(98% 0.008 62);
+  --color-focus: oklch(48% 0.15 29);
+  --color-graphite: oklch(25% 0.018 48);
+  --color-graphite-2: oklch(32% 0.018 48);
+  --color-graphite-text: oklch(96% 0.008 62);
+  --color-graphite-muted: oklch(76% 0.014 62);
+  --color-success: oklch(42% 0.12 158);
+  --color-success-soft: oklch(95% 0.025 158);
+  --color-success-rule: oklch(79% 0.055 158);
+  --color-warning: oklch(47% 0.1 82);
+  --color-warning-soft: oklch(96% 0.03 82);
+  --color-warning-rule: oklch(82% 0.065 82);
+  --color-error: oklch(47% 0.16 27);
+  --color-error-soft: oklch(96% 0.025 27);
+  --color-error-rule: oklch(80% 0.07 27);
+  --color-overlay: oklch(18% 0.018 48 / 0.42);
+  --color-shadow: oklch(24% 0.02 48 / 0.1);
+
+  --font-display: "Geist", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Geist", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 9rem;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.9531rem;
+  --text-2xl: 2.4414rem;
+  --text-3xl: 3.0518rem;
+  --text-display-s: clamp(2rem, 4vw + 0.5rem, 3.25rem);
+  --text-display: clamp(2.25rem, 4.5vw + 0.5rem, 4rem);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --rule-thin: 1px;
+  --rule-focus: 2px;
+  --radius-control: 0.75rem;
+  --radius-surface: 1.125rem;
+  --radius-round: 50%;
+  --shadow-whisper: 0 1px 2px var(--color-shadow);
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+}

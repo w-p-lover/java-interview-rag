@@ -7,14 +7,14 @@
 }
 
 html {
-  min-width: 320px;
+  overflow-x: clip;
   background: var(--page);
 }
 
 body {
-  min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
+  overflow-x: clip;
   color: var(--ink);
   background: var(--page);
   font-family: var(--font-ui);
@@ -31,6 +31,17 @@ button {
   color: inherit;
 }
 
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+button:active,
+a:active {
+  transform: translateY(var(--rule-thin));
+}
+
 button,
 label,
 input[type="file"] {
@@ -41,13 +52,22 @@ button:focus-visible,
 input:focus-visible,
 a:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  outline-offset: 2px;
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--space-2xs);
 }
 
 ::selection {
-  color: #fff;
+  color: var(--color-accent-ink);
   background: var(--accent);
+}
+
+h1,
+h2,
+h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-display);
+  font-style: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -58,5 +78,10 @@ a:focus-visible,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  button,
+  a {
+    transform: none !important;
   }
 }

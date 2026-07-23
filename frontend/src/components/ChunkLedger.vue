@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import type { MarkdownImportResponse } from "@/api/knowledge";
 
+type ImportState = "idle" | "loading" | "success" | "duplicate" | "error";
+
 defineProps<{
   result: MarkdownImportResponse | null;
+  state: ImportState;
 }>();
 </script>
 
@@ -10,16 +13,28 @@ defineProps<{
   <section class="ledger" aria-labelledby="ledger-title" aria-live="polite">
     <header class="panel-heading">
       <div>
-        <span class="panel-kicker">资料检查</span>
-        <h2 id="ledger-title">导入结果</h2>
+        <h3 id="ledger-title">导入结果</h3>
+        <p>核对稳定来源、内容版本与标题路径。</p>
       </div>
       <span v-if="result" class="chunk-count">{{ result.chunkCount }} 个切片</span>
     </header>
 
-    <div v-if="!result" class="empty-ledger">
-      <span class="empty-symbol" aria-hidden="true">--</span>
+    <div v-if="state === 'loading'" class="empty-ledger is-loading">
+      <span class="empty-symbol" aria-hidden="true">···</span>
+      <strong>正在解析资料</strong>
+      <p>后端正在计算内容版本、解析标题并生成切片。</p>
+    </div>
+
+    <div v-else-if="state === 'error' && !result" class="empty-ledger is-error">
+      <span class="empty-symbol" aria-hidden="true">×</span>
+      <strong>本次没有生成结果</strong>
+      <p>根据左侧提示修正文件或来源，然后重新导入。</p>
+    </div>
+
+    <div v-else-if="!result" class="empty-ledger">
+      <span class="empty-symbol" aria-hidden="true">—</span>
       <strong>等待导入资料</strong>
-      <p>导入后，这里会显示版本状态、标题结构和可供后续训练引用的切片。</p>
+      <p>完成导入后，这里会显示版本状态、标题结构和切片正文。</p>
     </div>
 
     <template v-else>
@@ -35,7 +50,7 @@ defineProps<{
       </div>
 
       <div v-if="!result.imported" class="status-note is-warning">
-        这份资料的来源和内容版本已经登记，本次没有重复生成切片。
+        来源和内容版本已经登记；本次没有重复生成切片。
       </div>
 
       <div v-else-if="result.chunks.length === 0" class="status-note">
@@ -61,210 +76,245 @@ defineProps<{
 <style scoped lang="scss">
 .ledger {
   min-width: 0;
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: var(--space-lg);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
 }
 
 .panel-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.15rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
-.panel-kicker {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--ink-muted);
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-h2 {
+.panel-heading h3 {
   margin: 0;
-  color: var(--ink);
-  font-size: 1.15rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.panel-heading p {
+  margin: var(--space-xs) 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
 
 .chunk-count {
-  padding: 0.25rem 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 0.35rem;
-  color: var(--ink-muted);
-  font-size: 0.7rem;
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   white-space: nowrap;
 }
 
 .empty-ledger {
   display: grid;
-  min-height: 19rem;
+  min-height: 22rem;
   place-items: center;
   align-content: center;
-  padding: 2rem;
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface-subtle);
+  padding: var(--space-xl);
+  border: var(--rule-thin) dashed var(--color-rule-2);
+  border-radius: var(--radius-control);
+  background: var(--color-paper);
   text-align: center;
 }
 
 .empty-symbol {
-  color: var(--ink-faint);
+  color: var(--color-faint);
   font-family: var(--font-mono);
-  font-size: 1.6rem;
+  font-size: var(--text-xl);
 }
 
 .empty-ledger strong {
-  margin-top: 0.75rem;
-  color: var(--ink);
-  font-size: 0.92rem;
-  font-weight: 650;
+  margin-top: var(--space-sm);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 .empty-ledger p {
-  max-width: 24rem;
-  margin: 0.45rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.78rem;
+  max-width: 45ch;
+  margin: var(--space-xs) 0 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
   line-height: 1.55;
+}
+
+.empty-ledger.is-loading {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.empty-ledger.is-loading .empty-symbol {
+  color: var(--color-accent);
+  animation: loading-pulse 1.2s var(--ease-in-out) infinite;
+}
+
+.empty-ledger.is-error {
+  border-color: var(--color-error-rule);
+  background: var(--color-error-soft);
+}
+
+.empty-ledger.is-error .empty-symbol,
+.empty-ledger.is-error strong {
+  color: var(--color-error);
 }
 
 .document-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 0.9fr);
-  gap: 1rem;
-  margin-bottom: 0.9rem;
-  padding: 0.85rem;
-  border: 1px solid var(--success-border);
-  border-radius: 0.4rem;
-  background: var(--success-soft);
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  padding-block: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-success-rule);
+  border-bottom: var(--rule-thin) solid var(--color-success-rule);
+  background: var(--color-success-soft);
 }
 
 .document-summary.is-duplicate {
-  border-color: var(--warning-border);
-  background: var(--warning-soft);
+  border-color: var(--color-warning-rule);
+  background: var(--color-warning-soft);
 }
 
 .summary-source,
 .version-summary {
   display: grid;
   min-width: 0;
-  gap: 0.25rem;
+  gap: var(--space-2xs);
+  padding-inline: var(--space-sm);
 }
 
 .summary-label {
-  color: var(--ink-muted);
-  font-size: 0.68rem;
-  font-weight: 600;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.summary-source strong,
+.version-summary code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-source strong {
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 0.82rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-ink);
+  font-size: var(--text-sm);
 }
 
 .version-summary code {
-  overflow: hidden;
-  color: var(--ink-muted);
+  color: var(--color-muted);
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--text-xs);
 }
 
 .status-note {
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  color: var(--ink-muted);
-  background: var(--surface-subtle);
-  font-size: 0.78rem;
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  background: var(--color-paper-2);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
 .status-note.is-warning {
-  border-color: var(--warning-border);
-  color: var(--warning);
-  background: var(--warning-soft);
+  border-color: var(--color-warning-rule);
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
 }
 
 .chunk-list {
   display: grid;
-  max-height: 39rem;
+  max-height: 42rem;
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  border-top: var(--rule-thin) solid var(--color-rule-2);
   list-style: none;
 }
 
 .chunk-row {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-bottom: 0;
-  background: var(--surface);
-}
-
-.chunk-row:first-child {
-  border-radius: 0.4rem 0.4rem 0 0;
-}
-
-.chunk-row:last-child {
-  border-bottom: 1px solid var(--border);
-  border-radius: 0 0 0.4rem 0.4rem;
+  min-width: 0;
+  border-bottom: var(--rule-thin) solid var(--color-rule-2);
 }
 
 .chunk-row header {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.65rem;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--border);
-  color: var(--ink-muted);
-  font-size: 0.68rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  color: var(--color-muted);
+  background: var(--color-paper);
+  font-size: var(--text-xs);
 }
 
 .chunk-order {
-  color: var(--accent);
+  color: var(--color-accent);
   font-family: var(--font-mono);
-  font-weight: 650;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .heading-path {
   overflow: hidden;
-  color: var(--ink);
+  color: var(--color-ink);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .section-order {
-  color: var(--ink-muted);
   white-space: nowrap;
 }
 
 .chunk-row pre {
   margin: 0;
-  padding: 0.85rem;
+  padding: var(--space-sm);
   overflow-x: auto;
-  color: var(--code-text);
-  background: var(--code-bg);
+  color: var(--color-ink-2);
+  background: var(--color-paper-2);
   font-family: var(--font-mono);
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 620px) {
+@keyframes loading-pulse {
+  50% { opacity: 0.45; }
+}
+
+@media (max-width: 39.99rem) {
+  .ledger {
+    padding: var(--space-md);
+  }
+
+  .panel-heading {
+    display: grid;
+  }
+
+  .chunk-count {
+    justify-self: start;
+  }
+
+  .empty-ledger {
+    min-height: 16rem;
+    padding: var(--space-lg);
+  }
+
   .document-summary {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .chunk-row header {
@@ -273,6 +323,12 @@ h2 {
 
   .section-order {
     grid-column: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-ledger.is-loading .empty-symbol {
+    animation: none;
   }
 }
 </style>

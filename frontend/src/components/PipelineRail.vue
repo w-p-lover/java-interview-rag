@@ -6,163 +6,202 @@ const props = defineProps<{
 }>();
 
 const steps = [
-  { key: "goal", label: "求职目标", note: "先确定方向" },
-  { key: "materials", label: "资料准备", note: "简历和岗位资料" },
-  { key: "interview", label: "模拟面试", note: "提问与追问" },
-  { key: "review", label: "训练复盘", note: "反馈与复习" },
+  { key: "select", label: "选择文件", note: "Markdown 与逻辑来源" },
+  { key: "version", label: "版本判定", note: "来源 + 内容指纹" },
+  { key: "parse", label: "标题解析", note: "保留标题层级与顺序" },
+  { key: "chunk", label: "生成切片", note: "返回可追踪 Chunk" },
 ] as const;
 
 function stepClass(index: number): string[] {
-  if (props.state === "success" || props.state === "duplicate") {
-    return index === 1 ? ["is-complete"] : index === 2 ? ["is-current"] : [];
+  if (props.state === "success") {
+    return ["is-complete"];
+  }
+  if (props.state === "duplicate") {
+    return index < 2 ? ["is-complete"] : ["is-skipped"];
+  }
+  if (props.state === "loading") {
+    return index === 0 ? ["is-complete"] : ["is-processing"];
   }
   if (props.state === "error") {
-    return index === 1 ? ["is-error"] : [];
+    return index === 0 ? ["is-complete"] : ["is-skipped"];
   }
-  return index === 1 ? ["is-current"] : [];
+  return index === 0 ? ["is-current"] : [];
+}
+
+function isCurrent(index: number): boolean {
+  return index === 0 && props.state === "idle";
+}
+
+function statusCopy(): string {
+  if (props.state === "loading") return "后端处理中";
+  if (props.state === "success") return "处理完成";
+  if (props.state === "duplicate") return "重复版本已短路";
+  if (props.state === "error") return "处理未完成";
+  return "等待文件";
 }
 </script>
 
 <template>
-  <ol class="workflow-steps" aria-label="求职训练阶段">
-    <li v-for="(step, index) in steps" :key="step.key" :class="stepClass(index)">
-      <span class="step-node">{{ index + 1 }}</span>
-      <span class="step-copy">
-        <strong>{{ step.label }}</strong>
-        <small>{{ step.note }}</small>
-      </span>
-    </li>
-  </ol>
+  <section class="pipeline" aria-labelledby="pipeline-title">
+    <header>
+      <h3 id="pipeline-title">本次导入链路</h3>
+      <p>{{ statusCopy() }}</p>
+    </header>
+
+    <ol class="workflow-steps" aria-label="求职训练阶段">
+      <li
+        v-for="(step, index) in steps"
+        :key="step.key"
+        :class="stepClass(index)"
+        :aria-current="isCurrent(index) ? 'step' : undefined"
+      >
+        <span class="step-node">{{ String(index + 1).padStart(2, "0") }}</span>
+        <span class="step-copy">
+          <strong>{{ step.label }}</strong>
+          <small>{{ step.note }}</small>
+        </span>
+      </li>
+    </ol>
+  </section>
 </template>
 
 <style scoped lang="scss">
+.pipeline {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  align-items: end;
+  gap: var(--space-xl);
+  padding-block: var(--space-md);
+  border-top: var(--rule-thin) solid var(--color-rule-2);
+  border-bottom: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.pipeline > header {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.pipeline h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.pipeline header p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
 .workflow-steps {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
-  margin: 0 0 1.5rem;
+  margin: 0;
   padding: 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
   list-style: none;
 }
 
 .workflow-steps li {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 0.75rem 0.75rem 0.75rem 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .workflow-steps li + li {
-  margin-left: 0.75rem;
-  padding-left: 0.75rem;
-  border-left: 1px solid var(--border);
+  border-left: var(--rule-thin) solid var(--color-rule);
 }
 
 .step-node {
-  display: inline-grid;
-  width: 1.5rem;
-  height: 1.5rem;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  color: var(--ink-muted);
+  color: var(--color-muted);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
 }
 
 .step-copy {
   display: grid;
   min-width: 0;
+  gap: var(--space-2xs);
 }
 
 .step-copy strong {
-  overflow: hidden;
-  color: var(--ink-muted);
-  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .step-copy small {
-  overflow: hidden;
-  color: var(--ink-faint);
-  font-size: 0.66rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--color-faint);
+  font-size: var(--text-xs);
+  line-height: 1.45;
 }
 
-.workflow-steps li.is-current::after {
+.workflow-steps li.is-current::before,
+.workflow-steps li.is-complete::before,
+.workflow-steps li.is-error::before {
   position: absolute;
-  right: 0.75rem;
-  bottom: -1px;
-  left: 0;
-  height: 2px;
-  background: var(--accent);
+  inset: auto var(--space-sm) calc(var(--rule-thin) * -1);
+  height: var(--rule-focus);
+  background: var(--color-accent);
   content: "";
 }
 
-.is-current .step-node {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
+.is-current .step-node,
 .is-current .step-copy strong {
-  color: var(--ink);
+  color: var(--color-accent);
 }
 
-.workflow-steps li.is-complete {
-  color: var(--success);
+.workflow-steps li.is-complete::before {
+  background: var(--color-success);
 }
 
-.is-complete .step-node {
-  border-color: var(--success);
-  color: var(--success);
-}
-
+.is-complete .step-node,
 .is-complete .step-copy strong {
-  color: var(--success);
+  color: var(--color-success);
 }
 
-.workflow-steps li.is-error {
-  color: var(--danger);
+.workflow-steps li.is-error::before {
+  background: var(--color-error);
 }
 
 .is-error .step-node,
 .is-error .step-copy strong {
-  color: var(--danger);
+  color: var(--color-error);
 }
 
-@media (max-width: 720px) {
+.is-skipped,
+.is-processing {
+  opacity: 0.72;
+}
+
+@media (max-width: 52rem) {
+  .pipeline {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-md);
+  }
+}
+
+@media (max-width: 39.99rem) {
   .workflow-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    display: grid;
-    gap: 0.5rem;
-    border: 0;
   }
 
-  .workflow-steps li,
   .workflow-steps li + li {
-    margin: 0;
-    padding: 0.65rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-left: 0;
   }
 
-  .workflow-steps li.is-current::after {
-    right: 0;
-    bottom: 0;
-    left: 0;
-  }
-}
-
-@media (max-width: 420px) {
-  .workflow-steps {
-    grid-template-columns: 1fr;
+  .workflow-steps li:nth-child(even) {
+    border-left: var(--rule-thin) solid var(--color-rule);
   }
 }
 </style>

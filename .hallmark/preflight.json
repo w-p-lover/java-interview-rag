@@ -1,0 +1,33 @@
+{
+  "lastScan": "2026-07-23T11:30:00+08:00",
+  "packageMtime": "2026-07-21T10:59:14.528219+08:00",
+  "designSystem": "frontend/tokens.css",
+  "framework": {
+    "name": "Vue",
+    "version": "3.5.40",
+    "buildTool": "Vite 8.1.5",
+    "language": "TypeScript",
+    "styles": "Sass"
+  },
+  "fonts": {
+    "ui": "Geist, PingFang SC, Microsoft YaHei, sans-serif",
+    "mono": "JetBrains Mono, SFMono-Regular, monospace",
+    "externalFonts": true
+  },
+  "palette": {
+    "format": "OKLCH CSS custom properties",
+    "paper": "warm light grey",
+    "accent": "restrained coral",
+    "preserveByDefault": true
+  },
+  "motion": {
+    "library": null,
+    "stance": "motion-cut",
+    "existingTransitions": "command palette fade, drag feedback and functional loading only"
+  },
+  "spacing": {
+    "tokenScale": true,
+    "existingPattern": "4pt semantic token scale"
+  },
+  "hallmarkHistory": true
+}
