@@ -8,6 +8,10 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocumentVersionEntity> {
 
-    @Delete("DELETE FROM t_knowledge_document_version WHERE source = #{source} AND version = #{version}")
+    @Delete("DELETE FROM t_knowledge_document_version "
+            + "WHERE BINARY source = BINARY #{source} AND version = #{version}")
     int deleteBySourceAndVersion(@Param("source") String source, @Param("version") String version);
+
+    @Delete("DELETE FROM t_knowledge_document_version WHERE BINARY source = BINARY #{source}")
+    int deleteBySource(@Param("source") String source);
 }

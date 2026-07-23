@@ -35,4 +35,19 @@ class MarkdownImportRegistryTest {
         assertTrue(registry.register(basic));
         assertTrue(registry.register(collection));
     }
+
+    @Test
+    void removesAllVersionsForTheSameSource() {
+        MarkdownDocument original = MarkdownDocument.create("java/basic.md", "原内容");
+        MarkdownDocument changed = MarkdownDocument.create("java/basic.md", "新内容");
+        MarkdownDocument otherSource = MarkdownDocument.create("JAVA/BASIC.md", "其他内容");
+        registry.register(original);
+        registry.register(changed);
+        registry.register(otherSource);
+
+        assertTrue(registry.unregisterBySource("java/basic.md"));
+        assertTrue(registry.register(original));
+        assertTrue(registry.register(changed));
+        assertFalse(registry.register(otherSource));
+    }
 }

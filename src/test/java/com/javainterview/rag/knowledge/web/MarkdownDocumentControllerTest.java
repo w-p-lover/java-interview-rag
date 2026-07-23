@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,6 +61,39 @@ class MarkdownDocumentControllerTest {
                         .param("source", " "))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("文档来源不能为空"));
+
+        mockMvc.perform(delete("/api/knowledge/documents")
+                        .param("source", " "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("文档来源不能为空"));
+
+        mockMvc.perform(delete("/api/knowledge/documents")
+                        .param("source", "java/basic.md "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("文档来源不能包含首尾空白"));
+    }
+
+    @Test
+    void deletesTheDocumentSourceAndAllowsItToBeImportedAgain() throws Exception {
+        MockMultipartFile file = markdownFile("# Java\n删除后重试");
+        String source = "java/web-delete.md";
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(file)
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(true));
+
+        mockMvc.perform(delete("/api/knowledge/documents")
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value(source))
+                .andExpect(jsonPath("$.deleted").value(true));
+
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(file)
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(true));
     }
 
     private MockMultipartFile markdownFile(String content) {

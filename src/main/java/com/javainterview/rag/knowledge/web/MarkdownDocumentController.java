@@ -4,6 +4,7 @@ import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +33,11 @@ public class MarkdownDocumentController {
         String content = new String(file.getBytes(), StandardCharsets.UTF_8);
         MarkdownImportResult result = contentImporter.importContent(source, content);
         return MarkdownImportResponse.from(result);
+    }
+
+    @DeleteMapping
+    public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
+        return new MarkdownDeleteResponse(source, contentImporter.deleteBySource(source));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

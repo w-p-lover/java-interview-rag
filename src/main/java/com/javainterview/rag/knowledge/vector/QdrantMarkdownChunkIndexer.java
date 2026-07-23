@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -32,6 +33,23 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
                 .map(chunk -> toVectorDocument(document, chunk))
                 .toList();
         vectorStore.add(vectorDocuments);
+    }
+
+    @Override
+    public void deleteOtherVersions(MarkdownDocument document) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        vectorStore.delete(builder.and(
+                builder.eq("source", document.source()),
+                builder.ne("document_version", document.version())
+        ).build());
+    }
+
+    @Override
+    public void deleteBySource(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        vectorStore.delete(builder.eq("source", source).build());
     }
 
     private Document toVectorDocument(MarkdownDocument document, MarkdownChunk chunk) {

@@ -23,6 +23,9 @@ public final class MarkdownDocument {
         if (source.isBlank()) {
             throw new IllegalArgumentException("文档来源不能为空");
         }
+        if (!source.equals(source.strip())) {
+            throw new IllegalArgumentException("文档来源不能包含首尾空白");
+        }
         Objects.requireNonNull(content, "文档内容不能为空");
 
         return new MarkdownDocument(source, content, calculateVersion(content));

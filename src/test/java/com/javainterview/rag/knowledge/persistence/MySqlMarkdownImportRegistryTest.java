@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.persistence;
 
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import org.apache.ibatis.annotations.Delete;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DuplicateKeyException;
@@ -59,5 +60,30 @@ class MySqlMarkdownImportRegistryTest {
         assertTrue(registry.unregister(document));
 
         verify(mapper).deleteBySourceAndVersion(document.source(), document.version());
+    }
+
+    @Test
+    void removesAllVersionsForTheSameSource() {
+        when(mapper.deleteBySource("resume/backend.md")).thenReturn(2);
+
+        assertTrue(registry.unregisterBySource("resume/backend.md"));
+
+        verify(mapper).deleteBySource("resume/backend.md");
+    }
+
+    @Test
+    void usesExactSourceMatchingForDeleteStatements() throws NoSuchMethodException {
+        Delete versionDelete = KnowledgeDocumentVersionMapper.class
+                .getMethod("deleteBySourceAndVersion", String.class, String.class)
+                .getAnnotation(Delete.class);
+        Delete sourceDelete = KnowledgeDocumentVersionMapper.class
+                .getMethod("deleteBySource", String.class)
+                .getAnnotation(Delete.class);
+
+        assertEquals("DELETE FROM t_knowledge_document_version "
+                + "WHERE BINARY source = BINARY #{source} AND version = #{version}",
+                versionDelete.value()[0]);
+        assertEquals("DELETE FROM t_knowledge_document_version "
+                + "WHERE BINARY source = BINARY #{source}", sourceDelete.value()[0]);
     }
 }

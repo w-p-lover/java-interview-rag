@@ -35,6 +35,7 @@ public final class MarkdownContentImporter {
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         try {
             chunkIndexer.index(document, chunks);
+            chunkIndexer.deleteOtherVersions(document);
         } catch (RuntimeException exception) {
             try {
                 registry.unregister(document);
@@ -44,5 +45,17 @@ public final class MarkdownContentImporter {
             throw exception;
         }
         return new MarkdownImportResult(document, true, chunks);
+    }
+
+    public boolean deleteBySource(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        if (source.isBlank()) {
+            throw new IllegalArgumentException("文档来源不能为空");
+        }
+        if (!source.equals(source.strip())) {
+            throw new IllegalArgumentException("文档来源不能包含首尾空白");
+        }
+        chunkIndexer.deleteBySource(source);
+        return registry.unregisterBySource(source);
     }
 }

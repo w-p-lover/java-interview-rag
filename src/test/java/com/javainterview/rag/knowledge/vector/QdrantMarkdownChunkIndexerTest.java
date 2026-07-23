@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.util.List;
 import java.util.UUID;
@@ -48,5 +50,35 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(0, firstWrite.get(0).getMetadata().get("section_order"));
         assertEquals(1, firstWrite.get(0).getMetadata().get("heading_level"));
         assertEquals(List.of("Java"), firstWrite.get(0).getMetadata().get("heading_path"));
+    }
+
+    @Test
+    void deletesOtherVersionsForTheSameSourceWithAStructuredFilter() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/basic.md", "# Java\n集合");
+
+        indexer.deleteOtherVersions(document);
+
+        ArgumentCaptor<Filter.Expression> captor = ArgumentCaptor.forClass(Filter.Expression.class);
+        verify(vectorStore).delete(captor.capture());
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        assertEquals(builder.and(
+                builder.eq("source", document.source()),
+                builder.ne("document_version", document.version())
+        ).build(), captor.getValue());
+    }
+
+    @Test
+    void deletesAllVectorsForTheSameSourceWithAStructuredFilter() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+
+        indexer.deleteBySource("java/basic.md");
+
+        ArgumentCaptor<Filter.Expression> captor = ArgumentCaptor.forClass(Filter.Expression.class);
+        verify(vectorStore).delete(captor.capture());
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        assertEquals(builder.eq("source", "java/basic.md").build(), captor.getValue());
     }
 }

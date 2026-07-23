@@ -31,4 +31,10 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
         Objects.requireNonNull(document, "Markdown 文档不能为空");
         return mapper.deleteBySourceAndVersion(document.source(), document.version()) == 1;
     }
+
+    @Override
+    public boolean unregisterBySource(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        return mapper.deleteBySource(source) > 0;
+    }
 }

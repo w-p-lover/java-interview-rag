@@ -37,6 +37,10 @@ class MarkdownDocumentTest {
     @Test
     void rejectsInvalidDocumentInput() {
         assertThrows(IllegalArgumentException.class, () -> MarkdownDocument.create(" ", "内容"));
+        assertThrows(IllegalArgumentException.class,
+                () -> MarkdownDocument.create(" java/basic.md", "内容"));
+        assertThrows(IllegalArgumentException.class,
+                () -> MarkdownDocument.create("java/basic.md ", "内容"));
         assertThrows(NullPointerException.class, () -> MarkdownDocument.create("java/basic.md", null));
     }
 }
