@@ -32,7 +32,7 @@ spring:
       api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}
       chat:
         options:
-          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen-plus}
+          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-plus}
           temperature: 0.2
       embedding:
         options:
