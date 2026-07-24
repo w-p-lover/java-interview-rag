@@ -11,6 +11,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `DELETE /api/knowledge/documents?source=...` 清理逻辑来源下的全部向量与版本登记。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
 - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
+- `GET /api/knowledge/retrieval-logs?limit=20` 在执行日志迁移后的 `storage` profile 下查询最近 RAG 召回记录，最多返回 100 条。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 首页使用 Hallmark Workbench 结构表达求职面试产品主线，采用柔和的暖灰与珊瑚信号色，不伪造未实现模块的数据。
@@ -83,6 +84,8 @@ docker compose up -d mysql qdrant
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 
 回答接口启用 DashScope Chat 自动装配，默认使用 `qwen-plus` 与 `0.2` 温度。它固定检索前 5 条且相似度不低于 `0.60` 的资料，将每条资料编号并要求模型只根据资料回答；没有可靠来源或模型返回空内容时，统一返回“知识库中没有足够可靠的资料回答这个问题。”。实际模型调用会产生额度消耗，本轮只验证了装配、路由和模拟调用分支，未发起真实生成请求。
+
+阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`；未执行该脚本时，日志写入失败只会告警且不影响回答，但日志查询接口不能使用。
 
 ## 本地验证
 
