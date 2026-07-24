@@ -6,7 +6,6 @@ spring:
       - optional:file:D:/IdeaProjects/blog/blog-springboot/.env[.properties]
   autoconfigure:
     exclude:
-      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAgentAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeImageAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
@@ -31,6 +30,10 @@ spring:
   ai:
     dashscope:
       api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}
+      chat:
+        options:
+          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen-plus}
+          temperature: 0.2
       embedding:
         options:
           model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_EMBED_MODEL:${BLOG_DASHSCOPE_EMBED_MODEL:text-embedding-v3}}
