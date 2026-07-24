@@ -11,6 +11,12 @@ spring:
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioSpeechAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeAudioTranscriptionAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeRerankAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -28,15 +34,20 @@ spring:
       test-on-borrow: false
       test-on-return: false
   ai:
+    model:
+      chat: openai
     dashscope:
+      api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}
+      embedding:
+        options:
+          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_EMBED_MODEL:${BLOG_DASHSCOPE_EMBED_MODEL:text-embedding-v3}}
+    openai:
+      base-url: ${JAVA_INTERVIEW_RAG_DASHSCOPE_COMPATIBLE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
       api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}
       chat:
         options:
           model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-plus}
           temperature: 0.2
-      embedding:
-        options:
-          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_EMBED_MODEL:${BLOG_DASHSCOPE_EMBED_MODEL:text-embedding-v3}}
     vectorstore:
       qdrant:
         host: ${JAVA_INTERVIEW_RAG_QDRANT_HOST:${BLOG_QDRANT_HOST:127.0.0.1}}
