@@ -1,0 +1,95 @@
+{
+  "runAt": "2026-07-25T09:08:00+08:00",
+  "embeddingModel": "text-embedding-v3",
+  "collection": "java-interview-rag-chunks",
+  "corpusDocumentCount": 5,
+  "corpusChunkCount": 12,
+  "note": "独立知识库中同时存在此前导入的规划报告，本报告保留接口返回的真实竞争来源。",
+  "report": {
+    "topK": 5,
+    "similarityThreshold": 0.0,
+    "totalCaseCount": 6,
+    "expectedSourceHitCount": 6,
+    "expectedSourceHitRate": 1.0,
+    "cases": [
+      {
+        "evaluationCaseId": "java-collections-hashmap",
+        "question": "HashMap 在什么条件下树化，平均查询复杂度是多少？",
+        "expectedSources": ["java/collections.md"],
+        "actualSources": [
+          {"source": "java/collections.md", "documentVersion": "6018e54746951c1216891fb2ca1425f0285270f3f17e1dfc492c265f18eb4975", "chunkOrder": 0, "headingPath": ["Java 集合", "HashMap 的查询过程"], "similarity": 0.7493449449539185},
+          {"source": "java/collections.md", "documentVersion": "6018e54746951c1216891fb2ca1425f0285270f3f17e1dfc492c265f18eb4975", "chunkOrder": 1, "headingPath": ["Java 集合", "链表树化条件"], "similarity": 0.6354540586471558},
+          {"source": "java/collections.md", "documentVersion": "6018e54746951c1216891fb2ca1425f0285270f3f17e1dfc492c265f18eb4975", "chunkOrder": 2, "headingPath": ["Java 集合", "扩容与负载因子"], "similarity": 0.5453503131866455},
+          {"source": "mysql/transactions.md", "documentVersion": "e82dc4542700f93e17c2cb426c6fb5b5e92c224098db986cbab793a4262db355", "chunkOrder": 0, "headingPath": ["MySQL 事务", "MVCC 一致性读取"], "similarity": 0.5072876811027527},
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 0, "headingPath": ["JVM 内存管理", "GC Roots 与可达性分析"], "similarity": 0.5008137226104736}
+        ],
+        "expectedSourceMatched": true
+      },
+      {
+        "evaluationCaseId": "java-concurrency-thread-pool",
+        "question": "ThreadPoolExecutor 接收到新任务后如何决定创建线程、入队和拒绝？",
+        "expectedSources": ["java/concurrency.md"],
+        "actualSources": [
+          {"source": "java/concurrency.md", "documentVersion": "78e57e3843ad8e85e93849ed7eb8da4226d6d3e7ab060d7ee72d0c040ce8450d", "chunkOrder": 0, "headingPath": ["Java 并发", "ThreadPoolExecutor 接收任务"], "similarity": 0.7859439849853516},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 11, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "6. 现有项目完善建议"], "similarity": 0.513286828994751},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 10, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "5. 学习内容划分", "5.5 Agent：后续扩展，不是当前第一主线"], "similarity": 0.5101990103721619},
+          {"source": "java/concurrency.md", "documentVersion": "78e57e3843ad8e85e93849ed7eb8da4226d6d3e7ab060d7ee72d0c040ce8450d", "chunkOrder": 1, "headingPath": ["Java 并发", "volatile 的可见性与有序性"], "similarity": 0.506985604763031},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 19, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "7. 新 AI 项目建议", "7.5 第三阶段：MCP 和工程治理"], "similarity": 0.5033021569252014}
+        ],
+        "expectedSourceMatched": true
+      },
+      {
+        "evaluationCaseId": "java-concurrency-volatile",
+        "question": "volatile 能保证什么，为什么不能保证自增操作的原子性？",
+        "expectedSources": ["java/concurrency.md"],
+        "actualSources": [
+          {"source": "java/concurrency.md", "documentVersion": "78e57e3843ad8e85e93849ed7eb8da4226d6d3e7ab060d7ee72d0c040ce8450d", "chunkOrder": 1, "headingPath": ["Java 并发", "volatile 的可见性与有序性"], "similarity": 0.6754879355430603},
+          {"source": "java/collections.md", "documentVersion": "6018e54746951c1216891fb2ca1425f0285270f3f17e1dfc492c265f18eb4975", "chunkOrder": 2, "headingPath": ["Java 集合", "扩容与负载因子"], "similarity": 0.529859185218811},
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 0, "headingPath": ["JVM 内存管理", "GC Roots 与可达性分析"], "similarity": 0.513683021068573},
+          {"source": "mysql/transactions.md", "documentVersion": "e82dc4542700f93e17c2cb426c6fb5b5e92c224098db986cbab793a4262db355", "chunkOrder": 1, "headingPath": ["MySQL 事务", "快照读与当前读"], "similarity": 0.50904381275177},
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 1, "headingPath": ["JVM 内存管理", "回收判定边界"], "similarity": 0.49705618619918823}
+        ],
+        "expectedSourceMatched": true
+      },
+      {
+        "evaluationCaseId": "java-jvm-gc-roots",
+        "question": "JVM 如何通过 GC Roots 判断对象是否可回收？",
+        "expectedSources": ["java/jvm.md"],
+        "actualSources": [
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 0, "headingPath": ["JVM 内存管理", "GC Roots 与可达性分析"], "similarity": 0.8584913611412048},
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 1, "headingPath": ["JVM 内存管理", "回收判定边界"], "similarity": 0.709475040435791},
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 0, "headingPath": ["RAG 检索基础", "来源引用"], "similarity": 0.5648339986801147},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 23, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "9. 阶段路线", "阶段三：新 RAG 项目 MVP"], "similarity": 0.5111991763114929},
+          {"source": "mysql/transactions.md", "documentVersion": "e82dc4542700f93e17c2cb426c6fb5b5e92c224098db986cbab793a4262db355", "chunkOrder": 1, "headingPath": ["MySQL 事务", "快照读与当前读"], "similarity": 0.505541205406189}
+        ],
+        "expectedSourceMatched": true
+      },
+      {
+        "evaluationCaseId": "mysql-transaction-mvcc",
+        "question": "MySQL 的 MVCC 如何让普通查询读取一致性快照？",
+        "expectedSources": ["mysql/transactions.md"],
+        "actualSources": [
+          {"source": "mysql/transactions.md", "documentVersion": "e82dc4542700f93e17c2cb426c6fb5b5e92c224098db986cbab793a4262db355", "chunkOrder": 1, "headingPath": ["MySQL 事务", "快照读与当前读"], "similarity": 0.7426336407661438},
+          {"source": "mysql/transactions.md", "documentVersion": "e82dc4542700f93e17c2cb426c6fb5b5e92c224098db986cbab793a4262db355", "chunkOrder": 0, "headingPath": ["MySQL 事务", "MVCC 一致性读取"], "similarity": 0.6011406183242798},
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 2, "headingPath": ["RAG 检索基础", "评估与排查"], "similarity": 0.522423267364502},
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 1, "headingPath": ["RAG 检索基础", "topK 与相似度阈值"], "similarity": 0.5030989646911621},
+          {"source": "java/jvm.md", "documentVersion": "e73b83c99d702b398af173cb6162a139bea93012a47de470775acb76baf571a2", "chunkOrder": 0, "headingPath": ["JVM 内存管理", "GC Roots 与可达性分析"], "similarity": 0.47618192434310913}
+        ],
+        "expectedSourceMatched": true
+      },
+      {
+        "evaluationCaseId": "rag-retrieval-basics",
+        "question": "RAG 问答为什么需要保留来源、topK 和相似度阈值？",
+        "expectedSources": ["rag/rag-basics.md"],
+        "actualSources": [
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 0, "headingPath": ["RAG 检索基础", "来源引用"], "similarity": 0.7844094634056091},
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 2, "headingPath": ["RAG 检索基础", "评估与排查"], "similarity": 0.7091659903526306},
+          {"source": "rag/rag-basics.md", "documentVersion": "6a328f996d503faa62eab1f88a6baac9feb0f7e57538b5f9ce4a87f28bf0d6e2", "chunkOrder": 1, "headingPath": ["RAG 检索基础", "topK 与相似度阈值"], "similarity": 0.6678571105003357},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 14, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "6. 现有项目完善建议", "6.3 建议补强点"], "similarity": 0.6205778121948242},
+          {"source": "Java后端转AI应用与RAG方向规划报告.md", "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c", "chunkOrder": 8, "headingPath": ["Java 后端转 AI 应用与 RAG 方向规划报告", "5. 学习内容划分", "5.3 RAG：当前 AI 学习重点"], "similarity": 0.6018087863922119}
+        ],
+        "expectedSourceMatched": true
+      }
+    ]
+  }
+}
