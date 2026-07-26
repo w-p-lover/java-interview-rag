@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底。项目已具备 Markdown 导入、解析切分、向量生命周期、可追踪检索、基于资料的回答接口、已迁移的召回日志表、固定评估题集、可复现评估语料与批量检索评估接口，并提供 Vue 求职面试工作台；当前真实基线的 6 道题均在首位命中期望来源，下一步扩展回答要点对比。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底。项目已具备 Markdown 导入、解析切分、向量生命周期、可追踪检索、基于资料的回答接口、已迁移的召回日志表、固定评估题集、可复现评估语料、批量检索评估与回答要点覆盖接口，并提供 Vue 求职面试工作台；当前真实检索基线的 6 道题均在首位命中期望来源，回答要点真实批量基线待执行。
 
 ## 当前 Web 功能
 
@@ -14,6 +14,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
 - `GET /api/knowledge/evaluation-cases` 返回内置的固定评估题集，包含问题、期望逻辑来源和预期回答要点，不调用模型或数据库。
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。
+- `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点及总体覆盖率；当前固定题集会产生 6 次 Chat 调用并写入对应召回日志。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 首页使用 Hallmark Workbench 结构表达求职面试产品主线，采用柔和的暖灰与珊瑚信号色，不伪造未实现模块的数据。
@@ -89,7 +90,7 @@ docker compose up -d mysql qdrant
 
 阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`，已执行到独立数据库 `java_interview_rag`；日志查询接口具备表结构前提，日志存储故障仍只会告警且不影响回答。
 
-固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 6 个基线问题，每题包含稳定标识、问题、期望逻辑来源和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 逐题比较实际命中来源和期望来源，并返回整体命中率。题集不自动导入资料；调用方需要使用对应的逻辑来源导入真实 Markdown，才能得到有意义的真实批量结果。回答要点对比、评分和结果持久化仍待后续实现。
+固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 6 个基线问题，每题包含稳定标识、问题、期望逻辑来源和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 逐题比较实际命中来源和期望来源，并返回整体命中率。`POST /api/knowledge/evaluations/answers` 复用在线回答服务逐题生成回答，以 `normalized-literal-containment-v1` 规则统一大小写并移除非字母数字字符后比较完整要点，返回命中和未命中要点、实际来源及覆盖率。该指标是可重复的字面覆盖基线，不等同于语义正确率；接口会产生真实模型调用费用并写召回日志。题集不自动导入资料；调用方需要使用对应的逻辑来源导入真实 Markdown，才能得到有意义的真实批量结果。评估结果持久化与语义评分仍待后续实现。
 
 仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 5 份基线 Markdown，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 使用 `text-embedding-v3` 和现有 Qdrant collection 运行真实基线，6 道题均在第 1 位命中期望来源，首位相似度为 `0.6755` 至 `0.8585`；原始报告保存在 `evaluation/results/2026-07-25-retrieval-baseline.json`。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接重复执行对照。
 

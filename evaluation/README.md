@@ -1,4 +1,4 @@
-# 固定 RAG 检索评估
+# 固定 RAG 评估
 
 本目录保存阶段 4 的可复现评估语料。物理路径位于 `evaluation/corpus/`，导入时使用去掉 `evaluation/corpus/` 前缀后的路径作为逻辑来源：
 
@@ -17,3 +17,13 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080
 ```
 
 运行器会调用现有导入接口，再调用固定批量检索评估接口。重复执行不会重复向量化相同“来源 + 版本”；脚本不调用 Chat 模型，也不会自动删除已导入的基线资料。
+
+## 回答要点覆盖
+
+基线资料导入后，可以显式执行回答评估：
+
+```shell
+curl.exe -X POST http://127.0.0.1:18080/api/knowledge/evaluations/answers
+```
+
+接口会依次调用 6 道固定题目的现有 RAG 回答链路，每题写入正常的召回日志并产生一次 Chat 调用。报告使用 `normalized-literal-containment-v1`：回答和预期要点统一转为小写并移除非字母数字字符，再判断回答是否包含完整要点。该结果只表示可重复的字面覆盖率，不能替代语义正确性或人工评审。
