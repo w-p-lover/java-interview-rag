@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；项目已进入阶段 6 的文本面试准备，能够根据目标岗位、简历和可选岗位描述生成结构化面试准备画像。回答要点真实批量基线仍待受控执行。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；项目已进入阶段 6 的文本面试训练，能够根据目标岗位、简历和可选岗位描述生成结构化面试准备画像，并基于已确认画像生成 3 道带画像依据和真实知识来源状态的首轮面试题。回答要点真实批量基线仍待受控执行。
 
 ## 当前 Web 功能
 
@@ -16,6 +16,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点及总体覆盖率；当前固定题集会产生 6 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
+- `POST /api/interviews/questions` 在 `storage` profile 下接收目标岗位和已确认的面试准备画像，通过一次结构化模型调用生成 3 道首轮面试题；每题返回考察目标、画像依据类型、知识检索查询、可靠知识命中状态和实际 Markdown chunk 来源。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 首页使用 Hallmark Workbench 结构表达求职面试产品主线，采用柔和的暖灰与珊瑚信号色，不伪造未实现模块的数据。
@@ -95,11 +96,13 @@ docker compose up -d mysql qdrant
 
 仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 5 份基线 Markdown，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 使用 `text-embedding-v3` 和现有 Qdrant collection 运行真实基线，6 道题均在第 1 位命中期望来源，首位相似度为 `0.6755` 至 `0.8585`；原始报告保存在 `evaluation/results/2026-07-25-retrieval-baseline.json`。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接重复执行对照。
 
-## 面试准备画像
+## 面试准备画像与首轮出题
 
 固定 RAG 评估集只用于比较检索、Prompt 和模型版本，不是用户侧面试题库。用户侧从 `POST /api/interviews/preparations` 开始：请求必须提供 `targetRole` 和 `resumeText`，`jobDescription` 可选。服务使用 `interview-preparation-v1` Prompt 要求模型只依据输入生成结构化画像，不推断不存在的经历，不生成面试题、评分或录用判断。响应中的 `resumeEvidence`、`jobRequirements` 与 `focusAreas` 将作为后续生成可追踪面试题前的可确认草稿。
 
-当前画像只在请求内存中返回，不保存简历、岗位描述或模型结果；本轮尚未执行真实模型调用。下一步是在画像确认边界上生成第一组带考察目标和知识来源的面试题，而不是扩张内部固定评估集。
+调用方确认画像后，可以把 `targetRole` 与 `profile` 原样提交到 `POST /api/interviews/questions`。服务使用 `interview-question-v1` Prompt 恰好生成 3 道题，每道题必须绑定画像中已经出现的 `TARGET_ROLE`、`RESUME`、`JOB_DESCRIPTION` 依据类型，并使用独立的 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库。可靠命中时返回实际 chunk；没有命中时题目仍由画像支撑，但 `knowledgeGrounded=false` 且知识来源为空，不伪造引用。
+
+当前画像和题目均只在请求内存中返回，不保存简历、岗位描述、画像或题目；本轮尚未执行真实模型调用。接口不生成参考答案、评分或动态追问，下一步适合建立可确认的文本面试会话并逐题接收回答。
 
 ## 本地验证
 

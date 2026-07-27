@@ -1,0 +1,163 @@
+package com.javainterview.rag.interview.question;
+
+import com.javainterview.rag.interview.preparation.InterviewFocusArea;
+import com.javainterview.rag.interview.preparation.InterviewFocusSource;
+import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
+import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
+import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.converter.BeanOutputConverter;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+class InterviewQuestionGenerationServiceTest {
+
+    @Test
+    void supportsSpringAiStructuredOutputConversion() {
+        BeanOutputConverter<InterviewQuestionDraftSet> converter =
+                new BeanOutputConverter<>(InterviewQuestionDraftSet.class);
+
+        InterviewQuestionDraftSet draftSet = converter.convert("""
+                {
+                  "questions":[
+                    {
+                      "question":"请说明 RAG 文档更新时如何避免旧向量残留？",
+                      "objective":"验证向量生命周期治理能力",
+                      "basisSources":["RESUME","JOB_DESCRIPTION"],
+                      "knowledgeQuery":"RAG 向量更新 删除 重建"
+                    },
+                    {
+                      "question":"MySQL 索引失效时你会如何定位？",
+                      "objective":"验证数据库排查能力",
+                      "basisSources":["JOB_DESCRIPTION"],
+                      "knowledgeQuery":"MySQL 索引失效 排查"
+                    },
+                    {
+                      "question":"Spring Boot 项目如何处理模型调用失败？",
+                      "objective":"验证 Java AI 工程化能力",
+                      "basisSources":["TARGET_ROLE","RESUME"],
+                      "knowledgeQuery":"Spring AI 模型调用失败 重试"
+                    }
+                  ]
+                }
+                """);
+
+        assertEquals(3, draftSet.questions().size());
+        assertEquals(List.of(InterviewFocusSource.RESUME, InterviewFocusSource.JOB_DESCRIPTION),
+                draftSet.questions().get(0).basisSources());
+    }
+
+    @Test
+    void generatesQuestionsAndBindsReliableKnowledgeSources() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        InterviewQuestionDraftSet generatedDrafts = new InterviewQuestionDraftSet(List.of(
+                new InterviewQuestionDraft(
+                        "请说明 RAG 文档更新时如何避免旧向量残留？",
+                        "验证向量生命周期治理能力",
+                        List.of(InterviewFocusSource.RESUME, InterviewFocusSource.JOB_DESCRIPTION),
+                        "RAG 向量更新 删除 重建"),
+                new InterviewQuestionDraft(
+                        "MySQL 索引失效时你会如何定位？",
+                        "验证数据库排查能力",
+                        List.of(InterviewFocusSource.JOB_DESCRIPTION),
+                        "MySQL 索引失效 排查"),
+                new InterviewQuestionDraft(
+                        "Spring Boot 项目如何处理模型调用失败？",
+                        "验证 Java AI 工程化能力",
+                        List.of(InterviewFocusSource.TARGET_ROLE, InterviewFocusSource.RESUME),
+                        "Spring AI 模型调用失败 重试")
+        ));
+        when(chatClient.prompt(anyString()).call().entity(InterviewQuestionDraftSet.class))
+                .thenReturn(generatedDrafts);
+        clearInvocations(chatClient);
+        MarkdownSearchResult vectorSource = new MarkdownSearchResult(
+                "新版本向量写入成功后再删除旧版本。",
+                "rag/vector-lifecycle.md",
+                "version-1",
+                2,
+                List.of("RAG", "向量生命周期"),
+                0.87
+        );
+        when(searchService.search("RAG 向量更新 删除 重建", 3, 0.60))
+                .thenReturn(List.of(vectorSource));
+        when(searchService.search("MySQL 索引失效 排查", 3, 0.60))
+                .thenReturn(List.of());
+        when(searchService.search("Spring AI 模型调用失败 重试", 3, 0.60))
+                .thenReturn(List.of());
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+        InterviewPreparationProfile profile = profile();
+
+        InterviewQuestionGenerationResult result =
+                service.generate("Java AI 应用开发工程师", profile);
+
+        assertEquals("Java AI 应用开发工程师", result.targetRole());
+        assertEquals("interview-question-v1", result.promptVersion());
+        assertEquals(3, result.questions().size());
+        assertTrue(result.questions().get(0).knowledgeGrounded());
+        assertEquals(List.of(vectorSource), result.questions().get(0).knowledgeSources());
+        assertFalse(result.questions().get(1).knowledgeGrounded());
+        assertEquals(List.of(), result.questions().get(1).knowledgeSources());
+        verify(searchService).search("RAG 向量更新 删除 重建", 3, 0.60);
+        verify(searchService).search("MySQL 索引失效 排查", 3, 0.60);
+        verify(searchService).search("Spring AI 模型调用失败 重试", 3, 0.60);
+
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient).prompt(promptCaptor.capture());
+        String prompt = promptCaptor.getValue();
+        assertTrue(prompt.contains("目标岗位：Java AI 应用开发工程师"));
+        assertTrue(prompt.contains("具备 Java 后端和 RAG 项目经验"));
+        assertTrue(prompt.contains("RAG 向量生命周期"));
+        assertTrue(prompt.contains("恰好生成 3 道题"));
+        assertTrue(prompt.contains("不得使用内部固定 RAG 评估题集"));
+    }
+
+    @Test
+    void rejectsMissingTargetRoleBeforeCallingModelOrSearch() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.generate(" ", profile()));
+
+        assertEquals("目标岗位不能为空", exception.getMessage());
+        verifyNoInteractions(chatClient, searchService);
+    }
+
+    private InterviewPreparationProfile profile() {
+        return new InterviewPreparationProfile(
+                "具备 Java 后端和 RAG 项目经验。",
+                List.of("使用 Spring Boot 和 Qdrant 开发 RAG 项目"),
+                List.of("岗位要求 MySQL 调优和大模型应用经验"),
+                List.of(
+                        new InterviewFocusArea(
+                                "RAG 向量生命周期",
+                                "简历项目与岗位要求均涉及 RAG",
+                                List.of(InterviewFocusSource.TARGET_ROLE,
+                                        InterviewFocusSource.RESUME,
+                                        InterviewFocusSource.JOB_DESCRIPTION)),
+                        new InterviewFocusArea(
+                                "MySQL 性能优化",
+                                "岗位描述明确要求数据库调优",
+                                List.of(InterviewFocusSource.JOB_DESCRIPTION))
+                )
+        );
+    }
+}
