@@ -26,7 +26,10 @@ public class InterviewQuestionController {
 
     @PostMapping
     public InterviewQuestionGenerationResult generate(@RequestBody InterviewQuestionGenerationRequest request) {
-        return questionGenerationService.generate(request.targetRole(), request.profile());
+        if (request.questionCount() == null) {
+            return questionGenerationService.generate(request.targetRole(), request.profile());
+        }
+        return questionGenerationService.generate(request.targetRole(), request.profile(), request.questionCount());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

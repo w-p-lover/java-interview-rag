@@ -1,6 +1,7 @@
 package com.javainterview.rag.interview.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
 import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
@@ -8,6 +9,7 @@ import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionService;
+import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -28,23 +30,44 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class InterviewSessionControllerTest {
 
     @Test
-    void createsRestoresAndAdvancesTheInterviewSession() throws Exception {
+    void startsCreatesRestoresAndAdvancesTheInterviewSession() throws Exception {
         InterviewSessionService service = mock(InterviewSessionService.class);
+        InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
         InterviewSession initial = session();
         InterviewSession answered = initial.answer(
                 "使用稳定向量 ID，并在新版本写入成功后清理旧版本。",
-                LocalDateTime.of(2026, 7, 27, 11, 5));
-        when(service.start(initial.targetRole(), initial.profile(), initial.questions())).thenReturn(initial);
+                evaluation(), null, LocalDateTime.of(2026, 7, 27, 11, 5));
+        when(startService.start(
+                "Java AI 应用开发工程师", "简历正文", "岗位描述", 5, 8)).thenReturn(initial);
+        when(service.start(initial.targetRole(), initial.profile(), initial.questions(), 8)).thenReturn(initial);
         when(service.find("session-1")).thenReturn(initial);
-        when(service.submitAnswer("session-1", "使用稳定向量 ID，并在新版本写入成功后清理旧版本。"))
+        when(service.submitAnswer(
+                "session-1", 0, 0L,
+                "使用稳定向量 ID，并在新版本写入成功后清理旧版本。"))
                 .thenReturn(answered);
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewSessionController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewSessionController(service, startService)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+
+        mockMvc.perform(post("/api/interviews/sessions/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetRole":"Java AI 应用开发工程师",
+                                  "resumeText":"简历正文",
+                                  "jobDescription":"岗位描述",
+                                  "initialQuestionCount":5,
+                                  "maxQuestionCount":8
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("session-1"))
+                .andExpect(jsonPath("$.maxQuestionCount").value(8));
 
         mockMvc.perform(post("/api/interviews/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new InterviewSessionCreateRequest(
-                                initial.targetRole(), initial.profile(), initial.questions()))))
+                                initial.targetRole(), initial.profile(), initial.questions(), 8))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("session-1"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
@@ -59,30 +82,37 @@ class InterviewSessionControllerTest {
         mockMvc.perform(post("/api/interviews/sessions/session-1/answers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"answer":"使用稳定向量 ID，并在新版本写入成功后清理旧版本。"}
+                                {
+                                  "questionIndex":0,
+                                  "expectedVersion":0,
+                                  "answer":"使用稳定向量 ID，并在新版本写入成功后清理旧版本。"
+                                }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentQuestionIndex").value(1))
                 .andExpect(jsonPath("$.version").value(1))
-                .andExpect(jsonPath("$.answers[0].questionIndex").value(0));
+                .andExpect(jsonPath("$.answers[0].questionIndex").value(0))
+                .andExpect(jsonPath("$.answers[0].evaluation.overallScore").value(80));
     }
 
     @Test
     void mapsInvalidMissingAndConflictingSessionsToHttpStatus() throws Exception {
         InterviewSessionService service = mock(InterviewSessionService.class);
-        when(service.start(" ", profile(), questions()))
+        InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
+        when(service.start(" ", profile(), questions(), 8))
                 .thenThrow(new IllegalArgumentException("目标岗位不能为空"));
         when(service.find("missing"))
                 .thenThrow(new NoSuchElementException("面试会话不存在"));
-        when(service.submitAnswer("completed", "额外回答"))
+        when(service.submitAnswer("completed", 3, 3L, "额外回答"))
                 .thenThrow(new InterviewSessionConflictException("面试会话已经完成"));
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewSessionController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewSessionController(service, startService)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         mockMvc.perform(post("/api/interviews/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new InterviewSessionCreateRequest(" ", profile(), questions()))))
+                                new InterviewSessionCreateRequest(" ", profile(), questions(), 8))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("目标岗位不能为空"));
 
@@ -92,7 +122,9 @@ class InterviewSessionControllerTest {
 
         mockMvc.perform(post("/api/interviews/sessions/completed/answers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"answer\":\"额外回答\"}"))
+                        .content("""
+                                {"questionIndex":3,"expectedVersion":3,"answer":"额外回答"}
+                                """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("面试会话已经完成"));
     }
@@ -104,12 +136,24 @@ class InterviewSessionControllerTest {
                 "Java AI 应用开发工程师",
                 profile(),
                 questions(),
+                8,
                 List.of(),
                 0,
                 InterviewSessionStatus.IN_PROGRESS,
                 0L,
+                null,
                 now,
                 now
+        );
+    }
+
+    private InterviewAnswerEvaluation evaluation() {
+        return new InterviewAnswerEvaluation(
+                80, 70, 90, 80,
+                List.of("说明了关键流程"),
+                List.of("缺少失败补偿细节"),
+                "补充异常分支和恢复方式。",
+                true
         );
     }
 

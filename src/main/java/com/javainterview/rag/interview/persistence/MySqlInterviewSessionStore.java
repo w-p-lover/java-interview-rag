@@ -50,7 +50,8 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
                     session,
                     objectMapper.writeValueAsString(session.profile()),
                     objectMapper.writeValueAsString(session.questions()),
-                    objectMapper.writeValueAsString(session.answers())
+                    objectMapper.writeValueAsString(session.answers()),
+                    session.report() == null ? null : objectMapper.writeValueAsString(session.report())
             );
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("序列化面试会话失败", exception);
@@ -64,10 +65,14 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
                     entity.getTargetRole(),
                     objectMapper.readValue(entity.getProfileJson(), InterviewPreparationProfile.class),
                     objectMapper.readValue(entity.getQuestionsJson(), QUESTION_LIST_TYPE),
+                    entity.getMaxQuestionCount(),
                     objectMapper.readValue(entity.getAnswersJson(), ANSWER_LIST_TYPE),
                     entity.getCurrentQuestionIndex(),
                     InterviewSessionStatus.valueOf(entity.getStatus()),
                     entity.getVersion(),
+                    entity.getReportJson() == null ? null
+                            : objectMapper.readValue(entity.getReportJson(),
+                            com.javainterview.rag.interview.session.InterviewSessionReport.class),
                     entity.getCreatedAt(),
                     entity.getUpdatedAt()
             );

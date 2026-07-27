@@ -1,17 +1,30 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
+import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
 const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
-const commands: WorkspaceCommand[] = [
-  { id: "import-workbench", label: "跳到资料导入", description: "选择 Markdown 文件并设置稳定来源" },
-  { id: "pipeline", label: "查看处理阶段", description: "确认资料准备在求职训练流程中的位置" },
-  { id: "import-result", label: "查看导入结果", description: "检查内容版本、标题路径与切片" },
-  { id: "capability-boundary", label: "查看能力边界", description: "区分当前可用能力与后续模块" },
-];
+const props = withDefaults(defineProps<{
+  mode?: "knowledge" | "interview";
+}>(), {
+  mode: "knowledge",
+});
+
+const commands = computed<WorkspaceCommand[]>(() => props.mode === "interview"
+  ? [
+      { id: "interview-progress", label: "查看面试进度", description: "查看当前岗位、题目队列与回答进度" },
+      { id: "current-question", label: "跳到当前题目", description: "继续回答当前面试题" },
+      { id: "latest-feedback", label: "查看即时反馈", description: "检查上一题评分和改进建议" },
+      { id: "interview-report", label: "查看最终报告", description: "面试完成后查看平均分与薄弱项" },
+    ]
+  : [
+      { id: "import-workbench", label: "跳到资料导入", description: "选择 Markdown 文件并设置稳定来源" },
+      { id: "pipeline", label: "查看处理阶段", description: "确认资料准备在求职训练流程中的位置" },
+      { id: "import-result", label: "查看导入结果", description: "检查内容版本、标题路径与切片" },
+      { id: "capability-boundary", label: "查看能力边界", description: "区分当前可用能力与后续模块" },
+    ]);
 
 function handleGlobalShortcut(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
@@ -51,18 +64,20 @@ onUnmounted(() => {
 <template>
   <header class="workspace-header">
     <div class="header-inner">
-      <a class="brand" href="#main-content" aria-label="Java 面试准备台首页">
+      <RouterLink class="brand" to="/" aria-label="Java 面试准备台首页">
         <span class="brand-mark" aria-hidden="true">J</span>
         <span class="brand-copy">
           <strong>面试准备台</strong>
           <small>Java Interview RAG</small>
         </span>
-      </a>
+      </RouterLink>
 
       <nav class="header-links" aria-label="工作台导航">
-        <a href="#import-workbench">资料</a>
-        <a href="#import-result">结果</a>
-        <a href="#capability-boundary">边界</a>
+        <RouterLink to="/">资料库</RouterLink>
+        <RouterLink to="/interview">模拟面试</RouterLink>
+        <a :href="mode === 'interview' ? '#current-question' : '#import-result'">
+          {{ mode === "interview" ? "当前题" : "导入结果" }}
+        </a>
       </nav>
 
       <button
@@ -83,7 +98,7 @@ onUnmounted(() => {
 
       <div class="session-state" aria-label="当前服务状态">
         <span class="session-dot" aria-hidden="true"></span>
-        <span>工作台就绪</span>
+        <span>{{ mode === "interview" ? "面试台就绪" : "资料台就绪" }}</span>
       </div>
     </div>
 

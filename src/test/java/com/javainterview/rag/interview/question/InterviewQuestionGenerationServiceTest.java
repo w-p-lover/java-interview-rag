@@ -104,7 +104,7 @@ class InterviewQuestionGenerationServiceTest {
         InterviewPreparationProfile profile = profile();
 
         InterviewQuestionGenerationResult result =
-                service.generate("Java AI 应用开发工程师", profile);
+                service.generate("Java AI 应用开发工程师", profile, 3);
 
         assertEquals("Java AI 应用开发工程师", result.targetRole());
         assertEquals("interview-question-v1", result.promptVersion());
@@ -123,7 +123,7 @@ class InterviewQuestionGenerationServiceTest {
         assertTrue(prompt.contains("目标岗位：Java AI 应用开发工程师"));
         assertTrue(prompt.contains("具备 Java 后端和 RAG 项目经验"));
         assertTrue(prompt.contains("RAG 向量生命周期"));
-        assertTrue(prompt.contains("恰好生成 3 道题"));
+        assertTrue(prompt.contains("必须恰好生成 3 道题"));
         assertTrue(prompt.contains("不得使用内部固定 RAG 评估题集"));
     }
 
@@ -139,6 +139,33 @@ class InterviewQuestionGenerationServiceTest {
 
         assertEquals("目标岗位不能为空", exception.getMessage());
         verifyNoInteractions(chatClient, searchService);
+    }
+
+    @Test
+    void supportsFiveCoreQuestionsAndRejectsInvalidCounts() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        List<InterviewQuestionDraft> drafts = java.util.stream.IntStream.range(0, 5)
+                .mapToObj(index -> new InterviewQuestionDraft(
+                        "核心题 " + index,
+                        "考察目标 " + index,
+                        List.of(InterviewFocusSource.RESUME),
+                        "知识查询 " + index))
+                .toList();
+        when(chatClient.prompt(anyString()).call().entity(InterviewQuestionDraftSet.class))
+                .thenReturn(new InterviewQuestionDraftSet(drafts));
+        when(searchService.search(org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.eq(0.60)))
+                .thenReturn(List.of());
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        InterviewQuestionGenerationResult result = service.generate("Java 后端", profile(), 5);
+
+        assertEquals(5, result.questions().size());
+        assertEquals("初始题数必须在 3 到 8 之间",
+                assertThrows(IllegalArgumentException.class,
+                        () -> service.generate("Java 后端", profile(), 9)).getMessage());
     }
 
     private InterviewPreparationProfile profile() {

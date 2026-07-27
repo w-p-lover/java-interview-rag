@@ -8,6 +8,7 @@ import java.util.List;
 public record InterviewSessionCreateRequest(
         String targetRole,
         InterviewPreparationProfile profile,
-        List<InterviewQuestion> questions
+        List<InterviewQuestion> questions,
+        Integer maxQuestionCount
 ) {
 }

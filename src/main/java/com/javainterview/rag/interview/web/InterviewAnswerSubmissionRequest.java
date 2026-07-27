@@ -1,4 +1,8 @@
 package com.javainterview.rag.interview.web;
 
-public record InterviewAnswerSubmissionRequest(String answer) {
+public record InterviewAnswerSubmissionRequest(
+        int questionIndex,
+        long expectedVersion,
+        String answer
+) {
 }

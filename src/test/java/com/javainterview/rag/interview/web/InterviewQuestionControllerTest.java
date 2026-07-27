@@ -50,7 +50,7 @@ class InterviewQuestionControllerTest {
                 true,
                 List.of(source)
         );
-        when(service.generate(eq("Java AI 应用开发工程师"), eq(profile)))
+        when(service.generate(eq("Java AI 应用开发工程师"), eq(profile), eq(3)))
                 .thenReturn(new InterviewQuestionGenerationResult(
                         "Java AI 应用开发工程师",
                         "interview-question-v1",
@@ -63,6 +63,7 @@ class InterviewQuestionControllerTest {
                         .content("""
                                 {
                                   "targetRole":"Java AI 应用开发工程师",
+                                  "questionCount":3,
                                   "profile":{
                                     "candidateSummary":"具备 Java RAG 项目经验。",
                                     "resumeEvidence":["使用 Qdrant 实现向量检索"],
@@ -88,7 +89,7 @@ class InterviewQuestionControllerTest {
     @Test
     void returnsBadRequestForInvalidQuestionInput() throws Exception {
         InterviewQuestionGenerationService service = mock(InterviewQuestionGenerationService.class);
-        when(service.generate(eq(" "), org.mockito.ArgumentMatchers.any(InterviewPreparationProfile.class)))
+        when(service.generate(eq(" "), org.mockito.ArgumentMatchers.any(InterviewPreparationProfile.class), eq(3)))
                 .thenThrow(new IllegalArgumentException("目标岗位不能为空"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewQuestionController(service)).build();
 
@@ -97,6 +98,7 @@ class InterviewQuestionControllerTest {
                         .content("""
                                 {
                                   "targetRole":" ",
+                                  "questionCount":3,
                                   "profile":{
                                     "candidateSummary":"Java 后端候选人",
                                     "resumeEvidence":["Spring Boot 项目"],

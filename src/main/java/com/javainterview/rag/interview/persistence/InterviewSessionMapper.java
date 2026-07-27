@@ -8,7 +8,8 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface InterviewSessionMapper extends BaseMapper<InterviewSessionEntity> {
 
-    @Update("UPDATE t_interview_session SET answers_json = #{entity.answersJson}, "
+    @Update("UPDATE t_interview_session SET questions_json = #{entity.questionsJson}, "
+            + "answers_json = #{entity.answersJson}, report_json = #{entity.reportJson}, "
             + "current_question_index = #{entity.currentQuestionIndex}, status = #{entity.status}, "
             + "version = #{entity.version}, updated_at = #{entity.updatedAt} "
             + "WHERE id = #{entity.id} AND version = #{expectedVersion} AND status = 'IN_PROGRESS'")

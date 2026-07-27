@@ -29,7 +29,7 @@ async function handleImport(payload: ImportPayload): Promise<void> {
     result.value = response;
     state.value = response.imported ? "success" : "duplicate";
   } catch (requestError) {
-    error.value = resolveApiError(requestError);
+    error.value = resolveApiError(requestError, "导入失败");
     state.value = "error";
   }
 }
@@ -66,8 +66,8 @@ function resetImportState(): void {
           <dd>版本与 Chunk</dd>
         </div>
         <div>
-          <dt>下一阶段</dt>
-          <dd>最小 RAG 检索</dd>
+          <dt>训练入口</dt>
+          <dd>文本模拟面试</dd>
         </div>
       </dl>
     </section>
@@ -121,11 +121,11 @@ function resetImportState(): void {
         </div>
         <div>
           <dt>后端已具备</dt>
-          <dd>存储模式下的向量写入、更新、删除与手动重建</dd>
+          <dd>向量生命周期、RAG 问答、评估与文本面试闭环</dd>
         </div>
         <div>
           <dt>下一步开发</dt>
-          <dd>问题向量化、相似度召回、真实来源返回与知识不足兜底</dd>
+          <dd>真实面试链路验证、错题沉淀与复习计划</dd>
         </div>
       </dl>
     </section>
@@ -135,7 +135,7 @@ function resetImportState(): void {
       <span aria-hidden="true">·</span>
       <span>资料准备工作台</span>
       <span aria-hidden="true">·</span>
-      <span>当前阶段：RAG 检索闭环</span>
+      <span>当前阶段：文本面试闭环</span>
     </footer>
   </main>
 </template>

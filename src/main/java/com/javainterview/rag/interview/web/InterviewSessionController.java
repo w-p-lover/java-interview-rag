@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.web;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionService;
+import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,14 +24,33 @@ import java.util.NoSuchElementException;
 public class InterviewSessionController {
 
     private final InterviewSessionService sessionService;
+    private final InterviewSessionStartService startService;
 
-    public InterviewSessionController(InterviewSessionService sessionService) {
+    public InterviewSessionController(InterviewSessionService sessionService,
+                                      InterviewSessionStartService startService) {
         this.sessionService = sessionService;
+        this.startService = startService;
+    }
+
+    @PostMapping("/start")
+    public InterviewSession start(@RequestBody InterviewSessionStartRequest request) {
+        return startService.start(
+                request.targetRole(),
+                request.resumeText(),
+                request.jobDescription(),
+                request.initialQuestionCount(),
+                request.maxQuestionCount());
     }
 
     @PostMapping
     public InterviewSession create(@RequestBody InterviewSessionCreateRequest request) {
-        return sessionService.start(request.targetRole(), request.profile(), request.questions());
+        if (request.questions() == null) {
+            throw new IllegalArgumentException("面试题不能为空");
+        }
+        int maxQuestionCount = request.maxQuestionCount() == null
+                ? Math.max(request.questions().size(), 8) : request.maxQuestionCount();
+        return sessionService.start(
+                request.targetRole(), request.profile(), request.questions(), maxQuestionCount);
     }
 
     @GetMapping("/{sessionId}")
@@ -41,7 +61,8 @@ public class InterviewSessionController {
     @PostMapping("/{sessionId}/answers")
     public InterviewSession submitAnswer(@PathVariable String sessionId,
                                          @RequestBody InterviewAnswerSubmissionRequest request) {
-        return sessionService.submitAnswer(sessionId, request.answer());
+        return sessionService.submitAnswer(
+                sessionId, request.questionIndex(), request.expectedVersion(), request.answer());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
