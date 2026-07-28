@@ -24,7 +24,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
             4. 没有可靠知识资料时，不得声称已验证技术事实正确性；只能根据回答内部逻辑、画像和考察目标谨慎评分。
             5. 只有回答存在值得继续确认的关键遗漏、含糊点或项目细节时，followUpNeeded 才为 true。
             6. 追问必须紧扣当前回答，不得重复当前题目，不得生成参考答案或录用判断。
-            7. 不需要追问时，三个 followUp 字段返回空字符串。
+            7. 需要追问时，followUpQuestion、followUpObjective、followUpKnowledgeQuery 必须全部返回非空字符串。
+            8. 不需要追问时，三个 followUp 字段返回空字符串。
             """;
 
     private final ChatClient chatClient;

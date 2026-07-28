@@ -51,6 +51,30 @@ class InterviewAnswerEvaluationServiceTest {
     }
 
     @Test
+    void usesFollowUpQuestionWhenModelOmitsTheRetrievalQuery() {
+        BeanOutputConverter<InterviewAnswerEvaluationDraft> converter =
+                new BeanOutputConverter<>(InterviewAnswerEvaluationDraft.class);
+
+        InterviewAnswerEvaluationDraft draft = converter.convert("""
+                {
+                  "technicalScore":60,
+                  "completenessScore":55,
+                  "communicationScore":70,
+                  "strengths":[],
+                  "gaps":["缺少召回优化细节"],
+                  "improvementSuggestion":"补充召回噪声处理方式。",
+                  "followUpNeeded":true,
+                  "followUpQuestion":"如何减少 RAG 召回噪声？",
+                  "followUpObjective":"确认召回优化能力",
+                  "followUpKnowledgeQuery":""
+                }
+                """);
+
+        assertTrue(draft.followUpNeeded());
+        assertEquals("如何减少 RAG 召回噪声？", draft.followUpKnowledgeQuery());
+    }
+
+    @Test
     void evaluatesTheAnswerAndBindsFollowUpToRealKnowledgeSources() {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);

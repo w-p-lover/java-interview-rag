@@ -26,7 +26,10 @@ public record InterviewAnswerEvaluationDraft(
         if (followUpNeeded) {
             followUpQuestion = requireText(followUpQuestion, "追问题目不能为空");
             followUpObjective = requireText(followUpObjective, "追问目标不能为空");
-            followUpKnowledgeQuery = requireText(followUpKnowledgeQuery, "追问检索查询不能为空");
+            followUpKnowledgeQuery = optionalText(followUpKnowledgeQuery);
+            if (followUpKnowledgeQuery.isBlank()) {
+                followUpKnowledgeQuery = followUpQuestion;
+            }
         } else {
             followUpQuestion = optionalText(followUpQuestion);
             followUpObjective = optionalText(followUpObjective);
