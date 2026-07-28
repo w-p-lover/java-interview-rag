@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue";
 
+import { extractInterviewDocumentText } from "@/utils/interviewDocumentText";
+
 const props = defineProps<{
   inputId: string;
   label: string;
@@ -18,20 +20,21 @@ type ReadState = "idle" | "reading" | "success" | "error";
 const readState = shallowRef<ReadState>("idle");
 const fileName = shallowRef("");
 const extractedCharacters = shallowRef(0);
+const extractedPageCount = shallowRef<number | null>(null);
 const localError = shallowRef("");
 
 const fileInputId = computed(() => `${props.inputId}-file`);
 const textInputId = computed(() => `${props.inputId}-text`);
 const statusId = computed(() => `${props.inputId}-status`);
 const inputDisabled = computed(() => props.busy || readState.value === "reading");
-
-function hasSupportedExtension(file: File): boolean {
-  return /\.(md|markdown|txt)$/i.test(file.name);
-}
+const extractionSummary = computed(() => extractedPageCount.value
+  ? `PDF 共 ${extractedPageCount.value} 页，已提取 ${extractedCharacters.value} 个字符，可在下方检查和编辑`
+  : `已提取 ${extractedCharacters.value} 个字符，可在下方检查和编辑`);
 
 function setError(message: string): void {
   readState.value = "error";
   extractedCharacters.value = 0;
+  extractedPageCount.value = null;
   localError.value = message;
 }
 
@@ -47,14 +50,10 @@ async function handleFileInput(event: Event): Promise<void> {
   fileName.value = file.name;
   localError.value = "";
 
-  if (!hasSupportedExtension(file)) {
-    setError("当前仅支持 Markdown 或 TXT 文件，PDF/DOCX 暂未开放。");
-    return;
-  }
-
   readState.value = "reading";
   try {
-    const content = await file.text();
+    const extraction = await extractInterviewDocumentText(file);
+    const content = extraction.content;
     if (!content.trim()) {
       setError("文件中没有可用正文，请选择其他文件或直接粘贴文本。");
       return;
@@ -66,9 +65,12 @@ async function handleFileInput(event: Event): Promise<void> {
 
     model.value = content;
     extractedCharacters.value = content.length;
+    extractedPageCount.value = extraction.pageCount ?? null;
     readState.value = "success";
-  } catch {
-    setError("文件读取失败，请重新选择或直接粘贴文本。");
+  } catch (error) {
+    setError(error instanceof Error
+      ? error.message
+      : "文件读取失败，请重新选择或直接粘贴文本。");
   }
 }
 </script>
@@ -93,23 +95,23 @@ async function handleFileInput(event: Event): Promise<void> {
         :id="fileInputId"
         class="file-input"
         type="file"
-        accept=".md,.markdown,.txt,text/markdown,text/plain"
+        accept=".pdf,.md,.markdown,.txt,application/pdf,text/markdown,text/plain"
         :disabled="inputDisabled"
         :aria-describedby="statusId"
         @change="handleFileInput"
       />
-      <span class="file-mark" aria-hidden="true">MD / TXT</span>
+      <span class="file-mark" aria-hidden="true">PDF / TEXT</span>
       <span class="file-copy">
         <strong>{{ fileName || `选择${label}文件` }}</strong>
         <small v-if="readState === 'reading'">正在本地提取正文…</small>
-        <small v-else-if="readState === 'success'">已提取 {{ extractedCharacters }} 个字符，可在下方检查和编辑</small>
+        <small v-else-if="readState === 'success'">{{ extractionSummary }}</small>
         <small v-else>文件只在当前页面读取，不会自动进入资料库</small>
       </span>
       <span class="select-command">{{ fileName ? "重新选择" : "选择文件" }}</span>
     </label>
 
     <p :id="statusId" class="file-status" :class="{ 'is-error': localError }" aria-live="polite">
-      {{ localError || "支持 .md、.markdown、.txt；PDF/DOCX 暂未开放。" }}
+      {{ localError || "支持带文本层的 PDF、Markdown、TXT；扫描件 OCR 和 DOCX 暂未开放。" }}
     </p>
 
     <label class="text-fallback" :for="textInputId">

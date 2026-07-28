@@ -28,10 +28,10 @@
 **Interfaces:**
 - Produces: `extractInterviewDocumentText(file: File): Promise<InterviewDocumentExtraction>` with `content`, `format`, and optional `pageCount`.
 
-- [ ] Install exact dependency `pdfjs-dist@5.4.624`.
-- [ ] Recognize `.md`, `.markdown`, `.txt`, and `.pdf`; reject all other extensions.
-- [ ] Read text files with `File.text()` and PDF files with lazily imported PDF.js plus the Vite worker URL.
-- [ ] Preserve page boundaries and meaningful line breaks; reject oversized, encrypted, damaged, and textless PDFs with Chinese errors.
+- [x] Install exact dependency `pdfjs-dist@5.4.624`.
+- [x] Recognize `.md`, `.markdown`, `.txt`, and `.pdf`; reject all other extensions.
+- [x] Read text files with `File.text()` and PDF files with lazily imported PDF.js plus the Vite worker URL.
+- [x] Preserve page boundaries and meaningful line breaks; reject oversized, encrypted, damaged, and textless PDFs with Chinese errors.
 
 ### Task 2: Interview file-field integration
 
@@ -42,10 +42,10 @@
 - Consumes: `extractInterviewDocumentText(File)`.
 - Produces: unchanged `defineModel<string>` content for `InterviewSetupForm`.
 
-- [ ] Replace inline extension and text reading logic with the extractor utility.
-- [ ] Add PDF to the file input accept list and visible format label.
-- [ ] Show PDF page count and extracted character count on success.
-- [ ] Preserve the previous text on every extraction failure.
+- [x] Replace inline extension and text reading logic with the extractor utility.
+- [x] Add PDF to the file input accept list and visible format label.
+- [x] Show PDF page count and extracted character count on success.
+- [x] Preserve the previous text on every extraction failure.
 
 ### Task 3: Verification and project facts
 
@@ -57,7 +57,7 @@
 - Modify: `docs/05-开发记录.md`
 - Modify: `docs/07-技术决策记录.md`
 
-- [ ] Generate and render a two-page Chinese/English text PDF plus an image-only scanned PDF under `tmp/pdfs/`.
-- [ ] Run `npm run build` and verify the production bundle includes a separate PDF.js worker asset.
-- [ ] Use Playwright to verify text extraction, scanned-PDF rejection, Markdown/TXT regression, console health, and 320px width.
-- [ ] Remove temporary PDF and browser artifacts, review the diff, stage only related files, and commit with a concise Chinese message.
+- [x] Generate and render a two-page Chinese/English text PDF plus an image-only scanned PDF under `tmp/pdfs/`.
+- [x] Run `npm run build` and verify the production bundle includes a separate PDF.js worker asset.
+- [x] Use Playwright to verify text extraction, scanned-PDF rejection, Markdown/TXT regression, console health, and 320px width.
+- [x] Remove temporary PDF and browser artifacts, review the diff, stage only related files, and commit with a concise Chinese message.
