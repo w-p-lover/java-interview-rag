@@ -41,9 +41,11 @@ PDF 文件
 ```
 
 - `InterviewDocumentController` 只处理 multipart 绑定、HTTP 响应和中文参数错误。
-- `InterviewPdfTextExtractor` 只负责校验、打开 PDF、按位置提取文本和关闭 PDFBox 资源。
+- `InterviewDocumentTextExtractor` 是面试输入的通用正文提取边界；当前唯一实现是 `PdfInterviewDocumentTextExtractor`，负责校验、打开 PDF、按位置提取文本和关闭 PDFBox 资源。
 - `InterviewDocumentExtraction` 表达提取结果，不包含原文件字节、路径或持久化标识。
 - 前端 `interview.ts` 新增上传 API；`interviewDocumentText.ts` 保留统一入口，但 PDF 分支改为调用后端，文本分支保持本地读取。
+
+该工具边界只为后续格式扩展保留单一替换点，不在本轮引入格式注册中心、动态插件、文件档案或尚未实现的 DOCX/OCR 代码。
 
 ## 校验与隐私边界
 
