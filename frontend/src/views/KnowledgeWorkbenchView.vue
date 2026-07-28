@@ -50,9 +50,9 @@ function resetImportState(): void {
   <main id="main-content" class="workspace" tabindex="-1">
     <section class="readiness-brief" aria-labelledby="page-title">
       <div class="brief-copy">
-        <h1 id="page-title">把面试资料变成可检索上下文</h1>
+        <h1 id="page-title">把知识资料变成可检索上下文</h1>
         <p>
-          上传简历、岗位描述或 Java 面试资料。工作台会先确认内容版本、标题路径和切片结果，再为后续 RAG 问答与模拟面试提供资料基础。
+          上传需要长期复用的 Java 学习资料、面试笔记或项目技术说明。工作台会确认内容版本、标题路径和切片结果，为后续 RAG 问答与模拟面试提供知识依据。
         </p>
       </div>
 

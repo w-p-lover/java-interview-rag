@@ -80,7 +80,7 @@ function handleDrop(event: DragEvent): void {
 
 function submitImport(): void {
   if (!selectedFile.value) {
-    localError.value = "请先选择一份 Markdown 简历或资料。";
+    localError.value = "请先选择一份 Markdown 知识资料。";
     return;
   }
   if (!source.value.trim()) {
@@ -104,7 +104,7 @@ function formatFileSize(size: number): string {
     <header class="panel-heading">
       <div>
         <h3 id="import-title">导入资料</h3>
-        <p class="panel-intro">简历、岗位描述或 Java 面试笔记均使用 Markdown。</p>
+        <p class="panel-intro">用于长期检索的 Java 面试笔记、学习资料和项目技术说明均使用 Markdown。</p>
       </div>
       <span class="available-state">可操作</span>
     </header>
@@ -145,7 +145,7 @@ function formatFileSize(size: number): string {
           name="source"
           type="text"
           autocomplete="off"
-          placeholder="例如 resume/java-backend.md"
+          placeholder="例如 java/concurrency/thread-pool.md"
           :disabled="busy"
           :aria-invalid="Boolean(visibleError)"
           aria-describedby="source-helper"

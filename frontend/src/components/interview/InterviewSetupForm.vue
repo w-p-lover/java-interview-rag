@@ -2,6 +2,7 @@
 import { computed, reactive, watch } from "vue";
 
 import type { InterviewSessionStartPayload } from "@/api/interview";
+import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
 
 defineProps<{
   busy: boolean;
@@ -11,7 +12,15 @@ const emit = defineEmits<{
   start: [payload: InterviewSessionStartPayload];
 }>();
 
-const form = reactive<InterviewSessionStartPayload>({
+interface InterviewSetupFormData {
+  targetRole: string;
+  resumeText: string;
+  jobDescription: string;
+  initialQuestionCount: number;
+  maxQuestionCount: number;
+}
+
+const form = reactive<InterviewSetupFormData>({
   targetRole: "Java 后端开发工程师",
   resumeText: "",
   jobDescription: "",
@@ -64,26 +73,26 @@ function handleSubmit(): void {
       />
     </label>
 
-    <label>
-      <span>简历正文</span>
-      <textarea
-        v-model="form.resumeText"
-        rows="10"
-        maxlength="50000"
-        required
-        placeholder="粘贴简历中的技能、项目和工作经历。"
-      ></textarea>
-    </label>
+    <InterviewTextFileField
+      v-model="form.resumeText"
+      input-id="resume"
+      label="简历"
+      :rows="10"
+      :max-length="50000"
+      placeholder="也可以直接粘贴简历中的技能、项目和工作经历。"
+      :busy="busy"
+    />
 
-    <label>
-      <span>岗位描述 <small>可选</small></span>
-      <textarea
-        v-model="form.jobDescription"
-        rows="5"
-        maxlength="30000"
-        placeholder="粘贴 JD 后，题目会更贴近岗位要求。"
-      ></textarea>
-    </label>
+    <InterviewTextFileField
+      v-model="form.jobDescription"
+      input-id="job-description"
+      label="岗位描述"
+      optional
+      :rows="5"
+      :max-length="30000"
+      placeholder="也可以直接粘贴 JD，让题目更贴近岗位要求。"
+      :busy="busy"
+    />
 
     <div class="count-grid">
       <label>
@@ -161,13 +170,7 @@ label {
   font-weight: 600;
 }
 
-label small {
-  color: var(--color-muted);
-  font-weight: 400;
-}
-
 input,
-textarea,
 select {
   width: 100%;
   border: var(--rule-thin) solid var(--color-rule-2);
@@ -180,13 +183,6 @@ input,
 select {
   min-height: 3rem;
   padding-inline: var(--space-md);
-}
-
-textarea {
-  min-height: 8rem;
-  padding: var(--space-md);
-  resize: vertical;
-  line-height: 1.65;
 }
 
 .count-grid {
