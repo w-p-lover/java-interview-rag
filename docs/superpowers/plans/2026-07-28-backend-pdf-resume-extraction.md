@@ -33,7 +33,7 @@
 - Produces: `InterviewDocumentTextExtractor.extract(MultipartFile): InterviewDocumentExtraction`。
 - Produces: `InterviewDocumentExtraction(String content, String format, int pageCount)`，当前 `format` 固定为 `"PDF"`。
 
-- [ ] **Step 1: 为 PDFBox 和 multipart 边界写失败测试**
+- [x] **Step 1: 为 PDFBox 和 multipart 边界写失败测试**
 
 创建 `PdfInterviewDocumentTextExtractorTest`，用 PDFBox 在测试内存中生成两页文本 PDF 与空白页 PDF；覆盖成功文本、空文件、非 PDF、超过 10 MiB 与无文本层错误。
 
@@ -47,7 +47,7 @@ assertEquals("未提取到可用文字，可能是扫描件；当前暂不支持
                 () -> extractor.extract(pdf("resume.pdf", blankPdf()))).getMessage());
 ```
 
-- [ ] **Step 2: 运行测试确认当前不存在实现**
+- [x] **Step 2: 运行测试确认当前不存在实现**
 
 Run:
 
@@ -57,7 +57,7 @@ Run:
 
 Expected: 编译失败，提示 `PdfInterviewDocumentTextExtractor` 或 PDFBox 类型不存在。
 
-- [ ] **Step 3: 添加最小 PDFBox 依赖、配置和实现**
+- [x] **Step 3: 添加最小 PDFBox 依赖、配置和实现**
 
 在 `pom.xml` 属性中固定版本，并增加唯一解析依赖：
 
@@ -92,9 +92,9 @@ public record InterviewDocumentExtraction(String content, String format, int pag
 }
 ```
 
-实现 `PdfInterviewDocumentTextExtractor`：先检查空文件、`10 * 1024 * 1024` 字节和 `.pdf` 扩展名，再用 `Loader.loadPDF(file.getBytes())` 打开文档。创建 `PDFTextStripper` 后执行 `setSortByPosition(true)`、`setPageSeparator("\\n\\n")` 和 `getText(document)`；空白结果抛出扫描件提示，`InvalidPasswordException` 转为加密提示，其他 `IOException` 转为损坏提示。使用 try-with-resources 关闭 `PDDocument`，不写文件、数据库或向量库。
+实现 `PdfInterviewDocumentTextExtractor`：先检查空文件、`10 * 1024 * 1024` 字节和 `.pdf` 扩展名，再用 `Loader.loadPDF(file.getBytes())` 打开文档。创建 `PDFTextStripper` 后执行 `setSortByPosition(true)`、`setPageEnd("\\n\\n")` 和 `getText(document)`；空白结果抛出扫描件提示，`InvalidPasswordException` 转为加密提示，其他 `IOException` 转为损坏提示。使用 try-with-resources 关闭 `PDDocument`，不写文件、数据库或向量库。
 
-- [ ] **Step 4: 运行解析器测试**
+- [x] **Step 4: 运行解析器测试**
 
 Run:
 
@@ -104,7 +104,7 @@ Run:
 
 Expected: 所有解析器测试通过；不启动模型、MySQL、Qdrant 或 OCR。
 
-- [ ] **Step 5: 提交后端解析器**
+- [x] **Step 5: 提交后端解析器**
 
 ```powershell
 git add pom.xml src/main/resources/application.yml src/main/java/com/javainterview/rag/interview/document src/test/java/com/javainterview/rag/interview/document
@@ -130,7 +130,7 @@ git commit -m "feat: 增加 PDF 正文提取工具"
 - Consumes: `extractInterviewDocumentText(file: File)`。
 - Produces: 现有 `InterviewDocumentExtraction`，让 `InterviewTextFileField` 继续通过 `v-model` 回填正文。
 
-- [ ] **Step 1: 为 multipart 控制器写失败测试**
+- [x] **Step 1: 为 multipart 控制器写失败测试**
 
 使用 `MockMvcBuilders.standaloneSetup` 和 mock `InterviewDocumentTextExtractor`，覆盖成功响应和服务抛出 `IllegalArgumentException` 时的中文 400 响应。
 
@@ -143,7 +143,7 @@ mockMvc.perform(multipart("/api/interviews/documents/extract")
         .andExpect(jsonPath("$.pageCount").value(2));
 ```
 
-- [ ] **Step 2: 运行控制器测试确认当前接口不存在**
+- [x] **Step 2: 运行控制器测试确认当前接口不存在**
 
 Run:
 
@@ -153,7 +153,7 @@ Run:
 
 Expected: 编译失败，提示 `InterviewDocumentController` 不存在。
 
-- [ ] **Step 3: 实现控制器与前端 API 切换**
+- [x] **Step 3: 实现控制器与前端 API 切换**
 
 控制器应保持无 `storage` profile 限制，使本地解析不依赖模型或数据库：
 
@@ -185,7 +185,7 @@ Set-Location frontend
 npm uninstall pdfjs-dist
 ```
 
-- [ ] **Step 4: 运行后端接口测试与前端构建**
+- [x] **Step 4: 运行后端接口测试与前端构建**
 
 Run:
 
@@ -198,7 +198,7 @@ npm run build
 
 Expected: 两个直接相关的后端测试通过，Vite 构建通过且产物不再包含 PDF.js worker。
 
-- [ ] **Step 5: 浏览器验证并提交接口与前端迁移**
+- [x] **Step 5: 浏览器验证并提交接口与前端迁移**
 
 在本地后端运行时，通过 `/interview` 选择文本型 PDF，确认返回正文和页数；选择扫描件确认中文 OCR 暂不支持错误并保留旧正文；再选择 Markdown/TXT 确认仍可本地回填。不要点击“开始模拟面试”，避免模型与数据库调用。
 
@@ -221,15 +221,15 @@ git commit -m "feat: 接入后端 PDF 简历解析"
 **Interfaces:**
 - Documents describe the implemented `POST /api/interviews/documents/extract` boundary and do not claim OCR or persistent file storage.
 
-- [ ] **Step 1: 替换已过时的浏览器 PDF.js 描述**
+- [x] **Step 1: 替换已过时的浏览器 PDF.js 描述**
 
 将 README、需求边界、技术方案和当前进度从“浏览器本地 PDF.js 解析”改为“后端 PDFBox 临时解析”；Markdown/TXT 本地读取、PDF 不持久化、扫描件 OCR 暂不支持、DOCX 暂不开放必须保留。
 
-- [ ] **Step 2: 追加事实记录与新 ADR**
+- [x] **Step 2: 追加事实记录与新 ADR**
 
 在 `docs/05-开发记录.md` 追加本轮实现、PDFBox 版本、实际测试和浏览器验证结果。在 `docs/07-技术决策记录.md` 追加一个明确替代 ADR-035 的决策，说明改用服务端位置排序的理由、multipart 临时缓冲边界及复杂版式仍非完全保证。
 
-- [ ] **Step 3: 勾选计划并审查提交范围**
+- [x] **Step 3: 勾选计划并审查提交范围**
 
 将本计划的完成项改为 `[x]`，执行：
 
@@ -242,7 +242,7 @@ git diff -- src/main/resources/application.yml
 
 Expected: diff 无空白错误，`application.yml` 的 `server.port` 用户改动仍不在暂存区。
 
-- [ ] **Step 4: 提交文档闭环**
+- [x] **Step 4: 提交文档闭环**
 
 ```powershell
 git add README.md docs/01-需求边界.md docs/02-技术方案.md docs/04-当前进度.md docs/05-开发记录.md docs/07-技术决策记录.md docs/superpowers/plans/2026-07-28-backend-pdf-resume-extraction.md

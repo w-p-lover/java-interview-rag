@@ -103,9 +103,9 @@ async function handleFileInput(event: Event): Promise<void> {
       <span class="file-mark" aria-hidden="true">PDF / TEXT</span>
       <span class="file-copy">
         <strong>{{ fileName || `选择${label}文件` }}</strong>
-        <small v-if="readState === 'reading'">正在本地提取正文…</small>
+        <small v-if="readState === 'reading'">正在提取正文…</small>
         <small v-else-if="readState === 'success'">{{ extractionSummary }}</small>
-        <small v-else>文件只在当前页面读取，不会自动进入资料库</small>
+        <small v-else>PDF 仅在本次请求中发送到后端提取，不会进入资料库或保存</small>
       </span>
       <span class="select-command">{{ fileName ? "重新选择" : "选择文件" }}</span>
     </label>

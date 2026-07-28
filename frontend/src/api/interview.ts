@@ -85,6 +85,23 @@ export interface InterviewSessionStartPayload {
   maxQuestionCount: number;
 }
 
+export interface InterviewDocumentExtraction {
+  content: string;
+  format: "PDF";
+  pageCount: number;
+}
+
+export async function extractInterviewPdfText(file: File): Promise<InterviewDocumentExtraction> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await request.post<InterviewDocumentExtraction>(
+    "/interviews/documents/extract",
+    formData,
+    { timeout: 30_000 },
+  );
+  return response.data;
+}
+
 export async function startInterviewSession(
   payload: InterviewSessionStartPayload,
 ): Promise<InterviewSession> {

@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "axios": "1.18.1",
-    "pdfjs-dist": "5.4.624",
     "vue": "3.5.40",
     "vue-router": "5.2.0"
   },
