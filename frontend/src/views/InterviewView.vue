@@ -5,6 +5,7 @@ import type { InterviewSessionStartPayload } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
+import InterviewReviewTaskPanel from "@/components/interview/InterviewReviewTaskPanel.vue";
 import InterviewSetupForm from "@/components/interview/InterviewSetupForm.vue";
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import { useInterviewSession } from "@/composables/useInterviewSession";
@@ -16,9 +17,14 @@ const {
   error,
   currentQuestion,
   latestAnswer,
+  reviewTasks,
+  reviewTasksLoading,
+  reviewTasksError,
+  reviewTasksGenerated,
   restore,
   start,
   submit,
+  generateReviewTasks,
   reset,
 } = useInterviewSession();
 
@@ -37,6 +43,10 @@ function handleStart(payload: InterviewSessionStartPayload): void {
 
 function handleSubmit(answer: string): void {
   void submit(answer);
+}
+
+function handleReviewRetry(): void {
+  void generateReviewTasks();
 }
 </script>
 
@@ -96,13 +106,22 @@ function handleSubmit(answer: string): void {
         <button type="button" :disabled="loading" @click="reset">放弃并重新开始</button>
       </section>
 
-      <InterviewReportPanel
-        v-if="session.status === 'COMPLETED' && session.report"
-        id="interview-report"
-        :report="session.report"
-        :target-role="session.targetRole"
-        @restart="reset"
-      />
+      <div v-if="session.status === 'COMPLETED' && session.report" class="completion-stack">
+        <InterviewReportPanel
+          id="interview-report"
+          :report="session.report"
+          :target-role="session.targetRole"
+          @restart="reset"
+        />
+        <InterviewReviewTaskPanel
+          id="interview-review-tasks"
+          :tasks="reviewTasks"
+          :loading="reviewTasksLoading"
+          :error="reviewTasksError"
+          :generated="reviewTasksGenerated"
+          @retry="handleReviewRetry"
+        />
+      </div>
 
       <section v-else-if="currentQuestion" class="interview-grid">
         <InterviewQuestionPanel
@@ -281,6 +300,11 @@ h1 {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
   align-items: start;
+  gap: var(--space-lg);
+}
+
+.completion-stack {
+  display: grid;
   gap: var(--space-lg);
 }
 

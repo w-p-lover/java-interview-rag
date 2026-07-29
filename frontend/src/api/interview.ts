@@ -77,6 +77,28 @@ export interface InterviewSession {
   updatedAt: string;
 }
 
+export interface InterviewReviewKnowledgeSource {
+  source: string;
+  documentVersion: string;
+  chunkOrder: number;
+  headingPath: string[];
+  similarity: number | null;
+}
+
+export interface InterviewReviewTask {
+  id: string;
+  sessionId: string;
+  questionIndex: number;
+  question: string;
+  objective: string;
+  gaps: string[];
+  improvementSuggestion: string;
+  knowledgeGrounded: boolean;
+  knowledgeSources: InterviewReviewKnowledgeSource[];
+  status: "PENDING";
+  createdAt: string;
+}
+
 export interface InterviewSessionStartPayload {
   targetRole: string;
   resumeText: string;
@@ -126,6 +148,24 @@ export async function submitInterviewAnswer(
     `/interviews/sessions/${sessionId}/answers`,
     { questionIndex, expectedVersion, answer },
     { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function generateInterviewReviewTasks(
+  sessionId: string,
+): Promise<InterviewReviewTask[]> {
+  const response = await request.post<InterviewReviewTask[]>(
+    `/interviews/sessions/${sessionId}/review-tasks`,
+  );
+  return response.data;
+}
+
+export async function getInterviewReviewTasks(
+  sessionId: string,
+): Promise<InterviewReviewTask[]> {
+  const response = await request.get<InterviewReviewTask[]>(
+    `/interviews/sessions/${sessionId}/review-tasks`,
   );
   return response.data;
 }
