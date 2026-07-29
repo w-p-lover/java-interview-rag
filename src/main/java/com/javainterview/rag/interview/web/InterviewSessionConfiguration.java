@@ -2,7 +2,11 @@ package com.javainterview.rag.interview.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.persistence.InterviewSessionMapper;
+import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
+import com.javainterview.rag.interview.persistence.MySqlInterviewReviewTaskStore;
+import com.javainterview.rag.interview.review.InterviewReviewTaskService;
+import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
@@ -23,6 +27,18 @@ public class InterviewSessionConfiguration {
     @Bean
     InterviewSessionStore interviewSessionStore(InterviewSessionMapper mapper, ObjectMapper objectMapper) {
         return new MySqlInterviewSessionStore(mapper, objectMapper);
+    }
+
+    @Bean
+    InterviewReviewTaskStore interviewReviewTaskStore(
+            InterviewReviewTaskMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlInterviewReviewTaskStore(mapper, objectMapper);
+    }
+
+    @Bean
+    InterviewReviewTaskService interviewReviewTaskService(
+            InterviewSessionStore sessionStore, InterviewReviewTaskStore taskStore) {
+        return new InterviewReviewTaskService(sessionStore, taskStore);
     }
 
     @Bean

@@ -1,0 +1,67 @@
+package com.javainterview.rag.interview.persistence;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
+import com.javainterview.rag.interview.review.InterviewReviewTask;
+import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
+import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
+
+import java.util.List;
+import java.util.Objects;
+
+public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
+
+    private static final TypeReference<List<String>> GAP_LIST_TYPE = new TypeReference<>() {
+    };
+    private static final TypeReference<List<InterviewReviewKnowledgeSource>> SOURCE_LIST_TYPE =
+            new TypeReference<>() {
+            };
+
+    private final InterviewReviewTaskMapper mapper;
+    private final ObjectMapper objectMapper;
+
+    public MySqlInterviewReviewTaskStore(InterviewReviewTaskMapper mapper, ObjectMapper objectMapper) {
+        this.mapper = Objects.requireNonNull(mapper, "复习任务 Mapper 不能为空");
+        this.objectMapper = Objects.requireNonNull(objectMapper, "JSON 处理器不能为空");
+    }
+
+    @Override
+    public void createIfAbsent(InterviewReviewTask task) {
+        try {
+            mapper.insertIfAbsent(InterviewReviewTaskEntity.from(
+                    task,
+                    objectMapper.writeValueAsString(task.gaps()),
+                    objectMapper.writeValueAsString(task.knowledgeSources())
+            ));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("序列化复习任务失败", exception);
+        }
+    }
+
+    @Override
+    public List<InterviewReviewTask> findBySessionId(String sessionId) {
+        return mapper.findBySessionId(sessionId).stream().map(this::toTask).toList();
+    }
+
+    private InterviewReviewTask toTask(InterviewReviewTaskEntity entity) {
+        try {
+            return new InterviewReviewTask(
+                    entity.getId(),
+                    entity.getSessionId(),
+                    entity.getQuestionIndex(),
+                    entity.getQuestion(),
+                    entity.getObjective(),
+                    objectMapper.readValue(entity.getGapsJson(), GAP_LIST_TYPE),
+                    entity.getImprovementSuggestion(),
+                    Boolean.TRUE.equals(entity.getKnowledgeGrounded()),
+                    objectMapper.readValue(entity.getKnowledgeSourcesJson(), SOURCE_LIST_TYPE),
+                    InterviewReviewTaskStatus.valueOf(entity.getStatus()),
+                    entity.getCreatedAt()
+            );
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
+            throw new IllegalStateException("复习任务数据损坏", exception);
+        }
+    }
+}

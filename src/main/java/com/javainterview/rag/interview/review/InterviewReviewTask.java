@@ -1,0 +1,57 @@
+package com.javainterview.rag.interview.review;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+
+public record InterviewReviewTask(
+        String id,
+        String sessionId,
+        int questionIndex,
+        String question,
+        String objective,
+        List<String> gaps,
+        String improvementSuggestion,
+        boolean knowledgeGrounded,
+        List<InterviewReviewKnowledgeSource> knowledgeSources,
+        InterviewReviewTaskStatus status,
+        LocalDateTime createdAt
+) {
+
+    public InterviewReviewTask {
+        id = requireText(id, "复习任务 ID 不能为空");
+        sessionId = requireText(sessionId, "面试会话 ID 不能为空");
+        if (questionIndex < 0) {
+            throw new IllegalArgumentException("复习任务题号不能为负数");
+        }
+        question = requireText(question, "复习题目不能为空");
+        objective = requireText(objective, "复习目标不能为空");
+        gaps = copyTexts(gaps, "复习遗漏项不能为空");
+        if (gaps.isEmpty()) {
+            throw new IllegalArgumentException("复习任务必须包含遗漏项");
+        }
+        improvementSuggestion = requireText(improvementSuggestion, "复习改进建议不能为空");
+        knowledgeSources = List.copyOf(Objects.requireNonNull(
+                knowledgeSources, "复习知识来源不能为空"));
+        if (knowledgeGrounded != !knowledgeSources.isEmpty()) {
+            throw new IllegalArgumentException("复习知识来源状态与实际来源不一致");
+        }
+        status = Objects.requireNonNull(status, "复习任务状态不能为空");
+        createdAt = Objects.requireNonNull(createdAt, "复习任务创建时间不能为空");
+    }
+
+    private static List<String> copyTexts(List<String> values, String message) {
+        Objects.requireNonNull(values, message);
+        if (values.stream().anyMatch(value -> value == null || value.isBlank())) {
+            throw new IllegalArgumentException(message);
+        }
+        return List.copyOf(values);
+    }
+
+    private static String requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value;
+    }
+}
