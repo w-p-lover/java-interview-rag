@@ -100,6 +100,26 @@ export interface InterviewReviewTask {
   completedAt: string | null;
 }
 
+export interface InterviewReviewAttempt {
+  id: string;
+  sessionId: string;
+  reviewTaskId: string;
+  questionIndex: number;
+  attemptNumber: number;
+  answer: string;
+  evaluation: InterviewAnswerEvaluation;
+  knowledgeGrounded: boolean;
+  knowledgeSources: InterviewReviewKnowledgeSource[];
+  promptVersion: string;
+  rubricVersion: string;
+  modelName: string;
+  originalOverallScore: number;
+  previousOverallScore: number | null;
+  scoreDeltaFromOriginal: number;
+  scoreDeltaFromPrevious: number | null;
+  createdAt: string;
+}
+
 export interface InterviewSessionStartPayload {
   targetRole: string;
   resumeText: string;
@@ -177,6 +197,30 @@ export async function completeInterviewReviewTask(
 ): Promise<InterviewReviewTask> {
   const response = await request.patch<InterviewReviewTask>(
     `/interviews/sessions/${sessionId}/review-tasks/${taskId}/complete`,
+  );
+  return response.data;
+}
+
+export async function getInterviewReviewAttempts(
+  sessionId: string,
+  taskId: string,
+): Promise<InterviewReviewAttempt[]> {
+  const response = await request.get<InterviewReviewAttempt[]>(
+    `/interviews/sessions/${sessionId}/review-tasks/${taskId}/attempts`,
+  );
+  return response.data;
+}
+
+export async function submitInterviewReviewAttempt(
+  sessionId: string,
+  taskId: string,
+  answer: string,
+  expectedAttemptNumber: number,
+): Promise<InterviewReviewAttempt> {
+  const response = await request.post<InterviewReviewAttempt>(
+    `/interviews/sessions/${sessionId}/review-tasks/${taskId}/attempts`,
+    { answer, expectedAttemptNumber },
+    { timeout: 120_000 },
   );
   return response.data;
 }

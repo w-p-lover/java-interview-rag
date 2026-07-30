@@ -3,10 +3,13 @@ package com.javainterview.rag.interview.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.persistence.InterviewSessionMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
+import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewTaskStore;
+import com.javainterview.rag.interview.persistence.MySqlInterviewReviewAttemptStore;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
+import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
@@ -19,6 +22,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
@@ -36,16 +40,26 @@ public class InterviewSessionConfiguration {
     }
 
     @Bean
+    InterviewReviewAttemptStore interviewReviewAttemptStore(
+            InterviewReviewAttemptMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlInterviewReviewAttemptStore(mapper, objectMapper);
+    }
+
+    @Bean
     InterviewReviewTaskService interviewReviewTaskService(
-            InterviewSessionStore sessionStore, InterviewReviewTaskStore taskStore) {
-        return new InterviewReviewTaskService(sessionStore, taskStore);
+            InterviewSessionStore sessionStore,
+            InterviewReviewTaskStore taskStore,
+            InterviewReviewAttemptStore attemptStore,
+            InterviewAnswerEvaluator answerEvaluator) {
+        return new InterviewReviewTaskService(sessionStore, taskStore, attemptStore, answerEvaluator);
     }
 
     @Bean
     InterviewAnswerEvaluator interviewAnswerEvaluator(
             ChatClient ragAnswerChatClient,
-            MarkdownSimilaritySearchService searchService) {
-        return new InterviewAnswerEvaluationService(ragAnswerChatClient, searchService);
+            MarkdownSimilaritySearchService searchService,
+            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
+        return new InterviewAnswerEvaluationService(ragAnswerChatClient, searchService, modelName);
     }
 
     @Bean

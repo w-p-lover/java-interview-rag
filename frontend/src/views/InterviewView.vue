@@ -23,11 +23,16 @@ const {
   reviewTasksGenerated,
   completingReviewTaskId,
   reviewTaskActionError,
+  reviewAttempts,
+  reviewAttemptsLoadingTaskId,
+  submittingReviewAttemptTaskId,
+  reviewAttemptError,
   restore,
   start,
   submit,
   generateReviewTasks,
   completeReviewTask,
+  submitReviewAttempt,
   reset,
 } = useInterviewSession();
 
@@ -54,6 +59,10 @@ function handleReviewRetry(): void {
 
 function handleReviewComplete(taskId: string): void {
   void completeReviewTask(taskId);
+}
+
+function handleReviewAttempt(taskId: string, answer: string): void {
+  void submitReviewAttempt(taskId, answer);
 }
 </script>
 
@@ -128,8 +137,13 @@ function handleReviewComplete(taskId: string): void {
           :generated="reviewTasksGenerated"
           :completing-task-id="completingReviewTaskId"
           :action-error="reviewTaskActionError"
+          :attempts-by-task-id="reviewAttempts"
+          :attempts-loading-task-id="reviewAttemptsLoadingTaskId"
+          :submitting-attempt-task-id="submittingReviewAttemptTaskId"
+          :attempt-error="reviewAttemptError"
           @retry="handleReviewRetry"
           @complete="handleReviewComplete"
+          @submit-attempt="handleReviewAttempt"
         />
       </div>
 

@@ -15,6 +15,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     private static final int FOLLOW_UP_TOP_K = 3;
     private static final double FOLLOW_UP_SIMILARITY_THRESHOLD = 0.60;
+    private static final String PROMPT_VERSION = "interview-answer-evaluation-v2";
+    private static final String RUBRIC_VERSION = "interview-answer-rubric-v1";
     private static final String INSTRUCTIONS = """
             你是 Java 技术面试评价助手。请只根据面试准备画像、当前题目、候选人回答和给定知识资料输出结构化评价。
             必须遵守以下规则：
@@ -30,11 +32,19 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     private final ChatClient chatClient;
     private final MarkdownSimilaritySearchService searchService;
+    private final String modelName;
 
     public InterviewAnswerEvaluationService(ChatClient chatClient,
                                             MarkdownSimilaritySearchService searchService) {
+        this(chatClient, searchService, "unknown");
+    }
+
+    public InterviewAnswerEvaluationService(ChatClient chatClient,
+                                            MarkdownSimilaritySearchService searchService,
+                                            String modelName) {
         this.chatClient = Objects.requireNonNull(chatClient, "聊天客户端不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
+        this.modelName = modelName == null || modelName.isBlank() ? "unknown" : modelName;
     }
 
     @Override
@@ -46,7 +56,46 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         if (answer == null || answer.isBlank()) {
             throw new IllegalArgumentException("回答不能为空");
         }
-        InterviewAnswerEvaluationDraft draft = chatClient.prompt(buildPrompt(profile, question, answer))
+        return evaluate(profile, question, answer, List.of(), true);
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts) {
+        Objects.requireNonNull(previousAttempts, "历史回答不能为空");
+        return evaluate(profile, question, answer, previousAttempts, false);
+    }
+
+    @Override
+    public String promptVersion() {
+        return PROMPT_VERSION;
+    }
+
+    @Override
+    public String rubricVersion() {
+        return RUBRIC_VERSION;
+    }
+
+    @Override
+    public String modelName() {
+        return modelName;
+    }
+
+    private InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
+                                                InterviewQuestion question,
+                                                String answer,
+                                                List<InterviewAnswerPreviousAttempt> previousAttempts,
+                                                boolean allowFollowUp) {
+        Objects.requireNonNull(profile, "面试准备画像不能为空");
+        Objects.requireNonNull(question, "面试题不能为空");
+        if (answer == null || answer.isBlank()) {
+            throw new IllegalArgumentException("回答不能为空");
+        }
+        InterviewAnswerEvaluationDraft draft = chatClient.prompt(
+                        buildPrompt(profile, question, answer, previousAttempts, allowFollowUp))
                 .call()
                 .entity(InterviewAnswerEvaluationDraft.class);
         if (draft == null) {
@@ -54,7 +103,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         }
         InterviewAnswerEvaluation evaluation = InterviewAnswerEvaluation.from(
                 draft, !question.knowledgeSources().isEmpty());
-        InterviewQuestion followUpQuestion = draft.followUpNeeded()
+        InterviewQuestion followUpQuestion = allowFollowUp && draft.followUpNeeded()
                 ? buildFollowUpQuestion(draft, question) : null;
         return new InterviewAnswerAssessment(evaluation, followUpQuestion);
     }
@@ -73,18 +122,39 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         );
     }
 
-    private String buildPrompt(InterviewPreparationProfile profile, InterviewQuestion question, String answer) {
+    private String buildPrompt(InterviewPreparationProfile profile,
+                               InterviewQuestion question,
+                               String answer,
+                               List<InterviewAnswerPreviousAttempt> previousAttempts,
+                               boolean allowFollowUp) {
         String sources = question.knowledgeSources().isEmpty()
                 ? "（无可靠知识资料）"
                 : IntStream.range(0, question.knowledgeSources().size())
                 .mapToObj(index -> formatSource(index + 1, question.knowledgeSources().get(index)))
                 .collect(Collectors.joining("\n\n"));
+        String followUpInstruction = allowFollowUp
+                ? "\n当前为正式面试评价，可以根据规则生成追问。"
+                : "\n当前为复习二次作答评价，不得生成追问；只返回当前回答的评价。";
+        String history = previousAttempts.isEmpty()
+                ? "（暂无历史复习回答）"
+                : IntStream.range(0, previousAttempts.size())
+                .mapToObj(index -> formatPreviousAttempt(index + 1, previousAttempts.get(index)))
+                .collect(Collectors.joining("\n\n"));
         return INSTRUCTIONS
+                + followUpInstruction
                 + "\n候选人摘要：" + profile.candidateSummary()
                 + "\n当前题目：" + question.question()
                 + "\n考察目标：" + question.objective()
                 + "\n候选人回答：\n<answer>\n" + answer + "\n</answer>"
+                + "\n\n历史复习回答（仅用于比较改进，不得当作当前回答）：\n" + history
                 + "\n\n知识资料：\n" + sources;
+    }
+
+    private String formatPreviousAttempt(int number, InterviewAnswerPreviousAttempt attempt) {
+        return "[历史复习回答 " + number + "]\n回答：\n<previous-answer>\n"
+                + attempt.answer() + "\n</previous-answer>\n上次总分："
+                + attempt.evaluation().overallScore() + "\n遗漏："
+                + String.join("；", attempt.gaps());
     }
 
     private String formatSource(int index, MarkdownSearchResult source) {

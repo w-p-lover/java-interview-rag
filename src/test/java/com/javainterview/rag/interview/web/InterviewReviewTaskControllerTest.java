@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
+import com.javainterview.rag.interview.review.InterviewReviewAttempt;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.junit.jupiter.api.Test;
@@ -81,6 +82,27 @@ class InterviewReviewTaskControllerTest {
                 .andExpect(jsonPath("$.message").value("复习任务不存在"));
     }
 
+    @Test
+    void listsAndSubmitsReviewAttempts() throws Exception {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        when(service.findAttempts("session-1", "task-1")).thenReturn(List.of(attempt()));
+        when(service.submitAttempt("session-1", "task-1", "补充失败补偿", 1))
+                .thenReturn(attempt());
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewTaskController(service)).build();
+
+        mockMvc.perform(get("/api/interviews/sessions/session-1/review-tasks/task-1/attempts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].attemptNumber").value(1))
+                .andExpect(jsonPath("$[0].scoreDeltaFromOriginal").value(5));
+
+        mockMvc.perform(post("/api/interviews/sessions/session-1/review-tasks/task-1/attempts")
+                        .contentType("application/json")
+                        .content("{\"answer\":\"补充失败补偿\",\"expectedAttemptNumber\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.promptVersion").value("prompt-v2"));
+    }
+
     private InterviewReviewTask task() {
         return new InterviewReviewTask(
                 "task-1",
@@ -119,5 +141,19 @@ class InterviewReviewTaskControllerTest {
                 task.createdAt(),
                 LocalDateTime.of(2026, 7, 30, 9, 30)
         );
+    }
+
+    private InterviewReviewAttempt attempt() {
+        return new InterviewReviewAttempt(
+                "attempt-1", "session-1", "task-1", 0, 1, "补充失败补偿",
+                new com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation(
+                        85, 85, 85, 85, List.of("补充了失败补偿"), List.of(),
+                        "继续补充监控信号。", true),
+                true,
+                List.of(new InterviewReviewKnowledgeSource(
+                        "rag/vector-lifecycle.md", "version-1", 2,
+                        List.of("向量生命周期"), 0.82)),
+                "prompt-v2", "rubric-v1", "model-test", 80, null, 5, null,
+                LocalDateTime.of(2026, 7, 30, 9, 30));
     }
 }

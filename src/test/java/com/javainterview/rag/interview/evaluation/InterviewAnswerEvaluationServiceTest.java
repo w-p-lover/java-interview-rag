@@ -138,6 +138,37 @@ class InterviewAnswerEvaluationServiceTest {
         assertEquals(null, result.followUpQuestion());
     }
 
+    @Test
+    void evaluatesReviewAnswerWithHistoryWithoutGeneratingFollowUp() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString()).call().entity(InterviewAnswerEvaluationDraft.class))
+                .thenReturn(new InterviewAnswerEvaluationDraft(
+                        90, 86, 88,
+                        List.of("补充了失败补偿"), List.of(), "继续补充监控信号。",
+                        true, "不应生成", "不应生成", "不应检索"));
+        clearInvocations(chatClient);
+        InterviewAnswerEvaluationService service =
+                new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
+
+        InterviewAnswerAssessment result = service.evaluateForReview(
+                profile(), groundedQuestion(), "补充失败补偿并记录重试状态。",
+                List.of(new InterviewAnswerPreviousAttempt(
+                        "先写入新版本，再删除旧版本。", new InterviewAnswerEvaluation(
+                                81, 74, 88, 81, List.of(), List.of("缺少失败补偿"),
+                                "补充失败补偿。", true))));
+
+        assertEquals(null, result.followUpQuestion());
+        assertEquals("interview-answer-evaluation-v2", service.promptVersion());
+        assertEquals("interview-answer-rubric-v1", service.rubricVersion());
+        assertEquals("model-test", service.modelName());
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient).prompt(promptCaptor.capture());
+        assertTrue(promptCaptor.getValue().contains("历史复习回答 1"));
+        assertTrue(promptCaptor.getValue().contains("不得生成追问"));
+        org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
     private InterviewQuestion groundedQuestion() {
         return new InterviewQuestion(
                 "如何保证向量更新一致性？",

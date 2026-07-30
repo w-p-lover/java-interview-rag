@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InterviewReviewTask } from "@/api/interview";
+import InterviewReviewAttemptPanel from "@/components/interview/InterviewReviewAttemptPanel.vue";
 
 defineProps<{
   tasks: InterviewReviewTask[];
@@ -8,11 +9,16 @@ defineProps<{
   generated: boolean;
   completingTaskId: string;
   actionError: string;
+  attemptsByTaskId: Record<string, import("@/api/interview").InterviewReviewAttempt[]>;
+  attemptsLoadingTaskId: string;
+  submittingAttemptTaskId: string;
+  attemptError: string;
 }>();
 
 const emit = defineEmits<{
   retry: [];
   complete: [taskId: string];
+  submitAttempt: [taskId: string, answer: string];
 }>();
 
 function formatSimilarity(similarity: number | null): string {
@@ -108,6 +114,15 @@ function formatCompletedAt(completedAt: string | null): string {
               {{ completingTaskId === task.id ? "正在记录…" : "标记已复习" }}
             </button>
           </div>
+
+          <InterviewReviewAttemptPanel
+            :task-id="task.id"
+            :attempts="attemptsByTaskId[task.id] ?? []"
+            :loading="attemptsLoadingTaskId === '*' || attemptsLoadingTaskId === task.id"
+            :submitting="submittingAttemptTaskId === task.id"
+            :error="attemptError"
+            @submit="emit('submitAttempt', task.id, $event)"
+          />
         </div>
 
         <aside class="source-ledger" :class="{ grounded: task.knowledgeGrounded }">

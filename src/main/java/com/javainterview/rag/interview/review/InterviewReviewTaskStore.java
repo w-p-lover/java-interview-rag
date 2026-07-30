@@ -10,6 +10,8 @@ public interface InterviewReviewTaskStore {
 
     List<InterviewReviewTask> findBySessionId(String sessionId);
 
+    Optional<InterviewReviewTask> findBySessionAndId(String sessionId, String taskId);
+
     Optional<InterviewReviewTask> complete(String sessionId, String taskId,
                                            LocalDateTime completedAt);
 }

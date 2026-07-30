@@ -4,9 +4,12 @@ import {
   completeInterviewReviewTask,
   generateInterviewReviewTasks,
   getInterviewReviewTasks,
+  getInterviewReviewAttempts,
   getInterviewSession,
   startInterviewSession,
   submitInterviewAnswer,
+  submitInterviewReviewAttempt,
+  type InterviewReviewAttempt,
   type InterviewReviewTask,
   type InterviewSession,
   type InterviewSessionStartPayload,
@@ -26,6 +29,10 @@ export function useInterviewSession() {
   const reviewTasksGenerated = shallowRef(false);
   const completingReviewTaskId = shallowRef("");
   const reviewTaskActionError = shallowRef("");
+  const reviewAttempts = shallowRef<Record<string, InterviewReviewAttempt[]>>({});
+  const reviewAttemptsLoadingTaskId = shallowRef("");
+  const submittingReviewAttemptTaskId = shallowRef("");
+  const reviewAttemptError = shallowRef("");
 
   const currentQuestion = computed(() => {
     if (!session.value || session.value.status === "COMPLETED") {
@@ -102,6 +109,7 @@ export function useInterviewSession() {
     reviewTasksGenerated.value = false;
     try {
       reviewTasks.value = await getInterviewReviewTasks(sessionId);
+      await loadReviewAttempts(reviewTasks.value);
     } catch (requestError) {
       reviewTasksError.value = resolveApiError(requestError, "恢复复习任务失败");
     } finally {
@@ -119,10 +127,58 @@ export function useInterviewSession() {
     try {
       reviewTasks.value = await generateInterviewReviewTasks(completedSession.id);
       reviewTasksGenerated.value = true;
+      await loadReviewAttempts(reviewTasks.value);
     } catch (requestError) {
       reviewTasksError.value = resolveApiError(requestError, "生成复习任务失败");
     } finally {
       reviewTasksLoading.value = false;
+    }
+  }
+
+  async function loadReviewAttempts(tasks: InterviewReviewTask[]): Promise<void> {
+    if (!session.value || !tasks.length) {
+      reviewAttempts.value = {};
+      return;
+    }
+    reviewAttemptsLoadingTaskId.value = "*";
+    reviewAttemptError.value = "";
+    try {
+      const entries = await Promise.all(tasks.map(async (task) => [
+        task.id,
+        await getInterviewReviewAttempts(session.value!.id, task.id),
+      ] as const));
+      reviewAttempts.value = Object.fromEntries(entries);
+    } catch (requestError) {
+      reviewAttemptError.value = resolveApiError(requestError, "恢复复习回答失败");
+    } finally {
+      reviewAttemptsLoadingTaskId.value = "";
+    }
+  }
+
+  async function submitReviewAttempt(taskId: string, answer: string): Promise<void> {
+    const completedSession = session.value;
+    if (!completedSession || completedSession.status !== "COMPLETED"
+      || submittingReviewAttemptTaskId.value) {
+      return;
+    }
+    const existingAttempts = reviewAttempts.value[taskId] ?? [];
+    submittingReviewAttemptTaskId.value = taskId;
+    reviewAttemptError.value = "";
+    try {
+      const attempt = await submitInterviewReviewAttempt(
+        completedSession.id,
+        taskId,
+        answer,
+        existingAttempts.length + 1,
+      );
+      reviewAttempts.value = {
+        ...reviewAttempts.value,
+        [taskId]: [...existingAttempts, attempt],
+      };
+    } catch (requestError) {
+      reviewAttemptError.value = resolveApiError(requestError, "提交复习回答失败");
+    } finally {
+      submittingReviewAttemptTaskId.value = "";
     }
   }
 
@@ -151,6 +207,10 @@ export function useInterviewSession() {
     reviewTasksGenerated.value = false;
     completingReviewTaskId.value = "";
     reviewTaskActionError.value = "";
+    reviewAttempts.value = {};
+    reviewAttemptsLoadingTaskId.value = "";
+    submittingReviewAttemptTaskId.value = "";
+    reviewAttemptError.value = "";
   }
 
   function reset(): void {
@@ -181,6 +241,11 @@ export function useInterviewSession() {
     submit,
     generateReviewTasks,
     completeReviewTask,
+    reviewAttempts,
+    reviewAttemptsLoadingTaskId,
+    submittingReviewAttemptTaskId,
+    reviewAttemptError,
+    submitReviewAttempt,
     reset,
   };
 }

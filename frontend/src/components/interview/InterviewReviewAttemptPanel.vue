@@ -1,0 +1,237 @@
+<script setup lang="ts">
+import { computed, shallowRef } from "vue";
+
+import type { InterviewReviewAttempt } from "@/api/interview";
+
+const props = defineProps<{
+  taskId: string;
+  attempts: InterviewReviewAttempt[];
+  loading: boolean;
+  submitting: boolean;
+  error: string;
+}>();
+
+const emit = defineEmits<{
+  submit: [answer: string];
+}>();
+
+const answer = shallowRef("");
+const canSubmit = computed(() => answer.value.trim().length > 0 && !props.submitting);
+const answerFieldId = computed(() => `review-attempt-answer-${props.taskId}`);
+
+function submit(): void {
+  const normalized = answer.value.trim();
+  if (!normalized || props.submitting) {
+    return;
+  }
+  emit("submit", normalized);
+  answer.value = "";
+}
+
+function formatDate(value: string): string {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? value
+    : new Intl.DateTimeFormat("zh-CN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      hour12: false,
+    }).format(parsed);
+}
+
+function formatDelta(value: number | null): string {
+  if (value === null) {
+    return "—";
+  }
+  return value > 0 ? `+${value}` : String(value);
+}
+</script>
+
+<template>
+  <section class="attempt-panel" aria-label="复习二次作答">
+    <div class="attempt-heading">
+      <div>
+        <strong>再答一次</strong>
+        <p>保留正式回答；本次回答会独立评价并记录版本。</p>
+      </div>
+      <span>{{ attempts.length }} 次记录</span>
+    </div>
+
+    <form class="attempt-form" @submit.prevent="submit">
+      <label :for="answerFieldId">你的复习回答</label>
+      <textarea
+        :id="answerFieldId"
+        v-model="answer"
+        rows="4"
+        maxlength="10000"
+        placeholder="结合遗漏项重新组织一次回答……"
+      ></textarea>
+      <div class="attempt-actions">
+        <small>提交后会与原回答和上次 attempt 对比</small>
+        <button type="submit" :disabled="!canSubmit">
+          {{ submitting ? "正在评价…" : "提交本次回答" }}
+        </button>
+      </div>
+    </form>
+
+    <p v-if="error" class="attempt-error" role="alert">{{ error }}</p>
+    <p v-if="loading" class="attempt-loading" aria-live="polite">正在恢复历史回答…</p>
+
+    <ol v-if="attempts.length" class="attempt-list">
+      <li v-for="attempt in attempts" :key="attempt.id" class="attempt-item">
+        <div class="attempt-meta">
+          <strong>Attempt {{ attempt.attemptNumber }}</strong>
+          <span>{{ formatDate(attempt.createdAt) }}</span>
+        </div>
+        <p class="attempt-answer">{{ attempt.answer }}</p>
+        <div class="attempt-score-row">
+          <span>本次 {{ attempt.evaluation.overallScore }} 分</span>
+          <span>较原回答 {{ formatDelta(attempt.scoreDeltaFromOriginal) }}</span>
+          <span v-if="attempt.previousOverallScore !== null">
+            较上次 {{ formatDelta(attempt.scoreDeltaFromPrevious) }}
+          </span>
+        </div>
+        <p class="attempt-feedback">{{ attempt.evaluation.improvementSuggestion }}</p>
+        <small class="attempt-version">
+          {{ attempt.promptVersion }} · {{ attempt.rubricVersion }} · {{ attempt.modelName }}
+        </small>
+      </li>
+    </ol>
+  </section>
+</template>
+
+<style scoped lang="scss">
+.attempt-panel,
+.attempt-heading,
+.attempt-form,
+.attempt-item {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.attempt-panel {
+  padding: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+}
+
+.attempt-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.attempt-heading p,
+.attempt-heading span,
+.attempt-actions small,
+.attempt-meta span,
+.attempt-version {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.attempt-heading strong,
+.attempt-form label {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.attempt-heading p,
+.attempt-answer,
+.attempt-feedback {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  padding: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.attempt-actions,
+.attempt-meta,
+.attempt-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+button {
+  min-height: 2.5rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-accent);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.attempt-error {
+  margin: 0;
+  padding: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-error-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-error);
+  background: var(--color-error-soft);
+  font-size: var(--text-sm);
+}
+
+.attempt-loading {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.attempt-list {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attempt-item {
+  padding-top: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.attempt-meta strong,
+.attempt-score-row {
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+}
+
+.attempt-score-row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  color: var(--color-success);
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 40rem) {
+  .attempt-actions,
+  .attempt-meta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+}
+</style>

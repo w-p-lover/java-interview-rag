@@ -2,6 +2,8 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
+import com.javainterview.rag.interview.review.InterviewReviewAttempt;
+import com.javainterview.rag.interview.review.InterviewReviewAttemptConflictException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,6 +46,24 @@ public class InterviewReviewTaskController {
         return service.complete(sessionId, taskId);
     }
 
+    @GetMapping("/{taskId}/attempts")
+    public List<InterviewReviewAttempt> findAttempts(@PathVariable String sessionId,
+                                                     @PathVariable String taskId) {
+        return service.findAttempts(sessionId, taskId);
+    }
+
+    @PostMapping("/{taskId}/attempts")
+    public InterviewReviewAttempt submitAttempt(@PathVariable String sessionId,
+                                                 @PathVariable String taskId,
+                                                 @org.springframework.web.bind.annotation.RequestBody
+                                                 InterviewReviewAttemptRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("复习回答请求不能为空");
+        }
+        return service.submitAttempt(sessionId, taskId, request.answer(),
+                request.expectedAttemptNumber());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleInvalidArgument(IllegalArgumentException exception) {
@@ -53,6 +73,12 @@ public class InterviewReviewTaskController {
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleMissingSession(NoSuchElementException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(InterviewReviewAttemptConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleAttemptConflict(InterviewReviewAttemptConflictException exception) {
         return Map.of("message", exception.getMessage());
     }
 }
