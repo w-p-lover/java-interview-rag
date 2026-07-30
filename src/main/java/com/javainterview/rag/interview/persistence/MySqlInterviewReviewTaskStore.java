@@ -8,8 +8,10 @@ import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
 
@@ -45,6 +47,14 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
         return mapper.findBySessionId(sessionId).stream().map(this::toTask).toList();
     }
 
+    @Override
+    public Optional<InterviewReviewTask> complete(String sessionId, String taskId,
+                                                  LocalDateTime completedAt) {
+        mapper.complete(sessionId, taskId, completedAt);
+        return Optional.ofNullable(mapper.findBySessionAndId(sessionId, taskId))
+                .map(this::toTask);
+    }
+
     private InterviewReviewTask toTask(InterviewReviewTaskEntity entity) {
         try {
             return new InterviewReviewTask(
@@ -58,7 +68,8 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
                     Boolean.TRUE.equals(entity.getKnowledgeGrounded()),
                     objectMapper.readValue(entity.getKnowledgeSourcesJson(), SOURCE_LIST_TYPE),
                     InterviewReviewTaskStatus.valueOf(entity.getStatus()),
-                    entity.getCreatedAt()
+                    entity.getCreatedAt(),
+                    entity.getCompletedAt()
             );
         } catch (JsonProcessingException | IllegalArgumentException exception) {
             throw new IllegalStateException("复习任务数据损坏", exception);

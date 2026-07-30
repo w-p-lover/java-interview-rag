@@ -22,6 +22,7 @@ public class InterviewReviewTaskEntity {
     private String knowledgeSourcesJson;
     private String status;
     private LocalDateTime createdAt;
+    private LocalDateTime completedAt;
 
     public static InterviewReviewTaskEntity from(InterviewReviewTask task,
                                                  String gapsJson,
@@ -38,6 +39,7 @@ public class InterviewReviewTaskEntity {
         entity.knowledgeSourcesJson = knowledgeSourcesJson;
         entity.status = task.status().name();
         entity.createdAt = task.createdAt();
+        entity.completedAt = task.completedAt();
         return entity;
     }
 
@@ -83,5 +85,9 @@ public class InterviewReviewTaskEntity {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
     }
 }

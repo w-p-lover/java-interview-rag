@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 class InterviewReviewTaskServiceTest {
 
@@ -65,6 +66,24 @@ class InterviewReviewTaskServiceTest {
         verify(taskStore, never()).createIfAbsent(org.mockito.ArgumentMatchers.any());
     }
 
+    @Test
+    void completesAnExistingReviewTask() {
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        InterviewReviewTaskStore taskStore = mock(InterviewReviewTaskStore.class);
+        when(sessionStore.findById("session-1")).thenReturn(Optional.of(completedSession()));
+        InterviewReviewTask completedTask = reviewTask(
+                InterviewReviewTaskStatus.COMPLETED,
+                LocalDateTime.of(2026, 7, 30, 9, 30));
+        when(taskStore.complete(org.mockito.ArgumentMatchers.eq("session-1"),
+                org.mockito.ArgumentMatchers.eq("task-1"), any(LocalDateTime.class)))
+                .thenReturn(Optional.of(completedTask));
+        InterviewReviewTaskService service = new InterviewReviewTaskService(sessionStore, taskStore);
+
+        InterviewReviewTask result = service.complete("session-1", "task-1");
+
+        assertEquals(completedTask, result);
+    }
+
     private InterviewSession completedSession() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 29, 9, 0);
         InterviewSession session = initialSession();
@@ -101,6 +120,24 @@ class InterviewReviewTaskServiceTest {
                 gaps,
                 "补充异常分支和恢复方式。",
                 true
+        );
+    }
+
+    private InterviewReviewTask reviewTask(InterviewReviewTaskStatus status,
+                                           LocalDateTime completedAt) {
+        return new InterviewReviewTask(
+                "task-1",
+                "session-1",
+                0,
+                "如何保证向量更新一致性？",
+                "向量生命周期",
+                List.of("缺少失败补偿细节"),
+                "补充异常分支和恢复方式。",
+                false,
+                List.of(),
+                status,
+                LocalDateTime.of(2026, 7, 29, 9, 3),
+                completedAt
         );
     }
 

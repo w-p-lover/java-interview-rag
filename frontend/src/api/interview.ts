@@ -95,8 +95,9 @@ export interface InterviewReviewTask {
   improvementSuggestion: string;
   knowledgeGrounded: boolean;
   knowledgeSources: InterviewReviewKnowledgeSource[];
-  status: "PENDING";
+  status: "PENDING" | "COMPLETED";
   createdAt: string;
+  completedAt: string | null;
 }
 
 export interface InterviewSessionStartPayload {
@@ -166,6 +167,16 @@ export async function getInterviewReviewTasks(
 ): Promise<InterviewReviewTask[]> {
   const response = await request.get<InterviewReviewTask[]>(
     `/interviews/sessions/${sessionId}/review-tasks`,
+  );
+  return response.data;
+}
+
+export async function completeInterviewReviewTask(
+  sessionId: string,
+  taskId: string,
+): Promise<InterviewReviewTask> {
+  const response = await request.patch<InterviewReviewTask>(
+    `/interviews/sessions/${sessionId}/review-tasks/${taskId}/complete`,
   );
   return response.data;
 }

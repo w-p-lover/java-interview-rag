@@ -15,6 +15,7 @@ import java.util.NoSuchElementException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,6 +62,25 @@ class InterviewReviewTaskControllerTest {
                 .andExpect(jsonPath("$.message").value("面试会话不存在"));
     }
 
+    @Test
+    void completesReviewTaskAndMapsMissingTaskToNotFound() throws Exception {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        when(service.complete("session-1", "task-1")).thenReturn(completedTask());
+        when(service.complete("session-1", "missing")).thenThrow(
+                new NoSuchElementException("复习任务不存在"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewTaskController(service)).build();
+
+        mockMvc.perform(patch("/api/interviews/sessions/session-1/review-tasks/task-1/complete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.completedAt").isNotEmpty());
+
+        mockMvc.perform(patch("/api/interviews/sessions/session-1/review-tasks/missing/complete"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("复习任务不存在"));
+    }
+
     private InterviewReviewTask task() {
         return new InterviewReviewTask(
                 "task-1",
@@ -78,7 +98,26 @@ class InterviewReviewTaskControllerTest {
                         List.of("向量生命周期", "更新"),
                         0.82)),
                 InterviewReviewTaskStatus.PENDING,
-                LocalDateTime.of(2026, 7, 29, 9, 3)
+                LocalDateTime.of(2026, 7, 29, 9, 3),
+                null
+        );
+    }
+
+    private InterviewReviewTask completedTask() {
+        InterviewReviewTask task = task();
+        return new InterviewReviewTask(
+                task.id(),
+                task.sessionId(),
+                task.questionIndex(),
+                task.question(),
+                task.objective(),
+                task.gaps(),
+                task.improvementSuggestion(),
+                task.knowledgeGrounded(),
+                task.knowledgeSources(),
+                InterviewReviewTaskStatus.COMPLETED,
+                task.createdAt(),
+                LocalDateTime.of(2026, 7, 30, 9, 30)
         );
     }
 }

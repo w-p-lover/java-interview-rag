@@ -1,6 +1,7 @@
 import { computed, shallowRef } from "vue";
 
 import {
+  completeInterviewReviewTask,
   generateInterviewReviewTasks,
   getInterviewReviewTasks,
   getInterviewSession,
@@ -23,6 +24,8 @@ export function useInterviewSession() {
   const reviewTasksLoading = shallowRef(false);
   const reviewTasksError = shallowRef("");
   const reviewTasksGenerated = shallowRef(false);
+  const completingReviewTaskId = shallowRef("");
+  const reviewTaskActionError = shallowRef("");
 
   const currentQuestion = computed(() => {
     if (!session.value || session.value.status === "COMPLETED") {
@@ -123,10 +126,31 @@ export function useInterviewSession() {
     }
   }
 
+  async function completeReviewTask(taskId: string): Promise<void> {
+    const completedSession = session.value;
+    if (!completedSession || completedSession.status !== "COMPLETED" || completingReviewTaskId.value) {
+      return;
+    }
+    completingReviewTaskId.value = taskId;
+    reviewTaskActionError.value = "";
+    try {
+      const completedTask = await completeInterviewReviewTask(completedSession.id, taskId);
+      reviewTasks.value = reviewTasks.value.map((task) => (
+        task.id === completedTask.id ? completedTask : task
+      ));
+    } catch (requestError) {
+      reviewTaskActionError.value = resolveApiError(requestError, "完成复习任务失败");
+    } finally {
+      completingReviewTaskId.value = "";
+    }
+  }
+
   function clearReviewTasks(): void {
     reviewTasks.value = [];
     reviewTasksError.value = "";
     reviewTasksGenerated.value = false;
+    completingReviewTaskId.value = "";
+    reviewTaskActionError.value = "";
   }
 
   function reset(): void {
@@ -150,10 +174,13 @@ export function useInterviewSession() {
     reviewTasksLoading,
     reviewTasksError,
     reviewTasksGenerated,
+    completingReviewTaskId,
+    reviewTaskActionError,
     restore,
     start,
     submit,
     generateReviewTasks,
+    completeReviewTask,
     reset,
   };
 }

@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,7 +39,34 @@ class MySqlInterviewReviewTaskStoreTest {
         assertEquals(List.of(task), store.findBySessionId("session-1"));
     }
 
+    @Test
+    void completesAndRestoresReviewTaskBySessionAndTaskId() throws Exception {
+        InterviewReviewTaskMapper mapper = mock(InterviewReviewTaskMapper.class);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+        MySqlInterviewReviewTaskStore store = new MySqlInterviewReviewTaskStore(mapper, objectMapper);
+        LocalDateTime completedAt = LocalDateTime.of(2026, 7, 30, 9, 30);
+        InterviewReviewTask completedTask = task(
+                InterviewReviewTaskStatus.COMPLETED, completedAt);
+        InterviewReviewTaskEntity completedEntity = InterviewReviewTaskEntity.from(
+                completedTask,
+                objectMapper.writeValueAsString(completedTask.gaps()),
+                objectMapper.writeValueAsString(completedTask.knowledgeSources()));
+        when(mapper.findBySessionAndId("session-1", "task-1"))
+                .thenReturn(completedEntity);
+
+        Optional<InterviewReviewTask> result = store.complete(
+                "session-1", "task-1", completedAt);
+
+        verify(mapper).complete("session-1", "task-1", completedAt);
+        assertEquals(Optional.of(completedTask), result);
+    }
+
     private InterviewReviewTask task() {
+        return task(InterviewReviewTaskStatus.PENDING, null);
+    }
+
+    private InterviewReviewTask task(InterviewReviewTaskStatus status,
+                                     LocalDateTime completedAt) {
         return new InterviewReviewTask(
                 "task-1",
                 "session-1",
@@ -54,8 +82,9 @@ class MySqlInterviewReviewTaskStoreTest {
                         2,
                         List.of("向量生命周期", "更新"),
                         0.82)),
-                InterviewReviewTaskStatus.PENDING,
-                LocalDateTime.of(2026, 7, 29, 9, 3)
+                status,
+                LocalDateTime.of(2026, 7, 29, 9, 3),
+                completedAt
         );
     }
 }

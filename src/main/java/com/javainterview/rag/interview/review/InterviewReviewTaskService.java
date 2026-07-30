@@ -45,6 +45,15 @@ public class InterviewReviewTaskService {
         return taskStore.findBySessionId(session.id());
     }
 
+    public InterviewReviewTask complete(String sessionId, String taskId) {
+        InterviewSession session = findSession(sessionId);
+        if (taskId == null || taskId.isBlank()) {
+            throw new IllegalArgumentException("复习任务 ID 不能为空");
+        }
+        return taskStore.complete(session.id(), taskId.strip(), LocalDateTime.now())
+                .orElseThrow(() -> new NoSuchElementException("复习任务不存在"));
+    }
+
     private InterviewSession findSession(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             throw new IllegalArgumentException("面试会话 ID 不能为空");
@@ -73,7 +82,8 @@ public class InterviewReviewTaskService {
                 question.knowledgeGrounded(),
                 knowledgeSources,
                 InterviewReviewTaskStatus.PENDING,
-                generatedAt
+                generatedAt,
+                null
         );
     }
 }

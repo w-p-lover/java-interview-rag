@@ -6,10 +6,13 @@ defineProps<{
   loading: boolean;
   error: string;
   generated: boolean;
+  completingTaskId: string;
+  actionError: string;
 }>();
 
 const emit = defineEmits<{
   retry: [];
+  complete: [taskId: string];
 }>();
 
 function formatSimilarity(similarity: number | null): string {
@@ -18,6 +21,21 @@ function formatSimilarity(similarity: number | null): string {
 
 function formatQuestionNumber(questionIndex: number): string {
   return String(questionIndex + 1).padStart(2, "0");
+}
+
+function formatCompletedAt(completedAt: string | null): string {
+  if (!completedAt) {
+    return "";
+  }
+  const parsed = new Date(completedAt);
+  if (Number.isNaN(parsed.getTime())) {
+    return completedAt;
+  }
+  return new Intl.DateTimeFormat("zh-CN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: false,
+  }).format(parsed);
 }
 </script>
 
@@ -35,7 +53,7 @@ function formatQuestionNumber(questionIndex: number): string {
       正在整理本场复习任务…
     </div>
 
-    <div v-else-if="error" class="review-state review-error" role="alert">
+    <div v-else-if="error && !tasks.length" class="review-state review-error" role="alert">
       <div>
         <strong>复习任务暂未就绪</strong>
         <p>{{ error }}</p>
@@ -43,8 +61,17 @@ function formatQuestionNumber(questionIndex: number): string {
       <button type="button" @click="emit('retry')">重新生成复习任务</button>
     </div>
 
-    <ol v-else-if="tasks.length" class="review-list">
-      <li v-for="task in tasks" :key="task.id" class="review-item">
+    <p v-if="actionError && tasks.length" class="review-action-error" role="alert">
+      {{ actionError }}
+    </p>
+
+    <ol v-if="!loading && tasks.length" class="review-list">
+      <li
+        v-for="task in tasks"
+        :key="task.id"
+        class="review-item"
+        :class="{ completed: task.status === 'COMPLETED' }"
+      >
         <div class="review-marker" aria-hidden="true">
           <span>Q{{ formatQuestionNumber(task.questionIndex) }}</span>
         </div>
@@ -66,6 +93,21 @@ function formatQuestionNumber(questionIndex: number): string {
             <strong>下次回答前</strong>
             <p>{{ task.improvementSuggestion }}</p>
           </div>
+
+          <div class="review-task-action">
+            <template v-if="task.status === 'COMPLETED'">
+              <strong>已完成复习</strong>
+              <span>{{ formatCompletedAt(task.completedAt) }}</span>
+            </template>
+            <button
+              v-else
+              type="button"
+              :disabled="Boolean(completingTaskId)"
+              @click="emit('complete', task.id)"
+            >
+              {{ completingTaskId === task.id ? "正在记录…" : "标记已复习" }}
+            </button>
+          </div>
         </div>
 
         <aside class="source-ledger" :class="{ grounded: task.knowledgeGrounded }">
@@ -85,7 +127,7 @@ function formatQuestionNumber(questionIndex: number): string {
       </li>
     </ol>
 
-    <div v-else class="review-state review-empty">
+    <div v-else-if="!loading && !error" class="review-state review-empty">
       <div>
         <strong>{{ generated ? "本场没有需要沉淀的遗漏" : "当前没有已保存的复习任务" }}</strong>
         <p>
@@ -220,6 +262,12 @@ h2 {
   min-width: 0;
 }
 
+.review-item.completed .review-marker span {
+  border-color: var(--color-success-rule);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
 .review-question h3 {
   color: var(--color-ink);
   font-size: var(--text-lg);
@@ -248,6 +296,25 @@ h2 {
   padding: var(--space-md);
   border-left: 0.1875rem solid var(--color-accent);
   background: var(--color-accent-soft);
+}
+
+.review-task-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 2.75rem;
+}
+
+.review-task-action strong,
+.review-task-action span {
+  color: var(--color-success);
+  font-size: var(--text-sm);
+}
+
+.review-task-action span {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
 }
 
 .review-suggestion p,
@@ -309,6 +376,15 @@ h2 {
   background: var(--color-error-soft);
 }
 
+.review-action-error {
+  padding: var(--space-sm) var(--space-md);
+  border: var(--rule-thin) solid var(--color-error-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-error);
+  background: var(--color-error-soft);
+  font-size: var(--text-sm);
+}
+
 button {
   min-height: 2.75rem;
   padding-inline: var(--space-md);
@@ -348,6 +424,10 @@ button {
   .review-state {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .review-task-action {
+    display: grid;
   }
 
   button {

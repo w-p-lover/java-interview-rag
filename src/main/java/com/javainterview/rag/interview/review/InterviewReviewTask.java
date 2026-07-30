@@ -15,7 +15,8 @@ public record InterviewReviewTask(
         boolean knowledgeGrounded,
         List<InterviewReviewKnowledgeSource> knowledgeSources,
         InterviewReviewTaskStatus status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime completedAt
 ) {
 
     public InterviewReviewTask {
@@ -38,6 +39,12 @@ public record InterviewReviewTask(
         }
         status = Objects.requireNonNull(status, "复习任务状态不能为空");
         createdAt = Objects.requireNonNull(createdAt, "复习任务创建时间不能为空");
+        if (status == InterviewReviewTaskStatus.PENDING && completedAt != null) {
+            throw new IllegalArgumentException("待复习任务不能包含完成时间");
+        }
+        if (status == InterviewReviewTaskStatus.COMPLETED && completedAt == null) {
+            throw new IllegalArgumentException("已完成复习任务必须包含完成时间");
+        }
     }
 
     private static List<String> copyTexts(List<String> values, String message) {
