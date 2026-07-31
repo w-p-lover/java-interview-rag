@@ -19,6 +19,13 @@ public interface InterviewAnswerEvaluator {
         return evaluate(profile, question, answer);
     }
 
+    default InterviewAnswerAssessment evaluateBaseline(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer) {
+        return evaluate(profile, question, answer);
+    }
+
     default String promptVersion() {
         return "unknown";
     }

@@ -70,6 +70,14 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateBaseline(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer) {
+        return evaluate(profile, question, answer, List.of(), false);
+    }
+
+    @Override
     public String promptVersion() {
         return PROMPT_VERSION;
     }

@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.persistence.InterviewSessionMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
+import com.javainterview.rag.interview.persistence.InterviewAnswerEvaluationLogMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewTaskStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewAttemptStore;
+import com.javainterview.rag.interview.persistence.MySqlInterviewAnswerEvaluationLogStore;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
@@ -14,7 +16,11 @@ import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
+import com.javainterview.rag.interview.evaluation.FixedInterviewAnswerEvaluationDataset;
+import com.javainterview.rag.interview.evaluation.FixedInterviewAnswerEvaluationService;
+import com.javainterview.rag.interview.evaluation.ObservableInterviewAnswerEvaluator;
 import com.javainterview.rag.interview.preparation.InterviewPreparationService;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
@@ -46,6 +52,12 @@ public class InterviewSessionConfiguration {
     }
 
     @Bean
+    InterviewAnswerEvaluationLogStore interviewAnswerEvaluationLogStore(
+            InterviewAnswerEvaluationLogMapper mapper) {
+        return new MySqlInterviewAnswerEvaluationLogStore(mapper);
+    }
+
+    @Bean
     InterviewReviewTaskService interviewReviewTaskService(
             InterviewSessionStore sessionStore,
             InterviewReviewTaskStore taskStore,
@@ -58,8 +70,18 @@ public class InterviewSessionConfiguration {
     InterviewAnswerEvaluator interviewAnswerEvaluator(
             ChatClient ragAnswerChatClient,
             MarkdownSimilaritySearchService searchService,
+            InterviewAnswerEvaluationLogStore logStore,
             @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
-        return new InterviewAnswerEvaluationService(ragAnswerChatClient, searchService, modelName);
+        InterviewAnswerEvaluator evaluator =
+                new InterviewAnswerEvaluationService(ragAnswerChatClient, searchService, modelName);
+        return new ObservableInterviewAnswerEvaluator(evaluator, logStore);
+    }
+
+    @Bean
+    FixedInterviewAnswerEvaluationService fixedInterviewAnswerEvaluationService(
+            FixedInterviewAnswerEvaluationDataset dataset,
+            InterviewAnswerEvaluator answerEvaluator) {
+        return new FixedInterviewAnswerEvaluationService(dataset, answerEvaluator);
     }
 
     @Bean

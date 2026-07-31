@@ -169,6 +169,30 @@ class InterviewAnswerEvaluationServiceTest {
         org.mockito.Mockito.verifyNoInteractions(searchService);
     }
 
+    @Test
+    void evaluatesBaselineWithoutGeneratingFollowUp() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString()).call().entity(InterviewAnswerEvaluationDraft.class))
+                .thenReturn(new InterviewAnswerEvaluationDraft(
+                        85, 80, 82,
+                        List.of("说明了版本切换顺序"), List.of(), "补充监控信号。",
+                        true, "不应生成", "不应生成", "不应检索"));
+        clearInvocations(chatClient);
+        InterviewAnswerEvaluationService service =
+                new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
+
+        InterviewAnswerAssessment result = service.evaluateBaseline(
+                profile(), groundedQuestion(), "新版本写入成功后再清理旧版本。");
+
+        assertEquals(82, result.evaluation().overallScore());
+        assertEquals(null, result.followUpQuestion());
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient).prompt(promptCaptor.capture());
+        assertTrue(promptCaptor.getValue().contains("不得生成追问"));
+        org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
     private InterviewQuestion groundedQuestion() {
         return new InterviewQuestion(
                 "如何保证向量更新一致性？",
