@@ -7,5 +7,14 @@
     "nav": "N13",
     "footer": "Ft2",
     "brief": "Java 求职资料导入与切片检查工作台"
+  },
+  {
+    "date": "2026-07-31",
+    "macrostructure": "Split Studio",
+    "theme": "Cobalt",
+    "enrichment": "none",
+    "nav": "N9",
+    "footer": "none",
+    "brief": "Java 求职者专注模拟面试与复习工作区"
   }
 ]

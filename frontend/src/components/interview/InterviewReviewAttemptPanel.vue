@@ -51,10 +51,10 @@ function formatDelta(value: number | null): string {
   <section class="attempt-panel" aria-label="复习二次作答">
     <div class="attempt-heading">
       <div>
-        <strong>再答一次</strong>
-        <p>保留正式回答；本次回答会独立评价并记录版本。</p>
+        <strong>再次作答</strong>
+        <p>结合遗漏项，重新组织一次回答。</p>
       </div>
-      <span>{{ attempts.length }} 次记录</span>
+      <span>{{ attempts.length ? `已回答 ${attempts.length} 次` : "尚未作答" }}</span>
     </div>
 
     <form class="attempt-form" @submit.prevent="submit">
@@ -64,23 +64,23 @@ function formatDelta(value: number | null): string {
         v-model="answer"
         rows="4"
         maxlength="10000"
-        placeholder="结合遗漏项重新组织一次回答……"
+        placeholder="先说结论，再补充之前遗漏的要点。"
       ></textarea>
       <div class="attempt-actions">
-        <small>提交后会与原回答和上次 attempt 对比</small>
+        <small>提交后可查看与之前回答的分数变化。</small>
         <button type="submit" :disabled="!canSubmit">
-          {{ submitting ? "正在评价…" : "提交本次回答" }}
+          {{ submitting ? "正在提交…" : "提交回答" }}
         </button>
       </div>
     </form>
 
     <p v-if="error" class="attempt-error" role="alert">{{ error }}</p>
-    <p v-if="loading" class="attempt-loading" aria-live="polite">正在恢复历史回答…</p>
+    <p v-if="loading" class="attempt-loading" aria-live="polite">正在加载历史回答…</p>
 
     <ol v-if="attempts.length" class="attempt-list">
       <li v-for="attempt in attempts" :key="attempt.id" class="attempt-item">
         <div class="attempt-meta">
-          <strong>Attempt {{ attempt.attemptNumber }}</strong>
+          <strong>第 {{ attempt.attemptNumber }} 次复习回答</strong>
           <span>{{ formatDate(attempt.createdAt) }}</span>
         </div>
         <p class="attempt-answer">{{ attempt.answer }}</p>
@@ -92,9 +92,10 @@ function formatDelta(value: number | null): string {
           </span>
         </div>
         <p class="attempt-feedback">{{ attempt.evaluation.improvementSuggestion }}</p>
-        <small class="attempt-version">
-          {{ attempt.promptVersion }} · {{ attempt.rubricVersion }} · {{ attempt.modelName }}
-        </small>
+        <details class="attempt-version">
+          <summary>评价信息</summary>
+          <small>{{ attempt.promptVersion }} · {{ attempt.rubricVersion }} · {{ attempt.modelName }}</small>
+        </details>
       </li>
     </ol>
   </section>
@@ -110,10 +111,8 @@ function formatDelta(value: number | null): string {
 }
 
 .attempt-panel {
-  padding: var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-control);
-  background: var(--color-paper-2);
+  padding-top: var(--space-md);
+  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .attempt-heading {
@@ -124,8 +123,7 @@ function formatDelta(value: number | null): string {
 .attempt-heading p,
 .attempt-heading span,
 .attempt-actions small,
-.attempt-meta span,
-.attempt-version {
+.attempt-meta span {
   color: var(--color-muted);
   font-size: var(--text-xs);
 }
@@ -170,15 +168,10 @@ button {
   padding-inline: var(--space-md);
   border: var(--rule-thin) solid var(--color-accent);
   border-radius: var(--radius-control);
-  color: var(--color-accent-strong);
-  background: var(--color-surface);
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
   font-weight: 700;
   white-space: nowrap;
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.55;
 }
 
 .attempt-error {
@@ -206,13 +199,30 @@ button:disabled {
 }
 
 .attempt-item {
-  padding-top: var(--space-sm);
+  gap: var(--space-md);
+  padding-top: var(--space-md);
   border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .attempt-meta strong,
 .attempt-score-row {
   color: var(--color-ink-2);
+  font-size: var(--text-xs);
+}
+
+.attempt-version summary {
+  width: fit-content;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+
+.attempt-version small {
+  display: block;
+  margin-top: var(--space-xs);
+  overflow-wrap: anywhere;
+  color: var(--color-faint);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 

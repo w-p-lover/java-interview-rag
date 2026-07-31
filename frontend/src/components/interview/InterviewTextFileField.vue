@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CheckCircle2, ChevronDown, FileText, Upload } from "@lucide/vue";
 import { computed, shallowRef } from "vue";
 
 import { extractInterviewDocumentText } from "@/utils/interviewDocumentText";
@@ -28,8 +29,8 @@ const textInputId = computed(() => `${props.inputId}-text`);
 const statusId = computed(() => `${props.inputId}-status`);
 const inputDisabled = computed(() => props.busy || readState.value === "reading");
 const extractionSummary = computed(() => extractedPageCount.value
-  ? `PDF 共 ${extractedPageCount.value} 页，已提取 ${extractedCharacters.value} 个字符，可在下方检查和编辑`
-  : `已提取 ${extractedCharacters.value} 个字符，可在下方检查和编辑`);
+  ? `${extractedPageCount.value} 页 · ${extractedCharacters.value} 字`
+  : `${extractedCharacters.value} 字`);
 
 function setError(message: string): void {
   readState.value = "error";
@@ -103,28 +104,38 @@ async function handleFileInput(event: Event): Promise<void> {
       <span class="file-mark" aria-hidden="true">PDF / TEXT</span>
       <span class="file-copy">
         <strong>{{ fileName || `选择${label}文件` }}</strong>
-        <small v-if="readState === 'reading'">正在提取正文…</small>
-        <small v-else-if="readState === 'success'">{{ extractionSummary }}</small>
-        <small v-else>PDF 仅在本次请求中发送到后端提取，不会进入资料库或保存</small>
+        <small v-if="readState === 'reading'">正在读取…</small>
+        <small v-else-if="readState === 'success'">
+          <CheckCircle2 :size="13" aria-hidden="true" />
+          已读取 · {{ extractionSummary }}
+        </small>
+        <small v-else>PDF、Markdown 或 TXT</small>
       </span>
-      <span class="select-command">{{ fileName ? "重新选择" : "选择文件" }}</span>
+      <span class="select-command">
+        <Upload :size="15" aria-hidden="true" />
+        {{ fileName ? "更换" : "选择" }}
+      </span>
     </label>
 
     <p :id="statusId" class="file-status" :class="{ 'is-error': localError }" aria-live="polite">
-      {{ localError || "支持带文本层的 PDF、Markdown、TXT；扫描件 OCR 和 DOCX 暂未开放。" }}
+      {{ localError || "文件只用于本场面试；扫描版 PDF 和 DOCX 暂不支持。" }}
     </p>
 
-    <label class="text-fallback" :for="textInputId">
-      <span>备用文本输入</span>
+    <details class="text-fallback">
+      <summary>
+        <FileText :size="15" aria-hidden="true" />
+        <span>{{ model.trim() ? "查看或修改文本" : "改为粘贴文本" }}</span>
+        <ChevronDown class="summary-chevron" :size="15" aria-hidden="true" />
+      </summary>
+      <label :for="textInputId">{{ label }}文本</label>
       <textarea
         :id="textInputId"
         v-model="model"
         :rows="rows"
         :maxlength="maxLength"
-        :required="!optional"
         :placeholder="placeholder"
       ></textarea>
-    </label>
+    </details>
   </fieldset>
 </template>
 
@@ -185,6 +196,15 @@ legend small {
   opacity: 0.65;
 }
 
+.file-selector:has(.file-input:focus-visible) {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
+}
+
+.file-selector:active:not(.is-reading) {
+  background: var(--color-paper-3);
+}
+
 .file-input {
   position: absolute;
   width: 1px;
@@ -196,18 +216,23 @@ legend small {
 }
 
 .file-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 4.25rem;
-  min-height: 2.5rem;
-  border: var(--rule-thin) solid var(--color-rule-2);
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
   border-radius: var(--radius-control);
+  color: transparent;
+  background: var(--color-paper-3);
+  font-size: 0;
+}
+
+.file-mark::after {
   color: var(--color-accent);
-  background: var(--color-paper-2);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;
+  content: "DOC";
 }
 
 .file-copy {
@@ -234,6 +259,17 @@ legend small {
   line-height: 1.5;
 }
 
+.file-copy small,
+.select-command {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.file-copy small svg {
+  color: var(--color-success);
+}
+
 .select-command {
   color: var(--color-accent);
   font-size: var(--text-xs);
@@ -253,7 +289,38 @@ legend small {
 .text-fallback {
   display: grid;
   gap: var(--space-xs);
-  margin-top: var(--space-xs);
+  margin-top: var(--space-2xs);
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.text-fallback summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  list-style: none;
+}
+
+.text-fallback summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-chevron {
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.text-fallback[open] .summary-chevron {
+  transform: rotate(180deg);
+}
+
+.text-fallback label {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 textarea {

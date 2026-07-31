@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BookOpenCheck, Info, Send } from "@lucide/vue";
 import { ref, watch } from "vue";
 
 import type { InterviewQuestion } from "@/api/interview";
@@ -36,22 +37,23 @@ function handleSubmit(): void {
   <section class="question-card" aria-labelledby="current-question-title">
     <header>
       <div>
-        <span>当前题目</span>
-        <strong>{{ questionIndex + 1 }} / {{ questionCount }}</strong>
+        <span>第 {{ questionIndex + 1 }} 题</span>
+        <strong>共 {{ questionCount }} 题</strong>
       </div>
-      <p>整场最多 {{ maxQuestionCount }} 道，追问会追加到当前队列末尾。</p>
+      <p>{{ question.objective }}</p>
     </header>
 
     <div class="question-copy">
-      <p class="objective">考察目标 · {{ question.objective }}</p>
       <h2 id="current-question-title">{{ question.question }}</h2>
       <p :class="['grounding', { grounded: question.knowledgeGrounded }]">
-        {{ question.knowledgeGrounded ? "已绑定知识库资料" : "暂无可靠知识资料，评分会降低事实确认强度" }}
+        <BookOpenCheck v-if="question.knowledgeGrounded" :size="15" aria-hidden="true" />
+        <Info v-else :size="15" aria-hidden="true" />
+        {{ question.knowledgeGrounded ? "有资料参考" : "仅根据回答评价" }}
       </p>
     </div>
 
     <details v-if="question.knowledgeSources.length" class="sources">
-      <summary>查看 {{ question.knowledgeSources.length }} 条评分依据</summary>
+      <summary>查看参考资料（{{ question.knowledgeSources.length }}）</summary>
       <ul>
         <li v-for="source in question.knowledgeSources" :key="`${source.source}-${source.chunkOrder}`">
           <strong>{{ source.source }}</strong>
@@ -68,12 +70,13 @@ function handleSubmit(): void {
         rows="11"
         maxlength="10000"
         :disabled="busy"
-        placeholder="像真实面试一样直接作答。建议先说结论，再说明原理、实现和异常边界。"
+        placeholder="先说结论，再说明原理、实现和边界。"
       ></textarea>
       <div class="answer-footer">
         <span>{{ answer.trim().length }} / 10000</span>
         <button type="submit" :disabled="busy || !answer.trim()">
-          {{ busy ? "正在评分并判断追问…" : "提交本题回答" }}
+          <Send :size="16" aria-hidden="true" />
+          <span>{{ busy ? "正在提交…" : "提交回答" }}</span>
         </button>
       </div>
     </form>
@@ -89,7 +92,6 @@ function handleSubmit(): void {
   border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-surface);
   background: var(--color-surface);
-  box-shadow: var(--shadow-whisper);
 }
 
 header,
@@ -108,7 +110,6 @@ header {
 
 header span,
 header strong,
-.objective,
 .answer-footer span {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -121,7 +122,7 @@ header p,
 }
 
 header strong {
-  color: var(--color-accent);
+  color: var(--color-muted);
 }
 
 header p,
@@ -131,6 +132,7 @@ h2 {
 }
 
 header p {
+  max-width: 28rem;
   font-size: var(--text-xs);
   text-align: right;
 }
@@ -140,20 +142,19 @@ header p {
   gap: var(--space-sm);
 }
 
-.objective {
-  color: var(--color-accent);
-}
-
 h2 {
-  max-width: 30ch;
+  max-width: 34ch;
   font-size: var(--text-xl);
-  letter-spacing: -0.035em;
   line-height: 1.3;
   text-wrap: balance;
 }
 
 .grounding {
-  color: var(--color-warning);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: fit-content;
+  color: var(--color-info);
   font-size: var(--text-sm);
 }
 
@@ -223,6 +224,10 @@ textarea {
 }
 
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   min-height: 3rem;
   padding-inline: var(--space-lg);
   border: 0;
@@ -230,6 +235,7 @@ button {
   color: var(--color-accent-ink);
   background: var(--color-accent);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 @media (max-width: 40rem) {

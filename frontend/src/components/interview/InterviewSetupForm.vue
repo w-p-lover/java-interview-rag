@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BriefcaseBusiness, Play, SlidersHorizontal } from "@lucide/vue";
 import { computed, reactive, watch } from "vue";
 
 import type { InterviewSessionStartPayload } from "@/api/interview";
@@ -29,6 +30,7 @@ const form = reactive<InterviewSetupFormData>({
 });
 
 const initialQuestionOptions = [3, 4, 5, 6, 7, 8];
+const canStart = computed(() => Boolean(form.targetRole.trim() && form.resumeText.trim()));
 const maxQuestionOptions = computed(() =>
   Array.from({ length: 13 - form.initialQuestionCount }, (_, index) => form.initialQuestionCount + index),
 );
@@ -43,6 +45,10 @@ watch(
 );
 
 function handleSubmit(): void {
+  if (!canStart.value) {
+    return;
+  }
+
   emit("start", {
     targetRole: form.targetRole.trim(),
     resumeText: form.resumeText.trim(),
@@ -54,118 +60,168 @@ function handleSubmit(): void {
 </script>
 
 <template>
-  <form class="setup-card" @submit.prevent="handleSubmit">
-    <header>
-      <span>01 / 面试配置</span>
-      <h2>用真实经历开始一场面试</h2>
-      <p>系统先理解目标岗位和简历，再生成首轮题目。回答不足时可继续追问，但不会超过整场上限。</p>
+  <form class="setup" @submit.prevent="handleSubmit">
+    <header class="setup-heading">
+      <h1>开始一场模拟面试</h1>
+      <p>上传简历，选择目标岗位。题目会根据你的经历和岗位要求生成。</p>
     </header>
 
-    <label>
-      <span>目标岗位</span>
-      <input
-        v-model="form.targetRole"
-        type="text"
-        maxlength="100"
-        required
-        autocomplete="organization-title"
-        placeholder="例如：Java AI 应用开发工程师"
-      />
-    </label>
+    <div class="setup-layout">
+      <section class="materials" aria-labelledby="materials-title">
+        <div class="section-heading">
+          <BriefcaseBusiness :size="18" aria-hidden="true" />
+          <h2 id="materials-title">面试材料</h2>
+        </div>
 
-    <InterviewTextFileField
-      v-model="form.resumeText"
-      input-id="resume"
-      label="简历"
-      :rows="10"
-      :max-length="50000"
-      placeholder="也可以直接粘贴简历中的技能、项目和工作经历。"
-      :busy="busy"
-    />
+        <label class="role-field">
+          <span>目标岗位</span>
+          <input
+            v-model="form.targetRole"
+            type="text"
+            maxlength="100"
+            required
+            autocomplete="organization-title"
+            placeholder="例如：Java AI 应用开发工程师"
+          />
+        </label>
 
-    <InterviewTextFileField
-      v-model="form.jobDescription"
-      input-id="job-description"
-      label="岗位描述"
-      optional
-      :rows="5"
-      :max-length="30000"
-      placeholder="也可以直接粘贴 JD，让题目更贴近岗位要求。"
-      :busy="busy"
-    />
+        <InterviewTextFileField
+          v-model="form.resumeText"
+          input-id="resume"
+          label="简历"
+          :rows="10"
+          :max-length="50000"
+          placeholder="粘贴简历中的技能、项目和工作经历。"
+          :busy="busy"
+        />
 
-    <div class="count-grid">
-      <label>
-        <span>初始题数</span>
-        <select v-model="form.initialQuestionCount">
-          <option v-for="count in initialQuestionOptions" :key="count" :value="count">
-            {{ count }} 道
-          </option>
-        </select>
-      </label>
-      <label>
-        <span>整场上限</span>
-        <select v-model="form.maxQuestionCount">
-          <option v-for="count in maxQuestionOptions" :key="count" :value="count">
-            {{ count }} 道
-          </option>
-        </select>
-      </label>
-    </div>
+        <InterviewTextFileField
+          v-model="form.jobDescription"
+          input-id="job-description"
+          label="岗位描述"
+          optional
+          :rows="5"
+          :max-length="30000"
+          placeholder="粘贴岗位要求，让题目更贴近目标岗位。"
+          :busy="busy"
+        />
+      </section>
 
-    <div class="form-footer">
-      <p>默认 5 道首轮题，最多进行 8 道；不是固定只有 3 道。</p>
-      <button type="submit" :disabled="busy">
-        {{ busy ? "正在生成画像与题目…" : "开始模拟面试" }}
-      </button>
+      <aside class="settings" aria-labelledby="settings-title">
+        <div class="settings-heading">
+          <SlidersHorizontal :size="18" aria-hidden="true" />
+          <h2 id="settings-title">本场设置</h2>
+        </div>
+
+        <div class="count-grid">
+          <label>
+            <span>首轮题数</span>
+            <select v-model="form.initialQuestionCount">
+              <option v-for="count in initialQuestionOptions" :key="count" :value="count">
+                {{ count }} 道
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>最多题数</span>
+            <select v-model="form.maxQuestionCount">
+              <option v-for="count in maxQuestionOptions" :key="count" :value="count">
+                {{ count }} 道
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <dl class="material-state">
+          <div>
+            <dt>简历</dt>
+            <dd>{{ form.resumeText.trim() ? "已准备" : "待上传" }}</dd>
+          </div>
+          <div>
+            <dt>岗位描述</dt>
+            <dd>{{ form.jobDescription.trim() ? "已准备" : "未添加" }}</dd>
+          </div>
+        </dl>
+
+        <button type="submit" :disabled="busy || !canStart">
+          <Play :size="17" aria-hidden="true" />
+          <span>{{ busy ? "正在提交…" : "开始面试" }}</span>
+        </button>
+
+        <p class="settings-note">需要填写目标岗位并上传简历。</p>
+      </aside>
     </div>
   </form>
 </template>
 
 <style scoped lang="scss">
-.setup-card {
+.setup {
   display: grid;
-  gap: var(--space-lg);
-  padding: var(--space-xl);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-whisper);
+  gap: var(--space-xl);
 }
 
-header {
+.setup-heading {
   display: grid;
   gap: var(--space-xs);
-  padding-bottom: var(--space-md);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
 }
 
-header > span {
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
+h1,
 h2,
 p {
   margin: 0;
 }
 
-h2 {
-  font-size: var(--text-xl);
-  letter-spacing: -0.03em;
+h1 {
+  color: var(--color-ink);
+  font-size: var(--text-2xl);
+  line-height: 1.2;
 }
 
-header p,
-.form-footer p {
+.setup-heading p {
+  max-width: 44rem;
   color: var(--color-muted);
-  line-height: 1.65;
+  font-size: var(--text-base);
 }
 
-label {
+.setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.materials,
+.settings {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+  padding: var(--space-xl);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
+}
+
+.section-heading,
+.settings-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.section-heading {
+  color: var(--color-accent);
+}
+
+.section-heading h2,
+.settings-heading h2 {
+  color: var(--color-ink);
+  font-size: var(--text-md);
+}
+
+.role-field,
+.count-grid label {
   display: grid;
   gap: var(--space-xs);
-  color: var(--color-ink-2);
   font-size: var(--text-sm);
   font-weight: 600;
 }
@@ -185,27 +241,67 @@ select {
   padding-inline: var(--space-md);
 }
 
+.settings {
+  position: sticky;
+  top: calc(var(--space-lg) + 4rem);
+  border-color: var(--color-graphite);
+  color: var(--color-graphite-text);
+  background: var(--color-graphite);
+}
+
+.settings-heading h2,
+.settings-heading,
+.settings label {
+  color: var(--color-graphite-text);
+}
+
+.settings select {
+  border-color: var(--color-graphite-muted);
+  color: var(--color-graphite-text);
+  background: var(--color-graphite-2);
+}
+
 .count-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.material-state {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding-block: var(--space-md);
+  border-block: var(--rule-thin) solid var(--color-graphite-2);
+}
+
+.material-state div {
+  display: flex;
+  justify-content: space-between;
   gap: var(--space-md);
 }
 
-.form-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-  padding-top: var(--space-md);
-  border-top: var(--rule-thin) solid var(--color-rule);
-}
-
-.form-footer p {
-  max-width: 38rem;
+.material-state dt,
+.material-state dd {
+  margin: 0;
   font-size: var(--text-sm);
 }
 
+.material-state dt,
+.settings-note {
+  color: var(--color-graphite-muted);
+}
+
+.material-state dd {
+  color: var(--color-graphite-text);
+  font-weight: 700;
+}
+
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   min-height: 3rem;
   padding-inline: var(--space-lg);
   border: 0;
@@ -216,22 +312,33 @@ button {
   white-space: nowrap;
 }
 
-@media (max-width: 40rem) {
-  .setup-card {
-    padding: var(--space-lg) var(--space-md);
-  }
+.settings-note {
+  text-align: center;
+  font-size: var(--text-xs);
+}
 
-  .count-grid,
-  .form-footer {
+@media (max-width: 62rem) {
+  .setup-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .form-footer {
-    display: grid;
+  .settings {
+    position: static;
+  }
+}
+
+@media (max-width: 40rem) {
+  .setup {
+    gap: var(--space-lg);
   }
 
-  button {
-    width: 100%;
+  h1 {
+    font-size: var(--text-xl);
+  }
+
+  .materials,
+  .settings {
+    padding: var(--space-lg) var(--space-md);
   }
 }
 </style>

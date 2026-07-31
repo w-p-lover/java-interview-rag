@@ -29,7 +29,7 @@
 
 - 产品场景：求职者在桌面或笔记本上进行 30–60 分钟的专注模拟面试，需要清醒、低干扰、能快速扫描状态的浅色界面。
 - 类型：产品 UI，现代极简、克制、工作导向。
-- Hallmark：`Split Studio`，区别于上一版 `Workbench`；导航从 `N13` 调整为 `N9`，页脚从 `Ft2` 调整为紧凑 `Ft4`。
+- Hallmark：`Split Studio`，区别于上一版 `Workbench`；导航从 `N13` 调整为 `N9`。面试页是任务界面，不保留营销页脚。
 - 颜色：中性浅灰白工作区、纯白内容面、石墨正文、珊瑚红主操作、蓝色信息、绿色资料依据/进步状态。不得使用渐变、玻璃、装饰网格或暖米色主背景。
 - 字体：产品界面使用单一无衬线字体栈，中文优先 `PingFang SC / Microsoft YaHei`，西文优先 Geist；等宽字体仅用于分数、题号和版本信息。
 - 圆角：控件 6 px、内容面 8 px；不使用大于 16 px 的卡片圆角。
@@ -98,7 +98,7 @@
 - `InterviewReviewTaskPanel.vue`：复习任务列表、完成状态和知识来源。
 - `InterviewReviewAttemptPanel.vue`：单任务再次作答和历史记录。
 
-继续使用现有 Composition API、`<script setup lang="ts">`、typed props/emits 和 `useInterviewSession`；不引入 Pinia或新路由。统一使用 `lucide-vue-next` 图标，不绘制自定义 SVG。
+继续使用现有 Composition API、`<script setup lang="ts">`、typed props/emits 和 `useInterviewSession`；不引入 Pinia 或新路由。统一使用维护中的 `@lucide/vue` 图标，不绘制自定义 SVG。
 
 ## 状态与可访问性
 

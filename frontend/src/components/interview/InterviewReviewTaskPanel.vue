@@ -21,14 +21,6 @@ const emit = defineEmits<{
   submitAttempt: [taskId: string, answer: string];
 }>();
 
-function formatSimilarity(similarity: number | null): string {
-  return similarity === null ? "未记录" : `${Math.round(similarity * 100)}%`;
-}
-
-function formatQuestionNumber(questionIndex: number): string {
-  return String(questionIndex + 1).padStart(2, "0");
-}
-
 function formatCompletedAt(completedAt: string | null): string {
   if (!completedAt) {
     return "";
@@ -49,10 +41,9 @@ function formatCompletedAt(completedAt: string | null): string {
   <section class="review-card" aria-labelledby="review-task-title">
     <header class="review-header">
       <div>
-        <span>复盘清单 / {{ tasks.length }} ITEMS</span>
-        <h2 id="review-task-title">把本场遗漏变成下一次的准备</h2>
+        <h2 id="review-task-title">复习题目</h2>
+        <p>根据本场回答中的遗漏整理。</p>
       </div>
-      <p>每条任务都来自已保存的逐题评价；有可靠资料时，同时保留可追溯的知识来源。</p>
     </header>
 
     <div v-if="loading" class="review-state" aria-live="polite">
@@ -61,10 +52,10 @@ function formatCompletedAt(completedAt: string | null): string {
 
     <div v-else-if="error && !tasks.length" class="review-state review-error" role="alert">
       <div>
-        <strong>复习任务暂未就绪</strong>
+        <strong>复习题目暂未就绪</strong>
         <p>{{ error }}</p>
       </div>
-      <button type="button" @click="emit('retry')">重新生成复习任务</button>
+      <button type="button" @click="emit('retry')">重新整理</button>
     </div>
 
     <p v-if="actionError && tasks.length" class="review-action-error" role="alert">
@@ -79,7 +70,7 @@ function formatCompletedAt(completedAt: string | null): string {
         :class="{ completed: task.status === 'COMPLETED' }"
       >
         <div class="review-marker" aria-hidden="true">
-          <span>Q{{ formatQuestionNumber(task.questionIndex) }}</span>
+          <span>第 {{ task.questionIndex + 1 }} 题</span>
         </div>
 
         <div class="review-body">
@@ -102,7 +93,7 @@ function formatCompletedAt(completedAt: string | null): string {
 
           <div class="review-task-action">
             <template v-if="task.status === 'COMPLETED'">
-              <strong>已完成复习</strong>
+              <strong>已完成</strong>
               <span>{{ formatCompletedAt(task.completedAt) }}</span>
             </template>
             <button
@@ -111,7 +102,7 @@ function formatCompletedAt(completedAt: string | null): string {
               :disabled="Boolean(completingTaskId)"
               @click="emit('complete', task.id)"
             >
-              {{ completingTaskId === task.id ? "正在记录…" : "标记已复习" }}
+              {{ completingTaskId === task.id ? "正在记录…" : "标记完成" }}
             </button>
           </div>
 
@@ -125,8 +116,8 @@ function formatCompletedAt(completedAt: string | null): string {
           />
         </div>
 
-        <aside class="source-ledger" :class="{ grounded: task.knowledgeGrounded }">
-          <strong>{{ task.knowledgeGrounded ? "知识依据" : "来源状态" }}</strong>
+        <details class="source-ledger" :class="{ grounded: task.knowledgeGrounded }">
+          <summary>{{ task.knowledgeGrounded ? `参考资料（${task.knowledgeSources.length}）` : "参考资料" }}</summary>
           <template v-if="task.knowledgeSources.length">
             <div
               v-for="source in task.knowledgeSources"
@@ -134,26 +125,25 @@ function formatCompletedAt(completedAt: string | null): string {
             >
               <span>{{ source.source }}</span>
               <p>{{ source.headingPath.length ? source.headingPath.join(" / ") : "未记录标题路径" }}</p>
-              <small>Chunk {{ source.chunkOrder }} · 相似度 {{ formatSimilarity(source.similarity) }}</small>
             </div>
           </template>
-          <p v-else>本题没有可靠知识来源，先根据遗漏和改进建议复习。</p>
-        </aside>
+          <p v-else>这道题没有可用的参考资料。</p>
+        </details>
       </li>
     </ol>
 
     <div v-else-if="!loading && !error" class="review-state review-empty">
       <div>
-        <strong>{{ generated ? "本场没有需要沉淀的遗漏" : "当前没有已保存的复习任务" }}</strong>
+        <strong>{{ generated ? "本场没有需要复习的遗漏" : "还没有复习题目" }}</strong>
         <p>
           {{
             generated
-              ? "逐题评价没有返回遗漏项，可以直接开始下一场训练。"
-              : "可以重新检查这场面试；生成过程不会再次调用模型。"
+              ? "可以直接开始下一场训练。"
+              : "重新整理本场回答后即可查看。"
           }}
         </p>
       </div>
-      <button v-if="!generated" type="button" @click="emit('retry')">检查复习任务</button>
+      <button v-if="!generated" type="button" @click="emit('retry')">整理复习题目</button>
     </div>
   </section>
 </template>
@@ -161,21 +151,13 @@ function formatCompletedAt(completedAt: string | null): string {
 <style scoped lang="scss">
 .review-card {
   display: grid;
-  gap: var(--space-xl);
-  padding: var(--space-xl);
-  border: var(--rule-thin) solid var(--color-rule-2);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-whisper);
+  gap: var(--space-lg);
+  padding-block: var(--space-xl);
+  border-top: var(--rule-thin) solid var(--color-rule-2);
 }
 
 .review-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.55fr);
-  align-items: end;
-  gap: var(--space-xl);
-  padding-bottom: var(--space-lg);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
+  padding-bottom: var(--space-md);
 }
 
 .review-header > div,
@@ -189,7 +171,6 @@ function formatCompletedAt(completedAt: string | null): string {
   gap: var(--space-xs);
 }
 
-.review-header span,
 .review-question span {
   color: var(--color-accent);
   font-family: var(--font-mono);
@@ -204,18 +185,16 @@ p {
 
 h2 {
   font-size: var(--text-xl);
-  letter-spacing: -0.03em;
 }
 
-.review-header > p {
+.review-header p {
   color: var(--color-muted);
   font-size: var(--text-sm);
-  line-height: 1.65;
 }
 
 .review-list {
   display: grid;
-  gap: 0;
+  gap: var(--space-md);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -223,52 +202,24 @@ h2 {
 
 .review-item {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) minmax(16rem, 0.58fr);
+  grid-template-columns: auto minmax(0, 1fr) minmax(14rem, 0.46fr);
   gap: var(--space-lg);
-  padding-block: var(--space-lg);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
-}
-
-.review-item:first-child {
-  padding-top: 0;
-}
-
-.review-item:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+  padding: var(--space-lg);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
 }
 
 .review-marker {
-  position: relative;
   display: grid;
-  justify-items: center;
-}
-
-.review-marker::after {
-  position: absolute;
-  top: 2.75rem;
-  bottom: calc(var(--space-lg) * -1);
-  width: var(--rule-thin);
-  background: var(--color-rule-2);
-  content: "";
-}
-
-.review-item:last-child .review-marker::after {
-  display: none;
+  align-content: start;
 }
 
 .review-marker span {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: var(--rule-thin) solid var(--color-accent);
-  border-radius: var(--radius-control);
-  color: var(--color-accent-strong);
-  background: var(--color-accent-soft);
-  font-family: var(--font-mono);
+  color: var(--color-muted);
   font-size: var(--text-xs);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .review-body {
@@ -278,21 +229,18 @@ h2 {
 }
 
 .review-item.completed .review-marker span {
-  border-color: var(--color-success-rule);
   color: var(--color-success);
-  background: var(--color-success-soft);
 }
 
 .review-question h3 {
   color: var(--color-ink);
   font-size: var(--text-lg);
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   line-height: 1.35;
 }
 
 .review-gaps strong,
 .review-suggestion strong,
-.source-ledger > strong,
 .review-state strong {
   color: var(--color-ink-2);
   font-size: var(--text-sm);
@@ -342,36 +290,39 @@ h2 {
 
 .source-ledger {
   align-content: start;
-  padding: var(--space-md);
-  border: var(--rule-thin) solid var(--color-warning-rule);
-  border-radius: var(--radius-control);
-  background: var(--color-warning-soft);
+  padding: 0;
+  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .source-ledger.grounded {
   border-color: var(--color-success-rule);
-  background: var(--color-success-soft);
+}
+
+.source-ledger summary {
+  padding-block: var(--space-sm);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .source-ledger div + div {
   padding-top: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-success-rule);
+  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
-.source-ledger span,
-.source-ledger small {
+.source-ledger div {
+  padding-bottom: var(--space-sm);
+}
+
+.source-ledger span {
   overflow-wrap: anywhere;
-  font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
 .source-ledger span {
   color: var(--color-ink-2);
   font-weight: 700;
-}
-
-.source-ledger small {
-  color: var(--color-muted);
 }
 
 .review-state {
@@ -412,7 +363,6 @@ button {
 }
 
 @media (max-width: 62rem) {
-  .review-header,
   .review-item {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -421,17 +371,13 @@ button {
     justify-items: start;
   }
 
-  .review-marker::after {
-    display: none;
-  }
 }
 
 @media (max-width: 40rem) {
   .review-card {
-    padding: var(--space-lg) var(--space-md);
+    padding-block: var(--space-lg);
   }
 
-  .review-header,
   .review-item {
     gap: var(--space-md);
   }

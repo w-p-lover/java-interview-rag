@@ -1,6 +1,6 @@
 {
-  "lastScan": "2026-07-23T11:30:00+08:00",
-  "packageMtime": "2026-07-21T10:59:14.528219+08:00",
+  "lastScan": "2026-07-31T18:00:55+08:00",
+  "packageMtime": "2026-07-31T17:17:41.0009025+08:00",
   "designSystem": "frontend/tokens.css",
   "framework": {
     "name": "Vue",
@@ -16,14 +16,14 @@
   },
   "palette": {
     "format": "OKLCH CSS custom properties",
-    "paper": "warm light grey",
-    "accent": "restrained coral",
+    "paper": "neutral cool light grey",
+    "accent": "restrained coral with blue and green status colors",
     "preserveByDefault": true
   },
   "motion": {
     "library": null,
     "stance": "motion-cut",
-    "existingTransitions": "command palette fade, drag feedback and functional loading only"
+    "existingTransitions": "command palette, progress transform and functional state feedback only"
   },
   "spacing": {
     "tokenScale": true,

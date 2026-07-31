@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { BookOpenCheck, Info } from "@lucide/vue";
+
 import type { InterviewSessionAnswer } from "@/api/interview";
 
 defineProps<{
@@ -9,13 +11,12 @@ defineProps<{
 <template>
   <aside class="feedback-card" aria-labelledby="feedback-title">
     <header>
-      <span>02 / 即时反馈</span>
-      <h2 id="feedback-title">本题评价</h2>
+      <h2 id="feedback-title">上一题反馈</h2>
     </header>
 
     <div v-if="!answer" class="feedback-empty">
-      <strong>等待第一份回答</strong>
-      <p>提交后会看到技术准确性、完整性、表达质量和具体改进建议。</p>
+      <strong>还没有反馈</strong>
+      <p>提交第一题后，这里会显示评分和建议。</p>
     </div>
 
     <template v-else>
@@ -40,15 +41,13 @@ defineProps<{
       </dl>
 
       <p :class="['evidence-note', { grounded: answer.evaluation.knowledgeGrounded }]">
-        {{
-          answer.evaluation.knowledgeGrounded
-            ? "本题评价使用了真实知识库资料。"
-            : "本题没有可靠知识来源，技术事实未被标记为已验证。"
-        }}
+        <BookOpenCheck v-if="answer.evaluation.knowledgeGrounded" :size="14" aria-hidden="true" />
+        <Info v-else :size="14" aria-hidden="true" />
+        {{ answer.evaluation.knowledgeGrounded ? "有资料参考" : "仅根据回答评价" }}
       </p>
 
       <section v-if="answer.evaluation.strengths.length">
-        <h3>做得好的地方</h3>
+        <h3>做得好</h3>
         <ul>
           <li v-for="strength in answer.evaluation.strengths" :key="strength">{{ strength }}</li>
         </ul>
@@ -62,7 +61,7 @@ defineProps<{
       </section>
 
       <section class="suggestion">
-        <h3>下一次怎么答</h3>
+        <h3>改进建议</h3>
         <p>{{ answer.evaluation.improvementSuggestion }}</p>
       </section>
     </template>
@@ -82,16 +81,8 @@ defineProps<{
 }
 
 header {
-  display: grid;
-  gap: var(--space-xs);
   padding-bottom: var(--space-md);
   border-bottom: var(--rule-thin) solid var(--color-rule-2);
-}
-
-header span {
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
 }
 
 h2,
@@ -103,7 +94,7 @@ dl {
 
 h2 {
   font-size: var(--text-lg);
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .feedback-empty {
@@ -127,7 +118,7 @@ h2 {
   color: var(--color-ink);
   font-family: var(--font-display);
   font-size: var(--text-3xl);
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
   line-height: 1;
 }
 
@@ -163,11 +154,15 @@ h2 {
 }
 
 .evidence-note {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: fit-content;
   padding: var(--space-sm);
-  border: var(--rule-thin) solid var(--color-warning-rule);
+  border: var(--rule-thin) solid var(--color-info-rule);
   border-radius: var(--radius-control);
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
+  color: var(--color-info);
+  background: var(--color-info-soft);
   font-size: var(--text-xs);
 }
 

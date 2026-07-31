@@ -46,6 +46,10 @@ a:active {
   transform: translateY(var(--rule-thin));
 }
 
+summary:active {
+  color: var(--color-ink);
+}
+
 button,
 label,
 input[type="file"] {
@@ -57,9 +61,10 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 a:focus-visible,
+summary:focus-visible,
 [tabindex]:focus-visible {
   outline: var(--rule-focus) solid var(--color-focus);
-  outline-offset: var(--space-2xs);
+  outline-offset: var(--rule-thin);
 }
 
 ::selection {
