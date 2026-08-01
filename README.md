@@ -26,7 +26,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `PATCH /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/complete` 将所属任务幂等地标记为 `COMPLETED`，重复调用保留首次完成时间。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/attempts` 返回该任务按序保存的复习回答和评价快照；`POST` 接收 `answer` 与 1-based `expectedAttemptNumber`，在模型评价前校验序号，返回与原回答及上次 attempt 的总分差值。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回实际总分是否落入宽松预期区间；空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
-- 正式面试、复习作答和固定基线评分统一记录 Prompt/rubric/model、分数、知识依据状态、耗时、状态与失败类型；评价日志不保存简历、题目、回答或知识正文，日志写入失败不影响主评价。
+- 正式面试、复习作答和固定基线评分统一记录 Prompt/rubric/model、分数、知识依据状态、耗时、状态与失败类型；评价日志不保存简历、题目、回答或知识正文，日志写入失败不影响主评价。迁移脚本 `deploy/mysql/init/009_interview_answer_evaluation_log.sql` 已执行到独立数据库 `java_interview_rag`。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 资料库页继续使用 Hallmark Workbench 结构；`/interview` 已改为 Split Studio 专注面试台，采用中性灰白工作区、石墨设置面、珊瑚主操作和蓝绿状态色，不使用营销式 Hero 或技术口号。
