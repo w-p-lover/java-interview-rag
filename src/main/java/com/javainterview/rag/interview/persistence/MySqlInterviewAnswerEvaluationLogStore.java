@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.persistence;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLog;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogStore;
 
+import java.util.List;
 import java.util.Objects;
 
 public class MySqlInterviewAnswerEvaluationLogStore implements InterviewAnswerEvaluationLogStore {
@@ -16,5 +17,28 @@ public class MySqlInterviewAnswerEvaluationLogStore implements InterviewAnswerEv
     @Override
     public void record(InterviewAnswerEvaluationLog log) {
         mapper.insert(InterviewAnswerEvaluationLogEntity.from(log));
+    }
+
+    @Override
+    public List<InterviewAnswerEvaluationLog> findRecent(InterviewAnswerEvaluationLog.Mode mode, int limit) {
+        return mapper.findRecent(mode.name(), limit).stream().map(this::toLog).toList();
+    }
+
+    private InterviewAnswerEvaluationLog toLog(InterviewAnswerEvaluationLogEntity entity) {
+        return new InterviewAnswerEvaluationLog(
+                entity.getId(),
+                InterviewAnswerEvaluationLog.Mode.valueOf(entity.getEvaluationMode()),
+                entity.getPromptVersion(),
+                entity.getRubricVersion(),
+                entity.getModelName(),
+                InterviewAnswerEvaluationLog.Status.valueOf(entity.getStatus()),
+                entity.getKnowledgeGrounded(),
+                entity.getTechnicalScore(),
+                entity.getCompletenessScore(),
+                entity.getCommunicationScore(),
+                entity.getOverallScore(),
+                entity.getElapsedMillis(),
+                entity.getErrorType(),
+                entity.getCreatedAt());
     }
 }

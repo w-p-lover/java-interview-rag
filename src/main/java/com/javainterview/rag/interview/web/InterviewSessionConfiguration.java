@@ -17,6 +17,7 @@ import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogStore;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogQueryService;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
 import com.javainterview.rag.interview.evaluation.FixedInterviewAnswerEvaluationDataset;
 import com.javainterview.rag.interview.evaluation.FixedInterviewAnswerEvaluationService;
@@ -55,6 +56,12 @@ public class InterviewSessionConfiguration {
     InterviewAnswerEvaluationLogStore interviewAnswerEvaluationLogStore(
             InterviewAnswerEvaluationLogMapper mapper) {
         return new MySqlInterviewAnswerEvaluationLogStore(mapper);
+    }
+
+    @Bean
+    InterviewAnswerEvaluationLogQueryService interviewAnswerEvaluationLogQueryService(
+            InterviewAnswerEvaluationLogStore logStore) {
+        return new InterviewAnswerEvaluationLogQueryService(logStore);
     }
 
     @Bean

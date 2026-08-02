@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class MySqlInterviewAnswerEvaluationLogStoreTest {
 
@@ -44,5 +45,35 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
         assertEquals(83, entity.getOverallScore());
         assertEquals(1234L, entity.getElapsedMillis());
         assertEquals(createdAt, entity.getCreatedAt());
+    }
+
+    @Test
+    void readsRecentLogsForTheRequestedMode() {
+        InterviewAnswerEvaluationLogMapper mapper = mock(InterviewAnswerEvaluationLogMapper.class);
+        MySqlInterviewAnswerEvaluationLogStore store =
+                new MySqlInterviewAnswerEvaluationLogStore(mapper);
+        InterviewAnswerEvaluationLog log = new InterviewAnswerEvaluationLog(
+                9L,
+                InterviewAnswerEvaluationLog.Mode.BASELINE,
+                "prompt-v2",
+                "rubric-v1",
+                "model-test",
+                InterviewAnswerEvaluationLog.Status.FAILED,
+                null,
+                null,
+                null,
+                null,
+                null,
+                45,
+                "IllegalStateException",
+                LocalDateTime.of(2026, 8, 2, 9, 0));
+        when(mapper.findRecent("BASELINE", 20))
+                .thenReturn(java.util.List.of(InterviewAnswerEvaluationLogEntity.from(log)));
+
+        java.util.List<InterviewAnswerEvaluationLog> logs =
+                store.findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE, 20);
+
+        assertEquals(java.util.List.of(log), logs);
+        verify(mapper).findRecent("BASELINE", 20);
     }
 }
