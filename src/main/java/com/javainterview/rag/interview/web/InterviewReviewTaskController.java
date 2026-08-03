@@ -4,6 +4,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewAttempt;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptConflictException;
+import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,6 +39,11 @@ public class InterviewReviewTaskController {
     @GetMapping
     public List<InterviewReviewTask> findBySessionId(@PathVariable String sessionId) {
         return service.findBySessionId(sessionId);
+    }
+
+    @GetMapping("/history")
+    public InterviewReviewSessionHistory findAttemptHistory(@PathVariable String sessionId) {
+        return service.findAttemptHistory(sessionId);
     }
 
     @PatchMapping("/{taskId}/complete")

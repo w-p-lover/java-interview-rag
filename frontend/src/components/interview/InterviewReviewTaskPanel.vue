@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import type { InterviewReviewTask } from "@/api/interview";
-import InterviewReviewAttemptPanel from "@/components/interview/InterviewReviewAttemptPanel.vue";
+import { computed } from "vue";
 
-defineProps<{
+import type {
+  InterviewReviewSessionHistory,
+  InterviewReviewTask,
+} from "@/api/interview";
+import InterviewReviewAttemptPanel from "@/components/interview/InterviewReviewAttemptPanel.vue";
+import InterviewReviewHistorySummary from "@/components/interview/InterviewReviewHistorySummary.vue";
+
+const props = defineProps<{
   tasks: InterviewReviewTask[];
   loading: boolean;
   error: string;
@@ -13,7 +19,12 @@ defineProps<{
   attemptsLoadingTaskId: string;
   submittingAttemptTaskId: string;
   attemptError: string;
+  history: InterviewReviewSessionHistory | null;
 }>();
+
+const historiesByTaskId = computed(() => new Map(
+  (props.history?.tasks ?? []).map((history) => [history.reviewTaskId, history]),
+));
 
 const emit = defineEmits<{
   retry: [];
@@ -61,6 +72,11 @@ function formatCompletedAt(completedAt: string | null): string {
     <p v-if="actionError && tasks.length" class="review-action-error" role="alert">
       {{ actionError }}
     </p>
+
+    <InterviewReviewHistorySummary
+      v-if="history && history.totalTaskCount"
+      :history="history"
+    />
 
     <ol v-if="!loading && tasks.length" class="review-list">
       <li
@@ -112,6 +128,7 @@ function formatCompletedAt(completedAt: string | null): string {
             :loading="attemptsLoadingTaskId === '*' || attemptsLoadingTaskId === task.id"
             :submitting="submittingAttemptTaskId === task.id"
             :error="attemptError"
+            :summary="historiesByTaskId.get(task.id) ?? null"
             @submit="emit('submitAttempt', task.id, $event)"
           />
         </div>

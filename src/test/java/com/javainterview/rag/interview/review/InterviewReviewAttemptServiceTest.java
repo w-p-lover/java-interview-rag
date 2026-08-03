@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,11 +79,59 @@ class InterviewReviewAttemptServiceTest {
         org.mockito.Mockito.verifyNoInteractions(evaluator);
     }
 
+    @Test
+    void summarizesPersistedAttemptsWithinOneSession() {
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        InterviewReviewTaskStore taskStore = mock(InterviewReviewTaskStore.class);
+        InterviewReviewAttemptStore attemptStore = mock(InterviewReviewAttemptStore.class);
+        InterviewSession session = completedSession();
+        InterviewReviewTask firstTask = task();
+        InterviewReviewTask secondTask = new InterviewReviewTask(
+                "task-2", "session-1", 1, "如何定位 MySQL 慢查询？", "工程能力",
+                List.of("缺少执行计划分析"), "补充 EXPLAIN 分析。", false, List.of(),
+                InterviewReviewTaskStatus.PENDING,
+                LocalDateTime.of(2026, 7, 29, 9, 4), null);
+        when(sessionStore.findById("session-1")).thenReturn(Optional.of(session));
+        when(taskStore.findBySessionId("session-1")).thenReturn(List.of(firstTask, secondTask));
+        when(attemptStore.findByReviewTaskId("session-1", "task-1"))
+                .thenReturn(List.of(attempt(1, 85, List.of("缺少失败补偿细节")),
+                        attempt(2, 92, List.of())));
+        when(attemptStore.findByReviewTaskId("session-1", "task-2")).thenReturn(List.of());
+        InterviewReviewTaskService service = new InterviewReviewTaskService(
+                sessionStore, taskStore, attemptStore, mock(InterviewAnswerEvaluator.class));
+
+        InterviewReviewSessionHistory result = service.findAttemptHistory("session-1");
+
+        assertEquals(2, result.totalTaskCount());
+        assertEquals(1, result.practicedTaskCount());
+        assertEquals(2, result.totalAttemptCount());
+        assertEquals(1, result.improvedTaskCount());
+        InterviewReviewTaskHistory practiced = result.tasks().get(0);
+        assertEquals(80, practiced.originalOverallScore());
+        assertEquals(85, practiced.firstOverallScore());
+        assertEquals(92, practiced.latestOverallScore());
+        assertEquals(92, practiced.bestOverallScore());
+        assertEquals(12, practiced.latestScoreDeltaFromOriginal());
+        assertEquals(List.of(), practiced.unresolvedGaps());
+        assertEquals(2, practiced.attempts().size());
+        InterviewReviewTaskHistory unpracticed = result.tasks().get(1);
+        assertNull(unpracticed.firstOverallScore());
+        assertEquals(List.of("缺少执行计划分析"), unpracticed.unresolvedGaps());
+    }
+
     private InterviewReviewAttempt attempt() {
+        return attempt(1, 85, List.of("缺少失败补偿细节"));
+    }
+
+    private InterviewReviewAttempt attempt(int attemptNumber, int score, List<String> gaps) {
+        Integer previousScore = attemptNumber == 1 ? null : 85;
         return new InterviewReviewAttempt(
-                "attempt-1", "session-1", "task-1", 0, 1, "旧复习回答", evaluation(85),
+                "attempt-" + attemptNumber, "session-1", "task-1", 0, attemptNumber,
+                "第 " + attemptNumber + " 次复习回答", evaluation(score, gaps),
                 true, List.of(reviewSource()), "prompt-v2", "rubric-v1", "model-test",
-                80, null, 5, null, LocalDateTime.of(2026, 7, 30, 9, 0));
+                80, previousScore, score - 80,
+                previousScore == null ? null : score - previousScore,
+                LocalDateTime.of(2026, 7, 30, 9, attemptNumber));
     }
 
     private InterviewReviewTask task() {
@@ -107,9 +156,13 @@ class InterviewReviewAttemptServiceTest {
     }
 
     private InterviewAnswerEvaluation evaluation(int overall) {
+        return evaluation(overall, List.of("缺少失败补偿细节"));
+    }
+
+    private InterviewAnswerEvaluation evaluation(int overall, List<String> gaps) {
         return new InterviewAnswerEvaluation(
                 overall, overall, overall, overall,
-                List.of("说明了关键流程"), List.of("缺少失败补偿细节"),
+                List.of("说明了关键流程"), gaps,
                 "补充异常分支和恢复方式。", true);
     }
 

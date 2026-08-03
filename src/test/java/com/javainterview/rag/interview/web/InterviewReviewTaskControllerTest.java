@@ -3,6 +3,8 @@ package com.javainterview.rag.interview.web;
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewAttempt;
+import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
+import com.javainterview.rag.interview.review.InterviewReviewTaskHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.junit.jupiter.api.Test;
@@ -101,6 +103,26 @@ class InterviewReviewTaskControllerTest {
                         .content("{\"answer\":\"补充失败补偿\",\"expectedAttemptNumber\":1}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.promptVersion").value("prompt-v2"));
+    }
+
+    @Test
+    void returnsPersistedReviewHistoryForOneSession() throws Exception {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewReviewTaskHistory taskHistory = new InterviewReviewTaskHistory(
+                "task-1", 0, 1, 80, 85, 85, 85, 5,
+                List.of(), LocalDateTime.of(2026, 7, 30, 9, 30), List.of(attempt()));
+        when(service.findAttemptHistory("session-1")).thenReturn(
+                new InterviewReviewSessionHistory("session-1", 1, 1, 1, 1,
+                        List.of(taskHistory)));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewTaskController(service)).build();
+
+        mockMvc.perform(get("/api/interviews/sessions/session-1/review-tasks/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalAttemptCount").value(1))
+                .andExpect(jsonPath("$.tasks[0].bestOverallScore").value(85))
+                .andExpect(jsonPath("$.tasks[0].unresolvedGaps").isEmpty())
+                .andExpect(jsonPath("$.tasks[0].attempts[0].attemptNumber").value(1));
     }
 
     private InterviewReviewTask task() {

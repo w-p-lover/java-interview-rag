@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue";
 
-import type { InterviewReviewAttempt } from "@/api/interview";
+import type { InterviewReviewAttempt, InterviewReviewTaskHistory } from "@/api/interview";
 
 const props = defineProps<{
   taskId: string;
@@ -9,6 +9,7 @@ const props = defineProps<{
   loading: boolean;
   submitting: boolean;
   error: string;
+  summary: InterviewReviewTaskHistory | null;
 }>();
 
 const emit = defineEmits<{
@@ -76,6 +77,34 @@ function formatDelta(value: number | null): string {
 
     <p v-if="error" class="attempt-error" role="alert">{{ error }}</p>
     <p v-if="loading" class="attempt-loading" aria-live="polite">正在加载历史回答…</p>
+
+    <div v-if="summary && summary.attemptCount" class="attempt-summary">
+      <dl>
+        <div>
+          <dt>正式回答</dt>
+          <dd>{{ summary.originalOverallScore }} 分</dd>
+        </div>
+        <div>
+          <dt>首次复习</dt>
+          <dd>{{ summary.firstOverallScore }} 分</dd>
+        </div>
+        <div>
+          <dt>最近复习</dt>
+          <dd>{{ summary.latestOverallScore }} 分</dd>
+        </div>
+        <div>
+          <dt>最好成绩</dt>
+          <dd>{{ summary.bestOverallScore }} 分</dd>
+        </div>
+      </dl>
+      <div class="attempt-gaps">
+        <strong>最近仍需补充</strong>
+        <ul v-if="summary.unresolvedGaps.length">
+          <li v-for="gap in summary.unresolvedGaps" :key="gap">{{ gap }}</li>
+        </ul>
+        <p v-else>最近一次评价没有记录新的遗漏。</p>
+      </div>
+    </div>
 
     <ol v-if="attempts.length" class="attempt-list">
       <li v-for="attempt in attempts" :key="attempt.id" class="attempt-item">
@@ -198,6 +227,60 @@ button {
   list-style: none;
 }
 
+.attempt-summary {
+  display: grid;
+  gap: var(--space-md);
+  padding-block: var(--space-sm);
+}
+
+.attempt-summary dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-block: var(--rule-thin) solid var(--color-rule);
+}
+
+.attempt-summary dl div {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+.attempt-summary dl div + div {
+  border-left: var(--rule-thin) solid var(--color-rule);
+}
+
+.attempt-summary dt,
+.attempt-gaps strong {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.attempt-summary dd {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.attempt-gaps {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.attempt-gaps ul,
+.attempt-gaps p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.attempt-gaps ul {
+  padding-left: var(--space-lg);
+}
+
 .attempt-item {
   gap: var(--space-md);
   padding-top: var(--space-md);
@@ -234,6 +317,18 @@ button {
 }
 
 @media (max-width: 40rem) {
+  .attempt-summary dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attempt-summary dl div:nth-child(3) {
+    border-left: 0;
+  }
+
+  .attempt-summary dl div:nth-child(n + 3) {
+    border-top: var(--rule-thin) solid var(--color-rule);
+  }
+
   .attempt-actions,
   .attempt-meta {
     align-items: stretch;

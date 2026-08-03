@@ -25,6 +25,7 @@ const {
   completingReviewTaskId,
   reviewTaskActionError,
   reviewAttempts,
+  reviewHistory,
   reviewAttemptsLoadingTaskId,
   submittingReviewAttemptTaskId,
   reviewAttemptError,
@@ -114,6 +115,7 @@ function handleReviewAttempt(taskId: string, answer: string): void {
           :attempts-loading-task-id="reviewAttemptsLoadingTaskId"
           :submitting-attempt-task-id="submittingReviewAttemptTaskId"
           :attempt-error="reviewAttemptError"
+          :history="reviewHistory"
           @retry="handleReviewRetry"
           @complete="handleReviewComplete"
           @submit-attempt="handleReviewAttempt"

@@ -120,6 +120,29 @@ export interface InterviewReviewAttempt {
   createdAt: string;
 }
 
+export interface InterviewReviewTaskHistory {
+  reviewTaskId: string;
+  questionIndex: number;
+  attemptCount: number;
+  originalOverallScore: number;
+  firstOverallScore: number | null;
+  latestOverallScore: number | null;
+  bestOverallScore: number | null;
+  latestScoreDeltaFromOriginal: number | null;
+  unresolvedGaps: string[];
+  latestAttemptAt: string | null;
+  attempts: InterviewReviewAttempt[];
+}
+
+export interface InterviewReviewSessionHistory {
+  sessionId: string;
+  totalTaskCount: number;
+  practicedTaskCount: number;
+  totalAttemptCount: number;
+  improvedTaskCount: number;
+  tasks: InterviewReviewTaskHistory[];
+}
+
 export interface InterviewSessionStartPayload {
   targetRole: string;
   resumeText: string;
@@ -201,12 +224,11 @@ export async function completeInterviewReviewTask(
   return response.data;
 }
 
-export async function getInterviewReviewAttempts(
+export async function getInterviewReviewHistory(
   sessionId: string,
-  taskId: string,
-): Promise<InterviewReviewAttempt[]> {
-  const response = await request.get<InterviewReviewAttempt[]>(
-    `/interviews/sessions/${sessionId}/review-tasks/${taskId}/attempts`,
+): Promise<InterviewReviewSessionHistory> {
+  const response = await request.get<InterviewReviewSessionHistory>(
+    `/interviews/sessions/${sessionId}/review-tasks/history`,
   );
   return response.data;
 }

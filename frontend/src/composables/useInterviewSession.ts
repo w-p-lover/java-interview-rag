@@ -3,13 +3,14 @@ import { computed, shallowRef } from "vue";
 import {
   completeInterviewReviewTask,
   generateInterviewReviewTasks,
+  getInterviewReviewHistory,
   getInterviewReviewTasks,
-  getInterviewReviewAttempts,
   getInterviewSession,
   startInterviewSession,
   submitInterviewAnswer,
   submitInterviewReviewAttempt,
   type InterviewReviewAttempt,
+  type InterviewReviewSessionHistory,
   type InterviewReviewTask,
   type InterviewSession,
   type InterviewSessionStartPayload,
@@ -30,6 +31,7 @@ export function useInterviewSession() {
   const completingReviewTaskId = shallowRef("");
   const reviewTaskActionError = shallowRef("");
   const reviewAttempts = shallowRef<Record<string, InterviewReviewAttempt[]>>({});
+  const reviewHistory = shallowRef<InterviewReviewSessionHistory | null>(null);
   const reviewAttemptsLoadingTaskId = shallowRef("");
   const submittingReviewAttemptTaskId = shallowRef("");
   const reviewAttemptError = shallowRef("");
@@ -109,7 +111,7 @@ export function useInterviewSession() {
     reviewTasksGenerated.value = false;
     try {
       reviewTasks.value = await getInterviewReviewTasks(sessionId);
-      await loadReviewAttempts(reviewTasks.value);
+      await loadReviewHistory(sessionId);
     } catch (requestError) {
       reviewTasksError.value = resolveApiError(requestError, "恢复复习任务失败");
     } finally {
@@ -127,7 +129,7 @@ export function useInterviewSession() {
     try {
       reviewTasks.value = await generateInterviewReviewTasks(completedSession.id);
       reviewTasksGenerated.value = true;
-      await loadReviewAttempts(reviewTasks.value);
+      await loadReviewHistory(completedSession.id);
     } catch (requestError) {
       reviewTasksError.value = resolveApiError(requestError, "生成复习任务失败");
     } finally {
@@ -135,19 +137,15 @@ export function useInterviewSession() {
     }
   }
 
-  async function loadReviewAttempts(tasks: InterviewReviewTask[]): Promise<void> {
-    if (!session.value || !tasks.length) {
-      reviewAttempts.value = {};
-      return;
-    }
+  async function loadReviewHistory(sessionId: string): Promise<void> {
     reviewAttemptsLoadingTaskId.value = "*";
     reviewAttemptError.value = "";
     try {
-      const entries = await Promise.all(tasks.map(async (task) => [
-        task.id,
-        await getInterviewReviewAttempts(session.value!.id, task.id),
-      ] as const));
-      reviewAttempts.value = Object.fromEntries(entries);
+      const history = await getInterviewReviewHistory(sessionId);
+      reviewHistory.value = history;
+      reviewAttempts.value = Object.fromEntries(
+        history.tasks.map((task) => [task.reviewTaskId, task.attempts]),
+      );
     } catch (requestError) {
       reviewAttemptError.value = resolveApiError(requestError, "恢复复习回答失败");
     } finally {
@@ -165,16 +163,13 @@ export function useInterviewSession() {
     submittingReviewAttemptTaskId.value = taskId;
     reviewAttemptError.value = "";
     try {
-      const attempt = await submitInterviewReviewAttempt(
+      await submitInterviewReviewAttempt(
         completedSession.id,
         taskId,
         answer,
         existingAttempts.length + 1,
       );
-      reviewAttempts.value = {
-        ...reviewAttempts.value,
-        [taskId]: [...existingAttempts, attempt],
-      };
+      await loadReviewHistory(completedSession.id);
     } catch (requestError) {
       reviewAttemptError.value = resolveApiError(requestError, "提交复习回答失败");
     } finally {
@@ -208,6 +203,7 @@ export function useInterviewSession() {
     completingReviewTaskId.value = "";
     reviewTaskActionError.value = "";
     reviewAttempts.value = {};
+    reviewHistory.value = null;
     reviewAttemptsLoadingTaskId.value = "";
     submittingReviewAttemptTaskId.value = "";
     reviewAttemptError.value = "";
@@ -242,6 +238,7 @@ export function useInterviewSession() {
     generateReviewTasks,
     completeReviewTask,
     reviewAttempts,
+    reviewHistory,
     reviewAttemptsLoadingTaskId,
     submittingReviewAttemptTaskId,
     reviewAttemptError,
