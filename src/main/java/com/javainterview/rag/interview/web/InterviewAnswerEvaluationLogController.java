@@ -28,8 +28,10 @@ public class InterviewAnswerEvaluationLogController {
     @GetMapping
     public InterviewAnswerEvaluationLogQueryService.Report findRecent(
             @RequestParam(defaultValue = "BASELINE") String mode,
+            @RequestParam(required = false) String baselineRunId,
+            @RequestParam(required = false) String baselineCaseId,
             @RequestParam(defaultValue = "20") int limit) {
-        return queryService.findRecent(parseMode(mode), limit);
+        return queryService.findRecent(parseMode(mode), baselineRunId, baselineCaseId, limit);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

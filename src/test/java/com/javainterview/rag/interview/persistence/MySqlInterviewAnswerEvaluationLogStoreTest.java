@@ -73,15 +73,16 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
                 45,
                 "IllegalStateException",
                 LocalDateTime.of(2026, 8, 2, 9, 0));
-        when(mapper.findRecent("BASELINE", 20))
+        when(mapper.findRecent("BASELINE", "run-1", "blank-answer", 20))
                 .thenReturn(java.util.List.of(InterviewAnswerEvaluationLogEntity.from(log)));
 
         java.util.List<InterviewAnswerEvaluationLog> logs =
-                store.findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE, 20);
+                store.findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE,
+                        "run-1", "blank-answer", 20);
 
         assertEquals(java.util.List.of(log), logs);
         assertEquals("run-1", logs.get(0).baselineRunId());
         assertEquals("blank-answer", logs.get(0).baselineCaseId());
-        verify(mapper).findRecent("BASELINE", 20);
+        verify(mapper).findRecent("BASELINE", "run-1", "blank-answer", 20);
     }
 }

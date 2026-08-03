@@ -21,26 +21,40 @@ class InterviewAnswerEvaluationLogControllerTest {
     @Test
     void returnsBaselineLogSummaryByDefault() throws Exception {
         InterviewAnswerEvaluationLogQueryService service = mock(InterviewAnswerEvaluationLogQueryService.class);
-        when(service.findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE, 20)).thenReturn(
+        when(service.findRecent(
+                InterviewAnswerEvaluationLog.Mode.BASELINE, "run-1", "case-a", 20)).thenReturn(
                 new InterviewAnswerEvaluationLogQueryService.Report(
                         InterviewAnswerEvaluationLog.Mode.BASELINE,
+                        "run-1",
+                        "case-a",
                         1,
+                        1,
+                        0,
                         List.of(new InterviewAnswerEvaluationLogQueryService.VersionSummary(
                                 "prompt-v2", "rubric-v1", "model-test",
                                 1, 1, 0, 1, 80, 80, 80.0,
                                 120.0, 120, Map.of())),
+                        List.of(new InterviewAnswerEvaluationLogQueryService.BaselineCaseSummary(
+                                "case-a", "prompt-v2", "rubric-v1", "model-test",
+                                1, 1, 1, 0, 1, 80, 80, 80.0, 0,
+                                null, 120.0, 120, Map.of())),
                         List.of()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new InterviewAnswerEvaluationLogController(service)).build();
 
-        mockMvc.perform(get("/api/interviews/evaluations/logs"))
+        mockMvc.perform(get("/api/interviews/evaluations/logs")
+                        .param("baselineRunId", "run-1")
+                        .param("baselineCaseId", "case-a"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("BASELINE"))
                 .andExpect(jsonPath("$.returnedCount").value(1))
                 .andExpect(jsonPath("$.versionSummaries[0].promptVersion").value("prompt-v2"))
-                .andExpect(jsonPath("$.versionSummaries[0].averageOverallScore").value(80.0));
+                .andExpect(jsonPath("$.versionSummaries[0].averageOverallScore").value(80.0))
+                .andExpect(jsonPath("$.baselineCaseSummaries[0].baselineCaseId").value("case-a"))
+                .andExpect(jsonPath("$.baselineCaseSummaries[0].distinctRunCount").value(1));
 
-        verify(service).findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE, 20);
+        verify(service).findRecent(
+                InterviewAnswerEvaluationLog.Mode.BASELINE, "run-1", "case-a", 20);
     }
 
     @Test

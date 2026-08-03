@@ -20,8 +20,15 @@ public class MySqlInterviewAnswerEvaluationLogStore implements InterviewAnswerEv
     }
 
     @Override
-    public List<InterviewAnswerEvaluationLog> findRecent(InterviewAnswerEvaluationLog.Mode mode, int limit) {
-        return mapper.findRecent(mode.name(), limit).stream().map(this::toLog).toList();
+    public List<InterviewAnswerEvaluationLog> findRecent(
+            InterviewAnswerEvaluationLog.Mode mode,
+            String baselineRunId,
+            String baselineCaseId,
+            int limit) {
+        return mapper.findRecent(mode.name(), baselineRunId, baselineCaseId, limit)
+                .stream()
+                .map(this::toLog)
+                .toList();
     }
 
     private InterviewAnswerEvaluationLog toLog(InterviewAnswerEvaluationLogEntity entity) {
