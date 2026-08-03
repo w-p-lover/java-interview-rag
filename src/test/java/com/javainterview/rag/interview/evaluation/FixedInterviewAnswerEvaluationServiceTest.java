@@ -1,6 +1,7 @@
 package com.javainterview.rag.interview.evaluation;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 
@@ -9,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class FixedInterviewAnswerEvaluationServiceTest {
@@ -20,7 +23,8 @@ class FixedInterviewAnswerEvaluationServiceTest {
         when(evaluator.promptVersion()).thenReturn("prompt-v2");
         when(evaluator.rubricVersion()).thenReturn("rubric-v1");
         when(evaluator.modelName()).thenReturn("model-test");
-        when(evaluator.evaluateBaseline(any(), any(), anyString())).thenAnswer(invocation -> {
+        when(evaluator.evaluateBaseline(any(), any(), anyString(), anyString(), anyString()))
+                .thenAnswer(invocation -> {
             String answer = invocation.getArgument(2);
             if (answer.isBlank()) {
                 throw new IllegalArgumentException("回答不能为空");
@@ -37,6 +41,7 @@ class FixedInterviewAnswerEvaluationServiceTest {
         FixedInterviewAnswerEvaluationService.Report report = service.evaluate();
 
         assertEquals("prompt-v2", report.promptVersion());
+        assertTrue(!report.baselineRunId().isBlank());
         assertEquals(5, report.totalCaseCount());
         assertEquals(5, report.passedCaseCount());
         assertEquals(List.of(
@@ -49,6 +54,13 @@ class FixedInterviewAnswerEvaluationServiceTest {
         assertTrue(report.cases().stream().allMatch(FixedInterviewAnswerEvaluationService.CaseResult::passed));
         assertEquals(5, dataset.findAll().stream().map(FixedInterviewAnswerEvaluationDataset.Case::id)
                 .distinct().count());
+        ArgumentCaptor<String> runIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> caseIdCaptor = ArgumentCaptor.forClass(String.class);
+        verify(evaluator, times(5)).evaluateBaseline(
+                any(), any(), anyString(), runIdCaptor.capture(), caseIdCaptor.capture());
+        assertEquals(List.of(report.baselineRunId()), runIdCaptor.getAllValues().stream().distinct().toList());
+        assertEquals(report.cases().stream().map(FixedInterviewAnswerEvaluationService.CaseResult::caseId).toList(),
+                caseIdCaptor.getAllValues());
     }
 
     private InterviewAnswerEvaluation evaluation(int score, boolean grounded) {

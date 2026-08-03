@@ -62,6 +62,8 @@ class InterviewAnswerEvaluationLogQueryServiceTest {
         return new InterviewAnswerEvaluationLog(
                 id,
                 InterviewAnswerEvaluationLog.Mode.BASELINE,
+                "run-1",
+                "case-" + id,
                 promptVersion,
                 "rubric-v1",
                 "model-test",
@@ -81,6 +83,8 @@ class InterviewAnswerEvaluationLogQueryServiceTest {
         return new InterviewAnswerEvaluationLog(
                 id,
                 InterviewAnswerEvaluationLog.Mode.BASELINE,
+                "run-1",
+                "case-" + id,
                 promptVersion,
                 "rubric-v1",
                 "model-test",

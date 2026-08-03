@@ -19,7 +19,7 @@ class InterviewAnswerEvaluationControllerTest {
     void returnsFixedAnswerEvaluationReport() throws Exception {
         FixedInterviewAnswerEvaluationService service = mock(FixedInterviewAnswerEvaluationService.class);
         when(service.evaluate()).thenReturn(new FixedInterviewAnswerEvaluationService.Report(
-                "prompt-v2", "rubric-v1", "model-test", 1, 1,
+                "run-1", "prompt-v2", "rubric-v1", "model-test", 1, 1,
                 List.of(new FixedInterviewAnswerEvaluationService.CaseResult(
                         "complete-answer", "SUCCEEDED", true, 65, 100,
                         88, true, true, null))));
@@ -28,6 +28,7 @@ class InterviewAnswerEvaluationControllerTest {
 
         mockMvc.perform(post("/api/interviews/evaluations/answers"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baselineRunId").value("run-1"))
                 .andExpect(jsonPath("$.promptVersion").value("prompt-v2"))
                 .andExpect(jsonPath("$.passedCaseCount").value(1))
                 .andExpect(jsonPath("$.cases[0].caseId").value("complete-answer"))

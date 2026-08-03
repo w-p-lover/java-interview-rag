@@ -23,6 +23,8 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
         store.record(new InterviewAnswerEvaluationLog(
                 null,
                 InterviewAnswerEvaluationLog.Mode.REVIEW,
+                null,
+                null,
                 "prompt-v2",
                 "rubric-v1",
                 "model-test",
@@ -41,6 +43,8 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
         verify(mapper).insert(captor.capture());
         InterviewAnswerEvaluationLogEntity entity = captor.getValue();
         assertEquals("REVIEW", entity.getEvaluationMode());
+        assertEquals(null, entity.getBaselineRunId());
+        assertEquals(null, entity.getBaselineCaseId());
         assertEquals("SUCCEEDED", entity.getStatus());
         assertEquals(83, entity.getOverallScore());
         assertEquals(1234L, entity.getElapsedMillis());
@@ -55,6 +59,8 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
         InterviewAnswerEvaluationLog log = new InterviewAnswerEvaluationLog(
                 9L,
                 InterviewAnswerEvaluationLog.Mode.BASELINE,
+                "run-1",
+                "blank-answer",
                 "prompt-v2",
                 "rubric-v1",
                 "model-test",
@@ -74,6 +80,8 @@ class MySqlInterviewAnswerEvaluationLogStoreTest {
                 store.findRecent(InterviewAnswerEvaluationLog.Mode.BASELINE, 20);
 
         assertEquals(java.util.List.of(log), logs);
+        assertEquals("run-1", logs.get(0).baselineRunId());
+        assertEquals("blank-answer", logs.get(0).baselineCaseId());
         verify(mapper).findRecent("BASELINE", 20);
     }
 }

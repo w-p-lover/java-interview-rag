@@ -73,7 +73,9 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     public InterviewAnswerAssessment evaluateBaseline(
             InterviewPreparationProfile profile,
             InterviewQuestion question,
-            String answer) {
+            String answer,
+            String baselineRunId,
+            String baselineCaseId) {
         return evaluate(profile, question, answer, List.of(), false);
     }
 

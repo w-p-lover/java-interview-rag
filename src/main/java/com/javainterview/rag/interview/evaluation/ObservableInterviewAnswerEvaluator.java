@@ -45,9 +45,14 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
     public InterviewAnswerAssessment evaluateBaseline(
             InterviewPreparationProfile profile,
             InterviewQuestion question,
-            String answer) {
-        return observe(InterviewAnswerEvaluationLog.Mode.BASELINE,
-                () -> delegate.evaluateBaseline(profile, question, answer));
+            String answer,
+            String baselineRunId,
+            String baselineCaseId) {
+        requireBaselineId(baselineRunId, "评分基线运行标识不能为空");
+        requireBaselineId(baselineCaseId, "评分基线样本标识不能为空");
+        return observe(InterviewAnswerEvaluationLog.Mode.BASELINE, baselineRunId, baselineCaseId,
+                () -> delegate.evaluateBaseline(
+                        profile, question, answer, baselineRunId, baselineCaseId));
     }
 
     @Override
@@ -65,20 +70,36 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
         return delegate.modelName();
     }
 
+    private void requireBaselineId(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
     private InterviewAnswerAssessment observe(InterviewAnswerEvaluationLog.Mode mode,
+                                              Supplier<InterviewAnswerAssessment> action) {
+        return observe(mode, null, null, action);
+    }
+
+    private InterviewAnswerAssessment observe(InterviewAnswerEvaluationLog.Mode mode,
+                                              String baselineRunId,
+                                              String baselineCaseId,
                                               Supplier<InterviewAnswerAssessment> action) {
         long startedAt = System.nanoTime();
         try {
             InterviewAnswerAssessment assessment = action.get();
-            record(mode, assessment.evaluation(), startedAt, null);
+            record(mode, baselineRunId, baselineCaseId, assessment.evaluation(), startedAt, null);
             return assessment;
         } catch (RuntimeException exception) {
-            record(mode, null, startedAt, exception.getClass().getSimpleName());
+            record(mode, baselineRunId, baselineCaseId, null, startedAt,
+                    exception.getClass().getSimpleName());
             throw exception;
         }
     }
 
     private void record(InterviewAnswerEvaluationLog.Mode mode,
+                        String baselineRunId,
+                        String baselineCaseId,
                         InterviewAnswerEvaluation evaluation,
                         long startedAt,
                         String errorType) {
@@ -90,6 +111,8 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
             InterviewAnswerEvaluationLog evaluationLog = new InterviewAnswerEvaluationLog(
                     null,
                     mode,
+                    baselineRunId,
+                    baselineCaseId,
                     promptVersion(),
                     rubricVersion(),
                     modelName(),

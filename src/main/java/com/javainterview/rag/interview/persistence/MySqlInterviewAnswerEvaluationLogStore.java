@@ -28,6 +28,8 @@ public class MySqlInterviewAnswerEvaluationLogStore implements InterviewAnswerEv
         return new InterviewAnswerEvaluationLog(
                 entity.getId(),
                 InterviewAnswerEvaluationLog.Mode.valueOf(entity.getEvaluationMode()),
+                entity.getBaselineRunId(),
+                entity.getBaselineCaseId(),
                 entity.getPromptVersion(),
                 entity.getRubricVersion(),
                 entity.getModelName(),

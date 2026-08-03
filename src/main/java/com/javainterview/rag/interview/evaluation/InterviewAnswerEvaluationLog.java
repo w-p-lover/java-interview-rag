@@ -6,6 +6,8 @@ import java.util.Objects;
 public record InterviewAnswerEvaluationLog(
         Long id,
         Mode mode,
+        String baselineRunId,
+        String baselineCaseId,
         String promptVersion,
         String rubricVersion,
         String modelName,
@@ -22,6 +24,14 @@ public record InterviewAnswerEvaluationLog(
 
     public InterviewAnswerEvaluationLog {
         Objects.requireNonNull(mode, "评价模式不能为空");
+        baselineRunId = optionalText(baselineRunId);
+        baselineCaseId = optionalText(baselineCaseId);
+        if ((baselineRunId == null) != (baselineCaseId == null)) {
+            throw new IllegalArgumentException("评分基线运行标识和样本标识必须同时存在");
+        }
+        if (mode != Mode.BASELINE && baselineRunId != null) {
+            throw new IllegalArgumentException("正式或复习评价不能记录评分基线标识");
+        }
         promptVersion = requireText(promptVersion, "提示词版本不能为空");
         rubricVersion = requireText(rubricVersion, "评分规则版本不能为空");
         modelName = requireText(modelName, "模型名称不能为空");
@@ -49,6 +59,10 @@ public record InterviewAnswerEvaluationLog(
             throw new IllegalArgumentException(message);
         }
         return value;
+    }
+
+    private static String optionalText(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     public enum Mode {

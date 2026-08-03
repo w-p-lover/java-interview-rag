@@ -13,6 +13,8 @@ public class InterviewAnswerEvaluationLogEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String evaluationMode;
+    private String baselineRunId;
+    private String baselineCaseId;
     private String promptVersion;
     private String rubricVersion;
     private String modelName;
@@ -30,6 +32,8 @@ public class InterviewAnswerEvaluationLogEntity {
         InterviewAnswerEvaluationLogEntity entity = new InterviewAnswerEvaluationLogEntity();
         entity.id = log.id();
         entity.evaluationMode = log.mode().name();
+        entity.baselineRunId = log.baselineRunId();
+        entity.baselineCaseId = log.baselineCaseId();
         entity.promptVersion = log.promptVersion();
         entity.rubricVersion = log.rubricVersion();
         entity.modelName = log.modelName();
@@ -51,6 +55,14 @@ public class InterviewAnswerEvaluationLogEntity {
 
     public String getEvaluationMode() {
         return evaluationMode;
+    }
+
+    public String getBaselineRunId() {
+        return baselineRunId;
+    }
+
+    public String getBaselineCaseId() {
+        return baselineCaseId;
     }
 
     public String getPromptVersion() {

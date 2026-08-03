@@ -10,7 +10,8 @@ import java.util.List;
 @Mapper
 public interface InterviewAnswerEvaluationLogMapper extends BaseMapper<InterviewAnswerEvaluationLogEntity> {
 
-    @Select("SELECT id, evaluation_mode, prompt_version, rubric_version, model_name, status, "
+    @Select("SELECT id, evaluation_mode, baseline_run_id, baseline_case_id, "
+            + "prompt_version, rubric_version, model_name, status, "
             + "knowledge_grounded, technical_score, completeness_score, communication_score, "
             + "overall_score, elapsed_millis, error_type, created_at "
             + "FROM t_interview_answer_evaluation_log WHERE evaluation_mode = #{evaluationMode} "

@@ -24,11 +24,12 @@ class ObservableInterviewAnswerEvaluatorTest {
         when(delegate.rubricVersion()).thenReturn("rubric-v1");
         when(delegate.modelName()).thenReturn("model-test");
         InterviewAnswerAssessment assessment = new InterviewAnswerAssessment(evaluation(80), null);
-        when(delegate.evaluateBaseline(any(), any(), any())).thenReturn(assessment);
+        when(delegate.evaluateBaseline(any(), any(), any(), any(), any())).thenReturn(assessment);
         ObservableInterviewAnswerEvaluator evaluator = new ObservableInterviewAnswerEvaluator(delegate, store);
 
         InterviewAnswerAssessment result = evaluator.evaluateBaseline(
-                mock(InterviewPreparationProfile.class), mock(InterviewQuestion.class), "敏感回答正文");
+                mock(InterviewPreparationProfile.class), mock(InterviewQuestion.class), "敏感回答正文",
+                "run-1", "complete-grounded-answer");
 
         assertEquals(assessment, result);
         ArgumentCaptor<InterviewAnswerEvaluationLog> captor =
@@ -40,6 +41,8 @@ class ObservableInterviewAnswerEvaluatorTest {
         assertEquals(80, log.overallScore());
         assertEquals(null, log.errorType());
         assertEquals("prompt-v2", log.promptVersion());
+        assertEquals("run-1", log.baselineRunId());
+        assertEquals("complete-grounded-answer", log.baselineCaseId());
     }
 
     @Test

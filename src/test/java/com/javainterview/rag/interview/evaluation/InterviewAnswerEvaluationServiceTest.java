@@ -183,7 +183,8 @@ class InterviewAnswerEvaluationServiceTest {
                 new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
 
         InterviewAnswerAssessment result = service.evaluateBaseline(
-                profile(), groundedQuestion(), "新版本写入成功后再清理旧版本。");
+                profile(), groundedQuestion(), "新版本写入成功后再清理旧版本。",
+                "run-1", "complete-grounded-answer");
 
         assertEquals(82, result.evaluation().overallScore());
         assertEquals(null, result.followUpQuestion());

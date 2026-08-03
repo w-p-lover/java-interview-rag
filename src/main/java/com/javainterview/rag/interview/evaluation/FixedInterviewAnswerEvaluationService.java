@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.evaluation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public class FixedInterviewAnswerEvaluationService {
 
@@ -16,12 +17,14 @@ public class FixedInterviewAnswerEvaluationService {
     }
 
     public Report evaluate() {
+        String baselineRunId = UUID.randomUUID().toString();
         List<CaseResult> results = new ArrayList<>();
         for (FixedInterviewAnswerEvaluationDataset.Case evaluationCase : dataset.findAll()) {
-            results.add(evaluateCase(evaluationCase));
+            results.add(evaluateCase(baselineRunId, evaluationCase));
         }
         int passedCaseCount = (int) results.stream().filter(CaseResult::passed).count();
         return new Report(
+                baselineRunId,
                 evaluator.promptVersion(),
                 evaluator.rubricVersion(),
                 evaluator.modelName(),
@@ -30,10 +33,12 @@ public class FixedInterviewAnswerEvaluationService {
                 results);
     }
 
-    private CaseResult evaluateCase(FixedInterviewAnswerEvaluationDataset.Case evaluationCase) {
+    private CaseResult evaluateCase(String baselineRunId,
+                                    FixedInterviewAnswerEvaluationDataset.Case evaluationCase) {
         try {
             InterviewAnswerEvaluation evaluation = evaluator.evaluateBaseline(
-                    evaluationCase.profile(), evaluationCase.question(), evaluationCase.answer()).evaluation();
+                    evaluationCase.profile(), evaluationCase.question(), evaluationCase.answer(),
+                    baselineRunId, evaluationCase.id()).evaluation();
             boolean passed = !evaluationCase.expectedRejected()
                     && evaluation.overallScore() >= evaluationCase.expectedMinOverallScore()
                     && evaluation.overallScore() <= evaluationCase.expectedMaxOverallScore()
@@ -66,6 +71,7 @@ public class FixedInterviewAnswerEvaluationService {
     }
 
     public record Report(
+            String baselineRunId,
             String promptVersion,
             String rubricVersion,
             String modelName,
@@ -75,6 +81,9 @@ public class FixedInterviewAnswerEvaluationService {
     ) {
 
         public Report {
+            if (baselineRunId == null || baselineRunId.isBlank()) {
+                throw new IllegalArgumentException("评分基线运行标识不能为空");
+            }
             cases = List.copyOf(Objects.requireNonNull(cases, "评分样本结果不能为空"));
         }
     }
