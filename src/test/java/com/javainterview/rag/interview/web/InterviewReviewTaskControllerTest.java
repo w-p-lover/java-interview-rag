@@ -11,11 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -29,7 +31,7 @@ class InterviewReviewTaskControllerTest {
     void generatesAndFindsReviewTasksForACompletedSession() throws Exception {
         InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
         when(service.generate("session-1")).thenReturn(List.of(task()));
-        when(service.findBySessionId("session-1")).thenReturn(List.of(task()));
+        when(service.findBySessionId("session-1", null, null, null)).thenReturn(List.of(task()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new InterviewReviewTaskController(service)).build();
 
@@ -47,11 +49,46 @@ class InterviewReviewTaskControllerTest {
     }
 
     @Test
+    void filtersAndSchedulesReviewTasks() throws Exception {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        LocalDate plannedDate = LocalDate.of(2026, 8, 8);
+        InterviewReviewTask scheduledTask = task(plannedDate);
+        when(service.findBySessionId(
+                "session-1", "PENDING", plannedDate, plannedDate))
+                .thenReturn(List.of(scheduledTask));
+        when(service.schedule("session-1", "task-1", plannedDate))
+                .thenReturn(scheduledTask);
+        when(service.schedule("session-1", "task-1", null)).thenReturn(task());
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewTaskController(service)).build();
+
+        mockMvc.perform(get("/api/interviews/sessions/session-1/review-tasks")
+                        .param("status", "PENDING")
+                        .param("plannedDateFrom", "2026-08-08")
+                        .param("plannedDateTo", "2026-08-08"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].plannedReviewDate").isNotEmpty());
+
+        mockMvc.perform(patch("/api/interviews/sessions/session-1/review-tasks/task-1/schedule")
+                        .contentType("application/json")
+                        .content("{\"plannedReviewDate\":\"2026-08-08\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plannedReviewDate").isNotEmpty());
+
+        mockMvc.perform(patch("/api/interviews/sessions/session-1/review-tasks/task-1/schedule")
+                        .contentType("application/json")
+                        .content("{\"plannedReviewDate\":null}"))
+                .andExpect(status().isOk());
+
+        verify(service).schedule("session-1", "task-1", null);
+    }
+
+    @Test
     void mapsIncompleteAndMissingSessionsToHttpStatus() throws Exception {
         InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
         when(service.generate("in-progress")).thenThrow(
                 new IllegalArgumentException("面试会话尚未完成，不能生成复习任务"));
-        when(service.findBySessionId("missing")).thenThrow(
+        when(service.findBySessionId("missing", null, null, null)).thenThrow(
                 new NoSuchElementException("面试会话不存在"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new InterviewReviewTaskController(service)).build();
@@ -126,6 +163,10 @@ class InterviewReviewTaskControllerTest {
     }
 
     private InterviewReviewTask task() {
+        return task(null);
+    }
+
+    private InterviewReviewTask task(LocalDate plannedReviewDate) {
         return new InterviewReviewTask(
                 "task-1",
                 "session-1",
@@ -142,6 +183,7 @@ class InterviewReviewTaskControllerTest {
                         List.of("向量生命周期", "更新"),
                         0.82)),
                 InterviewReviewTaskStatus.PENDING,
+                plannedReviewDate,
                 LocalDateTime.of(2026, 7, 29, 9, 3),
                 null
         );
@@ -160,6 +202,7 @@ class InterviewReviewTaskControllerTest {
                 task.knowledgeGrounded(),
                 task.knowledgeSources(),
                 InterviewReviewTaskStatus.COMPLETED,
+                task.plannedReviewDate(),
                 task.createdAt(),
                 LocalDateTime.of(2026, 7, 30, 9, 30)
         );

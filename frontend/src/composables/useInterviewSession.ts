@@ -6,12 +6,14 @@ import {
   getInterviewReviewHistory,
   getInterviewReviewTasks,
   getInterviewSession,
+  scheduleInterviewReviewTask,
   startInterviewSession,
   submitInterviewAnswer,
   submitInterviewReviewAttempt,
   type InterviewReviewAttempt,
   type InterviewReviewSessionHistory,
   type InterviewReviewTask,
+  type InterviewReviewTaskQuery,
   type InterviewSession,
   type InterviewSessionStartPayload,
 } from "@/api/interview";
@@ -30,6 +32,8 @@ export function useInterviewSession() {
   const reviewTasksGenerated = shallowRef(false);
   const completingReviewTaskId = shallowRef("");
   const reviewTaskActionError = shallowRef("");
+  const reviewTaskQuery = shallowRef<InterviewReviewTaskQuery>({});
+  const schedulingReviewTaskId = shallowRef("");
   const reviewAttempts = shallowRef<Record<string, InterviewReviewAttempt[]>>({});
   const reviewHistory = shallowRef<InterviewReviewSessionHistory | null>(null);
   const reviewAttemptsLoadingTaskId = shallowRef("");
@@ -110,10 +114,34 @@ export function useInterviewSession() {
     reviewTasksError.value = "";
     reviewTasksGenerated.value = false;
     try {
-      reviewTasks.value = await getInterviewReviewTasks(sessionId);
+      await loadReviewTaskList(sessionId);
       await loadReviewHistory(sessionId);
     } catch (requestError) {
       reviewTasksError.value = resolveApiError(requestError, "恢复复习任务失败");
+    } finally {
+      reviewTasksLoading.value = false;
+    }
+  }
+
+  async function loadReviewTaskList(
+    sessionId: string,
+    query: InterviewReviewTaskQuery = reviewTaskQuery.value,
+  ): Promise<void> {
+    reviewTasks.value = await getInterviewReviewTasks(sessionId, query);
+  }
+
+  async function filterReviewTasks(query: InterviewReviewTaskQuery): Promise<void> {
+    const completedSession = session.value;
+    if (!completedSession || completedSession.status !== "COMPLETED" || reviewTasksLoading.value) {
+      return;
+    }
+    reviewTasksLoading.value = true;
+    reviewTasksError.value = "";
+    try {
+      await loadReviewTaskList(completedSession.id, query);
+      reviewTaskQuery.value = query;
+    } catch (requestError) {
+      reviewTasksError.value = resolveApiError(requestError, "筛选复习任务失败");
     } finally {
       reviewTasksLoading.value = false;
     }
@@ -185,10 +213,8 @@ export function useInterviewSession() {
     completingReviewTaskId.value = taskId;
     reviewTaskActionError.value = "";
     try {
-      const completedTask = await completeInterviewReviewTask(completedSession.id, taskId);
-      reviewTasks.value = reviewTasks.value.map((task) => (
-        task.id === completedTask.id ? completedTask : task
-      ));
+      await completeInterviewReviewTask(completedSession.id, taskId);
+      await loadReviewTaskList(completedSession.id);
     } catch (requestError) {
       reviewTaskActionError.value = resolveApiError(requestError, "完成复习任务失败");
     } finally {
@@ -196,12 +222,31 @@ export function useInterviewSession() {
     }
   }
 
+  async function scheduleReviewTask(taskId: string, plannedReviewDate: string | null): Promise<void> {
+    const completedSession = session.value;
+    if (!completedSession || completedSession.status !== "COMPLETED" || schedulingReviewTaskId.value) {
+      return;
+    }
+    schedulingReviewTaskId.value = taskId;
+    reviewTaskActionError.value = "";
+    try {
+      await scheduleInterviewReviewTask(completedSession.id, taskId, plannedReviewDate);
+      await loadReviewTaskList(completedSession.id);
+    } catch (requestError) {
+      reviewTaskActionError.value = resolveApiError(requestError, "更新复习计划失败");
+    } finally {
+      schedulingReviewTaskId.value = "";
+    }
+  }
+
   function clearReviewTasks(): void {
     reviewTasks.value = [];
     reviewTasksError.value = "";
     reviewTasksGenerated.value = false;
+    reviewTaskQuery.value = {};
     completingReviewTaskId.value = "";
     reviewTaskActionError.value = "";
+    schedulingReviewTaskId.value = "";
     reviewAttempts.value = {};
     reviewHistory.value = null;
     reviewAttemptsLoadingTaskId.value = "";
@@ -232,11 +277,15 @@ export function useInterviewSession() {
     reviewTasksGenerated,
     completingReviewTaskId,
     reviewTaskActionError,
+    reviewTaskQuery,
+    schedulingReviewTaskId,
     restore,
     start,
     submit,
     generateReviewTasks,
     completeReviewTask,
+    filterReviewTasks,
+    scheduleReviewTask,
     reviewAttempts,
     reviewHistory,
     reviewAttemptsLoadingTaskId,

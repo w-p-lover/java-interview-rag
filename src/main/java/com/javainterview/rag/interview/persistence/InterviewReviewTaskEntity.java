@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @TableName("t_interview_review_task")
@@ -21,6 +22,7 @@ public class InterviewReviewTaskEntity {
     private Boolean knowledgeGrounded;
     private String knowledgeSourcesJson;
     private String status;
+    private LocalDate plannedReviewDate;
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
 
@@ -38,6 +40,7 @@ public class InterviewReviewTaskEntity {
         entity.knowledgeGrounded = task.knowledgeGrounded();
         entity.knowledgeSourcesJson = knowledgeSourcesJson;
         entity.status = task.status().name();
+        entity.plannedReviewDate = task.plannedReviewDate();
         entity.createdAt = task.createdAt();
         entity.completedAt = task.completedAt();
         return entity;
@@ -81,6 +84,10 @@ public class InterviewReviewTaskEntity {
 
     public String getStatus() {
         return status;
+    }
+
+    public LocalDate getPlannedReviewDate() {
+        return plannedReviewDate;
     }
 
     public LocalDateTime getCreatedAt() {

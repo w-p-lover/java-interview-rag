@@ -12,6 +12,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -84,6 +85,45 @@ class InterviewReviewTaskServiceTest {
         assertEquals(completedTask, result);
     }
 
+    @Test
+    void filtersReviewTasksAndRejectsReversedDateRange() {
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        InterviewReviewTaskStore taskStore = mock(InterviewReviewTaskStore.class);
+        when(sessionStore.findById("session-1")).thenReturn(Optional.of(completedSession()));
+        LocalDate from = LocalDate.of(2026, 8, 4);
+        LocalDate to = LocalDate.of(2026, 8, 10);
+        when(taskStore.findBySessionId(
+                "session-1", InterviewReviewTaskStatus.PENDING, from, to))
+                .thenReturn(List.of(reviewTask(InterviewReviewTaskStatus.PENDING, null)));
+        InterviewReviewTaskService service = new InterviewReviewTaskService(sessionStore, taskStore);
+
+        assertEquals(1, service.findBySessionId("session-1", "PENDING", from, to).size());
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.findBySessionId("session-1", null, to, from));
+        IllegalArgumentException statusException = assertThrows(IllegalArgumentException.class,
+                () -> service.findBySessionId("session-1", "UNKNOWN", null, null));
+
+        assertEquals("计划复习结束日期不能早于开始日期", exception.getMessage());
+        assertEquals("复习任务状态仅支持 PENDING 或 COMPLETED", statusException.getMessage());
+    }
+
+    @Test
+    void schedulesAndClearsAnExistingReviewTask() {
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        InterviewReviewTaskStore taskStore = mock(InterviewReviewTaskStore.class);
+        when(sessionStore.findById("session-1")).thenReturn(Optional.of(completedSession()));
+        LocalDate plannedDate = LocalDate.of(2026, 8, 8);
+        InterviewReviewTask scheduledTask = reviewTask(
+                InterviewReviewTaskStatus.PENDING, plannedDate, null);
+        when(taskStore.schedule("session-1", "task-1", plannedDate))
+                .thenReturn(Optional.of(scheduledTask));
+        InterviewReviewTaskService service = new InterviewReviewTaskService(sessionStore, taskStore);
+
+        assertEquals(scheduledTask, service.schedule("session-1", " task-1 ", plannedDate));
+
+        verify(taskStore).schedule("session-1", "task-1", plannedDate);
+    }
+
     private InterviewSession completedSession() {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 29, 9, 0);
         InterviewSession session = initialSession();
@@ -125,6 +165,12 @@ class InterviewReviewTaskServiceTest {
 
     private InterviewReviewTask reviewTask(InterviewReviewTaskStatus status,
                                            LocalDateTime completedAt) {
+        return reviewTask(status, null, completedAt);
+    }
+
+    private InterviewReviewTask reviewTask(InterviewReviewTaskStatus status,
+                                           LocalDate plannedReviewDate,
+                                           LocalDateTime completedAt) {
         return new InterviewReviewTask(
                 "task-1",
                 "session-1",
@@ -136,6 +182,7 @@ class InterviewReviewTaskServiceTest {
                 false,
                 List.of(),
                 status,
+                plannedReviewDate,
                 LocalDateTime.of(2026, 7, 29, 9, 3),
                 completedAt
         );

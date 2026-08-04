@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 
-import type { InterviewSessionStartPayload } from "@/api/interview";
+import type { InterviewReviewTaskQuery, InterviewSessionStartPayload } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
@@ -24,6 +24,8 @@ const {
   reviewTasksGenerated,
   completingReviewTaskId,
   reviewTaskActionError,
+  reviewTaskQuery,
+  schedulingReviewTaskId,
   reviewAttempts,
   reviewHistory,
   reviewAttemptsLoadingTaskId,
@@ -34,6 +36,8 @@ const {
   submit,
   generateReviewTasks,
   completeReviewTask,
+  filterReviewTasks,
+  scheduleReviewTask,
   submitReviewAttempt,
   reset,
 } = useInterviewSession();
@@ -61,6 +65,14 @@ function handleReviewRetry(): void {
 
 function handleReviewComplete(taskId: string): void {
   void completeReviewTask(taskId);
+}
+
+function handleReviewFilter(query: InterviewReviewTaskQuery): void {
+  void filterReviewTasks(query);
+}
+
+function handleReviewSchedule(taskId: string, plannedReviewDate: string | null): void {
+  void scheduleReviewTask(taskId, plannedReviewDate);
 }
 
 function handleReviewAttempt(taskId: string, answer: string): void {
@@ -110,7 +122,9 @@ function handleReviewAttempt(taskId: string, answer: string): void {
           :error="reviewTasksError"
           :generated="reviewTasksGenerated"
           :completing-task-id="completingReviewTaskId"
+          :scheduling-task-id="schedulingReviewTaskId"
           :action-error="reviewTaskActionError"
+          :query="reviewTaskQuery"
           :attempts-by-task-id="reviewAttempts"
           :attempts-loading-task-id="reviewAttemptsLoadingTaskId"
           :submitting-attempt-task-id="submittingReviewAttemptTaskId"
@@ -118,6 +132,8 @@ function handleReviewAttempt(taskId: string, answer: string): void {
           :history="reviewHistory"
           @retry="handleReviewRetry"
           @complete="handleReviewComplete"
+          @filter="handleReviewFilter"
+          @schedule="handleReviewSchedule"
           @submit-attempt="handleReviewAttempt"
         />
       </div>

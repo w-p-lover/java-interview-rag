@@ -1,5 +1,6 @@
 package com.javainterview.rag.interview.review;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -15,9 +16,28 @@ public record InterviewReviewTask(
         boolean knowledgeGrounded,
         List<InterviewReviewKnowledgeSource> knowledgeSources,
         InterviewReviewTaskStatus status,
+        LocalDate plannedReviewDate,
         LocalDateTime createdAt,
         LocalDateTime completedAt
 ) {
+
+    public InterviewReviewTask(
+            String id,
+            String sessionId,
+            int questionIndex,
+            String question,
+            String objective,
+            List<String> gaps,
+            String improvementSuggestion,
+            boolean knowledgeGrounded,
+            List<InterviewReviewKnowledgeSource> knowledgeSources,
+            InterviewReviewTaskStatus status,
+            LocalDateTime createdAt,
+            LocalDateTime completedAt
+    ) {
+        this(id, sessionId, questionIndex, question, objective, gaps, improvementSuggestion,
+                knowledgeGrounded, knowledgeSources, status, null, createdAt, completedAt);
+    }
 
     public InterviewReviewTask {
         id = requireText(id, "复习任务 ID 不能为空");

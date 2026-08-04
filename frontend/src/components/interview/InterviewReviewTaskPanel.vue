@@ -4,9 +4,12 @@ import { computed } from "vue";
 import type {
   InterviewReviewSessionHistory,
   InterviewReviewTask,
+  InterviewReviewTaskQuery,
 } from "@/api/interview";
 import InterviewReviewAttemptPanel from "@/components/interview/InterviewReviewAttemptPanel.vue";
 import InterviewReviewHistorySummary from "@/components/interview/InterviewReviewHistorySummary.vue";
+import InterviewReviewScheduleControl from "@/components/interview/InterviewReviewScheduleControl.vue";
+import InterviewReviewTaskFilters from "@/components/interview/InterviewReviewTaskFilters.vue";
 
 const props = defineProps<{
   tasks: InterviewReviewTask[];
@@ -14,7 +17,9 @@ const props = defineProps<{
   error: string;
   generated: boolean;
   completingTaskId: string;
+  schedulingTaskId: string;
   actionError: string;
+  query: InterviewReviewTaskQuery;
   attemptsByTaskId: Record<string, import("@/api/interview").InterviewReviewAttempt[]>;
   attemptsLoadingTaskId: string;
   submittingAttemptTaskId: string;
@@ -29,6 +34,8 @@ const historiesByTaskId = computed(() => new Map(
 const emit = defineEmits<{
   retry: [];
   complete: [taskId: string];
+  filter: [query: InterviewReviewTaskQuery];
+  schedule: [taskId: string, plannedReviewDate: string | null];
   submitAttempt: [taskId: string, answer: string];
 }>();
 
@@ -45,6 +52,21 @@ function formatCompletedAt(completedAt: string | null): string {
     timeStyle: "short",
     hour12: false,
   }).format(parsed);
+}
+
+function formatPlannedDate(plannedReviewDate: string | null): string {
+  if (!plannedReviewDate) {
+    return "";
+  }
+  const parsed = new Date(`${plannedReviewDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return plannedReviewDate;
+  }
+  return new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium" }).format(parsed);
+}
+
+function handleSchedule(taskId: string, plannedReviewDate: string | null): void {
+  emit("schedule", taskId, plannedReviewDate);
 }
 </script>
 
@@ -73,9 +95,20 @@ function formatCompletedAt(completedAt: string | null): string {
       {{ actionError }}
     </p>
 
+    <p v-if="error && tasks.length" class="review-action-error" role="alert">
+      {{ error }}
+    </p>
+
     <InterviewReviewHistorySummary
       v-if="history && history.totalTaskCount"
       :history="history"
+    />
+
+    <InterviewReviewTaskFilters
+      v-if="history && history.totalTaskCount"
+      :query="query"
+      :busy="loading"
+      @apply="emit('filter', $event)"
     />
 
     <ol v-if="!loading && tasks.length" class="review-list">
@@ -107,9 +140,20 @@ function formatCompletedAt(completedAt: string | null): string {
             <p>{{ task.improvementSuggestion }}</p>
           </div>
 
+          <InterviewReviewScheduleControl
+            v-if="task.status === 'PENDING'"
+            :task-id="task.id"
+            :planned-review-date="task.plannedReviewDate"
+            :busy="schedulingTaskId === task.id"
+            @schedule="handleSchedule"
+          />
+
           <div class="review-task-action">
             <template v-if="task.status === 'COMPLETED'">
-              <strong>已完成</strong>
+              <div>
+                <strong>已完成</strong>
+                <span v-if="task.plannedReviewDate">原计划 {{ formatPlannedDate(task.plannedReviewDate) }}</span>
+              </div>
               <span>{{ formatCompletedAt(task.completedAt) }}</span>
             </template>
             <button
@@ -151,16 +195,28 @@ function formatCompletedAt(completedAt: string | null): string {
 
     <div v-else-if="!loading && !error" class="review-state review-empty">
       <div>
-        <strong>{{ generated ? "本场没有需要复习的遗漏" : "还没有复习题目" }}</strong>
+        <strong>
+          {{
+            history && history.totalTaskCount
+              ? "没有符合筛选条件的复习题目"
+              : generated
+                ? "本场没有需要复习的遗漏"
+                : "还没有复习题目"
+          }}
+        </strong>
         <p>
           {{
-            generated
-              ? "可以直接开始下一场训练。"
-              : "重新整理本场回答后即可查看。"
+            history && history.totalTaskCount
+              ? "调整任务状态或计划日期后查看。"
+              : generated
+                ? "可以直接开始下一场训练。"
+                : "重新整理本场回答后即可查看。"
           }}
         </p>
       </div>
-      <button v-if="!generated" type="button" @click="emit('retry')">整理复习题目</button>
+      <button v-if="!generated && !(history && history.totalTaskCount)" type="button" @click="emit('retry')">
+        整理复习题目
+      </button>
     </div>
   </section>
 </template>
@@ -284,6 +340,11 @@ h2 {
   justify-content: space-between;
   gap: var(--space-md);
   min-height: 2.75rem;
+}
+
+.review-task-action > div {
+  display: grid;
+  gap: var(--space-2xs);
 }
 
 .review-task-action strong,

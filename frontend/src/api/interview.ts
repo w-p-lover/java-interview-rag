@@ -96,8 +96,15 @@ export interface InterviewReviewTask {
   knowledgeGrounded: boolean;
   knowledgeSources: InterviewReviewKnowledgeSource[];
   status: "PENDING" | "COMPLETED";
+  plannedReviewDate: string | null;
   createdAt: string;
   completedAt: string | null;
+}
+
+export interface InterviewReviewTaskQuery {
+  status?: InterviewReviewTask["status"];
+  plannedDateFrom?: string;
+  plannedDateTo?: string;
 }
 
 export interface InterviewReviewAttempt {
@@ -207,9 +214,11 @@ export async function generateInterviewReviewTasks(
 
 export async function getInterviewReviewTasks(
   sessionId: string,
+  query: InterviewReviewTaskQuery = {},
 ): Promise<InterviewReviewTask[]> {
   const response = await request.get<InterviewReviewTask[]>(
     `/interviews/sessions/${sessionId}/review-tasks`,
+    { params: query },
   );
   return response.data;
 }
@@ -220,6 +229,18 @@ export async function completeInterviewReviewTask(
 ): Promise<InterviewReviewTask> {
   const response = await request.patch<InterviewReviewTask>(
     `/interviews/sessions/${sessionId}/review-tasks/${taskId}/complete`,
+  );
+  return response.data;
+}
+
+export async function scheduleInterviewReviewTask(
+  sessionId: string,
+  taskId: string,
+  plannedReviewDate: string | null,
+): Promise<InterviewReviewTask> {
+  const response = await request.patch<InterviewReviewTask>(
+    `/interviews/sessions/${sessionId}/review-tasks/${taskId}/schedule`,
+    { plannedReviewDate },
   );
   return response.data;
 }

@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,9 +35,33 @@ class MySqlInterviewReviewTaskStoreTest {
         InterviewReviewTaskEntity entity = captor.getValue();
         assertEquals("[\"缺少失败补偿细节\"]", entity.getGapsJson());
         assertFalse(entity.getKnowledgeSourcesJson().contains("知识正文"));
+        assertEquals(LocalDate.of(2026, 8, 8), entity.getPlannedReviewDate());
 
-        when(mapper.findBySessionId("session-1")).thenReturn(List.of(entity));
-        assertEquals(List.of(task), store.findBySessionId("session-1"));
+        when(mapper.findBySessionId("session-1", null, null, null)).thenReturn(List.of(entity));
+        assertEquals(List.of(task), store.findBySessionId("session-1", null, null, null));
+    }
+
+    @Test
+    void filtersAndSchedulesReviewTasksWithinOneSession() throws Exception {
+        InterviewReviewTaskMapper mapper = mock(InterviewReviewTaskMapper.class);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+        MySqlInterviewReviewTaskStore store = new MySqlInterviewReviewTaskStore(mapper, objectMapper);
+        LocalDate plannedDate = LocalDate.of(2026, 8, 8);
+        InterviewReviewTask task = task();
+        InterviewReviewTaskEntity entity = InterviewReviewTaskEntity.from(
+                task,
+                objectMapper.writeValueAsString(task.gaps()),
+                objectMapper.writeValueAsString(task.knowledgeSources()));
+        when(mapper.findBySessionId(
+                "session-1", InterviewReviewTaskStatus.PENDING, plannedDate, plannedDate))
+                .thenReturn(List.of(entity));
+        when(mapper.findBySessionAndId("session-1", "task-1")).thenReturn(entity);
+
+        assertEquals(List.of(task), store.findBySessionId(
+                "session-1", InterviewReviewTaskStatus.PENDING, plannedDate, plannedDate));
+        assertEquals(Optional.of(task), store.schedule("session-1", "task-1", plannedDate));
+
+        verify(mapper).schedule("session-1", "task-1", plannedDate);
     }
 
     @Test
@@ -62,10 +87,16 @@ class MySqlInterviewReviewTaskStoreTest {
     }
 
     private InterviewReviewTask task() {
-        return task(InterviewReviewTaskStatus.PENDING, null);
+        return task(InterviewReviewTaskStatus.PENDING, LocalDate.of(2026, 8, 8), null);
     }
 
     private InterviewReviewTask task(InterviewReviewTaskStatus status,
+                                     LocalDateTime completedAt) {
+        return task(status, LocalDate.of(2026, 8, 8), completedAt);
+    }
+
+    private InterviewReviewTask task(InterviewReviewTaskStatus status,
+                                     LocalDate plannedReviewDate,
                                      LocalDateTime completedAt) {
         return new InterviewReviewTask(
                 "task-1",
@@ -83,6 +114,7 @@ class MySqlInterviewReviewTaskStoreTest {
                         List.of("向量生命周期", "更新"),
                         0.82)),
                 status,
+                plannedReviewDate,
                 LocalDateTime.of(2026, 7, 29, 9, 3),
                 completedAt
         );

@@ -8,6 +8,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -44,7 +45,16 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
 
     @Override
     public List<InterviewReviewTask> findBySessionId(String sessionId) {
-        return mapper.findBySessionId(sessionId).stream().map(this::toTask).toList();
+        return findBySessionId(sessionId, null, null, null);
+    }
+
+    @Override
+    public List<InterviewReviewTask> findBySessionId(String sessionId,
+                                                     InterviewReviewTaskStatus status,
+                                                     LocalDate plannedDateFrom,
+                                                     LocalDate plannedDateTo) {
+        return mapper.findBySessionId(sessionId, status, plannedDateFrom, plannedDateTo)
+                .stream().map(this::toTask).toList();
     }
 
     @Override
@@ -57,6 +67,14 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
     public Optional<InterviewReviewTask> complete(String sessionId, String taskId,
                                                   LocalDateTime completedAt) {
         mapper.complete(sessionId, taskId, completedAt);
+        return Optional.ofNullable(mapper.findBySessionAndId(sessionId, taskId))
+                .map(this::toTask);
+    }
+
+    @Override
+    public Optional<InterviewReviewTask> schedule(String sessionId, String taskId,
+                                                  LocalDate plannedReviewDate) {
+        mapper.schedule(sessionId, taskId, plannedReviewDate);
         return Optional.ofNullable(mapper.findBySessionAndId(sessionId, taskId))
                 .map(this::toTask);
     }
@@ -74,6 +92,7 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
                     Boolean.TRUE.equals(entity.getKnowledgeGrounded()),
                     objectMapper.readValue(entity.getKnowledgeSourcesJson(), SOURCE_LIST_TYPE),
                     InterviewReviewTaskStatus.valueOf(entity.getStatus()),
+                    entity.getPlannedReviewDate(),
                     entity.getCreatedAt(),
                     entity.getCompletedAt()
             );

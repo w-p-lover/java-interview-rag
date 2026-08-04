@@ -7,15 +7,19 @@ import com.javainterview.rag.interview.review.InterviewReviewAttemptConflictExce
 import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -37,8 +41,14 @@ public class InterviewReviewTaskController {
     }
 
     @GetMapping
-    public List<InterviewReviewTask> findBySessionId(@PathVariable String sessionId) {
-        return service.findBySessionId(sessionId);
+    public List<InterviewReviewTask> findBySessionId(
+            @PathVariable String sessionId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate plannedDateFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate plannedDateTo) {
+        return service.findBySessionId(sessionId, status, plannedDateFrom, plannedDateTo);
     }
 
     @GetMapping("/history")
@@ -50,6 +60,16 @@ public class InterviewReviewTaskController {
     public InterviewReviewTask complete(@PathVariable String sessionId,
                                         @PathVariable String taskId) {
         return service.complete(sessionId, taskId);
+    }
+
+    @PatchMapping("/{taskId}/schedule")
+    public InterviewReviewTask schedule(@PathVariable String sessionId,
+                                        @PathVariable String taskId,
+                                        @RequestBody InterviewReviewScheduleRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("复习计划请求不能为空");
+        }
+        return service.schedule(sessionId, taskId, request.plannedReviewDate());
     }
 
     @GetMapping("/{taskId}/attempts")

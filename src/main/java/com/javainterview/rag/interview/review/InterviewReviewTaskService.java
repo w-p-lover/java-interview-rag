@@ -10,9 +10,11 @@ import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
@@ -56,8 +58,20 @@ public class InterviewReviewTaskService {
     }
 
     public List<InterviewReviewTask> findBySessionId(String sessionId) {
+        return findBySessionId(sessionId, null, null, null);
+    }
+
+    public List<InterviewReviewTask> findBySessionId(String sessionId,
+                                                     String status,
+                                                     LocalDate plannedDateFrom,
+                                                     LocalDate plannedDateTo) {
         InterviewSession session = findSession(sessionId);
-        return taskStore.findBySessionId(session.id());
+        if (plannedDateFrom != null && plannedDateTo != null
+                && plannedDateTo.isBefore(plannedDateFrom)) {
+            throw new IllegalArgumentException("计划复习结束日期不能早于开始日期");
+        }
+        return taskStore.findBySessionId(
+                session.id(), parseStatus(status), plannedDateFrom, plannedDateTo);
     }
 
     public InterviewReviewTask complete(String sessionId, String taskId) {
@@ -66,6 +80,16 @@ public class InterviewReviewTaskService {
             throw new IllegalArgumentException("复习任务 ID 不能为空");
         }
         return taskStore.complete(session.id(), taskId.strip(), LocalDateTime.now())
+                .orElseThrow(() -> new NoSuchElementException("复习任务不存在"));
+    }
+
+    public InterviewReviewTask schedule(String sessionId, String taskId,
+                                        LocalDate plannedReviewDate) {
+        InterviewSession session = findSession(sessionId);
+        if (taskId == null || taskId.isBlank()) {
+            throw new IllegalArgumentException("复习任务 ID 不能为空");
+        }
+        return taskStore.schedule(session.id(), taskId.strip(), plannedReviewDate)
                 .orElseThrow(() -> new NoSuchElementException("复习任务不存在"));
     }
 
@@ -189,6 +213,17 @@ public class InterviewReviewTaskService {
     private void requireAttemptStore() {
         if (attemptStore == null) {
             throw new IllegalStateException("复习回答能力尚未配置");
+        }
+    }
+
+    private InterviewReviewTaskStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return InterviewReviewTaskStatus.valueOf(status.strip().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("复习任务状态仅支持 PENDING 或 COMPLETED");
         }
     }
 
