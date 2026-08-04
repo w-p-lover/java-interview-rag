@@ -186,8 +186,11 @@ function handleReviewAttempt(taskId: string, answer: string): void {
 .interview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(19rem, 0.72fr);
-  align-items: start;
-  gap: var(--space-md);
+  align-items: stretch;
+  overflow: hidden;
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
 }
 
 .completion-stack {

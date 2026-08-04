@@ -42,10 +42,8 @@ const emit = defineEmits<{
   grid-template-columns: minmax(12rem, auto) minmax(8rem, 1fr) auto;
   align-items: center;
   gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
+  padding: 0 0 var(--space-md);
+  border-bottom: var(--rule-thin) solid var(--color-rule);
 }
 
 .session-bar__main {
@@ -103,10 +101,10 @@ button {
   gap: var(--space-xs);
   min-height: 2.5rem;
   padding-inline: var(--space-sm);
-  border: var(--rule-thin) solid var(--color-rule-2);
+  border: 0;
   border-radius: var(--radius-control);
   color: var(--color-muted);
-  background: var(--color-surface);
+  background: transparent;
   font-size: var(--text-sm);
   font-weight: 700;
 }

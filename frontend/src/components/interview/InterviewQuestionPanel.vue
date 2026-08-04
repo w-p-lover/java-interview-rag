@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { BookOpenCheck, Info, Send } from "@lucide/vue";
-import { ref, watch } from "vue";
+import { BookOpenCheck, Info, Send, Target } from "@lucide/vue";
+import { shallowRef, watch } from "vue";
 
 import type { InterviewQuestion } from "@/api/interview";
 
@@ -16,7 +16,7 @@ const emit = defineEmits<{
   submit: [answer: string];
 }>();
 
-const answer = ref("");
+const answer = shallowRef("");
 
 watch(
   () => props.questionIndex,
@@ -34,13 +34,16 @@ function handleSubmit(): void {
 </script>
 
 <template>
-  <section class="question-card" aria-labelledby="current-question-title">
-    <header>
-      <div>
+  <section class="question-panel" aria-labelledby="current-question-title">
+    <header class="question-header">
+      <div class="question-count">
         <span>第 {{ questionIndex + 1 }} 题</span>
         <strong>共 {{ questionCount }} 题</strong>
       </div>
-      <p>{{ question.objective }}</p>
+      <p class="question-objective">
+        <Target :size="15" aria-hidden="true" />
+        <span>{{ question.objective }}</span>
+      </p>
     </header>
 
     <div class="question-copy">
@@ -84,18 +87,16 @@ function handleSubmit(): void {
 </template>
 
 <style scoped lang="scss">
-.question-card {
+.question-panel {
   display: grid;
   gap: var(--space-lg);
   min-width: 0;
   padding: var(--space-xl);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-surface);
   background: var(--color-surface);
 }
 
-header,
-header > div,
+.question-header,
+.question-count,
 .answer-footer {
   display: flex;
   align-items: center;
@@ -103,38 +104,48 @@ header > div,
   gap: var(--space-md);
 }
 
-header {
+.question-header {
   padding-bottom: var(--space-md);
   border-bottom: var(--rule-thin) solid var(--color-rule);
 }
 
-header span,
-header strong,
+.question-header span,
+.question-header strong,
 .answer-footer span {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
 
-header span,
-header p,
+.question-header span,
+.question-header p,
 .answer-footer span {
   color: var(--color-muted);
 }
 
-header strong {
+.question-header strong {
   color: var(--color-muted);
 }
 
-header p,
+.question-header p,
 .question-copy p,
 h2 {
   margin: 0;
 }
 
-header p {
+.question-objective {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--space-xs);
   max-width: 28rem;
   font-size: var(--text-xs);
   text-align: right;
+}
+
+.question-objective svg {
+  flex: 0 0 auto;
+  margin-top: var(--space-3xs);
+  color: var(--color-accent);
 }
 
 .question-copy {
@@ -217,6 +228,12 @@ textarea {
   background: var(--color-paper);
   line-height: 1.7;
   resize: vertical;
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+
+textarea:hover:not(:disabled) {
+  border-color: var(--color-rule-2);
+  background: var(--color-surface);
 }
 
 .answer-footer {
@@ -239,15 +256,16 @@ button {
 }
 
 @media (max-width: 40rem) {
-  .question-card {
+  .question-panel {
     padding: var(--space-lg) var(--space-md);
   }
 
-  header {
+  .question-header {
     display: grid;
   }
 
-  header p {
+  .question-objective {
+    justify-content: flex-start;
     text-align: left;
   }
 
