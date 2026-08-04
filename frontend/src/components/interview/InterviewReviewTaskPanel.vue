@@ -267,7 +267,7 @@ h2 {
 
 .review-list {
   display: grid;
-  gap: var(--space-md);
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -277,10 +277,12 @@ h2 {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) minmax(14rem, 0.46fr);
   gap: var(--space-lg);
-  padding: var(--space-lg);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
+  padding-block: var(--space-xl);
+  border-top: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.review-item:last-child {
+  border-bottom: var(--rule-thin) solid var(--color-rule-2);
 }
 
 .review-marker {
@@ -289,8 +291,9 @@ h2 {
 }
 
 .review-marker span {
-  color: var(--color-muted);
-  font-size: var(--text-xs);
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -330,7 +333,7 @@ h2 {
 
 .review-suggestion {
   padding: var(--space-md);
-  border-left: 0.1875rem solid var(--color-accent);
+  border-radius: var(--radius-control);
   background: var(--color-accent-soft);
 }
 

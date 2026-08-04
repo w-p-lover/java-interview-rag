@@ -101,7 +101,10 @@ async function handleFileInput(event: Event): Promise<void> {
         :aria-describedby="statusId"
         @change="handleFileInput"
       />
-      <span class="file-mark" aria-hidden="true">PDF / TEXT</span>
+      <span class="file-mark" aria-hidden="true">
+        <CheckCircle2 v-if="readState === 'success'" :size="19" />
+        <FileText v-else :size="19" />
+      </span>
       <span class="file-copy">
         <strong>{{ fileName || `选择${label}文件` }}</strong>
         <small v-if="readState === 'reading'">正在读取…</small>
@@ -172,12 +175,13 @@ legend small {
   align-items: center;
   gap: var(--space-md);
   min-height: 5.5rem;
-  padding: var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule-2);
+  padding: var(--space-lg);
+  overflow: hidden;
+  border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-control);
-  background: var(--color-paper);
+  background: var(--color-surface);
   cursor: pointer;
-  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out), transform var(--dur-short) var(--ease-out);
 }
 
 .file-selector.is-success {
@@ -220,19 +224,15 @@ legend small {
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  overflow: hidden;
   border-radius: var(--radius-control);
-  color: transparent;
-  background: var(--color-paper-3);
-  font-size: 0;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  transition: color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out), transform var(--dur-short) var(--ease-out);
 }
 
-.file-mark::after {
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  content: "DOC";
+.file-selector.is-success .file-mark {
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .file-copy {
@@ -339,6 +339,11 @@ textarea {
   .file-selector:hover:not(.is-reading) {
     border-color: var(--color-accent);
     background: var(--color-accent-soft);
+    transform: translateY(-2px);
+  }
+
+  .file-selector:hover:not(.is-reading) .file-mark {
+    transform: translateY(-1px);
   }
 }
 

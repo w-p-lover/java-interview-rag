@@ -25,7 +25,6 @@ const commands = computed<WorkspaceCommand[]>(() => props.mode === "interview"
       { id: "import-workbench", label: "资料导入", description: "选择 Markdown 文件并设置来源" },
       { id: "pipeline", label: "处理阶段", description: "查看资料进入知识库的步骤" },
       { id: "import-result", label: "导入结果", description: "检查内容版本和切片" },
-      { id: "capability-boundary", label: "能力边界", description: "查看当前已经接通的能力" },
     ]);
 
 function handleGlobalShortcut(event: KeyboardEvent): void {
@@ -64,10 +63,7 @@ onUnmounted(() => {
     <div class="header-inner">
       <RouterLink class="brand" to="/" aria-label="Java 面试准备台首页">
         <span class="brand-mark" aria-hidden="true">J</span>
-        <span class="brand-copy">
-          <strong>面试准备台</strong>
-          <small>Java 面试训练</small>
-        </span>
+        <strong>Java 面试台</strong>
       </RouterLink>
 
       <nav class="header-links" aria-label="工作台导航">
@@ -146,32 +142,21 @@ onUnmounted(() => {
 
 .brand-mark {
   display: inline-grid;
-  width: 1.875rem;
-  height: 1.875rem;
+  width: 2rem;
+  height: 2rem;
   place-items: center;
-  border: var(--rule-thin) solid var(--color-ink);
   border-radius: var(--radius-control);
-  color: var(--color-ink);
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-.brand-copy {
-  display: grid;
-  line-height: 1.08;
-}
-
-.brand-copy strong {
   font-size: var(--text-sm);
   font-weight: 700;
-  letter-spacing: 0;
 }
 
-.brand-copy small {
-  color: var(--color-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+.brand strong {
+  font-size: var(--text-sm);
+  font-weight: 750;
+  letter-spacing: 0;
 }
 
 .header-links {
@@ -269,7 +254,6 @@ onUnmounted(() => {
     width: calc(100% - (var(--space-md) * 2));
   }
 
-  .brand-copy small,
   .header-links {
     display: none;
   }

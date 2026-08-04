@@ -1,24 +1,39 @@
 <script setup lang="ts">
+import { TrendingUp } from "@lucide/vue";
+import { computed } from "vue";
+
 import type { InterviewReviewSessionHistory } from "@/api/interview";
 
-defineProps<{
+const props = defineProps<{
   history: InterviewReviewSessionHistory;
 }>();
+
+const progress = computed(() => props.history.totalTaskCount
+  ? Math.round((props.history.practicedTaskCount / props.history.totalTaskCount) * 100)
+  : 0);
 </script>
 
 <template>
   <section class="history-summary" aria-label="本场复习进度">
-    <div>
-      <strong>{{ history.practicedTaskCount }} / {{ history.totalTaskCount }}</strong>
-      <span>已练题目</span>
+    <div class="history-copy">
+      <span class="history-icon" aria-hidden="true"><TrendingUp :size="18" /></span>
+      <div>
+        <strong>本场已练 {{ history.practicedTaskCount }} / {{ history.totalTaskCount }} 道</strong>
+        <p>
+          累计作答 {{ history.totalAttemptCount }} 次，
+          {{ history.improvedTaskCount }} 道最近得分高于正式回答。
+        </p>
+      </div>
     </div>
-    <div>
-      <strong>{{ history.totalAttemptCount }}</strong>
-      <span>累计作答</span>
-    </div>
-    <div>
-      <strong>{{ history.improvedTaskCount }}</strong>
-      <span>较正式回答提升</span>
+    <div
+      class="history-track"
+      role="progressbar"
+      aria-label="本场复习题目完成进度"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuenow="progress"
+    >
+      <span :style="{ width: `${progress}%` }"></span>
     </div>
   </section>
 </template>
@@ -26,40 +41,57 @@ defineProps<{
 <style scoped lang="scss">
 .history-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-block: var(--rule-thin) solid var(--color-rule);
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-control);
+  background: var(--color-accent-soft);
 }
 
-.history-summary div {
+.history-copy {
+  display: flex;
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.history-icon {
   display: grid;
-  gap: var(--space-xs);
-  min-width: 0;
-  padding: var(--space-md);
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
 }
 
-.history-summary div + div {
-  border-left: var(--rule-thin) solid var(--color-rule);
+.history-copy > div {
+  display: grid;
+  gap: var(--space-2xs);
 }
 
-.history-summary strong {
+.history-copy strong {
   color: var(--color-ink);
-  font-family: var(--font-mono);
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
 }
 
-.history-summary span {
+.history-copy p {
+  margin: 0;
   color: var(--color-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 
-@media (max-width: 30rem) {
-  .history-summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.history-track {
+  height: var(--space-xs);
+  overflow: hidden;
+  border-radius: var(--radius-round);
+  background: var(--color-paper-3);
+}
 
-  .history-summary div + div {
-    border-top: var(--rule-thin) solid var(--color-rule);
-    border-left: 0;
-  }
+.history-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width var(--dur-long) var(--ease-out);
 }
 </style>

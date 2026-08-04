@@ -103,40 +103,6 @@ function resetImportState(): void {
       </div>
     </section>
 
-    <section
-      id="capability-boundary"
-      class="capability-boundary"
-      tabindex="-1"
-      aria-labelledby="boundary-title"
-    >
-      <div class="boundary-heading">
-        <h2 id="boundary-title">当前能力边界</h2>
-        <p>只展示已实现链路；尚未接入的模块不会生成假数据。</p>
-      </div>
-
-      <dl class="boundary-list">
-        <div>
-          <dt>前端可操作</dt>
-          <dd>Markdown 上传、来源校验、重复提示、版本与 Chunk 检查</dd>
-        </div>
-        <div>
-          <dt>后端已具备</dt>
-          <dd>向量生命周期、RAG 问答、评估与文本面试闭环</dd>
-        </div>
-        <div>
-          <dt>下一步开发</dt>
-          <dd>真实面试链路验证、错题沉淀与复习计划</dd>
-        </div>
-      </dl>
-    </section>
-
-    <footer class="workspace-footer">
-      <strong>Java Interview RAG</strong>
-      <span aria-hidden="true">·</span>
-      <span>资料准备工作台</span>
-      <span aria-hidden="true">·</span>
-      <span>当前阶段：文本面试闭环</span>
-    </footer>
   </main>
 </template>
 
@@ -225,8 +191,7 @@ function resetImportState(): void {
   gap: var(--space-xs);
 }
 
-.workbench-intro h2,
-.capability-boundary h2 {
+.workbench-intro h2 {
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 700;
@@ -260,7 +225,7 @@ function resetImportState(): void {
   grid-template-columns: minmax(18rem, 0.82fr) minmax(22rem, 1.18fr);
   align-items: start;
   gap: var(--space-lg);
-  padding-block: var(--space-lg) var(--space-3xl);
+  padding-block: var(--space-lg) var(--space-4xl);
 }
 
 .workbench-pane,
@@ -269,83 +234,8 @@ function resetImportState(): void {
   scroll-margin-top: calc(var(--space-3xl) + var(--space-md));
 }
 
-.capability-boundary {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: var(--space-2xl);
-  padding: var(--space-2xl);
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: calc(var(--radius-surface) * 1.35);
-  scroll-margin-top: calc(var(--space-3xl) + var(--space-md));
-  color: var(--color-ink);
-  background: var(--color-paper-2);
-  box-shadow: var(--shadow-whisper);
-}
-
-.boundary-heading {
-  display: grid;
-  align-content: start;
-  gap: var(--space-md);
-}
-
-.boundary-heading p {
-  max-width: 45ch;
-  margin: 0;
-  color: var(--color-muted);
-  line-height: 1.6;
-}
-
-.boundary-list {
-  display: grid;
-  margin: 0;
-  border-top: var(--rule-thin) solid var(--color-rule-2);
-}
-
-.boundary-list div {
-  display: grid;
-  grid-template-columns: 8rem minmax(0, 1fr);
-  gap: var(--space-lg);
-  padding-block: var(--space-md);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
-}
-
-.boundary-list dt,
-.boundary-list dd {
-  margin: 0;
-}
-
-.boundary-list dt {
-  color: var(--color-accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
-.boundary-list dd {
-  color: var(--color-ink-2);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-}
-
-.workspace-footer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding-top: var(--space-lg);
-  border-top: var(--rule-thin) solid var(--color-rule);
-  color: var(--color-muted);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-}
-
-.workspace-footer strong {
-  color: var(--color-ink);
-  font-family: var(--font-display);
-  font-weight: 600;
-}
-
 @media (max-width: 52rem) {
-  .readiness-brief,
-  .capability-boundary {
+  .readiness-brief {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -357,9 +247,6 @@ function resetImportState(): void {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .capability-boundary {
-    gap: var(--space-xl);
-  }
 }
 
 @media (max-width: 39.99rem) {
@@ -386,25 +273,5 @@ function resetImportState(): void {
     padding-bottom: var(--space-2xl);
   }
 
-  .capability-boundary {
-    padding: var(--space-xl) var(--space-md);
-    border-radius: var(--radius-surface);
-  }
-
-  .boundary-list div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-xs);
-  }
-
-  .workspace-footer {
-    display: grid;
-    justify-items: start;
-    gap: var(--space-xs);
-    white-space: normal;
-  }
-
-  .workspace-footer > span[aria-hidden="true"] {
-    display: none;
-  }
 }
 </style>
