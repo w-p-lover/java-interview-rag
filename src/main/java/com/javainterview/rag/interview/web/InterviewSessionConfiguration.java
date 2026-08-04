@@ -15,6 +15,7 @@ import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
+import com.javainterview.rag.interview.tool.InterviewReviewTools;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogQueryService;
@@ -26,6 +27,8 @@ import com.javainterview.rag.interview.preparation.InterviewPreparationService;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -71,6 +74,18 @@ public class InterviewSessionConfiguration {
             InterviewReviewAttemptStore attemptStore,
             InterviewAnswerEvaluator answerEvaluator) {
         return new InterviewReviewTaskService(sessionStore, taskStore, attemptStore, answerEvaluator);
+    }
+
+    @Bean
+    InterviewReviewTools interviewReviewTools(InterviewReviewTaskService reviewTaskService) {
+        return new InterviewReviewTools(reviewTaskService);
+    }
+
+    @Bean
+    ToolCallbackProvider interviewReviewToolCallbackProvider(InterviewReviewTools reviewTools) {
+        return MethodToolCallbackProvider.builder()
+                .toolObjects(reviewTools)
+                .build();
     }
 
     @Bean

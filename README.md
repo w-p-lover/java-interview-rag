@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内状态/日期筛选、独立二次作答 attempt、评价版本快照、分差比较和单会话历史聚合；当前又建立了五类脱敏固定评分样本、不保存输入正文的评价日志、运行/样本精确筛选，以及按评价版本和稳定样本的跨运行统计。下一主线是在受控环境重复评分并取得真实方差，或以现有稳定任务接口进入最小 Tool Calling。回答要点真实批量基线仍待受控执行。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内状态/日期筛选、独立二次作答 attempt、评价版本快照、分差比较和单会话历史聚合；当前又建立了五类脱敏固定评分样本、不保存输入正文的评价日志、运行/样本精确筛选，以及按评价版本和稳定样本的跨运行统计。本轮已进入最小 Tool Calling：先把单会话复习任务查询暴露为 Spring AI 只读工具，后续再接入真实模型工具调用和执行记录。回答要点真实批量基线与评分方差仍待受控执行。
 
 ## 当前 Web 功能
 
@@ -27,6 +27,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `PATCH /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/schedule` 使用 `plannedReviewDate` 设置或清除可选计划日期，不创建提醒任务。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/attempts` 返回该任务按序保存的复习回答和评价快照；`POST` 接收 `answer` 与 1-based `expectedAttemptNumber`，在模型评价前校验序号，返回与原回答及上次 attempt 的总分差值。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/history` 从持久化任务与 attempt 聚合本场历史，返回已练题数、总作答次数、较正式回答提升的题数，以及每题正式/首次/最近/最好分数、最近未解决遗漏和完整时间线；不调用模型，也不跨会话汇总。
+- `storage` profile 暴露 Spring AI 工具回调 `list_review_tasks`，允许后续 Agent 或 ChatClient 在单个面试会话内按状态和计划日期查询复习任务摘要；工具只返回题目、遗漏、改进建议和知识来源元数据，不返回回答正文或 chunk 正文，本轮未接入真实模型自动调用。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId` 及实际总分是否落入宽松预期区间；五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。
 - 正式面试、复习作答和固定基线评分统一记录 Prompt/rubric/model、分数、知识依据状态、耗时、状态与失败类型；基线日志额外记录本次运行 UUID 和稳定样本 ID，正式/复习日志保持为空。评价日志不保存简历、题目、回答或知识正文，日志写入失败不影响主评价。迁移脚本 `009_interview_answer_evaluation_log.sql` 与 `010_identify_interview_answer_evaluation_baseline.sql` 已执行到独立数据库 `java_interview_rag`；真实重复评分尚未运行，当前不能声称已得到同一样本的评分方差。
