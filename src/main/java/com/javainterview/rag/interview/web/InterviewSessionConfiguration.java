@@ -6,11 +6,13 @@ import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
 import com.javainterview.rag.interview.persistence.InterviewAnswerEvaluationLogMapper;
 import com.javainterview.rag.interview.persistence.InterviewToolExecutionLogMapper;
+import com.javainterview.rag.interview.persistence.InterviewAssistantRequestLogMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewTaskStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewAttemptStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewAnswerEvaluationLogStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewToolExecutionLogStore;
+import com.javainterview.rag.interview.persistence.MySqlInterviewAssistantRequestLogStore;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
@@ -19,6 +21,8 @@ import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.interview.tool.InterviewReviewTools;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantService;
+import com.javainterview.rag.interview.tool.InterviewAssistantRequestLogStore;
+import com.javainterview.rag.interview.tool.InterviewAssistantRequestLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
@@ -79,6 +83,18 @@ public class InterviewSessionConfiguration {
     }
 
     @Bean
+    InterviewAssistantRequestLogStore interviewAssistantRequestLogStore(
+            InterviewAssistantRequestLogMapper mapper) {
+        return new MySqlInterviewAssistantRequestLogStore(mapper);
+    }
+
+    @Bean
+    InterviewAssistantRequestLogQueryService interviewAssistantRequestLogQueryService(
+            InterviewAssistantRequestLogStore logStore) {
+        return new InterviewAssistantRequestLogQueryService(logStore);
+    }
+
+    @Bean
     InterviewToolExecutionLogQueryService interviewToolExecutionLogQueryService(
             InterviewToolExecutionLogStore logStore) {
         return new InterviewToolExecutionLogQueryService(logStore);
@@ -110,9 +126,14 @@ public class InterviewSessionConfiguration {
     @Bean
     InterviewReviewAssistantService interviewReviewAssistantService(
             ChatClient ragAnswerChatClient,
-            ToolCallbackProvider interviewReviewToolCallbackProvider) {
+            ToolCallbackProvider interviewReviewToolCallbackProvider,
+            InterviewAssistantRequestLogStore requestLogStore,
+            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
         return new InterviewReviewAssistantService(
-                ragAnswerChatClient, interviewReviewToolCallbackProvider);
+                ragAnswerChatClient,
+                interviewReviewToolCallbackProvider,
+                requestLogStore,
+                modelName);
     }
 
     @Bean

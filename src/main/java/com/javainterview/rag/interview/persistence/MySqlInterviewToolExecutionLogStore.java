@@ -30,6 +30,7 @@ public class MySqlInterviewToolExecutionLogStore implements InterviewToolExecuti
         return new InterviewToolExecutionLog(
                 entity.getId(),
                 entity.getExecutionId(),
+                entity.getAssistantRequestId(),
                 entity.getToolName(),
                 entity.getSessionId(),
                 InterviewToolExecutionLog.Status.valueOf(entity.getStatus()),

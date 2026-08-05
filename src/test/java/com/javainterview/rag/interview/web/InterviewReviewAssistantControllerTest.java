@@ -1,15 +1,22 @@
 package com.javainterview.rag.interview.web;
 
+import com.javainterview.rag.interview.tool.InterviewAssistantRequestLog;
+import com.javainterview.rag.interview.tool.InterviewAssistantRequestLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantService;
+import com.javainterview.rag.interview.tool.InterviewReviewAssistantResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,14 +26,17 @@ class InterviewReviewAssistantControllerTest {
     void returnsAssistantAnswer() throws Exception {
         InterviewReviewAssistantService service = mock(InterviewReviewAssistantService.class);
         when(service.respond("查询会话 session-1 的任务"))
-                .thenReturn("已查询到 1 条任务。");
+                .thenReturn(new InterviewReviewAssistantResult(
+                        "request-1", "已查询到 1 条任务。"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewReviewAssistantController(service)).build();
+                new InterviewReviewAssistantController(
+                        service, mock(InterviewAssistantRequestLogQueryService.class))).build();
 
         mockMvc.perform(post("/api/interviews/review-assistant")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"message\":\"查询会话 session-1 的任务\"}"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value("request-1"))
                 .andExpect(jsonPath("$.answer").value("已查询到 1 条任务。"));
 
         verify(service).respond("查询会话 session-1 的任务");
@@ -38,12 +48,45 @@ class InterviewReviewAssistantControllerTest {
         when(service.respond(" ")).thenThrow(
                 new IllegalArgumentException("复习助手消息不能为空"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewReviewAssistantController(service)).build();
+                new InterviewReviewAssistantController(
+                        service, mock(InterviewAssistantRequestLogQueryService.class))).build();
 
         mockMvc.perform(post("/api/interviews/review-assistant")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"message\":\" \"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("复习助手消息不能为空"));
+    }
+
+    @Test
+    void returnsRecentAssistantRequestLogs() throws Exception {
+        InterviewAssistantRequestLogQueryService queryService =
+                mock(InterviewAssistantRequestLogQueryService.class);
+        when(queryService.findRecent(20)).thenReturn(List.of(
+                new InterviewAssistantRequestLog(
+                        1L,
+                        "request-1",
+                        "qwen3.7-plus",
+                        InterviewAssistantRequestLog.Status.SUCCEEDED,
+                        1,
+                        120,
+                        30,
+                        150,
+                        800,
+                        true,
+                        null,
+                        LocalDateTime.of(2026, 8, 5, 10, 30))));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewAssistantController(
+                        mock(InterviewReviewAssistantService.class), queryService)).build();
+
+        mockMvc.perform(get("/api/interviews/review-assistant/requests"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].requestId").value("request-1"))
+                .andExpect(jsonPath("$[0].toolExecutionCount").value(1))
+                .andExpect(jsonPath("$[0].totalTokens").value(150))
+                .andExpect(jsonPath("$[0].finalResponsePresent").value(true));
+
+        verify(queryService).findRecent(20);
     }
 }

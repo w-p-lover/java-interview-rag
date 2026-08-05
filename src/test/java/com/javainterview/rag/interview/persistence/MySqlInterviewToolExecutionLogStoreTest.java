@@ -24,6 +24,7 @@ class MySqlInterviewToolExecutionLogStoreTest {
         store.record(new InterviewToolExecutionLog(
                 null,
                 "execution-1",
+                "request-1",
                 "list_review_tasks",
                 "session-1",
                 InterviewToolExecutionLog.Status.SUCCEEDED,
@@ -37,6 +38,7 @@ class MySqlInterviewToolExecutionLogStoreTest {
         verify(mapper).insert(captor.capture());
         InterviewToolExecutionLogEntity entity = captor.getValue();
         assertEquals("execution-1", entity.getExecutionId());
+        assertEquals("request-1", entity.getAssistantRequestId());
         assertEquals("list_review_tasks", entity.getToolName());
         assertEquals("session-1", entity.getSessionId());
         assertEquals("SUCCEEDED", entity.getStatus());
@@ -53,6 +55,7 @@ class MySqlInterviewToolExecutionLogStoreTest {
         InterviewToolExecutionLog log = new InterviewToolExecutionLog(
                 3L,
                 "execution-3",
+                null,
                 "list_review_tasks",
                 "session-1",
                 InterviewToolExecutionLog.Status.FAILED,

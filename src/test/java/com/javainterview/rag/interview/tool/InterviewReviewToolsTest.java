@@ -6,6 +6,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 
 import java.time.LocalDate;
@@ -47,7 +48,7 @@ class InterviewReviewToolsTest {
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
 
         InterviewReviewTools.ReviewTaskListToolResult result = tools.listReviewTasks(
-                " session-1 ", "PENDING", "2026-08-04", "2026-08-10");
+                " session-1 ", "PENDING", "2026-08-04", "2026-08-10", null);
 
         assertEquals("session-1", result.sessionId());
         assertEquals("PENDING", result.statusFilter());
@@ -74,10 +75,10 @@ class InterviewReviewToolsTest {
 
         IllegalArgumentException sessionException = assertThrows(
                 IllegalArgumentException.class,
-                () -> tools.listReviewTasks(" ", null, null, null));
+                () -> tools.listReviewTasks(" ", null, null, null, null));
         IllegalArgumentException dateException = assertThrows(
                 IllegalArgumentException.class,
-                () -> tools.listReviewTasks("session-1", null, "2026/08/04", null));
+                () -> tools.listReviewTasks("session-1", null, "2026/08/04", null, null));
 
         assertEquals("面试会话 ID 不能为空", sessionException.getMessage());
         assertEquals("计划复习日期格式必须为 yyyy-MM-dd", dateException.getMessage());
@@ -112,6 +113,8 @@ class InterviewReviewToolsTest {
         assertTrue(listCallback.getToolDefinition().inputSchema().contains("plannedDateFrom"));
         assertTrue(scheduleCallback.getToolDefinition().description().contains("计划复习日期"));
         assertTrue(scheduleCallback.getToolDefinition().inputSchema().contains("taskId"));
+        assertFalse(listCallback.getToolDefinition().inputSchema().contains("toolContext"));
+        assertFalse(scheduleCallback.getToolDefinition().inputSchema().contains("toolContext"));
     }
 
     @Test
@@ -125,7 +128,7 @@ class InterviewReviewToolsTest {
                 service, mock(InterviewToolExecutionLogStore.class));
 
         InterviewReviewTools.ReviewTaskListToolResult result = tools.listReviewTasks(
-                "session-1", null, null, null);
+                "session-1", null, null, null, null);
 
         assertEquals(2, result.totalTaskCount());
         assertEquals(1, result.pendingTaskCount());
@@ -143,7 +146,7 @@ class InterviewReviewToolsTest {
 
         java.util.NoSuchElementException exception = assertThrows(
                 java.util.NoSuchElementException.class,
-                () -> tools.listReviewTasks("missing-session", null, null, null));
+                () -> tools.listReviewTasks("missing-session", null, null, null, null));
 
         assertEquals("面试会话不存在", exception.getMessage());
         verify(logStore).record(argThat(log ->
@@ -161,7 +164,7 @@ class InterviewReviewToolsTest {
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
 
         InterviewReviewTools.ReviewTaskListToolResult result = assertDoesNotThrow(
-                () -> tools.listReviewTasks("session-1", null, null, null));
+                () -> tools.listReviewTasks("session-1", null, null, null, null));
 
         assertEquals(0, result.totalTaskCount());
     }
@@ -177,7 +180,7 @@ class InterviewReviewToolsTest {
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
 
         InterviewReviewTools.ReviewTaskScheduleToolResult result =
-                tools.scheduleReviewTask(" session-1 ", " task-1 ", "2026-08-12");
+                tools.scheduleReviewTask(" session-1 ", " task-1 ", "2026-08-12", null);
 
         assertEquals("session-1", result.sessionId());
         assertEquals("task-1", result.taskId());
@@ -198,7 +201,7 @@ class InterviewReviewToolsTest {
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> tools.scheduleReviewTask("session-1", "task-1", "2026/08/12"));
+                () -> tools.scheduleReviewTask("session-1", "task-1", "2026/08/12", null));
 
         assertEquals("计划复习日期格式必须为 yyyy-MM-dd", exception.getMessage());
         verifyNoInteractions(service);
@@ -206,6 +209,25 @@ class InterviewReviewToolsTest {
                 "schedule_review_task".equals(log.toolName())
                         && log.status() == InterviewToolExecutionLog.Status.FAILED
                         && "IllegalArgumentException".equals(log.errorType())));
+    }
+
+    @Test
+    void correlatesToolExecutionWithAssistantRequestContext() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        when(service.findBySessionId("session-1", null, null, null)).thenReturn(List.of());
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.create();
+
+        tools.listReviewTasks(
+                "session-1", null, null, null,
+                new ToolContext(requestContext.asMap()));
+
+        assertEquals(1, requestContext.toolExecutionCount());
+        verify(logStore).record(argThat(log ->
+                requestContext.requestId().equals(log.assistantRequestId())
+                        && log.status() == InterviewToolExecutionLog.Status.SUCCEEDED));
     }
 
     private InterviewReviewTask reviewTask(String id,

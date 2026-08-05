@@ -26,6 +26,7 @@ class InterviewToolExecutionLogControllerTest {
                 new InterviewToolExecutionLog(
                         1L,
                         "execution-1",
+                        "request-1",
                         "list_review_tasks",
                         "session-1",
                         InterviewToolExecutionLog.Status.SUCCEEDED,
@@ -39,6 +40,7 @@ class InterviewToolExecutionLogControllerTest {
         mockMvc.perform(get("/api/interviews/sessions/session-1/tool-executions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].executionId").value("execution-1"))
+                .andExpect(jsonPath("$[0].assistantRequestId").value("request-1"))
                 .andExpect(jsonPath("$[0].toolName").value("list_review_tasks"))
                 .andExpect(jsonPath("$[0].resultCount").value(2));
 

@@ -1,0 +1,70 @@
+{
+  "runAt": "2026-08-05T10:38:23+08:00",
+  "modelName": "qwen3.7-plus",
+  "assistantRequestCount": 1,
+  "providerCallCount": null,
+  "providerCallCountNote": "Spring AI 1.0.0 当前未向业务代码公开一次工具调用链路中的 provider/model 回合数，本轮不推算。",
+  "springAiImplementationEvidence": {
+    "toolContextInjectedIntoToolMethod": true,
+    "toolContextExposedInToolSchema": false,
+    "finalChatResponseUsageIsCumulative": true,
+    "usageEvidence": "OpenAiChatModel 在工具调用后递归 internalCall，并通过 UsageCalculator.getCumulativeUsage 累加前序 ChatResponse usage。"
+  },
+  "migration": {
+    "script": "deploy/mysql/init/013_interview_assistant_request_observability.sql",
+    "database": "java_interview_rag",
+    "mysqlVersion": "5.7.36",
+    "requestLogColumnCount": 12,
+    "requestLogIndexCount": 4,
+    "toolCorrelationColumnPresent": true,
+    "requestLogRowsAfterMigration": 0
+  },
+  "paidVerification": {
+    "temporaryPort": 18087,
+    "sessionId": "ce420400-c092-462d-bcbc-4513427ee140",
+    "requestId": "9284a229-d758-4f56-9547-ee15d40068c8",
+    "httpStatus": 200,
+    "responseReturnedRequestId": true,
+    "assistantRequestLog": {
+      "status": "SUCCEEDED",
+      "toolExecutionCount": 1,
+      "promptTokens": 1658,
+      "completionTokens": 313,
+      "totalTokens": 1971,
+      "elapsedMillis": 6822,
+      "finalResponsePresent": true,
+      "errorType": null
+    },
+    "toolExecutionLog": {
+      "executionId": "23465a16-a24e-4d81-9b60-8ec5e612b8eb",
+      "assistantRequestId": "9284a229-d758-4f56-9547-ee15d40068c8",
+      "toolName": "list_review_tasks",
+      "status": "FAILED",
+      "resultCount": null,
+      "elapsedMillis": 47,
+      "errorType": "NoSuchElementException"
+    },
+    "interpretation": "随机会话不存在，工具失败被记录；模型基于工具失败给出有效最终回答，因此助手请求整体为 SUCCEEDED。"
+  },
+  "cleanup": {
+    "deletedToolRows": 1,
+    "deletedRequestRows": 1,
+    "remainingToolRows": 0,
+    "remainingRequestRows": 0,
+    "temporaryPortReleased": true,
+    "applicationErrorCount": 0,
+    "qdrantCompatibilityWarningCount": 1,
+    "qdrantUsedByVerification": false
+  },
+  "privacy": {
+    "storesUserMessage": false,
+    "storesAssistantAnswer": false,
+    "storesToolArgumentsJson": false,
+    "storesToolResultBody": false,
+    "storesExceptionMessage": false,
+    "containsResumeText": false,
+    "containsAnswerText": false,
+    "containsKnowledgeChunkText": false,
+    "containsCredential": false
+  }
+}

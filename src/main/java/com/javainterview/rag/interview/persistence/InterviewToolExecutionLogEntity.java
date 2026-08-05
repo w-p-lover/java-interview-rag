@@ -13,6 +13,7 @@ public class InterviewToolExecutionLogEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
     private String executionId;
+    private String assistantRequestId;
     private String toolName;
     private String sessionId;
     private String status;
@@ -25,6 +26,7 @@ public class InterviewToolExecutionLogEntity {
         InterviewToolExecutionLogEntity entity = new InterviewToolExecutionLogEntity();
         entity.id = log.id();
         entity.executionId = log.executionId();
+        entity.assistantRequestId = log.assistantRequestId();
         entity.toolName = log.toolName();
         entity.sessionId = log.sessionId();
         entity.status = log.status().name();
@@ -41,6 +43,10 @@ public class InterviewToolExecutionLogEntity {
 
     public String getExecutionId() {
         return executionId;
+    }
+
+    public String getAssistantRequestId() {
+        return assistantRequestId;
     }
 
     public String getToolName() {

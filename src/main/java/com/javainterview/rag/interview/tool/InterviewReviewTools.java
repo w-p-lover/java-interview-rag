@@ -6,6 +6,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.ai.chat.model.ToolContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,10 +44,12 @@ public class InterviewReviewTools {
             @ToolParam(description = "面试会话 ID") String sessionId,
             @ToolParam(required = false, description = "复习任务状态，可选 PENDING 或 COMPLETED；为空返回全部") String status,
             @ToolParam(required = false, description = "计划复习开始日期，格式 yyyy-MM-dd；为空不限制") String plannedDateFrom,
-            @ToolParam(required = false, description = "计划复习结束日期，格式 yyyy-MM-dd；为空不限制") String plannedDateTo
+            @ToolParam(required = false, description = "计划复习结束日期，格式 yyyy-MM-dd；为空不限制") String plannedDateTo,
+            ToolContext toolContext
     ) {
+        String assistantRequestId = markToolExecution(toolContext);
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
-        return executeLogged(LIST_REVIEW_TASKS, normalizedSessionId, () -> {
+        return executeLogged(LIST_REVIEW_TASKS, assistantRequestId, normalizedSessionId, () -> {
             String normalizedStatus = blankToNull(status);
             LocalDate from = parseOptionalDate(plannedDateFrom);
             LocalDate to = parseOptionalDate(plannedDateTo);
@@ -65,10 +68,12 @@ public class InterviewReviewTools {
             @ToolParam(description = "面试会话 ID，不得猜测") String sessionId,
             @ToolParam(description = "复习任务 ID，不得猜测") String taskId,
             @ToolParam(description = "用户明确要求的计划复习日期，格式 yyyy-MM-dd")
-            String plannedReviewDate
+            String plannedReviewDate,
+            ToolContext toolContext
     ) {
+        String assistantRequestId = markToolExecution(toolContext);
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
-        return executeLogged(SCHEDULE_REVIEW_TASK, normalizedSessionId, () -> {
+        return executeLogged(SCHEDULE_REVIEW_TASK, assistantRequestId, normalizedSessionId, () -> {
             String normalizedTaskId = requireText(taskId, "复习任务 ID 不能为空");
             LocalDate normalizedDate = parseRequiredDate(plannedReviewDate);
             InterviewReviewTask task = reviewTaskService.schedule(
@@ -78,6 +83,7 @@ public class InterviewReviewTools {
     }
 
     private <T> T executeLogged(String toolName,
+                                String assistantRequestId,
                                 String sessionId,
                                 Supplier<T> action,
                                 ToIntFunction<T> resultCount) {
@@ -85,12 +91,12 @@ public class InterviewReviewTools {
         long startedAt = System.nanoTime();
         try {
             T result = action.get();
-            recordExecution(executionId, toolName, sessionId,
+            recordExecution(executionId, assistantRequestId, toolName, sessionId,
                     InterviewToolExecutionLog.Status.SUCCEEDED,
                     resultCount.applyAsInt(result), null, startedAt);
             return result;
         } catch (RuntimeException exception) {
-            recordExecution(executionId, toolName, sessionId,
+            recordExecution(executionId, assistantRequestId, toolName, sessionId,
                     InterviewToolExecutionLog.Status.FAILED,
                     null, exception.getClass().getSimpleName(), startedAt);
             throw exception;
@@ -98,6 +104,7 @@ public class InterviewReviewTools {
     }
 
     private void recordExecution(String executionId,
+                                 String assistantRequestId,
                                  String toolName,
                                  String sessionId,
                                  InterviewToolExecutionLog.Status status,
@@ -109,6 +116,7 @@ public class InterviewReviewTools {
             executionLogStore.record(new InterviewToolExecutionLog(
                     null,
                     executionId,
+                    assistantRequestId,
                     toolName,
                     sessionId,
                     status,
@@ -120,6 +128,12 @@ public class InterviewReviewTools {
             LOGGER.warn("记录面试工具执行日志失败，executionId={}，toolName={}",
                     executionId, toolName, exception);
         }
+    }
+
+    private String markToolExecution(ToolContext toolContext) {
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.from(toolContext);
+        return requestContext == null ? null : requestContext.markToolExecution();
     }
 
     private static LocalDate parseRequiredDate(String value) {

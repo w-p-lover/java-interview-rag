@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper
 public interface InterviewToolExecutionLogMapper extends BaseMapper<InterviewToolExecutionLogEntity> {
 
-    @Select("SELECT id, execution_id, tool_name, session_id, status, result_count, "
+    @Select("SELECT id, execution_id, assistant_request_id, tool_name, session_id, status, result_count, "
             + "elapsed_millis, error_type, created_at "
             + "FROM t_interview_tool_execution_log WHERE session_id = #{sessionId} "
             + "ORDER BY created_at DESC, id DESC LIMIT #{limit}")

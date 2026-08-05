@@ -1,12 +1,19 @@
 package com.javainterview.rag.interview.tool;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class InterviewReviewAssistantService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewAssistantService.class);
     private static final int MAX_MESSAGE_LENGTH = 2000;
     private static final String SYSTEM_PROMPT = """
             你是 Java 面试复习助手，只能帮助用户查询单个会话内的复习任务，或为指定任务设置计划复习日期。
@@ -19,15 +26,25 @@ public class InterviewReviewAssistantService {
 
     private final ChatClient chatClient;
     private final ToolCallbackProvider toolCallbackProvider;
+    private final InterviewAssistantRequestLogStore requestLogStore;
+    private final String modelName;
 
     public InterviewReviewAssistantService(ChatClient chatClient,
-                                           ToolCallbackProvider toolCallbackProvider) {
+                                           ToolCallbackProvider toolCallbackProvider,
+                                           InterviewAssistantRequestLogStore requestLogStore,
+                                           String modelName) {
         this.chatClient = Objects.requireNonNull(chatClient, "ChatClient 不能为空");
         this.toolCallbackProvider = Objects.requireNonNull(
                 toolCallbackProvider, "复习工具 Provider 不能为空");
+        this.requestLogStore = Objects.requireNonNull(
+                requestLogStore, "复习助手请求日志存储不能为空");
+        if (modelName == null || modelName.isBlank()) {
+            throw new IllegalArgumentException("复习助手模型名称不能为空");
+        }
+        this.modelName = modelName.strip();
     }
 
-    public String respond(String message) {
+    public InterviewReviewAssistantResult respond(String message) {
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("复习助手消息不能为空");
         }
@@ -35,15 +52,89 @@ public class InterviewReviewAssistantService {
         if (normalizedMessage.length() > MAX_MESSAGE_LENGTH) {
             throw new IllegalArgumentException("复习助手消息不能超过 2000 个字符");
         }
-        String content = chatClient.prompt()
-                .system(SYSTEM_PROMPT)
-                .user(normalizedMessage)
-                .toolCallbacks(toolCallbackProvider)
-                .call()
-                .content();
-        if (content == null || content.isBlank()) {
-            throw new IllegalStateException("复习助手未返回有效内容");
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.create();
+        long startedAt = System.nanoTime();
+        ChatResponse response = null;
+        try {
+            response = chatClient.prompt()
+                    .system(SYSTEM_PROMPT)
+                    .user(normalizedMessage)
+                    .toolContext(requestContext.asMap())
+                    .toolCallbacks(toolCallbackProvider)
+                    .call()
+                    .chatResponse();
+            String content = extractContent(response);
+            if (content == null || content.isBlank()) {
+                throw new IllegalStateException("复习助手未返回有效内容");
+            }
+            recordRequest(requestContext, InterviewAssistantRequestLog.Status.SUCCEEDED,
+                    response, true, null, startedAt);
+            return new InterviewReviewAssistantResult(requestContext.requestId(), content);
+        } catch (RuntimeException exception) {
+            recordRequest(requestContext, InterviewAssistantRequestLog.Status.FAILED,
+                    response, false, exception.getClass().getSimpleName(), startedAt);
+            throw exception;
         }
-        return content.strip();
+    }
+
+    private String extractContent(ChatResponse response) {
+        if (response == null || response.getResult() == null
+                || response.getResult().getOutput() == null) {
+            return null;
+        }
+        return response.getResult().getOutput().getText();
+    }
+
+    private void recordRequest(InterviewAssistantRequestContext requestContext,
+                               InterviewAssistantRequestLog.Status status,
+                               ChatResponse response,
+                               boolean finalResponsePresent,
+                               String errorType,
+                               long startedAt) {
+        TokenUsage tokenUsage = tokenUsage(response);
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+        try {
+            requestLogStore.record(new InterviewAssistantRequestLog(
+                    null,
+                    requestContext.requestId(),
+                    modelName,
+                    status,
+                    requestContext.toolExecutionCount(),
+                    tokenUsage.promptTokens(),
+                    tokenUsage.completionTokens(),
+                    tokenUsage.totalTokens(),
+                    elapsedMillis,
+                    finalResponsePresent,
+                    errorType,
+                    LocalDateTime.now()));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("记录复习助手请求日志失败，requestId={}",
+                    requestContext.requestId(), exception);
+        }
+    }
+
+    private TokenUsage tokenUsage(ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return TokenUsage.empty();
+        }
+        Usage usage = response.getMetadata().getUsage();
+        if (usage == null || usage.getPromptTokens() == null
+                || usage.getCompletionTokens() == null || usage.getTotalTokens() == null) {
+            return TokenUsage.empty();
+        }
+        return new TokenUsage(
+                usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
+    }
+
+    private record TokenUsage(
+            Integer promptTokens,
+            Integer completionTokens,
+            Integer totalTokens
+    ) {
+
+        static TokenUsage empty() {
+            return new TokenUsage(null, null, null);
+        }
     }
 }

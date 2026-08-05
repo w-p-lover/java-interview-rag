@@ -6,6 +6,7 @@ import java.util.Objects;
 public record InterviewToolExecutionLog(
         Long id,
         String executionId,
+        String assistantRequestId,
         String toolName,
         String sessionId,
         Status status,
@@ -17,6 +18,7 @@ public record InterviewToolExecutionLog(
 
     public InterviewToolExecutionLog {
         executionId = requireText(executionId, "工具执行标识不能为空");
+        assistantRequestId = optionalText(assistantRequestId);
         toolName = requireText(toolName, "工具名称不能为空");
         sessionId = requireText(sessionId, "面试会话 ID 不能为空");
         Objects.requireNonNull(status, "工具执行状态不能为空");

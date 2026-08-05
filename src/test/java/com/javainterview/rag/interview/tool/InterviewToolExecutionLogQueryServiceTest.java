@@ -50,6 +50,7 @@ class InterviewToolExecutionLogQueryServiceTest {
         return new InterviewToolExecutionLog(
                 1L,
                 "execution-1",
+                null,
                 "list_review_tasks",
                 "session-1",
                 InterviewToolExecutionLog.Status.SUCCEEDED,
