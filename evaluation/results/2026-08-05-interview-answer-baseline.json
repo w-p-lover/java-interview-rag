@@ -1,0 +1,82 @@
+{
+  "runAt": "2026-08-05T09:28:37+08:00",
+  "completedAt": "2026-08-05T09:32:30+08:00",
+  "promptVersion": "interview-answer-evaluation-v2",
+  "rubricVersion": "interview-answer-rubric-v1",
+  "modelName": "qwen3.7-plus",
+  "paidChatCallCount": 8,
+  "totalBaselineRunCount": 2,
+  "totalLogCount": 10,
+  "succeededEvaluationCount": 8,
+  "expectedRejectionCount": 2,
+  "allCasesWithinExpectedBoundary": true,
+  "note": "第二轮客户端命令超时后未重复提交；服务端继续完成，结果由带运行 ID 的持久化评价日志恢复。",
+  "runs": [
+    {
+      "baselineRunId": "96742601-c089-4bf9-bebf-b0409f43caef",
+      "responseObserved": true,
+      "passedCaseCount": 5,
+      "scores": {
+        "irrelevant-answer": 17,
+        "partial-grounded-answer": 60,
+        "complete-grounded-answer": 93,
+        "ungrounded-answer": 55
+      }
+    },
+    {
+      "baselineRunId": "006c1d8b-521a-40e4-92bb-82a27c0ccd79",
+      "responseObserved": false,
+      "passedCaseCountFromPersistedLogs": 5,
+      "scores": {
+        "irrelevant-answer": 17,
+        "partial-grounded-answer": 68,
+        "complete-grounded-answer": 93,
+        "ungrounded-answer": 65
+      }
+    }
+  ],
+  "crossRunSummary": [
+    {
+      "caseId": "blank-answer",
+      "status": "EXPECTED_REJECTION",
+      "distinctRunCount": 2,
+      "failureType": "IllegalArgumentException",
+      "overallScorePopulationVariance": null
+    },
+    {
+      "caseId": "irrelevant-answer",
+      "scores": [17, 17],
+      "averageOverallScore": 17.0,
+      "overallScoreRange": 0,
+      "overallScorePopulationVariance": 0.0
+    },
+    {
+      "caseId": "partial-grounded-answer",
+      "scores": [60, 68],
+      "averageOverallScore": 64.0,
+      "overallScoreRange": 8,
+      "overallScorePopulationVariance": 16.0
+    },
+    {
+      "caseId": "complete-grounded-answer",
+      "scores": [93, 93],
+      "averageOverallScore": 93.0,
+      "overallScoreRange": 0,
+      "overallScorePopulationVariance": 0.0
+    },
+    {
+      "caseId": "ungrounded-answer",
+      "scores": [55, 65],
+      "averageOverallScore": 60.0,
+      "overallScoreRange": 10,
+      "overallScorePopulationVariance": 25.0
+    }
+  ],
+  "versionSummary": {
+    "minimumOverallScore": 17,
+    "maximumOverallScore": 93,
+    "averageOverallScore": 58.5,
+    "averageElapsedMillisIncludingExpectedRejections": 19558.4,
+    "maximumElapsedMillis": 31137
+  }
+}
