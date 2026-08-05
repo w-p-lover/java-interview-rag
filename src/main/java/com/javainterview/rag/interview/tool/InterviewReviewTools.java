@@ -6,18 +6,30 @@ import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class InterviewReviewTools {
 
-    private final InterviewReviewTaskService reviewTaskService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewTools.class);
+    private static final String LIST_REVIEW_TASKS = "list_review_tasks";
 
-    public InterviewReviewTools(InterviewReviewTaskService reviewTaskService) {
+    private final InterviewReviewTaskService reviewTaskService;
+    private final InterviewToolExecutionLogStore executionLogStore;
+
+    public InterviewReviewTools(InterviewReviewTaskService reviewTaskService,
+                                InterviewToolExecutionLogStore executionLogStore) {
         this.reviewTaskService = Objects.requireNonNull(reviewTaskService, "复习任务服务不能为空");
+        this.executionLogStore = Objects.requireNonNull(
+                executionLogStore, "面试工具执行日志存储不能为空");
     }
 
     @Tool(
@@ -31,12 +43,50 @@ public class InterviewReviewTools {
             @ToolParam(required = false, description = "计划复习结束日期，格式 yyyy-MM-dd；为空不限制") String plannedDateTo
     ) {
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
-        String normalizedStatus = blankToNull(status);
-        LocalDate from = parseOptionalDate(plannedDateFrom);
-        LocalDate to = parseOptionalDate(plannedDateTo);
-        List<InterviewReviewTask> tasks = reviewTaskService.findBySessionId(
-                normalizedSessionId, normalizedStatus, from, to);
-        return ReviewTaskListToolResult.from(normalizedSessionId, normalizedStatus, from, to, tasks);
+        String executionId = UUID.randomUUID().toString();
+        long startedAt = System.nanoTime();
+        try {
+            String normalizedStatus = blankToNull(status);
+            LocalDate from = parseOptionalDate(plannedDateFrom);
+            LocalDate to = parseOptionalDate(plannedDateTo);
+            List<InterviewReviewTask> tasks = reviewTaskService.findBySessionId(
+                    normalizedSessionId, normalizedStatus, from, to);
+            ReviewTaskListToolResult result = ReviewTaskListToolResult.from(
+                    normalizedSessionId, normalizedStatus, from, to, tasks);
+            recordExecution(executionId, normalizedSessionId,
+                    InterviewToolExecutionLog.Status.SUCCEEDED,
+                    result.totalTaskCount(), null, startedAt);
+            return result;
+        } catch (RuntimeException exception) {
+            recordExecution(executionId, normalizedSessionId,
+                    InterviewToolExecutionLog.Status.FAILED,
+                    null, exception.getClass().getSimpleName(), startedAt);
+            throw exception;
+        }
+    }
+
+    private void recordExecution(String executionId,
+                                 String sessionId,
+                                 InterviewToolExecutionLog.Status status,
+                                 Integer resultCount,
+                                 String errorType,
+                                 long startedAt) {
+        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+        try {
+            executionLogStore.record(new InterviewToolExecutionLog(
+                    null,
+                    executionId,
+                    LIST_REVIEW_TASKS,
+                    sessionId,
+                    status,
+                    resultCount,
+                    elapsedMillis,
+                    errorType,
+                    LocalDateTime.now()));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("记录面试工具执行日志失败，executionId={}，toolName={}",
+                    executionId, LIST_REVIEW_TASKS, exception);
+        }
     }
 
     private static LocalDate parseOptionalDate(String value) {

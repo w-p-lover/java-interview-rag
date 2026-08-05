@@ -5,10 +5,12 @@ import com.javainterview.rag.interview.persistence.InterviewSessionMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
 import com.javainterview.rag.interview.persistence.InterviewAnswerEvaluationLogMapper;
+import com.javainterview.rag.interview.persistence.InterviewToolExecutionLogMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewTaskStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewReviewAttemptStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewAnswerEvaluationLogStore;
+import com.javainterview.rag.interview.persistence.MySqlInterviewToolExecutionLogStore;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
@@ -16,6 +18,8 @@ import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.interview.tool.InterviewReviewTools;
+import com.javainterview.rag.interview.tool.InterviewToolExecutionLogQueryService;
+import com.javainterview.rag.interview.tool.InterviewToolExecutionLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogQueryService;
@@ -68,6 +72,18 @@ public class InterviewSessionConfiguration {
     }
 
     @Bean
+    InterviewToolExecutionLogStore interviewToolExecutionLogStore(
+            InterviewToolExecutionLogMapper mapper) {
+        return new MySqlInterviewToolExecutionLogStore(mapper);
+    }
+
+    @Bean
+    InterviewToolExecutionLogQueryService interviewToolExecutionLogQueryService(
+            InterviewToolExecutionLogStore logStore) {
+        return new InterviewToolExecutionLogQueryService(logStore);
+    }
+
+    @Bean
     InterviewReviewTaskService interviewReviewTaskService(
             InterviewSessionStore sessionStore,
             InterviewReviewTaskStore taskStore,
@@ -77,8 +93,10 @@ public class InterviewSessionConfiguration {
     }
 
     @Bean
-    InterviewReviewTools interviewReviewTools(InterviewReviewTaskService reviewTaskService) {
-        return new InterviewReviewTools(reviewTaskService);
+    InterviewReviewTools interviewReviewTools(
+            InterviewReviewTaskService reviewTaskService,
+            InterviewToolExecutionLogStore executionLogStore) {
+        return new InterviewReviewTools(reviewTaskService, executionLogStore);
     }
 
     @Bean

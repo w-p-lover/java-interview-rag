@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内状态/日期筛选、独立二次作答 attempt、评价版本快照、分差比较和单会话历史聚合；当前又建立了五类脱敏固定评分样本、不保存输入正文的评价日志、运行/样本精确筛选，以及按评价版本和稳定样本的跨运行统计。本轮已进入最小 Tool Calling：先把单会话复习任务查询暴露为 Spring AI 只读工具，后续再接入真实模型工具调用和执行记录。回答要点真实批量基线与评分方差仍待受控执行。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内状态/日期筛选、独立二次作答 attempt、评价版本快照、分差比较和单会话历史聚合；当前又建立了五类脱敏固定评分样本、不保存输入正文的评价日志、运行/样本精确筛选，以及按评价版本和稳定样本的跨运行统计。最小 Tool Calling 已具备单会话只读复习任务工具及无正文执行日志代码闭环；真实模型工具调用、写入型工具和回答要点真实批量基线仍待受控执行。
 
 ## 当前 Web 功能
 
@@ -28,6 +28,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/attempts` 返回该任务按序保存的复习回答和评价快照；`POST` 接收 `answer` 与 1-based `expectedAttemptNumber`，在模型评价前校验序号，返回与原回答及上次 attempt 的总分差值。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/history` 从持久化任务与 attempt 聚合本场历史，返回已练题数、总作答次数、较正式回答提升的题数，以及每题正式/首次/最近/最好分数、最近未解决遗漏和完整时间线；不调用模型，也不跨会话汇总。
 - `storage` profile 暴露 Spring AI 工具回调 `list_review_tasks`，允许后续 Agent 或 ChatClient 在单个面试会话内按状态和计划日期查询复习任务摘要；工具只返回题目、遗漏、改进建议和知识来源元数据，不返回回答正文或 chunk 正文，本轮未接入真实模型自动调用。
+- `GET /api/interviews/sessions/{sessionId}/tool-executions?limit=20` 查询单个会话最近 1 到 100 条工具执行记录。记录包含执行 UUID、工具名、成功/失败、结果数量、耗时和异常类型，不保存工具参数 JSON、回答正文、知识正文或异常消息；日志存储失败只告警，不改变工具结果。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId` 及实际总分是否落入宽松预期区间；五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。
 - 正式面试、复习作答和固定基线评分统一记录 Prompt/rubric/model、分数、知识依据状态、耗时、状态与失败类型；基线日志额外记录本次运行 UUID 和稳定样本 ID，正式/复习日志保持为空。评价日志不保存简历、题目、回答或知识正文，日志写入失败不影响主评价。迁移脚本 `009_interview_answer_evaluation_log.sql` 与 `010_identify_interview_answer_evaluation_baseline.sql` 已执行到独立数据库 `java_interview_rag`；真实重复评分尚未运行，当前不能声称已得到同一样本的评分方差。
@@ -128,7 +129,7 @@ docker compose up -d mysql qdrant
 
 当当前题目队列答完后，会话自动完成，并从已经保存的逐题评价确定性计算四项平均分、最多 5 条优势和最多 5 条薄弱项。页面刷新或应用重启后可以按 UUID 恢复。建表与扩展迁移分别为 `deploy/mysql/init/004_interview_session.sql` 和 `deploy/mysql/init/005_expand_interview_session.sql`；两份脚本已按顺序执行到独立数据库 `java_interview_rag`。受控真实验证已覆盖画像、首轮出题、逐题评分、动态追问、最终报告以及进行中和已完成会话的跨重启恢复；虚构测试会话已清理。
 
-完成会话可以生成复习任务。服务逐题读取已经持久化的评价，只为 `gaps` 非空的回答生成任务，并从原题复制可追溯的知识来源元数据；任务 ID 和“会话 + 题号”唯一键共同保证重试幂等。`/interview` 在最后一题提交成功后调用 `POST` 生成，在恢复已完成会话时调用 `GET` 查询，生成失败可以在独立错误状态中重试且不影响最终报告。每条任务现在可直接提交独立 attempt：原 `InterviewSessionAnswer` 不修改，attempt 记录回答、评价、知识来源元数据、Prompt/rubric/model 版本和分数变化；复习模式不生成动态追问，序号冲突返回 409。会话历史接口基于这些持久化事实计算每题正式、首次、最近、最好分数和最近遗漏，并汇总已练题数、总次数与提升题数；前端不自行重算指标。迁移脚本 `deploy/mysql/init/006_interview_review_task.sql`、`007_complete_interview_review_task.sql`、`008_interview_review_attempt.sql` 与 `011_schedule_interview_review_task.sql` 按顺序提供持久化结构；任务可以从 `PENDING` 幂等推进到 `COMPLETED`，`completed_at` 只记录首次完成时间，`planned_review_date` 为可空日期。`011` 已在独立 MySQL 5.7.36 数据库执行并验证；重开、提醒、跨会话查询和 Tool Calling 仍属于后续闭环。
+完成会话可以生成复习任务。服务逐题读取已经持久化的评价，只为 `gaps` 非空的回答生成任务，并从原题复制可追溯的知识来源元数据；任务 ID 和“会话 + 题号”唯一键共同保证重试幂等。`/interview` 在最后一题提交成功后调用 `POST` 生成，在恢复已完成会话时调用 `GET` 查询，生成失败可以在独立错误状态中重试且不影响最终报告。每条任务现在可直接提交独立 attempt：原 `InterviewSessionAnswer` 不修改，attempt 记录回答、评价、知识来源元数据、Prompt/rubric/model 版本和分数变化；复习模式不生成动态追问，序号冲突返回 409。会话历史接口基于这些持久化事实计算每题正式、首次、最近、最好分数和最近遗漏，并汇总已练题数、总次数与提升题数；前端不自行重算指标。迁移脚本 `deploy/mysql/init/006_interview_review_task.sql`、`007_complete_interview_review_task.sql`、`008_interview_review_attempt.sql` 与 `011_schedule_interview_review_task.sql` 按顺序提供持久化结构；任务可以从 `PENDING` 幂等推进到 `COMPLETED`，`completed_at` 只记录首次完成时间，`planned_review_date` 为可空日期。`011` 已在独立 MySQL 5.7.36 数据库执行并验证；重开、提醒、跨会话查询、写入型工具和模型自动工具调用仍属于后续闭环。
 
 ## 本地验证
 
