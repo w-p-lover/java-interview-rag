@@ -16,11 +16,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 
 public class InterviewReviewTools {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewTools.class);
     private static final String LIST_REVIEW_TASKS = "list_review_tasks";
+    private static final String SCHEDULE_REVIEW_TASK = "schedule_review_task";
 
     private final InterviewReviewTaskService reviewTaskService;
     private final InterviewToolExecutionLogStore executionLogStore;
@@ -43,22 +46,51 @@ public class InterviewReviewTools {
             @ToolParam(required = false, description = "计划复习结束日期，格式 yyyy-MM-dd；为空不限制") String plannedDateTo
     ) {
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
-        String executionId = UUID.randomUUID().toString();
-        long startedAt = System.nanoTime();
-        try {
+        return executeLogged(LIST_REVIEW_TASKS, normalizedSessionId, () -> {
             String normalizedStatus = blankToNull(status);
             LocalDate from = parseOptionalDate(plannedDateFrom);
             LocalDate to = parseOptionalDate(plannedDateTo);
             List<InterviewReviewTask> tasks = reviewTaskService.findBySessionId(
                     normalizedSessionId, normalizedStatus, from, to);
-            ReviewTaskListToolResult result = ReviewTaskListToolResult.from(
+            return ReviewTaskListToolResult.from(
                     normalizedSessionId, normalizedStatus, from, to, tasks);
-            recordExecution(executionId, normalizedSessionId,
+        }, ReviewTaskListToolResult::totalTaskCount);
+    }
+
+    @Tool(
+            name = "schedule_review_task",
+            description = "为单个面试会话中的指定复习任务设置明确的计划复习日期。必须同时提供会话 ID、任务 ID 和 yyyy-MM-dd 日期；重复设置同一日期保持幂等。"
+    )
+    public ReviewTaskScheduleToolResult scheduleReviewTask(
+            @ToolParam(description = "面试会话 ID，不得猜测") String sessionId,
+            @ToolParam(description = "复习任务 ID，不得猜测") String taskId,
+            @ToolParam(description = "用户明确要求的计划复习日期，格式 yyyy-MM-dd")
+            String plannedReviewDate
+    ) {
+        String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
+        return executeLogged(SCHEDULE_REVIEW_TASK, normalizedSessionId, () -> {
+            String normalizedTaskId = requireText(taskId, "复习任务 ID 不能为空");
+            LocalDate normalizedDate = parseRequiredDate(plannedReviewDate);
+            InterviewReviewTask task = reviewTaskService.schedule(
+                    normalizedSessionId, normalizedTaskId, normalizedDate);
+            return ReviewTaskScheduleToolResult.from(task);
+        }, ignored -> 1);
+    }
+
+    private <T> T executeLogged(String toolName,
+                                String sessionId,
+                                Supplier<T> action,
+                                ToIntFunction<T> resultCount) {
+        String executionId = UUID.randomUUID().toString();
+        long startedAt = System.nanoTime();
+        try {
+            T result = action.get();
+            recordExecution(executionId, toolName, sessionId,
                     InterviewToolExecutionLog.Status.SUCCEEDED,
-                    result.totalTaskCount(), null, startedAt);
+                    resultCount.applyAsInt(result), null, startedAt);
             return result;
         } catch (RuntimeException exception) {
-            recordExecution(executionId, normalizedSessionId,
+            recordExecution(executionId, toolName, sessionId,
                     InterviewToolExecutionLog.Status.FAILED,
                     null, exception.getClass().getSimpleName(), startedAt);
             throw exception;
@@ -66,6 +98,7 @@ public class InterviewReviewTools {
     }
 
     private void recordExecution(String executionId,
+                                 String toolName,
                                  String sessionId,
                                  InterviewToolExecutionLog.Status status,
                                  Integer resultCount,
@@ -76,7 +109,7 @@ public class InterviewReviewTools {
             executionLogStore.record(new InterviewToolExecutionLog(
                     null,
                     executionId,
-                    LIST_REVIEW_TASKS,
+                    toolName,
                     sessionId,
                     status,
                     resultCount,
@@ -85,8 +118,15 @@ public class InterviewReviewTools {
                     LocalDateTime.now()));
         } catch (RuntimeException exception) {
             LOGGER.warn("记录面试工具执行日志失败，executionId={}，toolName={}",
-                    executionId, LIST_REVIEW_TASKS, exception);
+                    executionId, toolName, exception);
         }
+    }
+
+    private static LocalDate parseRequiredDate(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("计划复习日期不能为空");
+        }
+        return parseOptionalDate(value);
     }
 
     private static LocalDate parseOptionalDate(String value) {
@@ -194,6 +234,19 @@ public class InterviewReviewTools {
                     source.headingPath(),
                     source.similarity()
             );
+        }
+    }
+
+    public record ReviewTaskScheduleToolResult(
+            String sessionId,
+            String taskId,
+            InterviewReviewTaskStatus status,
+            LocalDate plannedReviewDate
+    ) {
+
+        static ReviewTaskScheduleToolResult from(InterviewReviewTask task) {
+            return new ReviewTaskScheduleToolResult(
+                    task.sessionId(), task.id(), task.status(), task.plannedReviewDate());
         }
     }
 }

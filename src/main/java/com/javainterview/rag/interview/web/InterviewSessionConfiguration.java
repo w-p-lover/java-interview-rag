@@ -18,6 +18,7 @@ import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.interview.tool.InterviewReviewTools;
+import com.javainterview.rag.interview.tool.InterviewReviewAssistantService;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLogStore;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationService;
@@ -104,6 +105,14 @@ public class InterviewSessionConfiguration {
         return MethodToolCallbackProvider.builder()
                 .toolObjects(reviewTools)
                 .build();
+    }
+
+    @Bean
+    InterviewReviewAssistantService interviewReviewAssistantService(
+            ChatClient ragAnswerChatClient,
+            ToolCallbackProvider interviewReviewToolCallbackProvider) {
+        return new InterviewReviewAssistantService(
+                ragAnswerChatClient, interviewReviewToolCallbackProvider);
     }
 
     @Bean

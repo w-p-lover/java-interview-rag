@@ -2,7 +2,7 @@
 
 Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3，围绕求职方向、简历理解、资料辅助、模拟面试、结构化反馈和复习计划逐步建设，并按需接入 Spring AI 和向量数据库。
 
-阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内状态/日期筛选、独立二次作答 attempt 和单会话历史聚合；五类脱敏固定评分样本已使用 `qwen3.7-plus` 完成两轮真实基线，四个可评分样本两轮均落在预期范围，并得到首批同样本方差。最小 Tool Calling 已具备单会话只读复习任务工具及无正文执行日志代码闭环；真实模型工具调用和写入型工具仍待受控执行。
+阶段 0 的项目治理、阶段 1 的 Markdown 资料知识库和阶段 2 的向量生命周期已经完成，阶段 3 已建立最小 RAG 回答、真实来源返回和知识不足兜底，阶段 4 已形成召回日志、固定评估集和批量评估代码闭环。当前真实检索基线的 6 道题均在首位命中期望来源，没有数据支撑提前增加混合检索或 rerank；阶段 6 的文本面试训练现已具备“一键生成画像与题目 → 逐题回答 → 结构化评分 → 必要时动态追问 → 自动完成并生成报告”的完整代码闭环。阶段 7 已把完成会话中的回答遗漏和真实知识来源沉淀为复习任务，支持任务完成、可选计划日期、会话内筛选、独立 attempt 和单会话历史；五类固定评分样本已完成两轮真实基线。Tool Calling 已具备单会话任务查询、计划日期写入、无正文执行日志和受限 ChatClient 助手，并使用真实模型验证查询与改期各一次。
 
 ## 当前 Web 功能
 
@@ -27,7 +27,9 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `PATCH /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/schedule` 使用 `plannedReviewDate` 设置或清除可选计划日期，不创建提醒任务。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/attempts` 返回该任务按序保存的复习回答和评价快照；`POST` 接收 `answer` 与 1-based `expectedAttemptNumber`，在模型评价前校验序号，返回与原回答及上次 attempt 的总分差值。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/history` 从持久化任务与 attempt 聚合本场历史，返回已练题数、总作答次数、较正式回答提升的题数，以及每题正式/首次/最近/最好分数、最近未解决遗漏和完整时间线；不调用模型，也不跨会话汇总。
-- `storage` profile 暴露 Spring AI 工具回调 `list_review_tasks`，允许后续 Agent 或 ChatClient 在单个面试会话内按状态和计划日期查询复习任务摘要；工具只返回题目、遗漏、改进建议和知识来源元数据，不返回回答正文或 chunk 正文，本轮未接入真实模型自动调用。
+- `storage` profile 暴露 Spring AI 工具回调 `list_review_tasks`，允许受限复习助手在单个面试会话内按状态和计划日期查询复习任务摘要；工具只返回题目、遗漏、改进建议和知识来源元数据，不返回回答正文或 chunk 正文，真实模型查询已验证。
+- `schedule_review_task` 要求同时提供明确的会话 ID、任务 ID 和 `yyyy-MM-dd` 日期，复用现有会话/任务联合定位与幂等 schedule 语义，不允许模型猜测标识或日期。
+- `POST /api/interviews/review-assistant` 接收 `{"message":"..."}`，只向 `qwen3.7-plus` 注册上述查询与改期工具；消息最长 2000 字符。真实验证已覆盖模型查询一条任务和把指定任务日期写为 `2026-08-12`，合成数据随后精确清理。
 - `GET /api/interviews/sessions/{sessionId}/tool-executions?limit=20` 查询单个会话最近 1 到 100 条工具执行记录。记录包含执行 UUID、工具名、成功/失败、结果数量、耗时和异常类型，不保存工具参数 JSON、回答正文、知识正文或异常消息；日志存储失败只告警，不改变工具结果。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId` 及实际总分是否落入宽松预期区间；五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。

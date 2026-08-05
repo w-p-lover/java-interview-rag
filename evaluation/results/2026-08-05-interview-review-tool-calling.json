@@ -1,0 +1,54 @@
+{
+  "runAt": "2026-08-05T09:50:00+08:00",
+  "modelName": "qwen3.7-plus",
+  "assistantRequestCount": 2,
+  "providerCallCount": null,
+  "providerCallCountNote": "Spring AI 工具回合可能包含多次模型交互，当前没有 token 或 provider 调用计数日志。",
+  "fixture": {
+    "sessionId": "202d607d-128a-4ef0-97f6-f6837d14a463",
+    "taskId": "0f0b4bbe-2650-4891-8977-c6e7df0be6d2",
+    "synthetic": true
+  },
+  "queryVerification": {
+    "toolName": "list_review_tasks",
+    "status": "SUCCEEDED",
+    "resultCount": 1,
+    "elapsedMillis": 61,
+    "executionId": "de19189a-dbbc-4bef-9f8f-d038a101d1b6",
+    "modelReturnedActualTaskId": true,
+    "modelReturnedActualStatus": true,
+    "responseIssue": "模型在正确结果后无依据地判断输入可能乱码；系统提示随后增加禁止该判断的约束，未再次付费验证。"
+  },
+  "scheduleVerification": {
+    "toolName": "schedule_review_task",
+    "status": "SUCCEEDED",
+    "resultCount": 1,
+    "elapsedMillis": 121,
+    "executionId": "f1284b79-8f58-4ada-9f77-4e9dd8980446",
+    "requestedDate": "2026-08-12",
+    "persistedDate": "2026-08-12",
+    "taskStatus": "PENDING",
+    "modelReportedSuccess": true
+  },
+  "cleanup": {
+    "deletedToolExecutionCount": 2,
+    "deletedReviewTaskCount": 1,
+    "deletedSessionCount": 1,
+    "remainingToolExecutionCount": 0,
+    "remainingReviewTaskCount": 0,
+    "remainingSessionCount": 0
+  },
+  "runtime": {
+    "temporaryPort": 18086,
+    "temporaryPortReleased": true,
+    "applicationErrorCount": 0,
+    "qdrantCompatibilityWarningCount": 1,
+    "qdrantUsedByVerification": false
+  },
+  "privacy": {
+    "containsResumeText": false,
+    "containsAnswerText": false,
+    "containsKnowledgeChunkText": false,
+    "containsCredential": false
+  }
+}

@@ -11,6 +11,7 @@ import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -97,10 +98,20 @@ class InterviewReviewToolsTest {
                 .build()
                 .getToolCallbacks();
 
-        assertEquals(1, callbacks.length);
-        assertEquals("list_review_tasks", callbacks[0].getToolDefinition().name());
-        assertTrue(callbacks[0].getToolDefinition().description().contains("复习任务"));
-        assertTrue(callbacks[0].getToolDefinition().inputSchema().contains("plannedDateFrom"));
+        assertEquals(2, callbacks.length);
+        assertEquals(Set.of("list_review_tasks", "schedule_review_task"),
+                java.util.Arrays.stream(callbacks)
+                        .map(callback -> callback.getToolDefinition().name())
+                        .collect(java.util.stream.Collectors.toSet()));
+        ToolCallback listCallback = java.util.Arrays.stream(callbacks)
+                .filter(callback -> "list_review_tasks".equals(callback.getToolDefinition().name()))
+                .findFirst().orElseThrow();
+        ToolCallback scheduleCallback = java.util.Arrays.stream(callbacks)
+                .filter(callback -> "schedule_review_task".equals(callback.getToolDefinition().name()))
+                .findFirst().orElseThrow();
+        assertTrue(listCallback.getToolDefinition().inputSchema().contains("plannedDateFrom"));
+        assertTrue(scheduleCallback.getToolDefinition().description().contains("计划复习日期"));
+        assertTrue(scheduleCallback.getToolDefinition().inputSchema().contains("taskId"));
     }
 
     @Test
@@ -153,6 +164,48 @@ class InterviewReviewToolsTest {
                 () -> tools.listReviewTasks("session-1", null, null, null));
 
         assertEquals(0, result.totalTaskCount());
+    }
+
+    @Test
+    void schedulesReviewTaskThroughControlledWriteTool() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        LocalDate plannedDate = LocalDate.of(2026, 8, 12);
+        when(service.schedule("session-1", "task-1", plannedDate))
+                .thenReturn(reviewTask(
+                        "task-1", InterviewReviewTaskStatus.PENDING, plannedDate, List.of()));
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+
+        InterviewReviewTools.ReviewTaskScheduleToolResult result =
+                tools.scheduleReviewTask(" session-1 ", " task-1 ", "2026-08-12");
+
+        assertEquals("session-1", result.sessionId());
+        assertEquals("task-1", result.taskId());
+        assertEquals(plannedDate, result.plannedReviewDate());
+        assertEquals(InterviewReviewTaskStatus.PENDING, result.status());
+        verify(service).schedule("session-1", "task-1", plannedDate);
+        verify(logStore).record(argThat(log ->
+                "schedule_review_task".equals(log.toolName())
+                        && log.status() == InterviewToolExecutionLog.Status.SUCCEEDED
+                        && log.resultCount() == 1));
+    }
+
+    @Test
+    void rejectsInvalidScheduleDateAndRecordsFailure() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> tools.scheduleReviewTask("session-1", "task-1", "2026/08/12"));
+
+        assertEquals("计划复习日期格式必须为 yyyy-MM-dd", exception.getMessage());
+        verifyNoInteractions(service);
+        verify(logStore).record(argThat(log ->
+                "schedule_review_task".equals(log.toolName())
+                        && log.status() == InterviewToolExecutionLog.Status.FAILED
+                        && "IllegalArgumentException".equals(log.errorType())));
     }
 
     private InterviewReviewTask reviewTask(String id,
