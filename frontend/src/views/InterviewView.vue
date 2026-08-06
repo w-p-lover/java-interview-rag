@@ -5,6 +5,7 @@ import type { InterviewReviewTaskQuery, InterviewSessionStartPayload } from "@/a
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
+import InterviewReviewAssistantPanel from "@/components/interview/InterviewReviewAssistantPanel.vue";
 import InterviewReviewTaskPanel from "@/components/interview/InterviewReviewTaskPanel.vue";
 import InterviewSessionBar from "@/components/interview/InterviewSessionBar.vue";
 import InterviewSetupForm from "@/components/interview/InterviewSetupForm.vue";
@@ -78,6 +79,10 @@ function handleReviewSchedule(taskId: string, plannedReviewDate: string | null):
 function handleReviewAttempt(taskId: string, answer: string): void {
   void submitReviewAttempt(taskId, answer);
 }
+
+function handleAssistantScheduled(): void {
+  void filterReviewTasks(reviewTaskQuery.value);
+}
 </script>
 
 <template>
@@ -114,6 +119,11 @@ function handleReviewAttempt(taskId: string, answer: string): void {
           :report="session.report"
           :target-role="session.targetRole"
           @restart="reset"
+        />
+        <InterviewReviewAssistantPanel
+          :session-id="session.id"
+          :tasks="reviewTasks"
+          @scheduled="handleAssistantScheduled"
         />
         <InterviewReviewTaskPanel
           id="interview-review-tasks"

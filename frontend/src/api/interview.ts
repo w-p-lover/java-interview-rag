@@ -150,6 +150,22 @@ export interface InterviewReviewSessionHistory {
   tasks: InterviewReviewTaskHistory[];
 }
 
+export interface InterviewReviewScheduleConfirmation {
+  sessionId: string;
+  taskId: string;
+  plannedReviewDate: string;
+}
+
+export interface InterviewReviewAssistantRequest {
+  message: string;
+  scheduleConfirmation?: InterviewReviewScheduleConfirmation;
+}
+
+export interface InterviewReviewAssistantResponse {
+  requestId: string;
+  answer: string;
+}
+
 export interface InterviewSessionStartPayload {
   targetRole: string;
   resumeText: string;
@@ -263,6 +279,17 @@ export async function submitInterviewReviewAttempt(
   const response = await request.post<InterviewReviewAttempt>(
     `/interviews/sessions/${sessionId}/review-tasks/${taskId}/attempts`,
     { answer, expectedAttemptNumber },
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function askInterviewReviewAssistant(
+  payload: InterviewReviewAssistantRequest,
+): Promise<InterviewReviewAssistantResponse> {
+  const response = await request.post<InterviewReviewAssistantResponse>(
+    "/interviews/review-assistant",
+    payload,
     { timeout: 120_000 },
   );
   return response.data;
