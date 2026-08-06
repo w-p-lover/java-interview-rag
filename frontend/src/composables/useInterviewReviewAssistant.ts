@@ -32,6 +32,13 @@ export function useInterviewReviewAssistant() {
     }, "查询复习任务失败");
   }
 
+  async function reviewProgress(sessionId: string): Promise<boolean> {
+    pendingConfirmation.value = null;
+    return send({
+      message: `请使用 get_review_progress 分析会话 ${sessionId} 的复习进展，说明已练题目、总练习次数、分数变化和仍未解决的遗漏。`,
+    }, "生成本场复盘失败");
+  }
+
   async function requestSchedule(
     sessionId: string,
     task: InterviewReviewTask,
@@ -105,6 +112,7 @@ export function useInterviewReviewAssistant() {
     error,
     pendingConfirmation,
     queryTasks,
+    reviewProgress,
     requestSchedule,
     confirmSchedule,
     cancelConfirmation,

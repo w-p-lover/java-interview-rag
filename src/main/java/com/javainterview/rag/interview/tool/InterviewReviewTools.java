@@ -1,7 +1,9 @@
 package com.javainterview.rag.interview.tool;
 
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
+import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
+import com.javainterview.rag.interview.review.InterviewReviewTaskHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.springframework.ai.tool.annotation.Tool;
@@ -24,6 +26,7 @@ public class InterviewReviewTools {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewTools.class);
     private static final String LIST_REVIEW_TASKS = "list_review_tasks";
+    private static final String GET_REVIEW_PROGRESS = "get_review_progress";
     private static final String SCHEDULE_REVIEW_TASK = "schedule_review_task";
 
     private final InterviewReviewTaskService reviewTaskService;
@@ -58,6 +61,22 @@ public class InterviewReviewTools {
             return ReviewTaskListToolResult.from(
                     normalizedSessionId, normalizedStatus, from, to, tasks);
         }, ReviewTaskListToolResult::totalTaskCount);
+    }
+
+    @Tool(
+            name = "get_review_progress",
+            description = "汇总单个面试会话的复习进展。只返回练习次数、正式/最近/最好分数、分数变化、未解决遗漏和最近练习时间，不返回任何回答正文或复习回答明细。"
+    )
+    public ReviewProgressToolResult getReviewProgress(
+            @ToolParam(description = "面试会话 ID") String sessionId,
+            ToolContext toolContext
+    ) {
+        String assistantRequestId = markToolExecution(toolContext);
+        String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
+        return executeLogged(GET_REVIEW_PROGRESS, assistantRequestId, normalizedSessionId,
+                () -> ReviewProgressToolResult.from(
+                        reviewTaskService.findAttemptHistory(normalizedSessionId)),
+                ReviewProgressToolResult::totalTaskCount);
     }
 
     @Tool(
@@ -262,6 +281,58 @@ public class InterviewReviewTools {
                     source.headingPath(),
                     source.similarity()
             );
+        }
+    }
+
+    public record ReviewProgressToolResult(
+            String sessionId,
+            int totalTaskCount,
+            int practicedTaskCount,
+            int totalAttemptCount,
+            int improvedTaskCount,
+            int unresolvedTaskCount,
+            List<ReviewProgressTaskToolItem> tasks
+    ) {
+
+        static ReviewProgressToolResult from(InterviewReviewSessionHistory history) {
+            List<ReviewProgressTaskToolItem> items = history.tasks().stream()
+                    .map(ReviewProgressTaskToolItem::from)
+                    .toList();
+            int unresolvedTaskCount = (int) history.tasks().stream()
+                    .filter(task -> !task.unresolvedGaps().isEmpty())
+                    .count();
+            return new ReviewProgressToolResult(
+                    history.sessionId(),
+                    history.totalTaskCount(),
+                    history.practicedTaskCount(),
+                    history.totalAttemptCount(),
+                    history.improvedTaskCount(),
+                    unresolvedTaskCount,
+                    items);
+        }
+    }
+
+    public record ReviewProgressTaskToolItem(
+            int questionIndex,
+            int attemptCount,
+            int originalOverallScore,
+            Integer latestOverallScore,
+            Integer bestOverallScore,
+            Integer latestScoreDeltaFromOriginal,
+            List<String> unresolvedGaps,
+            LocalDateTime latestAttemptAt
+    ) {
+
+        static ReviewProgressTaskToolItem from(InterviewReviewTaskHistory history) {
+            return new ReviewProgressTaskToolItem(
+                    history.questionIndex(),
+                    history.attemptCount(),
+                    history.originalOverallScore(),
+                    history.latestOverallScore(),
+                    history.bestOverallScore(),
+                    history.latestScoreDeltaFromOriginal(),
+                    history.unresolvedGaps(),
+                    history.latestAttemptAt());
         }
     }
 

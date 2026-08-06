@@ -7,13 +7,14 @@ import {
   Search,
   Send,
   ShieldCheck,
+  TrendingUp,
   X,
 } from "@lucide/vue";
 
 import type { InterviewReviewTask } from "@/api/interview";
 import { useInterviewReviewAssistant } from "@/composables/useInterviewReviewAssistant";
 
-type AssistantMode = "QUERY" | "SCHEDULE";
+type AssistantMode = "QUERY" | "PROGRESS" | "SCHEDULE";
 
 const props = defineProps<{
   sessionId: string;
@@ -35,6 +36,7 @@ const {
   error,
   pendingConfirmation,
   queryTasks,
+  reviewProgress,
   requestSchedule,
   confirmSchedule,
   cancelConfirmation,
@@ -71,6 +73,10 @@ function setMode(nextMode: AssistantMode): void {
 
 function submitQuery(): void {
   void queryTasks(props.sessionId, queryMessage.value);
+}
+
+function submitProgress(): void {
+  void reviewProgress(props.sessionId);
 }
 
 function proposeSchedule(): void {
@@ -118,6 +124,15 @@ function formatDate(value: string): string {
         </button>
         <button
           type="button"
+          :aria-pressed="mode === 'PROGRESS'"
+          :disabled="busy"
+          @click="setMode('PROGRESS')"
+        >
+          <TrendingUp :size="16" aria-hidden="true" />
+          复盘进展
+        </button>
+        <button
+          type="button"
           :aria-pressed="mode === 'SCHEDULE'"
           :disabled="busy"
           @click="setMode('SCHEDULE')"
@@ -141,6 +156,24 @@ function formatDate(value: string): string {
       <button class="assistant-primary" type="submit" :disabled="busy || !queryMessage.trim()">
         <Send :size="16" aria-hidden="true" />
         {{ busy ? "正在查询…" : "发送" }}
+      </button>
+    </form>
+
+    <form
+      v-else-if="mode === 'PROGRESS'"
+      class="assistant-progress"
+      @submit.prevent="submitProgress"
+    >
+      <div class="assistant-progress-copy">
+        <TrendingUp :size="20" aria-hidden="true" />
+        <div>
+          <strong>本场复盘</strong>
+          <span>已保存的练习记录</span>
+        </div>
+      </div>
+      <button class="assistant-primary" type="submit" :disabled="busy">
+        <TrendingUp :size="16" aria-hidden="true" />
+        {{ busy ? "正在复盘…" : "生成本场复盘" }}
       </button>
     </form>
 
@@ -225,6 +258,7 @@ function formatDate(value: string): string {
 .assistant-heading,
 .assistant-modes,
 .assistant-query,
+.assistant-progress,
 .assistant-schedule,
 .schedule-confirmation,
 .confirmation-actions {
@@ -244,6 +278,7 @@ function formatDate(value: string): string {
 
 .assistant-heading > div,
 .assistant-field,
+.assistant-progress-copy > div,
 .confirmation-copy,
 .assistant-answer {
   display: grid;
@@ -267,6 +302,7 @@ function formatDate(value: string): string {
 
 .assistant-heading p,
 .assistant-field > span,
+.assistant-progress-copy span,
 .assistant-empty {
   color: var(--color-muted);
   font-size: var(--text-xs);
@@ -309,9 +345,27 @@ function formatDate(value: string): string {
 }
 
 .assistant-query,
+.assistant-progress,
 .assistant-schedule {
   align-items: end;
   gap: var(--space-sm);
+}
+
+.assistant-progress {
+  justify-content: space-between;
+  padding-block: var(--space-sm);
+}
+
+.assistant-progress-copy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-accent-strong);
+}
+
+.assistant-progress-copy strong {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
 }
 
 .assistant-query textarea,
@@ -488,6 +542,7 @@ input:focus-visible {
 @media (max-width: 52rem) {
   .assistant-header,
   .assistant-query,
+  .assistant-progress,
   .assistant-schedule,
   .schedule-confirmation {
     align-items: stretch;

@@ -1,7 +1,11 @@
 package com.javainterview.rag.interview.tool;
 
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
+import com.javainterview.rag.interview.review.InterviewReviewAttempt;
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
+import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
+import com.javainterview.rag.interview.review.InterviewReviewTaskHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.junit.jupiter.api.Test;
@@ -99,8 +103,8 @@ class InterviewReviewToolsTest {
                 .build()
                 .getToolCallbacks();
 
-        assertEquals(2, callbacks.length);
-        assertEquals(Set.of("list_review_tasks", "schedule_review_task"),
+        assertEquals(3, callbacks.length);
+        assertEquals(Set.of("list_review_tasks", "get_review_progress", "schedule_review_task"),
                 java.util.Arrays.stream(callbacks)
                         .map(callback -> callback.getToolDefinition().name())
                         .collect(java.util.stream.Collectors.toSet()));
@@ -110,11 +114,56 @@ class InterviewReviewToolsTest {
         ToolCallback scheduleCallback = java.util.Arrays.stream(callbacks)
                 .filter(callback -> "schedule_review_task".equals(callback.getToolDefinition().name()))
                 .findFirst().orElseThrow();
+        ToolCallback progressCallback = java.util.Arrays.stream(callbacks)
+                .filter(callback -> "get_review_progress".equals(callback.getToolDefinition().name()))
+                .findFirst().orElseThrow();
         assertTrue(listCallback.getToolDefinition().inputSchema().contains("plannedDateFrom"));
         assertTrue(scheduleCallback.getToolDefinition().description().contains("计划复习日期"));
         assertTrue(scheduleCallback.getToolDefinition().inputSchema().contains("taskId"));
+        assertTrue(progressCallback.getToolDefinition().inputSchema().contains("sessionId"));
+        assertFalse(progressCallback.getToolDefinition().inputSchema().contains("answer"));
+        assertFalse(progressCallback.getToolDefinition().inputSchema().contains("attempts"));
         assertFalse(listCallback.getToolDefinition().inputSchema().contains("toolContext"));
         assertFalse(scheduleCallback.getToolDefinition().inputSchema().contains("toolContext"));
+        assertFalse(progressCallback.getToolDefinition().inputSchema().contains("toolContext"));
+    }
+
+    @Test
+    void returnsReviewProgressWithoutAnswerBodies() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        InterviewReviewAttempt attempt = reviewAttempt();
+        InterviewReviewTaskHistory practiced = new InterviewReviewTaskHistory(
+                "task-1", 0, 1, 70, 82, 82, 82, 12,
+                List.of("仍缺少监控指标"), attempt.createdAt(), List.of(attempt));
+        InterviewReviewTaskHistory unpracticed = new InterviewReviewTaskHistory(
+                "task-2", 1, 0, 65, null, null, null, null,
+                List.of("事务边界不完整"), null, List.of());
+        when(service.findAttemptHistory("session-1")).thenReturn(
+                new InterviewReviewSessionHistory(
+                        "session-1", 2, 1, 1, 1, List.of(practiced, unpracticed)));
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.create();
+
+        InterviewReviewTools.ReviewProgressToolResult result = tools.getReviewProgress(
+                " session-1 ", new ToolContext(requestContext.asMap()));
+
+        assertEquals("session-1", result.sessionId());
+        assertEquals(2, result.totalTaskCount());
+        assertEquals(1, result.practicedTaskCount());
+        assertEquals(1, result.totalAttemptCount());
+        assertEquals(1, result.improvedTaskCount());
+        assertEquals(2, result.unresolvedTaskCount());
+        assertEquals(12, result.tasks().get(0).latestScoreDeltaFromOriginal());
+        assertEquals(List.of("仍缺少监控指标"), result.tasks().get(0).unresolvedGaps());
+        assertEquals(1, requestContext.toolExecutionCount());
+        verify(service).findAttemptHistory("session-1");
+        verify(logStore).record(argThat(log ->
+                "get_review_progress".equals(log.toolName())
+                        && requestContext.requestId().equals(log.assistantRequestId())
+                        && log.status() == InterviewToolExecutionLog.Status.SUCCEEDED
+                        && log.resultCount() == 2));
     }
 
     @Test
@@ -297,5 +346,31 @@ class InterviewReviewToolsTest {
                 LocalDateTime.of(2026, 8, 4, 9, 0),
                 completedAt
         );
+    }
+
+    private InterviewReviewAttempt reviewAttempt() {
+        return new InterviewReviewAttempt(
+                "attempt-1",
+                "session-1",
+                "task-1",
+                0,
+                1,
+                "这里是不能暴露给工具的回答正文",
+                new InterviewAnswerEvaluation(
+                        82, 82, 82, 82,
+                        List.of("补充了恢复流程"),
+                        List.of("仍缺少监控指标"),
+                        "补充可观测指标。",
+                        false),
+                false,
+                List.of(),
+                "prompt-v2",
+                "rubric-v1",
+                "model-test",
+                70,
+                null,
+                12,
+                null,
+                LocalDateTime.of(2026, 8, 6, 10, 30));
     }
 }

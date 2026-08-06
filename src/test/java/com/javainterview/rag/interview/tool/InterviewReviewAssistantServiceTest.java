@@ -55,6 +55,8 @@ class InterviewReviewAssistantServiceTest {
         verify(requestSpec).system(argThat((String prompt) ->
                 prompt.contains("不得猜测")
                         && prompt.contains("明确要求")
+                        && prompt.contains("get_review_progress")
+                        && prompt.contains("练习进步")
                         && prompt.contains("未提供结构化人工确认")
                         && prompt.contains("不得对用户输入是否乱码")));
         verify(requestSpec).toolContext(argThat((Map<String, Object> context) ->
