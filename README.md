@@ -32,6 +32,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/interviews/review-assistant` 接收 `{"message":"..."}`，改期确认请求额外携带 `{"scheduleConfirmation":{"sessionId":"...","taskId":"...","plannedReviewDate":"2026-08-12"}}`；消息最长 2000 字符。未提供确认时助手只能查询或请求用户确认，提供确认后也只能执行精确匹配的改期。响应返回本次 `requestId` 和最终回答；此前真实模型查询、改期及请求级 token/工具关联观测仍有效，本轮人工确认边界使用零费用代码测试验证。
 - Vue 完成页已在本场报告与复习题目之间接入复习助手：查询模式自动携带当前会话，不要求用户复制内部 ID；调整计划模式由用户选择待复习题目和日期，先获取助手回复，再展示明确的题目/日期确认区，确认成功后刷新当前筛选下的任务。前端不解析模型回答来生成写入参数。
 - `GET /api/interviews/review-assistant/requests?limit=20` 查询最近 1 到 100 条复习助手请求日志。日志记录请求 UUID、模型、成功/失败、工具进入次数、累计 prompt/completion/total token、总耗时、最终响应状态和异常类型；不保存用户消息、助手回答、工具参数、工具结果正文或异常消息。
+- `storage` profile 的 OpenAI 兼容 ChatModel 只在模型 HTTP 层对连接失败/超时、HTTP 429 和 5xx 最多重试一次，固定退避 500ms；其他 4xx、业务异常和工具异常不重试。重试不包裹 ChatClient 助手或工具执行，因此不会重放已经执行的改期工具。
 - `GET /api/interviews/sessions/{sessionId}/tool-executions?limit=20` 查询单个会话最近 1 到 100 条工具执行记录。记录包含执行 UUID、可空助手请求 UUID、工具名、成功/失败、结果数量、耗时和异常类型，不保存工具参数 JSON、回答正文、知识正文或异常消息；日志存储失败只告警，不改变工具结果。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId` 及实际总分是否落入宽松预期区间；五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。
