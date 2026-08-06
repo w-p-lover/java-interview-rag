@@ -62,7 +62,7 @@ public class InterviewReviewTools {
 
     @Tool(
             name = "schedule_review_task",
-            description = "为单个面试会话中的指定复习任务设置明确的计划复习日期。必须同时提供会话 ID、任务 ID 和 yyyy-MM-dd 日期；重复设置同一日期保持幂等。"
+            description = "为单个面试会话中的指定复习任务设置明确的计划复习日期。必须同时提供会话 ID、任务 ID、yyyy-MM-dd 日期及与三项参数完全一致的人工确认；重复设置同一日期保持幂等。"
     )
     public ReviewTaskScheduleToolResult scheduleReviewTask(
             @ToolParam(description = "面试会话 ID，不得猜测") String sessionId,
@@ -76,6 +76,8 @@ public class InterviewReviewTools {
         return executeLogged(SCHEDULE_REVIEW_TASK, assistantRequestId, normalizedSessionId, () -> {
             String normalizedTaskId = requireText(taskId, "复习任务 ID 不能为空");
             LocalDate normalizedDate = parseRequiredDate(plannedReviewDate);
+            requireScheduleConfirmation(
+                    toolContext, normalizedSessionId, normalizedTaskId, normalizedDate);
             InterviewReviewTask task = reviewTaskService.schedule(
                     normalizedSessionId, normalizedTaskId, normalizedDate);
             return ReviewTaskScheduleToolResult.from(task);
@@ -134,6 +136,18 @@ public class InterviewReviewTools {
         InterviewAssistantRequestContext requestContext =
                 InterviewAssistantRequestContext.from(toolContext);
         return requestContext == null ? null : requestContext.markToolExecution();
+    }
+
+    private void requireScheduleConfirmation(ToolContext toolContext,
+                                             String sessionId,
+                                             String taskId,
+                                             LocalDate plannedReviewDate) {
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.from(toolContext);
+        if (requestContext == null) {
+            throw new IllegalStateException("设置计划复习日期前必须提供人工确认");
+        }
+        requestContext.requireScheduleConfirmation(sessionId, taskId, plannedReviewDate);
     }
 
     private static LocalDate parseRequiredDate(String value) {

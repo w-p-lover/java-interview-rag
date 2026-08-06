@@ -28,8 +28,8 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/attempts` 返回该任务按序保存的复习回答和评价快照；`POST` 接收 `answer` 与 1-based `expectedAttemptNumber`，在模型评价前校验序号，返回与原回答及上次 attempt 的总分差值。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks/history` 从持久化任务与 attempt 聚合本场历史，返回已练题数、总作答次数、较正式回答提升的题数，以及每题正式/首次/最近/最好分数、最近未解决遗漏和完整时间线；不调用模型，也不跨会话汇总。
 - `storage` profile 暴露 Spring AI 工具回调 `list_review_tasks`，允许受限复习助手在单个面试会话内按状态和计划日期查询复习任务摘要；工具只返回题目、遗漏、改进建议和知识来源元数据，不返回回答正文或 chunk 正文，真实模型查询已验证。
-- `schedule_review_task` 要求同时提供明确的会话 ID、任务 ID 和 `yyyy-MM-dd` 日期，复用现有会话/任务联合定位与幂等 schedule 语义，不允许模型猜测标识或日期。
-- `POST /api/interviews/review-assistant` 接收 `{"message":"..."}`，只向 `qwen3.7-plus` 注册上述查询与改期工具；消息最长 2000 字符。响应返回本次 `requestId` 和最终回答，真实验证已覆盖模型查询一条任务、把指定任务日期写为 `2026-08-12`，以及一次请求级 token/工具关联观测。
+- `schedule_review_task` 要求同时提供明确的会话 ID、任务 ID 和 `yyyy-MM-dd` 日期，并且本次助手请求必须携带与三项工具参数完全一致的结构化人工确认；确认缺失或不一致时在调用现有 schedule 服务前拒绝写入，不允许模型猜测或替换标识和日期。
+- `POST /api/interviews/review-assistant` 接收 `{"message":"..."}`，改期确认请求额外携带 `{"scheduleConfirmation":{"sessionId":"...","taskId":"...","plannedReviewDate":"2026-08-12"}}`；消息最长 2000 字符。未提供确认时助手只能查询或请求用户确认，提供确认后也只能执行精确匹配的改期。响应返回本次 `requestId` 和最终回答；此前真实模型查询、改期及请求级 token/工具关联观测仍有效，本轮人工确认边界使用零费用代码测试验证。
 - `GET /api/interviews/review-assistant/requests?limit=20` 查询最近 1 到 100 条复习助手请求日志。日志记录请求 UUID、模型、成功/失败、工具进入次数、累计 prompt/completion/total token、总耗时、最终响应状态和异常类型；不保存用户消息、助手回答、工具参数、工具结果正文或异常消息。
 - `GET /api/interviews/sessions/{sessionId}/tool-executions?limit=20` 查询单个会话最近 1 到 100 条工具执行记录。记录包含执行 UUID、可空助手请求 UUID、工具名、成功/失败、结果数量、耗时和异常类型，不保存工具参数 JSON、回答正文、知识正文或异常消息；日志存储失败只告警，不改变工具结果。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId` 及实际总分是否落入宽松预期区间；五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。

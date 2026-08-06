@@ -9,6 +9,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.tool.ToolCallbackProvider;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -47,13 +48,14 @@ class InterviewReviewAssistantServiceTest {
                         chatClient, toolCallbackProvider, requestLogStore, "qwen3.7-plus");
 
         InterviewReviewAssistantResult result =
-                service.respond(" 查询会话 session-1 的待复习任务 ");
+                service.respond(" 查询会话 session-1 的待复习任务 ", null);
 
         assertEquals("已查询到 1 条待复习任务。", result.answer());
         assertTrue(result.requestId().matches("[0-9a-f-]{36}"));
         verify(requestSpec).system(argThat((String prompt) ->
                 prompt.contains("不得猜测")
                         && prompt.contains("明确要求")
+                        && prompt.contains("未提供结构化人工确认")
                         && prompt.contains("不得对用户输入是否乱码")));
         verify(requestSpec).toolContext(argThat((Map<String, Object> context) ->
                 context.containsKey(InterviewAssistantRequestContext.KEY)));
@@ -87,6 +89,44 @@ class InterviewReviewAssistantServiceTest {
         assertEquals("复习助手消息不能为空", blankException.getMessage());
         assertEquals("复习助手消息不能超过 2000 个字符", oversizedException.getMessage());
         verifyNoInteractions(chatClient);
+    }
+
+    @Test
+    void passesExactScheduleConfirmationThroughHiddenToolContext() {
+        ChatClient chatClient = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec =
+                mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.CallResponseSpec responseSpec = mock(ChatClient.CallResponseSpec.class);
+        ToolCallbackProvider toolCallbackProvider = mock(ToolCallbackProvider.class);
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        when(requestSpec.system(org.mockito.ArgumentMatchers.anyString())).thenReturn(requestSpec);
+        when(requestSpec.user("确认改期")).thenReturn(requestSpec);
+        when(requestSpec.toolContext(anyMap())).thenReturn(requestSpec);
+        when(requestSpec.toolCallbacks(toolCallbackProvider)).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(responseSpec);
+        when(responseSpec.chatResponse()).thenReturn(chatResponse(
+                "已完成改期。", 100, 20, 120));
+        InterviewReviewAssistantService service = new InterviewReviewAssistantService(
+                chatClient,
+                toolCallbackProvider,
+                mock(InterviewAssistantRequestLogStore.class),
+                "qwen3.7-plus");
+        InterviewReviewScheduleConfirmation confirmation =
+                new InterviewReviewScheduleConfirmation(
+                        "session-1", "task-1", LocalDate.of(2026, 8, 12));
+
+        service.respond("确认改期", confirmation);
+
+        verify(requestSpec).system(argThat((String prompt) ->
+                prompt.contains("已提供结构化人工确认")));
+        verify(requestSpec).toolContext(argThat((Map<String, Object> context) -> {
+            InterviewAssistantRequestContext requestContext =
+                    (InterviewAssistantRequestContext) context.get(
+                            InterviewAssistantRequestContext.KEY);
+            requestContext.requireScheduleConfirmation(
+                    "session-1", "task-1", LocalDate.of(2026, 8, 12));
+            return true;
+        }));
     }
 
     @Test

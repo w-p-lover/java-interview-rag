@@ -39,7 +39,8 @@ public class InterviewReviewAssistantController {
         if (request == null) {
             throw new IllegalArgumentException("复习助手请求不能为空");
         }
-        InterviewReviewAssistantResult result = service.respond(request.message());
+        InterviewReviewAssistantResult result = service.respond(
+                request.message(), request.scheduleConfirmation());
         return new InterviewReviewAssistantResponse(result.requestId(), result.answer());
     }
 

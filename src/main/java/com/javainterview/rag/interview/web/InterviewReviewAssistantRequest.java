@@ -1,4 +1,9 @@
 package com.javainterview.rag.interview.web;
 
-public record InterviewReviewAssistantRequest(String message) {
+import com.javainterview.rag.interview.tool.InterviewReviewScheduleConfirmation;
+
+public record InterviewReviewAssistantRequest(
+        String message,
+        InterviewReviewScheduleConfirmation scheduleConfirmation
+) {
 }

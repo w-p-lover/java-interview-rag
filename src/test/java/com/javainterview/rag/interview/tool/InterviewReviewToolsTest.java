@@ -178,9 +178,15 @@ class InterviewReviewToolsTest {
                 .thenReturn(reviewTask(
                         "task-1", InterviewReviewTaskStatus.PENDING, plannedDate, List.of()));
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.create(
+                        new InterviewReviewScheduleConfirmation(
+                                "session-1", "task-1", plannedDate));
 
         InterviewReviewTools.ReviewTaskScheduleToolResult result =
-                tools.scheduleReviewTask(" session-1 ", " task-1 ", "2026-08-12", null);
+                tools.scheduleReviewTask(
+                        " session-1 ", " task-1 ", "2026-08-12",
+                        new ToolContext(requestContext.asMap()));
 
         assertEquals("session-1", result.sessionId());
         assertEquals("task-1", result.taskId());
@@ -209,6 +215,45 @@ class InterviewReviewToolsTest {
                 "schedule_review_task".equals(log.toolName())
                         && log.status() == InterviewToolExecutionLog.Status.FAILED
                         && "IllegalArgumentException".equals(log.errorType())));
+    }
+
+    @Test
+    void rejectsScheduleWithoutHumanConfirmation() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> tools.scheduleReviewTask(
+                        "session-1", "task-1", "2026-08-12", null));
+
+        assertEquals("设置计划复习日期前必须提供人工确认", exception.getMessage());
+        verifyNoInteractions(service);
+        verify(logStore).record(argThat(log ->
+                "schedule_review_task".equals(log.toolName())
+                        && log.status() == InterviewToolExecutionLog.Status.FAILED
+                        && "IllegalStateException".equals(log.errorType())));
+    }
+
+    @Test
+    void rejectsScheduleWhenConfirmationDoesNotMatchToolArguments() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.create(
+                        new InterviewReviewScheduleConfirmation(
+                                "session-1", "task-2", LocalDate.of(2026, 8, 12)));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> tools.scheduleReviewTask(
+                        "session-1", "task-1", "2026-08-12",
+                        new ToolContext(requestContext.asMap())));
+
+        assertEquals("工具参数与人工确认的改期内容不一致", exception.getMessage());
+        verifyNoInteractions(service);
     }
 
     @Test

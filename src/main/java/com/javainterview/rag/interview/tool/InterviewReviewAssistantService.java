@@ -23,6 +23,14 @@ public class InterviewReviewAssistantService {
             工具成功后只简洁说明真实结果；工具失败时如实说明失败，不得声称已经完成操作。
             不得对用户输入是否乱码、编码异常或表达有误作无依据判断。
             """;
+    private static final String UNCONFIRMED_PROMPT = """
+            本次请求未提供结构化人工确认，不得调用 schedule_review_task。
+            如果用户希望改期，请复述会话 ID、任务 ID 和日期，并要求用户确认后重新提交。
+            """;
+    private static final String CONFIRMED_PROMPT = """
+            本次请求已提供结构化人工确认。只有用户消息明确要求执行同一项改期时才可调用 schedule_review_task；
+            服务端会拒绝与确认内容不一致的任何工具参数。
+            """;
 
     private final ChatClient chatClient;
     private final ToolCallbackProvider toolCallbackProvider;
@@ -45,6 +53,12 @@ public class InterviewReviewAssistantService {
     }
 
     public InterviewReviewAssistantResult respond(String message) {
+        return respond(message, null);
+    }
+
+    public InterviewReviewAssistantResult respond(
+            String message,
+            InterviewReviewScheduleConfirmation scheduleConfirmation) {
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("复习助手消息不能为空");
         }
@@ -53,12 +67,12 @@ public class InterviewReviewAssistantService {
             throw new IllegalArgumentException("复习助手消息不能超过 2000 个字符");
         }
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create();
+                InterviewAssistantRequestContext.create(scheduleConfirmation);
         long startedAt = System.nanoTime();
         ChatResponse response = null;
         try {
             response = chatClient.prompt()
-                    .system(SYSTEM_PROMPT)
+                    .system(systemPrompt(scheduleConfirmation))
                     .user(normalizedMessage)
                     .toolContext(requestContext.asMap())
                     .toolCallbacks(toolCallbackProvider)
@@ -76,6 +90,11 @@ public class InterviewReviewAssistantService {
                     response, false, exception.getClass().getSimpleName(), startedAt);
             throw exception;
         }
+    }
+
+    private String systemPrompt(InterviewReviewScheduleConfirmation scheduleConfirmation) {
+        return SYSTEM_PROMPT + (scheduleConfirmation == null
+                ? UNCONFIRMED_PROMPT : CONFIRMED_PROMPT);
     }
 
     private String extractContent(ChatResponse response) {

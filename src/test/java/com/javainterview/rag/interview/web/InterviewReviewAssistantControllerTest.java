@@ -4,11 +4,13 @@ import com.javainterview.rag.interview.tool.InterviewAssistantRequestLog;
 import com.javainterview.rag.interview.tool.InterviewAssistantRequestLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantService;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantResult;
+import com.javainterview.rag.interview.tool.InterviewReviewScheduleConfirmation;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,7 +27,7 @@ class InterviewReviewAssistantControllerTest {
     @Test
     void returnsAssistantAnswer() throws Exception {
         InterviewReviewAssistantService service = mock(InterviewReviewAssistantService.class);
-        when(service.respond("查询会话 session-1 的任务"))
+        when(service.respond("查询会话 session-1 的任务", null))
                 .thenReturn(new InterviewReviewAssistantResult(
                         "request-1", "已查询到 1 条任务。"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
@@ -39,13 +41,44 @@ class InterviewReviewAssistantControllerTest {
                 .andExpect(jsonPath("$.requestId").value("request-1"))
                 .andExpect(jsonPath("$.answer").value("已查询到 1 条任务。"));
 
-        verify(service).respond("查询会话 session-1 的任务");
+        verify(service).respond("查询会话 session-1 的任务", null);
+    }
+
+    @Test
+    void forwardsExactScheduleConfirmation() throws Exception {
+        InterviewReviewAssistantService service = mock(InterviewReviewAssistantService.class);
+        InterviewReviewScheduleConfirmation confirmation =
+                new InterviewReviewScheduleConfirmation(
+                        "session-1", "task-1", LocalDate.of(2026, 8, 12));
+        when(service.respond("确认改期", confirmation))
+                .thenReturn(new InterviewReviewAssistantResult(
+                        "request-2", "已把计划日期设置为 2026-08-12。"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewReviewAssistantController(
+                        service, mock(InterviewAssistantRequestLogQueryService.class))).build();
+
+        mockMvc.perform(post("/api/interviews/review-assistant")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "message":"确认改期",
+                                  "scheduleConfirmation":{
+                                    "sessionId":"session-1",
+                                    "taskId":"task-1",
+                                    "plannedReviewDate":"2026-08-12"
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").value("request-2"));
+
+        verify(service).respond("确认改期", confirmation);
     }
 
     @Test
     void rejectsBlankMessage() throws Exception {
         InterviewReviewAssistantService service = mock(InterviewReviewAssistantService.class);
-        when(service.respond(" ")).thenThrow(
+        when(service.respond(" ", null)).thenThrow(
                 new IllegalArgumentException("复习助手消息不能为空"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new InterviewReviewAssistantController(
