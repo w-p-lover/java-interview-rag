@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowUp } from "@lucide/vue";
 import { computed, shallowRef } from "vue";
 
 import type { InterviewReviewAttempt, InterviewReviewTaskHistory } from "@/api/interview";
@@ -104,6 +105,10 @@ function formatDelta(value: number | null): string {
         </ul>
         <p v-else>最近一次评价没有记录新的遗漏。</p>
       </div>
+      <a class="attempt-review-link" href="#review-assistant-title">
+        <ArrowUp :size="16" aria-hidden="true" />
+        返回复盘助手
+      </a>
     </div>
 
     <ol v-if="attempts.length" class="attempt-list">
@@ -309,6 +314,32 @@ button {
   font-size: var(--text-xs);
 }
 
+.attempt-review-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.attempt-review-link:hover {
+  background: var(--color-accent-soft);
+}
+
+.attempt-review-link:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .attempt-score-row {
   justify-content: flex-start;
   flex-wrap: wrap;
@@ -333,6 +364,10 @@ button {
   .attempt-meta {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .attempt-review-link {
+    justify-self: stretch;
   }
 
   button {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef, watch } from "vue";
 import {
+  ArrowDown,
   CalendarClock,
   Check,
   MessageCircleQuestion,
@@ -11,7 +12,11 @@ import {
   X,
 } from "@lucide/vue";
 
-import type { InterviewReviewTask } from "@/api/interview";
+import type {
+  InterviewReviewSessionHistory,
+  InterviewReviewTask,
+  InterviewReviewTaskHistory,
+} from "@/api/interview";
 import { useInterviewReviewAssistant } from "@/composables/useInterviewReviewAssistant";
 
 type AssistantMode = "QUERY" | "PROGRESS" | "SCHEDULE";
@@ -19,6 +24,7 @@ type AssistantMode = "QUERY" | "PROGRESS" | "SCHEDULE";
 const props = defineProps<{
   sessionId: string;
   tasks: InterviewReviewTask[];
+  history: InterviewReviewSessionHistory | null;
 }>();
 
 const emit = defineEmits<{
@@ -29,6 +35,7 @@ const mode = shallowRef<AssistantMode>("QUERY");
 const queryMessage = shallowRef("");
 const selectedTaskId = shallowRef("");
 const plannedReviewDate = shallowRef("");
+const progressReady = shallowRef(false);
 
 const {
   busy,
@@ -49,6 +56,44 @@ const selectedTask = computed(() => (
 const canRequestSchedule = computed(() => (
   Boolean(selectedTask.value && plannedReviewDate.value) && !busy.value
 ));
+const historiesByTaskId = computed(() => new Map(
+  (props.history?.tasks ?? []).map((history) => [history.reviewTaskId, history]),
+));
+const recommendedTask = computed(() => {
+  const candidates: Array<{
+    task: InterviewReviewTask;
+    history: InterviewReviewTaskHistory;
+  }> = [];
+
+  for (const task of props.tasks) {
+    const history = historiesByTaskId.value.get(task.id);
+    if (history?.unresolvedGaps.length) {
+      candidates.push({ task, history });
+    }
+  }
+
+  candidates.sort((left, right) => {
+    const practiceOrder = Number(left.history.attemptCount > 0)
+      - Number(right.history.attemptCount > 0);
+    if (practiceOrder !== 0) {
+      return practiceOrder;
+    }
+    const leftScore = left.history.latestOverallScore ?? left.history.originalOverallScore;
+    const rightScore = right.history.latestOverallScore ?? right.history.originalOverallScore;
+    return leftScore - rightScore || left.task.questionIndex - right.task.questionIndex;
+  });
+  return candidates[0] ?? null;
+});
+const recommendationReason = computed(() => {
+  const recommendation = recommendedTask.value;
+  if (!recommendation) {
+    return "";
+  }
+  if (recommendation.history.attemptCount === 0) {
+    return "尚未练习";
+  }
+  return `仍有 ${recommendation.history.unresolvedGaps.length} 项遗漏`;
+});
 
 watch(
   pendingTasks,
@@ -68,6 +113,7 @@ watch([selectedTaskId, plannedReviewDate], () => {
 
 function setMode(nextMode: AssistantMode): void {
   mode.value = nextMode;
+  progressReady.value = false;
   cancelConfirmation();
 }
 
@@ -75,8 +121,8 @@ function submitQuery(): void {
   void queryTasks(props.sessionId, queryMessage.value);
 }
 
-function submitProgress(): void {
-  void reviewProgress(props.sessionId);
+async function submitProgress(): Promise<void> {
+  progressReady.value = await reviewProgress(props.sessionId);
 }
 
 function proposeSchedule(): void {
@@ -173,7 +219,7 @@ function formatDate(value: string): string {
       </div>
       <button class="assistant-primary" type="submit" :disabled="busy">
         <TrendingUp :size="16" aria-hidden="true" />
-        {{ busy ? "正在复盘…" : "生成本场复盘" }}
+        {{ busy ? "正在复盘…" : progressReady ? "刷新本场复盘" : "生成本场复盘" }}
       </button>
     </form>
 
@@ -241,6 +287,22 @@ function formatDate(value: string): string {
     <div v-if="answer" class="assistant-answer" aria-live="polite">
       <strong>助手回复</strong>
       <p>{{ answer }}</p>
+      <div
+        v-if="mode === 'PROGRESS' && progressReady && recommendedTask"
+        class="assistant-next"
+      >
+        <div class="assistant-next-copy">
+          <strong>下一步</strong>
+          <span>{{ recommendationReason }}</span>
+        </div>
+        <a
+          class="assistant-next-link"
+          :href="`#review-attempt-answer-${recommendedTask.task.id}`"
+        >
+          <ArrowDown :size="16" aria-hidden="true" />
+          继续练第 {{ recommendedTask.task.questionIndex + 1 }} 题
+        </a>
+      </div>
     </div>
   </section>
 </template>
@@ -261,7 +323,9 @@ function formatDate(value: string): string {
 .assistant-progress,
 .assistant-schedule,
 .schedule-confirmation,
-.confirmation-actions {
+.confirmation-actions,
+.assistant-next,
+.assistant-next-link {
   display: flex;
   align-items: center;
 }
@@ -319,7 +383,8 @@ function formatDate(value: string): string {
 .assistant-modes button,
 .assistant-primary,
 .confirm-action,
-.cancel-action {
+.cancel-action,
+.assistant-next-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -406,11 +471,13 @@ function formatDate(value: string): string {
 }
 
 .assistant-primary,
-.confirm-action {
+.confirm-action,
+.assistant-next-link {
   padding-inline: var(--space-md);
   color: var(--color-accent-ink);
   background: var(--color-accent-strong);
   border-radius: var(--radius-control);
+  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -474,6 +541,28 @@ function formatDate(value: string): string {
   white-space: pre-wrap;
 }
 
+.assistant-next {
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.assistant-next-copy {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.assistant-next-copy strong {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.assistant-next-copy span {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
 .assistant-error {
   padding: var(--space-sm) var(--space-md);
   border: var(--rule-thin) solid var(--color-error-rule);
@@ -512,13 +601,15 @@ input:disabled {
 button:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
-input:focus-visible {
+input:focus-visible,
+.assistant-next-link:focus-visible {
   outline: var(--rule-focus) solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .assistant-primary:not(:disabled):hover,
-.confirm-action:not(:disabled):hover {
+.confirm-action:not(:disabled):hover,
+.assistant-next-link:hover {
   background: var(--color-accent);
 }
 
@@ -544,14 +635,16 @@ input:focus-visible {
   .assistant-query,
   .assistant-progress,
   .assistant-schedule,
-  .schedule-confirmation {
+  .schedule-confirmation,
+  .assistant-next {
     align-items: stretch;
     flex-direction: column;
   }
 
   .assistant-modes,
   .assistant-primary,
-  .confirmation-actions {
+  .confirmation-actions,
+  .assistant-next-link {
     width: 100%;
   }
 

@@ -123,6 +123,7 @@ function handleAssistantScheduled(): void {
         <InterviewReviewAssistantPanel
           :session-id="session.id"
           :tasks="reviewTasks"
+          :history="reviewHistory"
           @scheduled="handleAssistantScheduled"
         />
         <InterviewReviewTaskPanel
