@@ -1,0 +1,91 @@
+{
+  "runAt": "2026-08-07T09:35:44+08:00",
+  "completedAt": "2026-08-07T09:39:02+08:00",
+  "modelName": "qwen3.7-plus",
+  "assistantHttpRequestCount": 1,
+  "providerCallCount": null,
+  "providerCallCountNote": "Spring AI 1.0.0 当前未向业务代码公开工具调用链路中的 provider/model 回合数，本轮不根据 HTTP 请求数推算。",
+  "syntheticBaseline": {
+    "sessionId": "9c379fc9-3f38-42f1-acd7-eda6578a7579",
+    "sessionStatus": "COMPLETED",
+    "questionCount": 3,
+    "reviewTaskCount": 2,
+    "practicedTaskCount": 1,
+    "totalAttemptCount": 1,
+    "improvedTaskCount": 1,
+    "practicedOriginalScore": 60,
+    "practicedLatestScore": 75,
+    "practicedScoreDelta": 15,
+    "unpracticedLatestScore": null,
+    "unresolvedTaskCount": 2
+  },
+  "paidVerification": {
+    "temporaryPort": 18089,
+    "requestId": "9db5ddc1-ddae-4a56-89af-55898e27fddc",
+    "httpStatus": 200,
+    "responseReturnedRequestId": true,
+    "answerAssertions": {
+      "reportsTwoTasks": true,
+      "reportsOnePracticedTask": true,
+      "reportsOneTotalAttempt": true,
+      "reportsScoreChangeFrom60To75": true,
+      "reportsPositive15PointDelta": true,
+      "reportsTwoUnresolvedTasks": true,
+      "describesSecondTaskAsUnpracticed": true,
+      "describesSecondTaskAsRegression": false
+    },
+    "assistantRequestLog": {
+      "status": "SUCCEEDED",
+      "toolExecutionCount": 1,
+      "promptTokens": 2324,
+      "completionTokens": 904,
+      "totalTokens": 3228,
+      "elapsedMillis": 16786,
+      "finalResponsePresent": true,
+      "errorType": null
+    },
+    "toolExecutionLog": {
+      "executionId": "37a652e6-7533-487e-b608-33aac6c081b6",
+      "assistantRequestId": "9db5ddc1-ddae-4a56-89af-55898e27fddc",
+      "toolName": "get_review_progress",
+      "status": "SUCCEEDED",
+      "resultCount": 2,
+      "elapsedMillis": 112,
+      "errorType": null
+    }
+  },
+  "environment": {
+    "mysqlVersion": "5.7.36",
+    "maxAllowedPacketBytes": 2048,
+    "initialSyntheticSessionSelectPacketBytes": 2076,
+    "compactedSyntheticSessionJsonBytes": 1572,
+    "databaseGlobalParameterChanged": false,
+    "qdrantCompatibilityWarningCount": 1,
+    "qdrantUsedByVerification": false,
+    "applicationErrorCountDuringPaidRequest": 0,
+    "preflightErrorCount": 8
+  },
+  "cleanup": {
+    "deletedSessionRows": 1,
+    "deletedReviewTaskRows": 2,
+    "deletedReviewAttemptRows": 1,
+    "deletedAssistantRequestRows": 1,
+    "deletedToolExecutionRows": 1,
+    "remainingSessionRows": 0,
+    "remainingReviewTaskRows": 0,
+    "remainingReviewAttemptRows": 0,
+    "remainingAssistantRequestRows": 0,
+    "remainingToolExecutionRows": 0,
+    "temporaryPortReleased": true
+  },
+  "privacy": {
+    "storesUserMessage": false,
+    "storesAssistantAnswer": false,
+    "storesToolArgumentsJson": false,
+    "storesToolResultBody": false,
+    "containsResumeText": false,
+    "containsAnswerText": false,
+    "containsKnowledgeChunkText": false,
+    "containsCredential": false
+  }
+}
