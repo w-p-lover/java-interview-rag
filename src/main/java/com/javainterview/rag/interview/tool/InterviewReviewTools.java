@@ -53,6 +53,7 @@ public class InterviewReviewTools {
         String assistantRequestId = markToolExecution(toolContext);
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
         return executeLogged(LIST_REVIEW_TASKS, assistantRequestId, normalizedSessionId, () -> {
+            requireSessionScope(toolContext, normalizedSessionId);
             String normalizedStatus = blankToNull(status);
             LocalDate from = parseOptionalDate(plannedDateFrom);
             LocalDate to = parseOptionalDate(plannedDateTo);
@@ -74,8 +75,11 @@ public class InterviewReviewTools {
         String assistantRequestId = markToolExecution(toolContext);
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
         return executeLogged(GET_REVIEW_PROGRESS, assistantRequestId, normalizedSessionId,
-                () -> ReviewProgressToolResult.from(
-                        reviewTaskService.findAttemptHistory(normalizedSessionId)),
+                () -> {
+                    requireSessionScope(toolContext, normalizedSessionId);
+                    return ReviewProgressToolResult.from(
+                            reviewTaskService.findAttemptHistory(normalizedSessionId));
+                },
                 ReviewProgressToolResult::totalTaskCount);
     }
 
@@ -93,6 +97,7 @@ public class InterviewReviewTools {
         String assistantRequestId = markToolExecution(toolContext);
         String normalizedSessionId = requireText(sessionId, "面试会话 ID 不能为空");
         return executeLogged(SCHEDULE_REVIEW_TASK, assistantRequestId, normalizedSessionId, () -> {
+            requireSessionScope(toolContext, normalizedSessionId);
             String normalizedTaskId = requireText(taskId, "复习任务 ID 不能为空");
             LocalDate normalizedDate = parseRequiredDate(plannedReviewDate);
             requireScheduleConfirmation(
@@ -167,6 +172,15 @@ public class InterviewReviewTools {
             throw new IllegalStateException("设置计划复习日期前必须提供人工确认");
         }
         requestContext.requireScheduleConfirmation(sessionId, taskId, plannedReviewDate);
+    }
+
+    private void requireSessionScope(ToolContext toolContext, String sessionId) {
+        InterviewAssistantRequestContext requestContext =
+                InterviewAssistantRequestContext.from(toolContext);
+        if (requestContext == null) {
+            throw new IllegalStateException("复习助手工具缺少请求上下文");
+        }
+        requestContext.requireSessionScope(sessionId);
     }
 
     private static LocalDate parseRequiredDate(String value) {

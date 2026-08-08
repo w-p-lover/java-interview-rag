@@ -157,6 +157,7 @@ export interface InterviewReviewScheduleConfirmation {
 }
 
 export interface InterviewReviewAssistantRequest {
+  sessionId: string;
   message: string;
   scheduleConfirmation?: InterviewReviewScheduleConfirmation;
 }

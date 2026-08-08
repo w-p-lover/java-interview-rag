@@ -28,14 +28,16 @@ export function useInterviewReviewAssistant() {
     }
     pendingConfirmation.value = null;
     return send({
-      message: `请查询会话 ${sessionId} 的复习任务。用户问题：${normalizedMessage}`,
+      sessionId,
+      message: `请查询本场复习任务。用户问题：${normalizedMessage}`,
     }, "查询复习任务失败");
   }
 
   async function reviewProgress(sessionId: string): Promise<boolean> {
     pendingConfirmation.value = null;
     return send({
-      message: `请使用 get_review_progress 分析会话 ${sessionId} 的复习进展，说明已练题目、总练习次数、分数变化和仍未解决的遗漏。`,
+      sessionId,
+      message: "请使用 get_review_progress 分析本场复习进展，说明已练题目、总练习次数、分数变化和仍未解决的遗漏。",
     }, "生成本场复盘失败");
   }
 
@@ -52,7 +54,8 @@ export function useInterviewReviewAssistant() {
       question: task.question,
     };
     const succeeded = await send({
-      message: `请准备把会话 ${sessionId} 的复习任务 ${task.id} 调整到 ${plannedReviewDate}。先说明这次改期并请求确认，不要执行写入。`,
+      sessionId,
+      message: `请准备把复习任务 ${task.id} 调整到 ${plannedReviewDate}。先说明这次改期并请求确认，不要执行写入。`,
     }, "提出改期失败");
     pendingConfirmation.value = succeeded ? confirmation : null;
     return succeeded;
@@ -65,7 +68,8 @@ export function useInterviewReviewAssistant() {
       return false;
     }
     const succeeded = await send({
-      message: `我确认把会话 ${confirmation.sessionId} 的复习任务 ${confirmation.taskId} 调整到 ${confirmation.plannedReviewDate}。`,
+      sessionId: confirmation.sessionId,
+      message: `我确认把复习任务 ${confirmation.taskId} 调整到 ${confirmation.plannedReviewDate}。`,
       scheduleConfirmation: {
         sessionId: confirmation.sessionId,
         taskId: confirmation.taskId,

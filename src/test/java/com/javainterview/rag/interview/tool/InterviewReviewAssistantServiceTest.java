@@ -35,7 +35,7 @@ class InterviewReviewAssistantServiceTest {
         ToolCallbackProvider toolCallbackProvider = mock(ToolCallbackProvider.class);
         when(chatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.system(org.mockito.ArgumentMatchers.anyString())).thenReturn(requestSpec);
-        when(requestSpec.user("查询会话 session-1 的待复习任务")).thenReturn(requestSpec);
+        when(requestSpec.user("查询本场待复习任务")).thenReturn(requestSpec);
         when(requestSpec.toolContext(anyMap())).thenReturn(requestSpec);
         when(requestSpec.toolCallbacks(toolCallbackProvider)).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(responseSpec);
@@ -48,7 +48,7 @@ class InterviewReviewAssistantServiceTest {
                         chatClient, toolCallbackProvider, requestLogStore, "qwen3.7-plus");
 
         InterviewReviewAssistantResult result =
-                service.respond(" 查询会话 session-1 的待复习任务 ", null);
+                service.respond(" session-1 ", " 查询本场待复习任务 ", null);
 
         assertEquals("已查询到 1 条待复习任务。", result.answer());
         assertTrue(result.requestId().matches("[0-9a-f-]{36}"));
@@ -57,10 +57,11 @@ class InterviewReviewAssistantServiceTest {
                         && prompt.contains("明确要求")
                         && prompt.contains("get_review_progress")
                         && prompt.contains("练习进步")
+                        && prompt.contains("当前请求只允许访问面试会话 session-1")
                         && prompt.contains("未提供结构化人工确认")
                         && prompt.contains("不得对用户输入是否乱码")));
         verify(requestSpec).toolContext(argThat((Map<String, Object> context) ->
-                context.containsKey(InterviewAssistantRequestContext.KEY)));
+                hasSessionScope(context, "session-1")));
         verify(requestSpec).toolCallbacks(toolCallbackProvider);
         verify(requestLogStore).record(argThat(log ->
                 result.requestId().equals(log.requestId())
@@ -83,11 +84,15 @@ class InterviewReviewAssistantServiceTest {
                 mock(InterviewAssistantRequestLogStore.class),
                 "qwen3.7-plus");
 
+        IllegalArgumentException sessionException = assertThrows(
+                IllegalArgumentException.class, () -> service.respond(" ", "查询任务", null));
         IllegalArgumentException blankException = assertThrows(
-                IllegalArgumentException.class, () -> service.respond(" "));
+                IllegalArgumentException.class, () -> service.respond("session-1", " ", null));
         IllegalArgumentException oversizedException = assertThrows(
-                IllegalArgumentException.class, () -> service.respond("a".repeat(2001)));
+                IllegalArgumentException.class,
+                () -> service.respond("session-1", "a".repeat(2001), null));
 
+        assertEquals("复习助手会话 ID 不能为空", sessionException.getMessage());
         assertEquals("复习助手消息不能为空", blankException.getMessage());
         assertEquals("复习助手消息不能超过 2000 个字符", oversizedException.getMessage());
         verifyNoInteractions(chatClient);
@@ -117,7 +122,7 @@ class InterviewReviewAssistantServiceTest {
                 new InterviewReviewScheduleConfirmation(
                         "session-1", "task-1", LocalDate.of(2026, 8, 12));
 
-        service.respond("确认改期", confirmation);
+        service.respond("session-1", "确认改期", confirmation);
 
         verify(requestSpec).system(argThat((String prompt) ->
                 prompt.contains("已提供结构化人工确认")));
@@ -125,10 +130,31 @@ class InterviewReviewAssistantServiceTest {
             InterviewAssistantRequestContext requestContext =
                     (InterviewAssistantRequestContext) context.get(
                             InterviewAssistantRequestContext.KEY);
+            requestContext.requireSessionScope("session-1");
             requestContext.requireScheduleConfirmation(
                     "session-1", "task-1", LocalDate.of(2026, 8, 12));
             return true;
         }));
+    }
+
+    @Test
+    void rejectsScheduleConfirmationForAnotherSessionBeforeCallingModel() {
+        ChatClient chatClient = mock(ChatClient.class);
+        InterviewReviewAssistantService service = new InterviewReviewAssistantService(
+                chatClient,
+                mock(ToolCallbackProvider.class),
+                mock(InterviewAssistantRequestLogStore.class),
+                "qwen3.7-plus");
+        InterviewReviewScheduleConfirmation confirmation =
+                new InterviewReviewScheduleConfirmation(
+                        "session-2", "task-1", LocalDate.of(2026, 8, 12));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.respond("session-1", "确认改期", confirmation));
+
+        assertEquals("改期确认会话与当前会话不一致", exception.getMessage());
+        verifyNoInteractions(chatClient);
     }
 
     @Test
@@ -152,7 +178,8 @@ class InterviewReviewAssistantServiceTest {
                         chatClient, toolCallbackProvider, requestLogStore, "qwen3.7-plus");
 
         IllegalStateException exception = assertThrows(
-                IllegalStateException.class, () -> service.respond("查询任务"));
+                IllegalStateException.class,
+                () -> service.respond("session-1", "查询任务", null));
 
         assertEquals("复习助手未返回有效内容", exception.getMessage());
         verify(requestLogStore).record(argThat(log ->
@@ -179,7 +206,8 @@ class InterviewReviewAssistantServiceTest {
                 chatClient, toolCallbackProvider, requestLogStore, "qwen3.7-plus");
 
         IllegalStateException exception = assertThrows(
-                IllegalStateException.class, () -> service.respond("查询任务"));
+                IllegalStateException.class,
+                () -> service.respond("session-1", "查询任务", null));
 
         assertEquals("上游返回的敏感详情", exception.getMessage());
         verify(requestLogStore).record(argThat(log ->
@@ -204,7 +232,8 @@ class InterviewReviewAssistantServiceTest {
         InterviewReviewAssistantService service = new InterviewReviewAssistantService(
                 chatClient, toolCallbackProvider, requestLogStore, "qwen3.7-plus");
 
-        InterviewReviewAssistantResult result = service.respond("查询任务");
+        InterviewReviewAssistantResult result =
+                service.respond("session-1", "查询任务", null);
 
         assertEquals("没有待复习任务。", result.answer());
     }
@@ -221,5 +250,14 @@ class InterviewReviewAssistantServiceTest {
         return new ChatResponse(
                 List.of(new Generation(new AssistantMessage(content))),
                 metadata);
+    }
+
+    private boolean hasSessionScope(Map<String, Object> context, String sessionId) {
+        Object value = context.get(InterviewAssistantRequestContext.KEY);
+        if (!(value instanceof InterviewAssistantRequestContext requestContext)) {
+            return false;
+        }
+        requestContext.requireSessionScope(sessionId);
+        return true;
     }
 }

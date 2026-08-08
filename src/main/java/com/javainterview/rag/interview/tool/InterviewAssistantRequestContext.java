@@ -12,24 +12,24 @@ final class InterviewAssistantRequestContext {
     static final String KEY = InterviewAssistantRequestContext.class.getName();
 
     private final String requestId;
+    private final String sessionId;
     private final InterviewReviewScheduleConfirmation scheduleConfirmation;
     private final AtomicInteger toolExecutionCount = new AtomicInteger();
 
     private InterviewAssistantRequestContext(
             String requestId,
+            String sessionId,
             InterviewReviewScheduleConfirmation scheduleConfirmation) {
         this.requestId = requestId;
+        this.sessionId = sessionId;
         this.scheduleConfirmation = scheduleConfirmation;
     }
 
-    static InterviewAssistantRequestContext create() {
-        return create(null);
-    }
-
     static InterviewAssistantRequestContext create(
+            String sessionId,
             InterviewReviewScheduleConfirmation scheduleConfirmation) {
         return new InterviewAssistantRequestContext(
-                UUID.randomUUID().toString(), scheduleConfirmation);
+                UUID.randomUUID().toString(), requireText(sessionId), scheduleConfirmation);
     }
 
     static InterviewAssistantRequestContext from(ToolContext toolContext) {
@@ -57,6 +57,12 @@ final class InterviewAssistantRequestContext {
         return toolExecutionCount.get();
     }
 
+    void requireSessionScope(String sessionId) {
+        if (!this.sessionId.equals(sessionId)) {
+            throw new IllegalStateException("工具会话与当前复习助手会话不一致");
+        }
+    }
+
     void requireScheduleConfirmation(String sessionId,
                                      String taskId,
                                      LocalDate plannedReviewDate) {
@@ -68,5 +74,12 @@ final class InterviewAssistantRequestContext {
                 || !scheduleConfirmation.plannedReviewDate().equals(plannedReviewDate)) {
             throw new IllegalStateException("工具参数与人工确认的改期内容不一致");
         }
+    }
+
+    private static String requireText(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("复习助手会话 ID 不能为空");
+        }
+        return value.strip();
     }
 }

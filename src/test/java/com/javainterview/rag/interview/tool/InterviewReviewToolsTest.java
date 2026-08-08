@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -52,7 +53,8 @@ class InterviewReviewToolsTest {
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
 
         InterviewReviewTools.ReviewTaskListToolResult result = tools.listReviewTasks(
-                " session-1 ", "PENDING", "2026-08-04", "2026-08-10", null);
+                " session-1 ", "PENDING", "2026-08-04", "2026-08-10",
+                toolContext("session-1"));
 
         assertEquals("session-1", result.sessionId());
         assertEquals("PENDING", result.statusFilter());
@@ -82,7 +84,8 @@ class InterviewReviewToolsTest {
                 () -> tools.listReviewTasks(" ", null, null, null, null));
         IllegalArgumentException dateException = assertThrows(
                 IllegalArgumentException.class,
-                () -> tools.listReviewTasks("session-1", null, "2026/08/04", null, null));
+                () -> tools.listReviewTasks(
+                        "session-1", null, "2026/08/04", null, toolContext("session-1")));
 
         assertEquals("面试会话 ID 不能为空", sessionException.getMessage());
         assertEquals("计划复习日期格式必须为 yyyy-MM-dd", dateException.getMessage());
@@ -144,7 +147,7 @@ class InterviewReviewToolsTest {
                         "session-1", 2, 1, 1, 1, List.of(practiced, unpracticed)));
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create();
+                InterviewAssistantRequestContext.create("session-1", null);
 
         InterviewReviewTools.ReviewProgressToolResult result = tools.getReviewProgress(
                 " session-1 ", new ToolContext(requestContext.asMap()));
@@ -177,7 +180,7 @@ class InterviewReviewToolsTest {
                 service, mock(InterviewToolExecutionLogStore.class));
 
         InterviewReviewTools.ReviewTaskListToolResult result = tools.listReviewTasks(
-                "session-1", null, null, null, null);
+                "session-1", null, null, null, toolContext("session-1"));
 
         assertEquals(2, result.totalTaskCount());
         assertEquals(1, result.pendingTaskCount());
@@ -195,7 +198,8 @@ class InterviewReviewToolsTest {
 
         java.util.NoSuchElementException exception = assertThrows(
                 java.util.NoSuchElementException.class,
-                () -> tools.listReviewTasks("missing-session", null, null, null, null));
+                () -> tools.listReviewTasks(
+                        "missing-session", null, null, null, toolContext("missing-session")));
 
         assertEquals("面试会话不存在", exception.getMessage());
         verify(logStore).record(argThat(log ->
@@ -213,7 +217,8 @@ class InterviewReviewToolsTest {
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
 
         InterviewReviewTools.ReviewTaskListToolResult result = assertDoesNotThrow(
-                () -> tools.listReviewTasks("session-1", null, null, null, null));
+                () -> tools.listReviewTasks(
+                        "session-1", null, null, null, toolContext("session-1")));
 
         assertEquals(0, result.totalTaskCount());
     }
@@ -228,7 +233,7 @@ class InterviewReviewToolsTest {
                         "task-1", InterviewReviewTaskStatus.PENDING, plannedDate, List.of()));
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create(
+                InterviewAssistantRequestContext.create("session-1",
                         new InterviewReviewScheduleConfirmation(
                                 "session-1", "task-1", plannedDate));
 
@@ -256,7 +261,8 @@ class InterviewReviewToolsTest {
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> tools.scheduleReviewTask("session-1", "task-1", "2026/08/12", null));
+                () -> tools.scheduleReviewTask(
+                        "session-1", "task-1", "2026/08/12", toolContext("session-1")));
 
         assertEquals("计划复习日期格式必须为 yyyy-MM-dd", exception.getMessage());
         verifyNoInteractions(service);
@@ -275,7 +281,7 @@ class InterviewReviewToolsTest {
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
                 () -> tools.scheduleReviewTask(
-                        "session-1", "task-1", "2026-08-12", null));
+                        "session-1", "task-1", "2026-08-12", toolContext("session-1")));
 
         assertEquals("设置计划复习日期前必须提供人工确认", exception.getMessage());
         verifyNoInteractions(service);
@@ -291,7 +297,7 @@ class InterviewReviewToolsTest {
         InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create(
+                InterviewAssistantRequestContext.create("session-1",
                         new InterviewReviewScheduleConfirmation(
                                 "session-1", "task-2", LocalDate.of(2026, 8, 12)));
 
@@ -312,7 +318,7 @@ class InterviewReviewToolsTest {
         when(service.findBySessionId("session-1", null, null, null)).thenReturn(List.of());
         InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create();
+                InterviewAssistantRequestContext.create("session-1", null);
 
         tools.listReviewTasks(
                 "session-1", null, null, null,
@@ -322,6 +328,40 @@ class InterviewReviewToolsTest {
         verify(logStore).record(argThat(log ->
                 requestContext.requestId().equals(log.assistantRequestId())
                         && log.status() == InterviewToolExecutionLog.Status.SUCCEEDED));
+    }
+
+    @Test
+    void rejectsAllToolsWhenModelUsesAnotherSession() {
+        InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewToolExecutionLogStore logStore = mock(InterviewToolExecutionLogStore.class);
+        InterviewReviewTools tools = new InterviewReviewTools(service, logStore);
+        ToolContext currentSession = toolContext("session-1");
+
+        IllegalStateException listException = assertThrows(
+                IllegalStateException.class,
+                () -> tools.listReviewTasks(
+                        "session-2", null, null, null, currentSession));
+        IllegalStateException progressException = assertThrows(
+                IllegalStateException.class,
+                () -> tools.getReviewProgress("session-2", currentSession));
+        IllegalStateException scheduleException = assertThrows(
+                IllegalStateException.class,
+                () -> tools.scheduleReviewTask(
+                        "session-2", "task-1", "2026-08-12", currentSession));
+
+        assertEquals("工具会话与当前复习助手会话不一致", listException.getMessage());
+        assertEquals(listException.getMessage(), progressException.getMessage());
+        assertEquals(listException.getMessage(), scheduleException.getMessage());
+        verifyNoInteractions(service);
+        verify(logStore, times(3)).record(argThat(log ->
+                "session-2".equals(log.sessionId())
+                        && log.status() == InterviewToolExecutionLog.Status.FAILED
+                        && "IllegalStateException".equals(log.errorType())));
+    }
+
+    private ToolContext toolContext(String sessionId) {
+        return new ToolContext(
+                InterviewAssistantRequestContext.create(sessionId, null).asMap());
     }
 
     private InterviewReviewTask reviewTask(String id,

@@ -19,10 +19,13 @@ public class InterviewReviewAssistantService {
             你是 Java 面试复习助手，只能帮助用户查询单个会话内的复习任务、分析本场练习进步，或为指定任务设置计划复习日期。
             查询任务清单时必须使用 list_review_tasks；分析练习次数、分数变化或未解决遗漏时必须使用 get_review_progress；设置日期时必须使用 schedule_review_task。
             复盘进展必须基于工具返回的持久化数据，未练习题目不得描述为退步，分数为空时不得猜测。
-            只有用户明确提供会话 ID、任务 ID 和 yyyy-MM-dd 日期并明确要求设置时，才能调用写入工具。
-            不得猜测、补全或替换任何 ID 和日期；信息不足时直接说明缺少什么，不调用写入工具。
+            当前会话由服务端结构化绑定；只有用户明确提供任务 ID 和 yyyy-MM-dd 日期并明确要求设置时，才能调用写入工具。
+            不得猜测、补全或替换任务 ID 和日期；信息不足时直接说明缺少什么，不调用写入工具。
             工具成功后只简洁说明真实结果；工具失败时如实说明失败，不得声称已经完成操作。
             不得对用户输入是否乱码、编码异常或表达有误作无依据判断。
+            """;
+    private static final String SESSION_SCOPE_PROMPT = """
+            当前请求只允许访问面试会话 %s。调用任何工具时必须原样使用这个会话 ID，不得根据用户消息切换会话。
             """;
     private static final String UNCONFIRMED_PROMPT = """
             本次请求未提供结构化人工确认，不得调用 schedule_review_task。
@@ -53,13 +56,11 @@ public class InterviewReviewAssistantService {
         this.modelName = modelName.strip();
     }
 
-    public InterviewReviewAssistantResult respond(String message) {
-        return respond(message, null);
-    }
-
     public InterviewReviewAssistantResult respond(
+            String sessionId,
             String message,
             InterviewReviewScheduleConfirmation scheduleConfirmation) {
+        String normalizedSessionId = requireText(sessionId, "复习助手会话 ID 不能为空");
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("复习助手消息不能为空");
         }
@@ -67,13 +68,18 @@ public class InterviewReviewAssistantService {
         if (normalizedMessage.length() > MAX_MESSAGE_LENGTH) {
             throw new IllegalArgumentException("复习助手消息不能超过 2000 个字符");
         }
+        if (scheduleConfirmation != null
+                && !normalizedSessionId.equals(scheduleConfirmation.sessionId())) {
+            throw new IllegalArgumentException("改期确认会话与当前会话不一致");
+        }
         InterviewAssistantRequestContext requestContext =
-                InterviewAssistantRequestContext.create(scheduleConfirmation);
+                InterviewAssistantRequestContext.create(
+                        normalizedSessionId, scheduleConfirmation);
         long startedAt = System.nanoTime();
         ChatResponse response = null;
         try {
             response = chatClient.prompt()
-                    .system(systemPrompt(scheduleConfirmation))
+                    .system(systemPrompt(normalizedSessionId, scheduleConfirmation))
                     .user(normalizedMessage)
                     .toolContext(requestContext.asMap())
                     .toolCallbacks(toolCallbackProvider)
@@ -93,9 +99,18 @@ public class InterviewReviewAssistantService {
         }
     }
 
-    private String systemPrompt(InterviewReviewScheduleConfirmation scheduleConfirmation) {
-        return SYSTEM_PROMPT + (scheduleConfirmation == null
+    private String systemPrompt(String sessionId,
+                                InterviewReviewScheduleConfirmation scheduleConfirmation) {
+        return SYSTEM_PROMPT + SESSION_SCOPE_PROMPT.formatted(sessionId)
+                + (scheduleConfirmation == null
                 ? UNCONFIRMED_PROMPT : CONFIRMED_PROMPT);
+    }
+
+    private String requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.strip();
     }
 
     private String extractContent(ChatResponse response) {
