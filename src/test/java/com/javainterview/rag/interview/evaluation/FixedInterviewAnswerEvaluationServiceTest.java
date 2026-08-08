@@ -52,6 +52,13 @@ class FixedInterviewAnswerEvaluationServiceTest {
                         "ungrounded-answer"),
                 report.cases().stream().map(FixedInterviewAnswerEvaluationService.CaseResult::caseId).toList());
         assertTrue(report.cases().stream().allMatch(FixedInterviewAnswerEvaluationService.CaseResult::passed));
+        assertTrue(report.cases().stream()
+                .filter(result -> "SUCCEEDED".equals(result.status()))
+                .allMatch(result -> result.answerEvidenceCount() == 1));
+        assertEquals(List.of(1, 1, 1, 0), report.cases().stream()
+                .filter(result -> "SUCCEEDED".equals(result.status()))
+                .map(FixedInterviewAnswerEvaluationService.CaseResult::knowledgeEvidenceCount)
+                .toList());
         assertEquals(5, dataset.findAll().stream().map(FixedInterviewAnswerEvaluationDataset.Case::id)
                 .distinct().count());
         ArgumentCaptor<String> runIdCaptor = ArgumentCaptor.forClass(String.class);
@@ -66,6 +73,14 @@ class FixedInterviewAnswerEvaluationServiceTest {
     private InterviewAnswerEvaluation evaluation(int score, boolean grounded) {
         return new InterviewAnswerEvaluation(
                 score, score, score, score,
-                List.of(), List.of("固定样本遗漏"), "补充关键边界。", grounded);
+                List.of(), List.of("固定样本遗漏"), "补充关键边界。", grounded,
+                List.of("固定样本回答"),
+                grounded ? List.of(new InterviewKnowledgeEvidence(
+                        "rag/vector-lifecycle.md",
+                        "baseline-v1",
+                        0,
+                        List.of("RAG", "向量生命周期"),
+                        1.0,
+                        "新版本成功写入后再清理旧版本")) : List.of());
     }
 }

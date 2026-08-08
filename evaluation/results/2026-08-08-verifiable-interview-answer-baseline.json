@@ -1,0 +1,129 @@
+{
+  "runAt": "2026-08-08T10:33:54.787066+08:00",
+  "completedAt": "2026-08-08T10:37:53.385497+08:00",
+  "promptVersion": "interview-answer-evaluation-v3",
+  "rubricVersion": "interview-answer-rubric-v2",
+  "modelName": "qwen3.7-plus",
+  "paidChatCallCount": 8,
+  "totalBaselineRunCount": 2,
+  "totalLogCount": 10,
+  "succeededEvaluationCount": 8,
+  "expectedRejectionCount": 2,
+  "verifiedEvidenceEvaluationCount": 8,
+  "allCasesWithinExpectedBoundary": true,
+  "allSucceededEvaluationsPassedEvidenceValidation": true,
+  "rawPromptAnswerKnowledgeOrQuoteStored": false,
+  "runs": [
+    {
+      "baselineRunId": "1ad2e463-5d34-4947-b36c-508bc569aeff",
+      "responseObserved": false,
+      "completionRecoveredFromPersistedLogs": true,
+      "persistedLogCount": 5,
+      "totalElapsedMillis": 102701,
+      "scores": {
+        "irrelevant-answer": 3,
+        "partial-grounded-answer": 63,
+        "complete-grounded-answer": 93,
+        "ungrounded-answer": 63
+      },
+      "evidenceCountObservation": "客户端命令提前终止，精确条数未保留；四个成功评价均通过服务端证据验真"
+    },
+    {
+      "baselineRunId": "1d983089-07db-428d-a0d4-5718e0af2781",
+      "responseObserved": true,
+      "passedCaseCount": 5,
+      "persistedLogCount": 5,
+      "totalElapsedMillis": 96097,
+      "scores": {
+        "irrelevant-answer": 17,
+        "partial-grounded-answer": 70,
+        "complete-grounded-answer": 93,
+        "ungrounded-answer": 53
+      },
+      "evidenceCounts": {
+        "irrelevant-answer": {
+          "answerEvidenceCount": 2,
+          "knowledgeEvidenceCount": 1
+        },
+        "partial-grounded-answer": {
+          "answerEvidenceCount": 1,
+          "knowledgeEvidenceCount": 1
+        },
+        "complete-grounded-answer": {
+          "answerEvidenceCount": 2,
+          "knowledgeEvidenceCount": 1
+        },
+        "ungrounded-answer": {
+          "answerEvidenceCount": 2,
+          "knowledgeEvidenceCount": 0
+        }
+      }
+    }
+  ],
+  "crossRunSummary": [
+    {
+      "caseId": "blank-answer",
+      "status": "EXPECTED_REJECTION",
+      "distinctRunCount": 2,
+      "failureType": "IllegalArgumentException",
+      "overallScorePopulationVariance": null
+    },
+    {
+      "caseId": "irrelevant-answer",
+      "scores": [3, 17],
+      "averageOverallScore": 10.0,
+      "overallScoreRange": 14,
+      "overallScorePopulationVariance": 49.0
+    },
+    {
+      "caseId": "partial-grounded-answer",
+      "scores": [63, 70],
+      "averageOverallScore": 66.5,
+      "overallScoreRange": 7,
+      "overallScorePopulationVariance": 12.25
+    },
+    {
+      "caseId": "complete-grounded-answer",
+      "scores": [93, 93],
+      "averageOverallScore": 93.0,
+      "overallScoreRange": 0,
+      "overallScorePopulationVariance": 0.0
+    },
+    {
+      "caseId": "ungrounded-answer",
+      "scores": [63, 53],
+      "averageOverallScore": 58.0,
+      "overallScoreRange": 10,
+      "overallScorePopulationVariance": 25.0
+    }
+  ],
+  "versionSummary": {
+    "minimumOverallScore": 3,
+    "maximumOverallScore": 93,
+    "averageOverallScore": 56.88,
+    "averageElapsedMillisIncludingExpectedRejections": 19879.8,
+    "maximumElapsedMillis": 34935,
+    "failureTypeCounts": {
+      "IllegalArgumentException": 2
+    }
+  },
+  "comparisonWithV2V1": {
+    "previousResult": "evaluation/results/2026-08-05-interview-answer-baseline.json",
+    "previousAverageOverallScore": 58.5,
+    "currentAverageOverallScore": 56.88,
+    "interpretation": "样本仅各两次观测；不能把均值变化归因于证据 Prompt，也不能据此判断版本优劣"
+  },
+  "observabilityLimits": [
+    "评分链路当前未记录 token，不能从本轮结果推算 token 或 provider 计费回合数",
+    "第一轮响应未被客户端保留，只能从运行 ID 对应的持久化日志恢复分数和耗时"
+  ],
+  "environment": {
+    "serverPort": 18090,
+    "temporaryServerStopped": true,
+    "temporaryLogsDeleted": true,
+    "embeddingCalled": false,
+    "ragAnswerEvaluationCalled": false,
+    "qdrantUsedByScoring": false,
+    "knownWarning": "Qdrant Java Client 1.13.0 与服务器 1.17.1 版本兼容警告；评分链路未使用 Qdrant"
+  }
+}

@@ -22,7 +22,7 @@ class InterviewAnswerEvaluationControllerTest {
                 "run-1", "prompt-v2", "rubric-v1", "model-test", 1, 1,
                 List.of(new FixedInterviewAnswerEvaluationService.CaseResult(
                         "complete-answer", "SUCCEEDED", true, 65, 100,
-                        88, true, true, null))));
+                        88, true, true, 2, 1, null))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new InterviewAnswerEvaluationController(service)).build();
 
@@ -32,6 +32,8 @@ class InterviewAnswerEvaluationControllerTest {
                 .andExpect(jsonPath("$.promptVersion").value("prompt-v2"))
                 .andExpect(jsonPath("$.passedCaseCount").value(1))
                 .andExpect(jsonPath("$.cases[0].caseId").value("complete-answer"))
-                .andExpect(jsonPath("$.cases[0].passed").value(true));
+                .andExpect(jsonPath("$.cases[0].passed").value(true))
+                .andExpect(jsonPath("$.cases[0].answerEvidenceCount").value(2))
+                .andExpect(jsonPath("$.cases[0].knowledgeEvidenceCount").value(1));
     }
 }

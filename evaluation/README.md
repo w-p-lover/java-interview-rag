@@ -27,3 +27,13 @@ curl.exe -X POST http://127.0.0.1:18080/api/knowledge/evaluations/answers
 ```
 
 接口会依次调用 6 道固定题目的现有 RAG 回答链路，每题写入正常的召回日志并产生一次 Chat 调用。报告使用 `normalized-literal-containment-v1`：回答和预期要点统一转为小写并移除非字母数字字符，再判断回答是否包含完整要点。该结果只表示可重复的字面覆盖率，不能替代语义正确性或人工评审。
+
+## 面试回答评分
+
+固定面试回答评分不依赖本目录的 RAG 语料，可在 `storage` profile 下显式执行：
+
+```shell
+curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
+```
+
+接口依次执行五个脱敏样本。空回答在服务端拒绝，其余四项各产生一次 Chat 调用；响应只返回分数、知识依据状态、回答证据条数和知识证据条数，不返回回答、知识正文或引文。每次调用生成独立 `baselineRunId`，可以通过 `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...` 恢复分数、耗时和失败类型。评分链路当前不记录 token，不能从 HTTP 请求数推算 provider 计费回合。

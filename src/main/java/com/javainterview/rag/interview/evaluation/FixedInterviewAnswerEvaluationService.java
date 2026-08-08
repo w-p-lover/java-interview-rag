@@ -52,6 +52,8 @@ public class FixedInterviewAnswerEvaluationService {
                     evaluation.overallScore(),
                     evaluationCase.expectedKnowledgeGrounded(),
                     evaluation.knowledgeGrounded(),
+                    evaluation.answerEvidence().size(),
+                    evaluation.knowledgeEvidence().size(),
                     null);
         } catch (IllegalArgumentException exception) {
             if (!evaluationCase.expectedRejected()) {
@@ -65,6 +67,8 @@ public class FixedInterviewAnswerEvaluationService {
                     evaluationCase.expectedMaxOverallScore(),
                     null,
                     evaluationCase.expectedKnowledgeGrounded(),
+                    null,
+                    null,
                     null,
                     exception.getClass().getSimpleName());
         }
@@ -97,6 +101,8 @@ public class FixedInterviewAnswerEvaluationService {
             Integer actualOverallScore,
             boolean expectedKnowledgeGrounded,
             Boolean actualKnowledgeGrounded,
+            Integer answerEvidenceCount,
+            Integer knowledgeEvidenceCount,
             String errorType
     ) {
     }
