@@ -4,6 +4,7 @@ import { computed, onMounted } from "vue";
 import type { InterviewReviewTaskQuery, InterviewSessionStartPayload } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
+import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
 import InterviewReviewAssistantPanel from "@/components/interview/InterviewReviewAssistantPanel.vue";
 import InterviewReviewTaskPanel from "@/components/interview/InterviewReviewTaskPanel.vue";
@@ -17,6 +18,10 @@ const {
   loading,
   restoring,
   error,
+  recentSessions,
+  recentSessionsLoading,
+  recentSessionsError,
+  restoringSessionId,
   currentQuestion,
   latestAnswer,
   reviewTasks,
@@ -32,6 +37,7 @@ const {
   reviewAttemptsLoadingTaskId,
   submittingReviewAttemptTaskId,
   reviewAttemptError,
+  initialize,
   restore,
   start,
   submit,
@@ -50,7 +56,7 @@ const progress = computed(() => {
   return Math.round((session.value.currentQuestionIndex / session.value.questions.length) * 100);
 });
 
-onMounted(restore);
+onMounted(initialize);
 
 function handleStart(payload: InterviewSessionStartPayload): void {
   void start(payload);
@@ -58,6 +64,10 @@ function handleStart(payload: InterviewSessionStartPayload): void {
 
 function handleSubmit(answer: string): void {
   void submit(answer);
+}
+
+function handleRestore(sessionId: string): void {
+  void restore(sessionId);
 }
 
 function handleReviewRetry(): void {
@@ -95,12 +105,20 @@ function handleAssistantScheduled(): void {
       正在恢复上次面试…
     </section>
 
-    <InterviewSetupForm
-      v-else-if="!session"
-      id="interview-setup"
-      :busy="loading"
-      @start="handleStart"
-    />
+    <template v-else-if="!session">
+      <InterviewSetupForm
+        id="interview-setup"
+        :busy="loading"
+        @start="handleStart"
+      />
+      <InterviewRecentSessionsPanel
+        :sessions="recentSessions"
+        :loading="recentSessionsLoading"
+        :error="recentSessionsError"
+        :restoring-session-id="restoringSessionId"
+        @restore="handleRestore"
+      />
+    </template>
 
     <template v-else>
       <InterviewSessionBar
