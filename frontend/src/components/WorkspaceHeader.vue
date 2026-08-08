@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { BookOpen, Command, Database, Search } from "@lucide/vue";
+import { BookOpen, Command, Database, MessageCircleQuestion, Search } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,24 +8,34 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "interview";
+  mode?: "knowledge" | "answer" | "interview";
 }>(), {
   mode: "knowledge",
 });
 
-const commands = computed<WorkspaceCommand[]>(() => props.mode === "interview"
-  ? [
+const commands = computed<WorkspaceCommand[]>(() => {
+  if (props.mode === "interview") {
+    return [
       { id: "interview-setup", label: "准备面试", description: "上传简历并设置题目数量" },
       { id: "interview-progress", label: "面试进度", description: "查看当前题号和整场进度" },
       { id: "current-question", label: "当前题目", description: "回到正在回答的问题" },
       { id: "latest-feedback", label: "上一题反馈", description: "查看评分和改进建议" },
       { id: "interview-report", label: "本场结果", description: "查看完成后的总分和复习题目" },
-    ]
-  : [
-      { id: "import-workbench", label: "资料导入", description: "选择 Markdown 文件并设置来源" },
-      { id: "pipeline", label: "处理阶段", description: "查看资料进入知识库的步骤" },
-      { id: "import-result", label: "导入结果", description: "检查内容版本和切片" },
-    ]);
+    ];
+  }
+  if (props.mode === "answer") {
+    return [
+      { id: "knowledge-question", label: "提出问题", description: "编辑当前要查询的问题" },
+      { id: "knowledge-answer", label: "查看回答", description: "回到本次资料库回答" },
+      { id: "knowledge-sources", label: "依据资料", description: "核对命中的原始资料" },
+    ];
+  }
+  return [
+    { id: "import-workbench", label: "资料导入", description: "选择 Markdown 文件并设置来源" },
+    { id: "pipeline", label: "处理阶段", description: "查看资料进入知识库的步骤" },
+    { id: "import-result", label: "导入结果", description: "检查内容版本和切片" },
+  ];
+});
 
 function handleGlobalShortcut(event: KeyboardEvent): void {
   if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
@@ -70,6 +80,10 @@ onUnmounted(() => {
         <RouterLink to="/" class="nav-link">
           <Database :size="16" aria-hidden="true" />
           <span>资料库</span>
+        </RouterLink>
+        <RouterLink to="/answer" class="nav-link" aria-label="打开知识问答">
+          <MessageCircleQuestion :size="16" aria-hidden="true" />
+          <span>知识问答</span>
         </RouterLink>
         <RouterLink to="/interview" class="nav-link">
           <BookOpen :size="16" aria-hidden="true" />

@@ -13,6 +13,11 @@ const router = createRouter({
       name: "interview",
       component: () => import("@/views/InterviewView.vue"),
     },
+    {
+      path: "/answer",
+      name: "knowledge-answer",
+      component: () => import("@/views/KnowledgeAnswerView.vue"),
+    },
   ],
 });
 

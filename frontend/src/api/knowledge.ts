@@ -16,6 +16,21 @@ export interface MarkdownImportResponse {
   chunks: MarkdownChunk[];
 }
 
+export interface KnowledgeAnswerSource {
+  content: string;
+  source: string;
+  documentVersion: string;
+  chunkOrder: number;
+  headingPath: string[];
+  similarity: number | null;
+}
+
+export interface KnowledgeAnswerResponse {
+  answer: string;
+  grounded: boolean;
+  sources: KnowledgeAnswerSource[];
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -27,6 +42,15 @@ export async function importMarkdown(
   const response = await request.post<MarkdownImportResponse>(
     "/knowledge/documents/import",
     formData,
+  );
+  return response.data;
+}
+
+export async function answerKnowledgeQuestion(question: string): Promise<KnowledgeAnswerResponse> {
+  const response = await request.post<KnowledgeAnswerResponse>(
+    "/knowledge/answer",
+    { question },
+    { timeout: 60_000 },
   );
   return response.data;
 }
