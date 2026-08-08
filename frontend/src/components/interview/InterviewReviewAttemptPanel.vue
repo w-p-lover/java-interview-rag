@@ -3,6 +3,7 @@ import { ArrowUp } from "@lucide/vue";
 import { computed, shallowRef } from "vue";
 
 import type { InterviewReviewAttempt, InterviewReviewTaskHistory } from "@/api/interview";
+import InterviewEvaluationEvidence from "@/components/interview/InterviewEvaluationEvidence.vue";
 
 const props = defineProps<{
   taskId: string;
@@ -118,6 +119,7 @@ function formatDelta(value: number | null): string {
           <span>{{ formatDate(attempt.createdAt) }}</span>
         </div>
         <p class="attempt-answer">{{ attempt.answer }}</p>
+        <InterviewEvaluationEvidence :evaluation="attempt.evaluation" />
         <div class="attempt-score-row">
           <span>本次 {{ attempt.evaluation.overallScore }} 分</span>
           <span>较原回答 {{ formatDelta(attempt.scoreDeltaFromOriginal) }}</span>

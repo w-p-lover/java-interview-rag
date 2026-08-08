@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
+import com.javainterview.rag.interview.evaluation.InterviewKnowledgeEvidence;
 import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
@@ -70,6 +71,10 @@ class MySqlInterviewSessionStoreTest {
         assertEquals(3, restored.currentQuestionIndex());
         assertEquals("第 1 题回答", restored.answers().get(0).answer());
         assertEquals(80, restored.answers().get(0).evaluation().overallScore());
+        assertEquals(List.of("说明了关键流程"),
+                restored.answers().get(0).evaluation().answerEvidence());
+        assertEquals("rag/vector-lifecycle.md",
+                restored.answers().get(0).evaluation().knowledgeEvidence().get(0).source());
         assertEquals(80.0, restored.report().overallAverageScore());
     }
 
@@ -93,6 +98,9 @@ class MySqlInterviewSessionStoreTest {
         assertTrue(entity.getQuestionsJson().contains("向量清理失败时如何补偿"));
         assertTrue(entity.getAnswersJson().contains("第一题回答"));
         assertTrue(entity.getAnswersJson().contains("technicalScore"));
+        assertTrue(entity.getAnswersJson().contains("answerEvidence"));
+        assertTrue(entity.getAnswersJson().contains("knowledgeEvidence"));
+        assertTrue(entity.getAnswersJson().contains("rag/vector-lifecycle.md"));
         assertNull(entity.getReportJson());
 
         when(mapper.updateState(any(InterviewSessionEntity.class), eq(1L))).thenReturn(0);
@@ -138,7 +146,15 @@ class MySqlInterviewSessionStoreTest {
                 List.of("说明了关键流程"),
                 List.of("缺少失败补偿细节"),
                 "补充异常分支和恢复方式。",
-                true
+                true,
+                List.of("说明了关键流程"),
+                List.of(new InterviewKnowledgeEvidence(
+                        "rag/vector-lifecycle.md",
+                        "version-1",
+                        2,
+                        List.of("RAG", "向量生命周期"),
+                        0.88,
+                        "新版本成功后再清理旧版本"))
         );
     }
 

@@ -9,6 +9,7 @@ import {
 } from "@lucide/vue";
 
 import type { InterviewSessionAnswer } from "@/api/interview";
+import InterviewEvaluationEvidence from "@/components/interview/InterviewEvaluationEvidence.vue";
 
 defineProps<{
   answer: InterviewSessionAnswer | null;
@@ -81,6 +82,8 @@ defineProps<{
         <Info v-else :size="14" aria-hidden="true" />
         {{ answer.evaluation.knowledgeGrounded ? "有资料参考" : "仅根据回答评价" }}
       </p>
+
+      <InterviewEvaluationEvidence :evaluation="answer.evaluation" />
 
       <section v-if="answer.evaluation.strengths.length" class="feedback-section feedback-section--strengths">
         <h3>

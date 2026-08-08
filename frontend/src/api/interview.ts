@@ -42,6 +42,17 @@ export interface InterviewAnswerEvaluation {
   gaps: string[];
   improvementSuggestion: string;
   knowledgeGrounded: boolean;
+  answerEvidence: string[];
+  knowledgeEvidence: InterviewKnowledgeEvidence[];
+}
+
+export interface InterviewKnowledgeEvidence {
+  source: string;
+  documentVersion: string;
+  chunkOrder: number;
+  headingPath: string[];
+  similarity: number | null;
+  quote: string;
 }
 
 export interface InterviewSessionAnswer {

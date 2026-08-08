@@ -15,8 +15,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     private static final int FOLLOW_UP_TOP_K = 3;
     private static final double FOLLOW_UP_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "interview-answer-evaluation-v2";
-    private static final String RUBRIC_VERSION = "interview-answer-rubric-v1";
+    private static final String PROMPT_VERSION = "interview-answer-evaluation-v3";
+    private static final String RUBRIC_VERSION = "interview-answer-rubric-v2";
     private static final String INSTRUCTIONS = """
             你是 Java 技术面试评价助手。请只根据面试准备画像、当前题目、候选人回答和给定知识资料输出结构化评价。
             必须遵守以下规则：
@@ -28,6 +28,9 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
             6. 追问必须紧扣当前回答，不得重复当前题目，不得生成参考答案或录用判断。
             7. 需要追问时，followUpQuestion、followUpObjective、followUpKnowledgeQuery 必须全部返回非空字符串。
             8. 不需要追问时，三个 followUp 字段返回空字符串。
+            9. 回答证据只能逐字引用当前回答：answerEvidence 返回 1 到 3 条 <answer> 中的短引文，不得引用历史回答或改写原文。
+            10. 知识证据只能逐字引用对应编号资料：knowledgeEvidence 最多返回 3 条，每条 sourceIndex 使用知识资料的 1-based 编号。
+            11. 有可靠知识资料时至少返回 1 条 knowledgeEvidence；没有可靠知识资料时 knowledgeEvidence 必须为空数组。
             """;
 
     private final ChatClient chatClient;
@@ -111,8 +114,12 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         if (draft == null) {
             throw new IllegalStateException("模型未返回可用的回答评价");
         }
+        List<String> answerEvidence = validateAnswerEvidence(answer, draft.answerEvidence());
+        List<InterviewKnowledgeEvidence> knowledgeEvidence = validateKnowledgeEvidence(
+                question.knowledgeSources(), draft.knowledgeEvidence());
         InterviewAnswerEvaluation evaluation = InterviewAnswerEvaluation.from(
-                draft, !question.knowledgeSources().isEmpty());
+                draft, !question.knowledgeSources().isEmpty(),
+                answerEvidence, knowledgeEvidence);
         InterviewQuestion followUpQuestion = allowFollowUp && draft.followUpNeeded()
                 ? buildFollowUpQuestion(draft, question) : null;
         return new InterviewAnswerAssessment(evaluation, followUpQuestion);
@@ -171,5 +178,64 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         return "[资料 " + index + "]\n来源：" + source.source()
                 + "\n标题：" + String.join(" / ", source.headingPath())
                 + "\n内容：" + source.content();
+    }
+
+    private List<String> validateAnswerEvidence(String answer, List<String> evidence) {
+        if (evidence.isEmpty()) {
+            throw new IllegalStateException("模型未返回可核验的回答证据");
+        }
+        String normalizedAnswer = normalizeForEvidence(answer);
+        return evidence.stream()
+                .map(String::strip)
+                .distinct()
+                .peek(quote -> {
+                    if (!normalizedAnswer.contains(normalizeForEvidence(quote))) {
+                        throw new IllegalStateException("模型返回的回答证据不在当前回答中");
+                    }
+                })
+                .toList();
+    }
+
+    private List<InterviewKnowledgeEvidence> validateKnowledgeEvidence(
+            List<MarkdownSearchResult> sources,
+            List<InterviewAnswerEvaluationDraft.KnowledgeEvidenceDraft> evidence) {
+        if (sources.isEmpty()) {
+            if (!evidence.isEmpty()) {
+                throw new IllegalStateException("没有可靠知识资料时不能返回知识证据");
+            }
+            return List.of();
+        }
+        if (evidence.isEmpty()) {
+            throw new IllegalStateException("模型未返回可核验的知识证据");
+        }
+        return evidence.stream()
+                .map(item -> toVerifiedKnowledgeEvidence(sources, item))
+                .distinct()
+                .toList();
+    }
+
+    private InterviewKnowledgeEvidence toVerifiedKnowledgeEvidence(
+            List<MarkdownSearchResult> sources,
+            InterviewAnswerEvaluationDraft.KnowledgeEvidenceDraft evidence) {
+        int sourcePosition = evidence.sourceIndex() - 1;
+        if (sourcePosition < 0 || sourcePosition >= sources.size()) {
+            throw new IllegalStateException("模型返回的知识证据来源序号无效");
+        }
+        MarkdownSearchResult source = sources.get(sourcePosition);
+        if (!normalizeForEvidence(source.content())
+                .contains(normalizeForEvidence(evidence.quote()))) {
+            throw new IllegalStateException("模型返回的知识证据不在对应资料中");
+        }
+        return new InterviewKnowledgeEvidence(
+                source.source(),
+                source.documentVersion(),
+                source.chunkOrder(),
+                source.headingPath(),
+                source.similarity(),
+                evidence.quote());
+    }
+
+    private String normalizeForEvidence(String value) {
+        return value.strip().replaceAll("\\s+", " ");
     }
 }
