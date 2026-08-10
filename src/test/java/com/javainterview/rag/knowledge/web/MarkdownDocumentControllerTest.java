@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.JavaInterviewRagApplication;
+import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -10,7 +11,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -122,6 +125,27 @@ class MarkdownDocumentControllerTest {
                         .param("source", "java/web-missing.md"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("文档版本尚未导入，不能重建"));
+    }
+
+    @Test
+    void listsTheCurrentVersionForEachDocumentSource() throws Exception {
+        String source = "java/web-catalog.md";
+        String content = "# Java\n目录内容";
+        MarkdownDocument document = MarkdownDocument.create(source, content);
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(markdownFile(content))
+                        .param("source", source))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/knowledge/documents"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sourceCount").isNumber())
+                .andExpect(jsonPath("$.documents[?(@.source == '%s')].version".formatted(source))
+                        .value(hasItem(document.version())))
+                .andExpect(jsonPath("$.documents[?(@.source == '%s')].contentLength".formatted(source))
+                        .value(hasItem(content.length())))
+                .andExpect(jsonPath("$.documents[?(@.source == '%s')].registeredAt".formatted(source))
+                        .isNotEmpty());
     }
 
     private MockMultipartFile markdownFile(String content) {

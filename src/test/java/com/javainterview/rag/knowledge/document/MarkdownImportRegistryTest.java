@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.document;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MarkdownImportRegistryTest {
@@ -59,5 +60,29 @@ class MarkdownImportRegistryTest {
         assertTrue(registry.register(original));
         assertTrue(registry.register(changed));
         assertFalse(registry.register(otherSource));
+    }
+
+    @Test
+    void listsCurrentVersionAndRestoresPreviousVersionAfterRollback() {
+        MarkdownDocument original = MarkdownDocument.create("java/basic.md", "原内容");
+        MarkdownDocument changed = MarkdownDocument.create("java/basic.md", "新内容");
+        MarkdownDocument other = MarkdownDocument.create("java/jvm.md", "JVM 内容");
+        registry.register(original);
+        registry.register(changed);
+        registry.register(other);
+
+        assertEquals(2, registry.findCurrentDocuments().size());
+        assertEquals(changed.version(), findCurrent("java/basic.md").version());
+        assertEquals(changed.content().length(), findCurrent("java/basic.md").contentLength());
+
+        assertTrue(registry.unregister(changed));
+        assertEquals(original.version(), findCurrent("java/basic.md").version());
+    }
+
+    private KnowledgeDocumentSummary findCurrent(String source) {
+        return registry.findCurrentDocuments().stream()
+                .filter(document -> document.source().equals(source))
+                .findFirst()
+                .orElseThrow();
     }
 }

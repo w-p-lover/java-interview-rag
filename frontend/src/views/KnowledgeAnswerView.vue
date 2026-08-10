@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, shallowRef } from "vue";
-import { FileSearch, MessageCircleQuestion } from "@lucide/vue";
+import { FileSearch, LibraryBig, MessageCircleQuestion } from "@lucide/vue";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import KnowledgeAnswerPanel from "@/components/knowledge/KnowledgeAnswerPanel.vue";
+import KnowledgeCatalogPanel from "@/components/knowledge/KnowledgeCatalogPanel.vue";
 import KnowledgeQuestionComposer from "@/components/knowledge/KnowledgeQuestionComposer.vue";
 import KnowledgeSearchPanel from "@/components/knowledge/KnowledgeSearchPanel.vue";
 import {
@@ -14,10 +15,11 @@ import {
   KNOWLEDGE_SEARCH_MAX_LENGTH,
   useKnowledgeSearch,
 } from "@/composables/useKnowledgeSearch";
+import { useKnowledgeCatalog } from "@/composables/useKnowledgeCatalog";
 
-type KnowledgeMode = "search" | "answer";
+type KnowledgeMode = "catalog" | "search" | "answer";
 
-const activeMode = shallowRef<KnowledgeMode>("answer");
+const activeMode = shallowRef<KnowledgeMode>("catalog");
 
 const {
   question,
@@ -37,8 +39,19 @@ const {
   search,
   clear: clearSearch,
 } = useKnowledgeSearch();
+const {
+  result: catalogResult,
+  loading: catalogLoading,
+  error: catalogError,
+  load: loadCatalog,
+} = useKnowledgeCatalog();
 
-const activeError = computed(() => activeMode.value === "answer" ? error.value : searchError.value);
+const activeError = computed(() => {
+  if (activeMode.value === "catalog") {
+    return catalogError.value;
+  }
+  return activeMode.value === "answer" ? error.value : searchError.value;
+});
 
 function handleSubmit(): void {
   void submit();
@@ -58,10 +71,19 @@ function handleSearch(): void {
         <span>资料检索与问答</span>
         <h1>查资料或提问</h1>
       </div>
-      <p>先浏览相关原文，或让系统仅依据达到可靠阈值的资料生成回答。</p>
+      <p>先确认当前资料范围，再浏览相关原文或发起可靠资料问答。</p>
     </header>
 
     <div class="mode-switch" role="group" aria-label="资料使用方式">
+      <button
+        type="button"
+        :aria-pressed="activeMode === 'catalog'"
+        :class="{ 'is-active': activeMode === 'catalog' }"
+        @click="activeMode = 'catalog'"
+      >
+        <LibraryBig :size="17" aria-hidden="true" />
+        <span>资料目录</span>
+      </button>
       <button
         type="button"
         :aria-pressed="activeMode === 'search'"
@@ -84,7 +106,15 @@ function handleSearch(): void {
 
     <p v-if="activeError" class="error-banner" role="alert">{{ activeError }}</p>
 
-    <div v-if="activeMode === 'answer'" class="answer-grid">
+    <KnowledgeCatalogPanel
+      v-if="activeMode === 'catalog'"
+      :loading="catalogLoading"
+      :failed="Boolean(catalogError)"
+      :documents="catalogResult?.documents ?? []"
+      @refresh="loadCatalog"
+    />
+
+    <div v-else-if="activeMode === 'answer'" class="answer-grid">
       <KnowledgeQuestionComposer
         v-model="question"
         :busy="loading"
@@ -255,8 +285,13 @@ h1 {
 
   .mode-switch {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .mode-switch button {
+    min-width: 0;
+    padding-inline: var(--space-xs);
   }
 }
 

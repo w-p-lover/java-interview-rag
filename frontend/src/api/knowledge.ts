@@ -39,6 +39,18 @@ export interface KnowledgeSearchResponse {
   results: KnowledgeAnswerSource[];
 }
 
+export interface KnowledgeDocumentCatalogItem {
+  source: string;
+  version: string;
+  contentLength: number;
+  registeredAt: string;
+}
+
+export interface KnowledgeDocumentCatalogResponse {
+  sourceCount: number;
+  documents: KnowledgeDocumentCatalogItem[];
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -73,6 +85,13 @@ export async function searchKnowledge(query: string): Promise<KnowledgeSearchRes
         similarityThreshold: 0,
       },
     },
+  );
+  return response.data;
+}
+
+export async function listKnowledgeDocuments(): Promise<KnowledgeDocumentCatalogResponse> {
+  const response = await request.get<KnowledgeDocumentCatalogResponse>(
+    "/knowledge/documents",
   );
   return response.data;
 }

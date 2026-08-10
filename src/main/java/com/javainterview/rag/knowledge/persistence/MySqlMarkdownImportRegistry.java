@@ -1,9 +1,11 @@
 package com.javainterview.rag.knowledge.persistence;
 
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import org.springframework.dao.DuplicateKeyException;
 
+import java.util.List;
 import java.util.Objects;
 
 public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry {
@@ -42,5 +44,13 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     public boolean unregisterBySource(String source) {
         Objects.requireNonNull(source, "文档来源不能为空");
         return mapper.deleteBySource(source) > 0;
+    }
+
+    @Override
+    public List<KnowledgeDocumentSummary> findCurrentDocuments() {
+        return mapper.selectCurrentVersions().stream()
+                .map(entity -> new KnowledgeDocumentSummary(
+                        entity.getSource(), entity.getVersion(), entity.getContentLength(), entity.getCreatedAt()))
+                .toList();
     }
 }
