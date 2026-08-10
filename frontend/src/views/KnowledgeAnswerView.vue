@@ -1,11 +1,23 @@
 <script setup lang="ts">
+import { computed, shallowRef } from "vue";
+import { FileSearch, MessageCircleQuestion } from "@lucide/vue";
+
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import KnowledgeAnswerPanel from "@/components/knowledge/KnowledgeAnswerPanel.vue";
 import KnowledgeQuestionComposer from "@/components/knowledge/KnowledgeQuestionComposer.vue";
+import KnowledgeSearchPanel from "@/components/knowledge/KnowledgeSearchPanel.vue";
 import {
   KNOWLEDGE_QUESTION_MAX_LENGTH,
   useKnowledgeAnswer,
 } from "@/composables/useKnowledgeAnswer";
+import {
+  KNOWLEDGE_SEARCH_MAX_LENGTH,
+  useKnowledgeSearch,
+} from "@/composables/useKnowledgeSearch";
+
+type KnowledgeMode = "search" | "answer";
+
+const activeMode = shallowRef<KnowledgeMode>("answer");
 
 const {
   question,
@@ -16,9 +28,24 @@ const {
   submit,
   clear,
 } = useKnowledgeAnswer();
+const {
+  query,
+  submittedQuery,
+  result: searchResult,
+  loading: searchLoading,
+  error: searchError,
+  search,
+  clear: clearSearch,
+} = useKnowledgeSearch();
+
+const activeError = computed(() => activeMode.value === "answer" ? error.value : searchError.value);
 
 function handleSubmit(): void {
   void submit();
+}
+
+function handleSearch(): void {
+  void search();
 }
 </script>
 
@@ -28,15 +55,36 @@ function handleSubmit(): void {
   <main id="main-content" class="answer-workspace" tabindex="-1">
     <header class="answer-heading">
       <div>
-        <span>知识问答</span>
-        <h1>向资料库提问</h1>
+        <span>资料检索与问答</span>
+        <h1>查资料或提问</h1>
       </div>
-      <p>回答仅采用已导入且达到可靠阈值的资料，并保留实际命中的原文依据。</p>
+      <p>先浏览相关原文，或让系统仅依据达到可靠阈值的资料生成回答。</p>
     </header>
 
-    <p v-if="error" class="error-banner" role="alert">{{ error }}</p>
+    <div class="mode-switch" role="group" aria-label="资料使用方式">
+      <button
+        type="button"
+        :aria-pressed="activeMode === 'search'"
+        :class="{ 'is-active': activeMode === 'search' }"
+        @click="activeMode = 'search'"
+      >
+        <FileSearch :size="17" aria-hidden="true" />
+        <span>查资料</span>
+      </button>
+      <button
+        type="button"
+        :aria-pressed="activeMode === 'answer'"
+        :class="{ 'is-active': activeMode === 'answer' }"
+        @click="activeMode = 'answer'"
+      >
+        <MessageCircleQuestion :size="17" aria-hidden="true" />
+        <span>问资料库</span>
+      </button>
+    </div>
 
-    <div class="answer-grid">
+    <p v-if="activeError" class="error-banner" role="alert">{{ activeError }}</p>
+
+    <div v-if="activeMode === 'answer'" class="answer-grid">
       <KnowledgeQuestionComposer
         v-model="question"
         :busy="loading"
@@ -49,6 +97,23 @@ function handleSubmit(): void {
         :loading="loading"
         :question="submittedQuestion"
         :result="result"
+      />
+    </div>
+
+    <div v-else class="answer-grid">
+      <KnowledgeQuestionComposer
+        v-model="query"
+        mode="search"
+        :busy="searchLoading"
+        :has-result="Boolean(searchResult)"
+        :max-length="KNOWLEDGE_SEARCH_MAX_LENGTH"
+        @submit="handleSearch"
+        @clear="clearSearch"
+      />
+      <KnowledgeSearchPanel
+        :loading="searchLoading"
+        :query="submittedQuery"
+        :result="searchResult"
       />
     </div>
   </main>
@@ -106,6 +171,42 @@ h1 {
   text-wrap: pretty;
 }
 
+.mode-switch {
+  display: inline-flex;
+  width: fit-content;
+  padding: var(--space-2xs);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-surface);
+  background: var(--color-paper-2);
+}
+
+.mode-switch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  padding-inline: var(--space-md);
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--color-muted);
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.mode-switch button.is-active {
+  color: var(--color-ink);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-whisper);
+}
+
+.mode-switch button:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
+}
+
 .error-banner {
   padding: var(--space-sm) var(--space-md);
   border: var(--rule-thin) solid var(--color-error-rule);
@@ -150,6 +251,19 @@ h1 {
 
   h1 {
     font-size: var(--text-xl);
+  }
+
+  .mode-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mode-switch button:hover:not(.is-active) {
+    color: var(--color-ink-2);
+    background: var(--color-paper-3);
   }
 }
 </style>

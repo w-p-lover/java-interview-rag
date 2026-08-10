@@ -2,11 +2,14 @@
 import { computed } from "vue";
 import { LoaderCircle, Search, X } from "@lucide/vue";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   busy: boolean;
   hasResult: boolean;
   maxLength: number;
-}>();
+  mode?: "answer" | "search";
+}>(), {
+  mode: "answer",
+});
 
 const emit = defineEmits<{
   submit: [];
@@ -18,6 +21,23 @@ const questionLength = computed(() => question.value.length);
 const canSubmit = computed(() => question.value.trim().length > 0
   && questionLength.value <= props.maxLength
   && !props.busy);
+const copy = computed(() => props.mode === "search" ? {
+  title: "查找资料",
+  description: "按主题或具体问题查找相关原文",
+  label: "检索内容",
+  placeholder: "例如：HashMap 红黑树转换条件",
+  clearLabel: "清空当前检索",
+  busyLabel: "正在查找",
+  submitLabel: "查找资料",
+} : {
+  title: "你的问题",
+  description: "Java、项目实践或已导入资料中的具体问题",
+  label: "问题",
+  placeholder: "例如：HashMap 在什么条件下会从链表转换为红黑树？",
+  clearLabel: "清空当前问答",
+  busyLabel: "正在检索",
+  submitLabel: "查找答案",
+});
 
 function handleKeydown(event: KeyboardEvent): void {
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && canSubmit.value) {
@@ -31,15 +51,15 @@ function handleKeydown(event: KeyboardEvent): void {
   <section id="knowledge-question" class="question-composer" aria-labelledby="question-title">
     <header>
       <div>
-        <h2 id="question-title">你的问题</h2>
-        <p>Java、项目实践或已导入资料中的具体问题</p>
+        <h2 id="question-title">{{ copy.title }}</h2>
+        <p>{{ copy.description }}</p>
       </div>
       <button
         v-if="question || hasResult"
         class="clear-button"
         type="button"
-        aria-label="清空当前问答"
-        title="清空当前问答"
+        :aria-label="copy.clearLabel"
+        :title="copy.clearLabel"
         :disabled="busy"
         @click="emit('clear')"
       >
@@ -47,13 +67,13 @@ function handleKeydown(event: KeyboardEvent): void {
       </button>
     </header>
 
-    <label for="knowledge-question-input">问题</label>
+    <label for="knowledge-question-input">{{ copy.label }}</label>
     <textarea
       id="knowledge-question-input"
       v-model="question"
       rows="8"
       :maxlength="maxLength"
-      placeholder="例如：HashMap 在什么条件下会从链表转换为红黑树？"
+      :placeholder="copy.placeholder"
       :disabled="busy"
       @keydown="handleKeydown"
     ></textarea>
@@ -70,7 +90,7 @@ function handleKeydown(event: KeyboardEvent): void {
       >
         <LoaderCircle v-if="busy" class="loading-icon" :size="17" aria-hidden="true" />
         <Search v-else :size="17" aria-hidden="true" />
-        <span>{{ busy ? "正在检索" : "查找答案" }}</span>
+        <span>{{ busy ? copy.busyLabel : copy.submitLabel }}</span>
       </button>
     </footer>
   </section>

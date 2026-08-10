@@ -3,9 +3,12 @@ import { FileText } from "@lucide/vue";
 
 import type { KnowledgeAnswerSource } from "@/api/knowledge";
 
-defineProps<{
+withDefaults(defineProps<{
   sources: KnowledgeAnswerSource[];
-}>();
+  title?: string;
+}>(), {
+  title: "依据资料",
+});
 
 function formatHeadingPath(source: KnowledgeAnswerSource): string {
   return source.headingPath.length ? source.headingPath.join(" / ") : "未标注标题";
@@ -19,7 +22,7 @@ function formatSimilarity(similarity: number | null): string {
 <template>
   <section v-if="sources.length" id="knowledge-sources" class="source-list" aria-labelledby="sources-title">
     <header>
-      <h3 id="sources-title">依据资料</h3>
+      <h3 id="sources-title">{{ title }}</h3>
       <span>{{ sources.length }} 条</span>
     </header>
 

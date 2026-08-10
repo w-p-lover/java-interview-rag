@@ -31,6 +31,14 @@ export interface KnowledgeAnswerResponse {
   sources: KnowledgeAnswerSource[];
 }
 
+export interface KnowledgeSearchResponse {
+  query: string;
+  topK: number;
+  similarityThreshold: number;
+  resultCount: number;
+  results: KnowledgeAnswerSource[];
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -51,6 +59,20 @@ export async function answerKnowledgeQuestion(question: string): Promise<Knowled
     "/knowledge/answer",
     { question },
     { timeout: 60_000 },
+  );
+  return response.data;
+}
+
+export async function searchKnowledge(query: string): Promise<KnowledgeSearchResponse> {
+  const response = await request.get<KnowledgeSearchResponse>(
+    "/knowledge/search",
+    {
+      params: {
+        query,
+        topK: 5,
+        similarityThreshold: 0,
+      },
+    },
   );
   return response.data;
 }
