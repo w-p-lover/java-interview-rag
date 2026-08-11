@@ -60,6 +60,12 @@ function handleSubmit(): void {
 function handleSearch(): void {
   void search();
 }
+
+function handleAskFromSearch(searchQuery: string): void {
+  clear();
+  question.value = searchQuery;
+  activeMode.value = "answer";
+}
 </script>
 
 <template>
@@ -144,6 +150,7 @@ function handleSearch(): void {
         :loading="searchLoading"
         :query="submittedQuery"
         :result="searchResult"
+        @ask="handleAskFromSearch"
       />
     </div>
   </main>

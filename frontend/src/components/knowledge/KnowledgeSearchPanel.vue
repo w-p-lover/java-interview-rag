@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileSearch, SearchX } from "@lucide/vue";
+import { FileSearch, MessageCircleQuestion, SearchX } from "@lucide/vue";
 
 import type { KnowledgeSearchResponse } from "@/api/knowledge";
 import KnowledgeSourceList from "@/components/knowledge/KnowledgeSourceList.vue";
@@ -8,6 +8,10 @@ defineProps<{
   loading: boolean;
   query: string;
   result: KnowledgeSearchResponse | null;
+}>();
+
+const emit = defineEmits<{
+  ask: [question: string];
 }>();
 </script>
 
@@ -33,7 +37,13 @@ defineProps<{
           <span>{{ result.query }}</span>
           <h2 id="search-result-title">相关资料</h2>
         </div>
-        <strong>{{ result.resultCount }} 条匹配</strong>
+        <div class="result-actions">
+          <strong>{{ result.resultCount }} 条匹配</strong>
+          <button type="button" @click="emit('ask', result.query)">
+            <MessageCircleQuestion :size="17" aria-hidden="true" />
+            <span>用当前检索词提问</span>
+          </button>
+        </div>
       </header>
       <KnowledgeSourceList title="检索结果" :sources="result.results" />
     </template>
@@ -68,7 +78,9 @@ defineProps<{
 
 header,
 header > div,
-.search-empty {
+.search-empty,
+.result-actions,
+.result-actions button {
   display: flex;
 }
 
@@ -109,6 +121,31 @@ header strong {
   flex: 0 0 auto;
   color: var(--color-accent-strong);
   font-size: var(--text-sm);
+}
+
+.result-actions {
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.result-actions button {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-accent-strong);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-ink);
+  background: var(--color-accent-strong);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.result-actions button:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
 }
 
 .search-empty {
@@ -176,6 +213,18 @@ header strong {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--space-sm);
+  }
+
+  .result-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .result-actions button:hover {
+    background: var(--color-accent);
   }
 }
 
