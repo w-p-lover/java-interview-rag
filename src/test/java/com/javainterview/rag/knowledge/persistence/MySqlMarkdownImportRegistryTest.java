@@ -100,6 +100,21 @@ class MySqlMarkdownImportRegistryTest {
     }
 
     @Test
+    void listsAllVersionsForTheExactSource() {
+        KnowledgeDocumentVersionEntity latest = KnowledgeDocumentVersionEntity.create(
+                "resume/backend.md", "version-2", 8);
+        KnowledgeDocumentVersionEntity original = KnowledgeDocumentVersionEntity.create(
+                "resume/backend.md", "version-1", 7);
+        when(mapper.selectVersionsBySource("resume/backend.md")).thenReturn(List.of(latest, original));
+
+        var versions = registry.findVersionsBySource("resume/backend.md");
+
+        assertEquals(List.of("version-2", "version-1"),
+                versions.stream().map(version -> version.version()).toList());
+        verify(mapper).selectVersionsBySource("resume/backend.md");
+    }
+
+    @Test
     void usesExactSourceMatchingForMapperStatements() throws NoSuchMethodException {
         Select registeredSelect = KnowledgeDocumentVersionMapper.class
                 .getMethod("countBySourceAndVersion", String.class, String.class)
@@ -112,6 +127,9 @@ class MySqlMarkdownImportRegistryTest {
                 .getAnnotation(Delete.class);
         Select currentVersionsSelect = KnowledgeDocumentVersionMapper.class
                 .getMethod("selectCurrentVersions")
+                .getAnnotation(Select.class);
+        Select sourceVersionsSelect = KnowledgeDocumentVersionMapper.class
+                .getMethod("selectVersionsBySource", String.class)
                 .getAnnotation(Select.class);
 
         assertEquals("SELECT COUNT(*) FROM t_knowledge_document_version "
@@ -131,5 +149,10 @@ class MySqlMarkdownImportRegistryTest {
                 + "WHERE newer_version.id IS NULL "
                 + "ORDER BY current_version.created_at DESC, current_version.id DESC",
                 currentVersionsSelect.value()[0]);
+        assertEquals("SELECT id, source, version, content_length, created_at "
+                        + "FROM t_knowledge_document_version "
+                        + "WHERE BINARY source = BINARY #{source} "
+                        + "ORDER BY id DESC",
+                sourceVersionsSelect.value()[0]);
     }
 }

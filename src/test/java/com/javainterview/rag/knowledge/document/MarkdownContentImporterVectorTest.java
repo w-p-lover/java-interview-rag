@@ -78,23 +78,38 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
-    void rebuildsARegisteredHistoricalVersionWithoutChangingRegistration() {
+    void rebuildsTheCurrentVersionWithoutChangingRegistration() {
         InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
         MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
         MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
-        MarkdownImportResult original = sourceImporter.importContent(
-                "java/rebuild.md", "# Java\n原内容");
-        sourceImporter.importContent("java/rebuild.md", "# Java\n新内容");
+        sourceImporter.importContent("java/rebuild.md", "# Java\n原内容");
+        MarkdownImportResult current = sourceImporter.importContent(
+                "java/rebuild.md", "# Java\n新内容");
 
         MarkdownRebuildResult rebuilt = sourceImporter.rebuildContent(
-                "java/rebuild.md", "# Java\n原内容");
+                "java/rebuild.md", "# Java\n新内容");
 
-        assertEquals(original.document().source(), rebuilt.document().source());
-        assertEquals(original.document().content(), rebuilt.document().content());
-        assertEquals(original.document().version(), rebuilt.document().version());
-        assertEquals(original.chunks(), rebuilt.chunks());
-        assertTrue(registry.isRegistered(original.document()));
+        assertEquals(current.document().source(), rebuilt.document().source());
+        assertEquals(current.document().content(), rebuilt.document().content());
+        assertEquals(current.document().version(), rebuilt.document().version());
+        assertEquals(current.chunks(), rebuilt.chunks());
+        assertTrue(registry.isRegistered(current.document()));
         verify(indexer).rebuild(rebuilt.document(), rebuilt.chunks());
+    }
+
+    @Test
+    void rejectsHistoricalVersionBeforeRebuildingVectors() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        sourceImporter.importContent("java/rebuild.md", "# Java\n原内容");
+        sourceImporter.importContent("java/rebuild.md", "# Java\n新内容");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> sourceImporter.rebuildContent("java/rebuild.md", "# Java\n原内容"));
+
+        assertEquals("只能重建当前版本，历史版本不能直接恢复为检索版本", exception.getMessage());
+        verify(indexer, never()).rebuild(any(), any());
     }
 
     @Test

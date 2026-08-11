@@ -2,6 +2,8 @@ package com.javainterview.rag.knowledge.document;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,6 +79,21 @@ class MarkdownImportRegistryTest {
 
         assertTrue(registry.unregister(changed));
         assertEquals(original.version(), findCurrent("java/basic.md").version());
+    }
+
+    @Test
+    void listsAllVersionsForTheExactSourceFromNewestToOldest() {
+        MarkdownDocument original = MarkdownDocument.create("java/basic.md", "原内容");
+        MarkdownDocument changed = MarkdownDocument.create("java/basic.md", "新内容");
+        MarkdownDocument other = MarkdownDocument.create("JAVA/basic.md", "其他内容");
+        registry.register(original);
+        registry.register(changed);
+        registry.register(other);
+
+        var versions = registry.findVersionsBySource("java/basic.md");
+
+        assertEquals(List.of(changed.version(), original.version()),
+                versions.stream().map(KnowledgeDocumentSummary::version).toList());
     }
 
     private KnowledgeDocumentSummary findCurrent(String source) {

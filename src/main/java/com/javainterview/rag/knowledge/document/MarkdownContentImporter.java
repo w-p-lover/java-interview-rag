@@ -49,8 +49,14 @@ public final class MarkdownContentImporter {
 
     public MarkdownRebuildResult rebuildContent(String source, String content) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
-        if (!registry.isRegistered(document)) {
+        List<KnowledgeDocumentSummary> versions = registry.findVersionsBySource(document.source());
+        boolean registered = versions.stream()
+                .anyMatch(version -> version.version().equals(document.version()));
+        if (!registered) {
             throw new IllegalArgumentException("文档版本尚未导入，不能重建");
+        }
+        if (!versions.get(0).version().equals(document.version())) {
+            throw new IllegalArgumentException("只能重建当前版本，历史版本不能直接恢复为检索版本");
         }
 
         List<MarkdownSection> sections = headingParser.parse(document);

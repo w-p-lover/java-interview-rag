@@ -74,6 +74,11 @@ class MarkdownDocumentControllerTest {
                         .param("source", "java/basic.md "))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("文档来源不能包含首尾空白"));
+
+        mockMvc.perform(get("/api/knowledge/documents/detail")
+                        .param("source", " "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("文档来源不能为空"));
     }
 
     @Test
@@ -146,6 +151,43 @@ class MarkdownDocumentControllerTest {
                         .value(hasItem(content.length())))
                 .andExpect(jsonPath("$.documents[?(@.source == '%s')].registeredAt".formatted(source))
                         .isNotEmpty());
+    }
+
+    @Test
+    void returnsCurrentAndHistoricalVersionDetails() throws Exception {
+        String source = "java/web-detail.md";
+        String originalContent = "# Java\n原内容";
+        String currentContent = "# Java\n新内容";
+        MarkdownDocument original = MarkdownDocument.create(source, originalContent);
+        MarkdownDocument current = MarkdownDocument.create(source, currentContent);
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(markdownFile(originalContent))
+                        .param("source", source))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(markdownFile(currentContent))
+                        .param("source", source))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/knowledge/documents/detail")
+                        .param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value(source))
+                .andExpect(jsonPath("$.currentVersion").value(current.version()))
+                .andExpect(jsonPath("$.versionCount").value(2))
+                .andExpect(jsonPath("$.versions[0].version").value(current.version()))
+                .andExpect(jsonPath("$.versions[0].contentLength").value(currentContent.length()))
+                .andExpect(jsonPath("$.versions[0].current").value(true))
+                .andExpect(jsonPath("$.versions[1].version").value(original.version()))
+                .andExpect(jsonPath("$.versions[1].current").value(false));
+    }
+
+    @Test
+    void returnsNotFoundForMissingDocumentDetails() throws Exception {
+        mockMvc.perform(get("/api/knowledge/documents/detail")
+                        .param("source", "java/missing-detail.md"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("资料不存在"));
     }
 
     private MockMultipartFile markdownFile(String content) {

@@ -5,6 +5,7 @@ import { FileSearch, LibraryBig, MessageCircleQuestion } from "@lucide/vue";
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import KnowledgeAnswerPanel from "@/components/knowledge/KnowledgeAnswerPanel.vue";
 import KnowledgeCatalogPanel from "@/components/knowledge/KnowledgeCatalogPanel.vue";
+import KnowledgeDocumentDetailPanel from "@/components/knowledge/KnowledgeDocumentDetailPanel.vue";
 import KnowledgeQuestionComposer from "@/components/knowledge/KnowledgeQuestionComposer.vue";
 import KnowledgeSearchPanel from "@/components/knowledge/KnowledgeSearchPanel.vue";
 import {
@@ -43,7 +44,17 @@ const {
   result: catalogResult,
   loading: catalogLoading,
   error: catalogError,
-  load: loadCatalog,
+  selectedSource,
+  details: documentDetails,
+  detailsLoading,
+  detailsError,
+  deleting: documentDeleting,
+  notice: catalogNotice,
+  refresh: refreshCatalog,
+  selectDocument,
+  closeDetails,
+  retryDetails,
+  deleteSelectedDocument,
 } = useKnowledgeCatalog();
 
 const activeError = computed(() => {
@@ -112,13 +123,29 @@ function handleAskFromSearch(searchQuery: string): void {
 
     <p v-if="activeError" class="error-banner" role="alert">{{ activeError }}</p>
 
-    <KnowledgeCatalogPanel
-      v-if="activeMode === 'catalog'"
-      :loading="catalogLoading"
-      :failed="Boolean(catalogError)"
-      :documents="catalogResult?.documents ?? []"
-      @refresh="loadCatalog"
-    />
+    <div v-if="activeMode === 'catalog'" class="catalog-workspace">
+      <KnowledgeCatalogPanel
+        :loading="catalogLoading"
+        :failed="Boolean(catalogError)"
+        :documents="catalogResult?.documents ?? []"
+        :selected-source="selectedSource"
+        :notice="catalogNotice"
+        :busy="documentDeleting"
+        @refresh="refreshCatalog"
+        @select="selectDocument"
+      />
+      <KnowledgeDocumentDetailPanel
+        v-if="selectedSource"
+        :source="selectedSource"
+        :details="documentDetails"
+        :loading="detailsLoading"
+        :error="detailsError"
+        :deleting="documentDeleting"
+        @close="closeDetails"
+        @retry="retryDetails"
+        @retire="deleteSelectedDocument"
+      />
+    </div>
 
     <div v-else-if="activeMode === 'answer'" class="answer-grid">
       <KnowledgeQuestionComposer
@@ -258,6 +285,12 @@ h1 {
   grid-template-columns: minmax(18rem, 0.62fr) minmax(0, 1.38fr);
   align-items: start;
   gap: var(--space-2xl);
+}
+
+.catalog-workspace {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
 }
 
 @media (max-width: 68rem) {

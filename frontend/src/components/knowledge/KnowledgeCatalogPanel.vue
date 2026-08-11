@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, Files, LibraryBig, RefreshCw } from "@lucide/vue";
+import { CircleAlert, FileText, Files, LibraryBig, RefreshCw } from "@lucide/vue";
 
 import type { KnowledgeDocumentCatalogItem } from "@/api/knowledge";
 
@@ -7,10 +7,14 @@ defineProps<{
   loading: boolean;
   failed: boolean;
   documents: KnowledgeDocumentCatalogItem[];
+  selectedSource: string;
+  notice: string;
+  busy: boolean;
 }>();
 
 defineEmits<{
   refresh: [];
+  select: [source: string];
 }>();
 
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
@@ -44,7 +48,7 @@ function formatVersion(value: string): string {
         <strong v-if="!loading && !failed">{{ documents.length }} 个来源</strong>
         <button
           type="button"
-          :disabled="loading"
+          :disabled="loading || busy"
           aria-label="刷新资料目录"
           title="刷新资料目录"
           @click="$emit('refresh')"
@@ -54,6 +58,8 @@ function formatVersion(value: string): string {
         </button>
       </div>
     </header>
+
+    <p v-if="notice" class="catalog-notice" role="status">{{ notice }}</p>
 
     <div v-if="loading && !documents.length" class="catalog-skeleton" aria-hidden="true">
       <span></span>
@@ -66,7 +72,7 @@ function formatVersion(value: string): string {
       <div>
         <h3>目录暂时无法读取</h3>
         <p>检查服务状态后重试，检索与问答的既有结果不会受影响。</p>
-        <button type="button" :disabled="loading" @click="$emit('refresh')">
+        <button type="button" :disabled="loading || busy" @click="$emit('refresh')">
           <RefreshCw :size="17" aria-hidden="true" />
           <span>重新读取</span>
         </button>
@@ -74,7 +80,11 @@ function formatVersion(value: string): string {
     </div>
 
     <ol v-else-if="documents.length" class="catalog-list">
-      <li v-for="(document, index) in documents" :key="document.source">
+      <li
+        v-for="(document, index) in documents"
+        :key="document.source"
+        :class="{ 'is-selected': selectedSource === document.source }"
+      >
         <span class="source-index">{{ index + 1 }}</span>
         <div class="source-identity">
           <strong>{{ document.source }}</strong>
@@ -90,6 +100,16 @@ function formatVersion(value: string): string {
             <dd><time :datetime="document.registeredAt">{{ formatRegisteredAt(document.registeredAt) }}</time></dd>
           </div>
         </dl>
+        <button
+          class="detail-button"
+          type="button"
+          :aria-pressed="selectedSource === document.source"
+          :disabled="busy"
+          @click="$emit('select', document.source)"
+        >
+          <FileText :size="17" aria-hidden="true" />
+          <span>详情</span>
+        </button>
       </li>
     </ol>
 
@@ -103,7 +123,7 @@ function formatVersion(value: string): string {
 
     <footer class="catalog-note">
       <Files :size="17" aria-hidden="true" />
-      <p>目录只展示每个逻辑来源当前登记的版本，不包含历史版本或资料正文。</p>
+      <p>目录展示当前生效版本；详情保留历史登记，但不保存资料正文。</p>
     </footer>
   </section>
 </template>
@@ -123,7 +143,8 @@ function formatVersion(value: string): string {
 .catalog-actions button,
 .catalog-empty,
 .catalog-empty button,
-.catalog-note {
+.catalog-note,
+.detail-button {
   display: flex;
   align-items: center;
 }
@@ -209,11 +230,15 @@ function formatVersion(value: string): string {
 
 .catalog-list li {
   display: grid;
-  grid-template-columns: 2rem minmax(14rem, 1.2fr) minmax(18rem, 1fr);
+  grid-template-columns: 2rem minmax(14rem, 1.2fr) minmax(18rem, 1fr) auto;
   align-items: center;
   gap: var(--space-md);
   min-height: 5rem;
   padding: var(--space-md) var(--space-xs);
+}
+
+.catalog-list li.is-selected {
+  background: var(--color-paper-2);
 }
 
 .catalog-list li + li {
@@ -258,6 +283,42 @@ function formatVersion(value: string): string {
 .catalog-list code {
   color: var(--color-ink-2);
   font-family: var(--font-mono);
+}
+
+.detail-button {
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.5rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.detail-button[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+}
+
+.detail-button:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
+}
+
+.catalog-notice {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--rule-thin) solid var(--color-success-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
 }
 
 .catalog-empty {
@@ -347,6 +408,11 @@ function formatVersion(value: string): string {
   .catalog-list dl {
     grid-column: 2;
   }
+
+  .detail-button {
+    grid-column: 2;
+    width: fit-content;
+  }
 }
 
 @media (max-width: 40rem) {
@@ -372,7 +438,8 @@ function formatVersion(value: string): string {
 
 @media (hover: hover) and (pointer: fine) {
   .catalog-actions button:hover:not(:disabled),
-  .catalog-empty button:hover:not(:disabled) {
+  .catalog-empty button:hover:not(:disabled),
+  .detail-button:hover:not(:disabled) {
     border-color: var(--color-accent);
     color: var(--color-accent-strong);
     background: var(--color-accent-soft);

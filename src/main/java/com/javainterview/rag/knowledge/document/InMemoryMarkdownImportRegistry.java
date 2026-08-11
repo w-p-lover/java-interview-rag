@@ -57,6 +57,17 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
                 .toList();
     }
 
+    @Override
+    public List<KnowledgeDocumentSummary> findVersionsBySource(String source) {
+        List<KnowledgeDocumentSummary> versions = new ArrayList<>();
+        registeredImports.forEach((key, summary) -> {
+            if (key.source().equals(source)) {
+                versions.add(0, summary);
+            }
+        });
+        return List.copyOf(versions);
+    }
+
     private void restorePreviousCurrent(String source) {
         List<ImportKey> keys = new ArrayList<>(registeredImports.keySet());
         for (int index = keys.size() - 1; index >= 0; index--) {

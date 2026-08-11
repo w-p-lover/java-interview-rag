@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.web;
 
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
@@ -17,7 +18,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/knowledge/documents")
@@ -35,6 +38,16 @@ public class MarkdownDocumentController {
     @GetMapping
     public KnowledgeDocumentCatalogResponse findCurrentDocuments() {
         return KnowledgeDocumentCatalogResponse.from(importRegistry.findCurrentDocuments());
+    }
+
+    @GetMapping("/detail")
+    public KnowledgeDocumentDetailsResponse findDocumentDetails(@RequestParam String source) {
+        validateSource(source);
+        List<KnowledgeDocumentSummary> versions = importRegistry.findVersionsBySource(source);
+        if (versions.isEmpty()) {
+            throw new NoSuchElementException("资料不存在");
+        }
+        return KnowledgeDocumentDetailsResponse.from(versions);
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -61,5 +74,20 @@ public class MarkdownDocumentController {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleInvalidArgument(IllegalArgumentException exception) {
         return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleMissingDocument(NoSuchElementException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
+    private void validateSource(String source) {
+        if (source == null || source.isBlank()) {
+            throw new IllegalArgumentException("文档来源不能为空");
+        }
+        if (!source.equals(source.strip())) {
+            throw new IllegalArgumentException("文档来源不能包含首尾空白");
+        }
     }
 }

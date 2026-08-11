@@ -7,9 +7,10 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 ## 当前 Web 功能
 
 - `POST /api/knowledge/documents/import` 接收 Markdown 文件与显式逻辑来源。
-- `POST /api/knowledge/documents/rebuild` 重传已登记版本的来源与 Markdown 文件，修复缺失或残留向量。
+- `POST /api/knowledge/documents/rebuild` 重传当前登记版本的来源与 Markdown 文件，修复缺失或残留向量；历史版本不能直接重建为检索版本。
 - `DELETE /api/knowledge/documents?source=...` 清理逻辑来源下的全部向量与版本登记。
 - `GET /api/knowledge/documents` 返回每个逻辑来源当前登记的版本、内容字符数和登记时间；不返回历史版本或 Markdown 正文，也不调用模型与向量库。
+- `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本和按新到旧排列的历史登记；只读取版本元数据，不返回正文或查询向量库。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
 - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
 - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
@@ -115,7 +116,7 @@ docker compose up -d mysql qdrant
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
 ```
 
-`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量；手动重建要求重传精确来源和 Markdown 文件，只允许已登记版本，写入失败时保留登记以便重试；显式删除先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，版本写入失败并撤销登记后会自然回退到上一成功版本；默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
+`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量，同时保留历史登记；手动重建要求重传精确来源和当前版本 Markdown 文件，写入失败时保留登记以便重试；显式淘汰先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，详情按 ID 倒序返回全部历史登记；版本写入失败并撤销登记后会自然回退到上一成功版本。默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 

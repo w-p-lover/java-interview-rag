@@ -49,8 +49,20 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     @Override
     public List<KnowledgeDocumentSummary> findCurrentDocuments() {
         return mapper.selectCurrentVersions().stream()
-                .map(entity -> new KnowledgeDocumentSummary(
-                        entity.getSource(), entity.getVersion(), entity.getContentLength(), entity.getCreatedAt()))
+                .map(this::toSummary)
                 .toList();
+    }
+
+    @Override
+    public List<KnowledgeDocumentSummary> findVersionsBySource(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        return mapper.selectVersionsBySource(source).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    private KnowledgeDocumentSummary toSummary(KnowledgeDocumentVersionEntity entity) {
+        return new KnowledgeDocumentSummary(
+                entity.getSource(), entity.getVersion(), entity.getContentLength(), entity.getCreatedAt());
     }
 }

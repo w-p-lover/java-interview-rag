@@ -31,4 +31,10 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
             + "WHERE newer_version.id IS NULL "
             + "ORDER BY current_version.created_at DESC, current_version.id DESC")
     List<KnowledgeDocumentVersionEntity> selectCurrentVersions();
+
+    @Select("SELECT id, source, version, content_length, created_at "
+            + "FROM t_knowledge_document_version "
+            + "WHERE BINARY source = BINARY #{source} "
+            + "ORDER BY id DESC")
+    List<KnowledgeDocumentVersionEntity> selectVersionsBySource(@Param("source") String source);
 }

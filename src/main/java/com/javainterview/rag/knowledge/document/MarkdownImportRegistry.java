@@ -13,4 +13,6 @@ public interface MarkdownImportRegistry {
     boolean unregisterBySource(String source);
 
     List<KnowledgeDocumentSummary> findCurrentDocuments();
+
+    List<KnowledgeDocumentSummary> findVersionsBySource(String source);
 }

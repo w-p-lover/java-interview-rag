@@ -51,6 +51,25 @@ export interface KnowledgeDocumentCatalogResponse {
   documents: KnowledgeDocumentCatalogItem[];
 }
 
+export interface KnowledgeDocumentVersionItem {
+  version: string;
+  contentLength: number;
+  registeredAt: string;
+  current: boolean;
+}
+
+export interface KnowledgeDocumentDetailsResponse {
+  source: string;
+  currentVersion: string;
+  versionCount: number;
+  versions: KnowledgeDocumentVersionItem[];
+}
+
+export interface MarkdownDeleteResponse {
+  source: string;
+  deleted: boolean;
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -92,6 +111,24 @@ export async function searchKnowledge(query: string): Promise<KnowledgeSearchRes
 export async function listKnowledgeDocuments(): Promise<KnowledgeDocumentCatalogResponse> {
   const response = await request.get<KnowledgeDocumentCatalogResponse>(
     "/knowledge/documents",
+  );
+  return response.data;
+}
+
+export async function getKnowledgeDocumentDetails(
+  source: string,
+): Promise<KnowledgeDocumentDetailsResponse> {
+  const response = await request.get<KnowledgeDocumentDetailsResponse>(
+    "/knowledge/documents/detail",
+    { params: { source } },
+  );
+  return response.data;
+}
+
+export async function deleteKnowledgeDocument(source: string): Promise<MarkdownDeleteResponse> {
+  const response = await request.delete<MarkdownDeleteResponse>(
+    "/knowledge/documents",
+    { params: { source } },
   );
   return response.data;
 }
