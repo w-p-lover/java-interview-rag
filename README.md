@@ -10,7 +10,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/knowledge/documents/rebuild` 重传当前登记版本的来源与 Markdown 文件，修复缺失或残留向量；历史版本不能直接重建为检索版本。
 - `DELETE /api/knowledge/documents?source=...` 清理逻辑来源下的全部向量与版本登记。
 - `GET /api/knowledge/documents` 返回每个逻辑来源当前登记的版本、内容字符数和登记时间；不返回历史版本或 Markdown 正文，也不调用模型与向量库。
-- `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本和按新到旧排列的历史登记；只读取版本元数据，不返回正文或查询向量库。
+- `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本、无正文章节目录和按新到旧排列的历史登记；只读取版本登记，不返回正文或查询向量库。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
 - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
 - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
@@ -43,7 +43,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。
 - Vue 两个工作台共用单行 `Java 面试台` 品牌栏和现有中性灰白、石墨、珊瑚、蓝绿状态色；资料库只保留导入、处理链路和结果核对，不再展示开发进度或“能力边界”。`/interview` 采用开放式材料区、状态驱动设置台和任务优先的面试流程，进行中会话使用统一答题画布与石墨反馈侧栏，不使用营销式 Hero 或技术口号。
-- Vue `/answer` 将资料目录、相似度检索和 RAG 回答接入同一用户入口：默认先展示当前逻辑来源、版本、字符数与登记时间，用户随后可以按主题或问题查找前 5 条相关原文，或发起单次可靠资料问答；有检索命中时可以把服务端归一化后的当前检索词带入问答框继续编辑，但不会自动调用 Chat。三种模式分别维护加载、错误和结果状态。检索结果与回答来源都可展开查看逻辑来源、标题路径、相似度、文档版本、chunk 顺序与原文；资料不足和接口错误使用独立状态，不把相似资料包装成可靠回答，也不在浏览器保存目录、检索、聊天历史或正文。
+- Vue `/answer` 将资料目录、相似度检索和 RAG 回答接入同一用户入口：默认展示当前逻辑来源、版本、字符数与登记时间，详情可浏览由既有标题和 chunk 顺序确定性投影的当前版本章节树；旧登记没有目录快照时提示重传当前原文件完成重建。用户随后可以按主题或问题查找前 5 条相关原文，或发起单次可靠资料问答；有检索命中时可以把服务端归一化后的当前检索词带入问答框继续编辑，但不会自动调用 Chat。三种模式分别维护加载、错误和结果状态。检索结果与回答来源都可展开查看逻辑来源、标题路径、相似度、文档版本、chunk 顺序与原文；资料不足和接口错误使用独立状态，不把相似资料包装成可靠回答，也不在浏览器保存目录、检索、聊天历史或正文。
 - Vue `/interview` 页面以面试任务为首屏，支持填写岗位、选择带文本层的 PDF、Markdown 或 TXT 简历与可选 JD、配置题数、逐题回答和查看上一题反馈；PDF 由后端临时解析，文本粘贴收进备用折叠入口。当前会话和最近 8 场入口只在浏览器保存 UUID，刷新后逐项从后端恢复岗位、状态、进度和更新时间；浏览器不保存简历、回答、评分、报告或知识正文。完成后先展示报告，再展示复习题目。待复习任务可设置或清除计划日期、按状态/日期筛选、标记完成或再次作答；页面显示本场已练题数、累计作答、提升题数和每题正式/首次/最近/最好分数，评价版本信息默认折叠。
 - 资料库页面支持选择或拖入 Markdown 学习资料、Java 技术资料和项目说明，并以“选择文件 → 版本判定 → 标题解析 → 生成切片”连接输入与结果，展示版本指纹、重复提示和 chunk 明细。
 - 顶部命令面板支持点击或 `Ctrl/Cmd + K` 打开，使用方向键、Enter 和 Esc 完成区段跳转与关闭。
@@ -116,7 +116,7 @@ docker compose up -d mysql qdrant
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=storage
 ```
 
-`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量，同时保留历史登记；手动重建要求重传精确来源和当前版本 Markdown 文件，写入失败时保留登记以便重试；显式淘汰先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，详情按 ID 倒序返回全部历史登记；版本写入失败并撤销登记后会自然回退到上一成功版本。默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
+`storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量，同时保留历史登记；手动重建要求重传精确来源和当前版本 Markdown 文件，写入失败时保留登记以便重试；显式淘汰先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，详情按 ID 倒序返回全部历史登记，并从版本登记的 `outline_json` 返回当前章节目录。新导入会保存目录快照；旧登记保持 `null`，只有当前版本向量重建成功后才补齐。部署存储 profile 前需执行 `deploy/mysql/init/014_knowledge_document_outline.sql`。版本写入失败并撤销登记后会自然回退到上一成功版本。默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 

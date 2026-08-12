@@ -96,6 +96,24 @@ class MarkdownImportRegistryTest {
                 versions.stream().map(KnowledgeDocumentSummary::version).toList());
     }
 
+    @Test
+    void storesAndUpdatesTheOutlineWithoutChangingRegistrationMetadata() {
+        MarkdownDocument document = MarkdownDocument.create("java/basic.md", "# Java\n集合");
+        KnowledgeDocumentOutline importedOutline = new KnowledgeDocumentOutline(
+                1, 1, List.of(new KnowledgeDocumentOutlineNode("Java", 1, 0, 1, List.of())));
+        KnowledgeDocumentOutline rebuiltOutline = new KnowledgeDocumentOutline(
+                1, 2, List.of(new KnowledgeDocumentOutlineNode("Java", 1, 0, 2, List.of())));
+
+        assertTrue(registry.register(document, importedOutline));
+        KnowledgeDocumentSummary before = findCurrent(document.source());
+        registry.updateOutline(document, rebuiltOutline);
+        KnowledgeDocumentSummary after = findCurrent(document.source());
+
+        assertEquals(importedOutline, before.outline());
+        assertEquals(rebuiltOutline, after.outline());
+        assertEquals(before.registeredAt(), after.registeredAt());
+    }
+
     private KnowledgeDocumentSummary findCurrent(String source) {
         return registry.findCurrentDocuments().stream()
                 .filter(document -> document.source().equals(source))

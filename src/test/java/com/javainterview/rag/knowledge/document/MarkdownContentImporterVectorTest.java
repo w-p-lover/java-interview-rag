@@ -2,6 +2,8 @@ package com.javainterview.rag.knowledge.document;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -141,6 +143,42 @@ class MarkdownContentImporterVectorTest {
         assertEquals(imported.document().version(), retried.document().version());
         assertTrue(registry.isRegistered(imported.document()));
         verify(indexer, times(2)).rebuild(any(MarkdownDocument.class), any());
+    }
+
+    @Test
+    void updatesOutlineOnlyAfterVectorRebuildSucceeds() {
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownDocument document = MarkdownDocument.create("java/rebuild-order.md", "# Java\n内容");
+        when(registry.findVersionsBySource(document.source())).thenReturn(List.of(
+                new KnowledgeDocumentSummary(document.source(), document.version(),
+                        document.content().length(), java.time.LocalDateTime.now(), null)));
+
+        sourceImporter.rebuildContent(document.source(), document.content());
+
+        var orderedCalls = inOrder(indexer, registry);
+        orderedCalls.verify(indexer).rebuild(any(MarkdownDocument.class), any());
+        orderedCalls.verify(registry).updateOutline(any(MarkdownDocument.class),
+                any(KnowledgeDocumentOutline.class));
+    }
+
+    @Test
+    void doesNotUpdateOutlineWhenVectorRebuildFails() {
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownDocument document = MarkdownDocument.create("java/rebuild-failure.md", "# Java\n内容");
+        when(registry.findVersionsBySource(document.source())).thenReturn(List.of(
+                new KnowledgeDocumentSummary(document.source(), document.version(),
+                        document.content().length(), java.time.LocalDateTime.now(), null)));
+        doThrow(new IllegalStateException("Qdrant unavailable"))
+                .when(indexer).rebuild(any(MarkdownDocument.class), any());
+
+        assertThrows(IllegalStateException.class,
+                () -> sourceImporter.rebuildContent(document.source(), document.content()));
+
+        verify(registry, never()).updateOutline(any(), any());
     }
 
     @Test

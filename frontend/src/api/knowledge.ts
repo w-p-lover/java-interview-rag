@@ -58,10 +58,25 @@ export interface KnowledgeDocumentVersionItem {
   current: boolean;
 }
 
+export interface KnowledgeDocumentOutlineNode {
+  title: string;
+  level: number;
+  firstChunkOrder: number | null;
+  directChunkCount: number;
+  children: KnowledgeDocumentOutlineNode[];
+}
+
+export interface KnowledgeDocumentOutline {
+  headingCount: number;
+  chunkCount: number;
+  roots: KnowledgeDocumentOutlineNode[];
+}
+
 export interface KnowledgeDocumentDetailsResponse {
   source: string;
   currentVersion: string;
   versionCount: number;
+  outline: KnowledgeDocumentOutline | null;
   versions: KnowledgeDocumentVersionItem[];
 }
 

@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
@@ -25,8 +26,9 @@ public class MarkdownImportConfiguration {
 
     @Bean
     @Profile("storage")
-    MarkdownImportRegistry mysqlMarkdownImportRegistry(KnowledgeDocumentVersionMapper mapper) {
-        return new MySqlMarkdownImportRegistry(mapper);
+    MarkdownImportRegistry mysqlMarkdownImportRegistry(KnowledgeDocumentVersionMapper mapper,
+                                                        ObjectMapper objectMapper) {
+        return new MySqlMarkdownImportRegistry(mapper, objectMapper);
     }
 
     @Bean

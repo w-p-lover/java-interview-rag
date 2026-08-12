@@ -14,14 +14,16 @@ public class KnowledgeDocumentVersionEntity {
     private String source;
     private String version;
     private Integer contentLength;
+    private String outlineJson;
     private LocalDateTime createdAt;
 
     public static KnowledgeDocumentVersionEntity create(String source, String version,
-                                                        int contentLength) {
+                                                        int contentLength, String outlineJson) {
         KnowledgeDocumentVersionEntity entity = new KnowledgeDocumentVersionEntity();
         entity.source = source;
         entity.version = version;
         entity.contentLength = contentLength;
+        entity.outlineJson = outlineJson;
         entity.createdAt = LocalDateTime.now();
         return entity;
     }
@@ -40,6 +42,10 @@ public class KnowledgeDocumentVersionEntity {
 
     public Integer getContentLength() {
         return contentLength;
+    }
+
+    public String getOutlineJson() {
+        return outlineJson;
     }
 
     public LocalDateTime getCreatedAt() {

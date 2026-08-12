@@ -6,6 +6,7 @@ public record KnowledgeDocumentSummary(
         String source,
         String version,
         int contentLength,
-        LocalDateTime registeredAt
+        LocalDateTime registeredAt,
+        KnowledgeDocumentOutline outline
 ) {
 }

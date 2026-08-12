@@ -3,6 +3,7 @@ import { shallowRef, useTemplateRef, watch } from "vue";
 import { CircleAlert, History, RefreshCw, RotateCw, Trash2, X } from "@lucide/vue";
 
 import type { KnowledgeDocumentDetailsResponse } from "@/api/knowledge";
+import KnowledgeDocumentOutline from "@/components/knowledge/KnowledgeDocumentOutline.vue";
 
 const props = defineProps<{
   source: string;
@@ -122,6 +123,8 @@ function formatVersion(value: string): string {
           </dd>
         </div>
       </dl>
+
+      <KnowledgeDocumentOutline :outline="details.outline" />
 
       <div class="version-history">
         <header>

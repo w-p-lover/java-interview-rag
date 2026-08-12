@@ -14,12 +14,17 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
 
     @Override
     public boolean register(MarkdownDocument document) {
+        return register(document, null);
+    }
+
+    @Override
+    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline) {
         ImportKey key = new ImportKey(document.source(), document.version());
         if (registeredImports.containsKey(key)) {
             return false;
         }
         registeredImports.put(key, new KnowledgeDocumentSummary(
-                document.source(), document.version(), document.content().length(), LocalDateTime.now()));
+                document.source(), document.version(), document.content().length(), LocalDateTime.now(), outline));
         currentImports.put(document.source(), key);
         return true;
     }
@@ -46,6 +51,17 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
         boolean removed = registeredImports.keySet().removeIf(importKey -> importKey.source().equals(source));
         currentImports.remove(source);
         return removed;
+    }
+
+    @Override
+    public void updateOutline(MarkdownDocument document, KnowledgeDocumentOutline outline) {
+        ImportKey key = new ImportKey(document.source(), document.version());
+        KnowledgeDocumentSummary current = registeredImports.get(key);
+        if (current == null) {
+            throw new IllegalArgumentException("文档版本尚未登记，不能更新章节目录");
+        }
+        registeredImports.put(key, new KnowledgeDocumentSummary(
+                current.source(), current.version(), current.contentLength(), current.registeredAt(), outline));
     }
 
     @Override

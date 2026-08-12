@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -22,8 +23,13 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
     @Delete("DELETE FROM t_knowledge_document_version WHERE BINARY source = BINARY #{source}")
     int deleteBySource(@Param("source") String source);
 
+    @Update("UPDATE t_knowledge_document_version SET outline_json = #{outlineJson} "
+            + "WHERE BINARY source = BINARY #{source} AND version = #{version}")
+    int updateOutline(@Param("source") String source, @Param("version") String version,
+                      @Param("outlineJson") String outlineJson);
+
     @Select("SELECT current_version.id, current_version.source, current_version.version, "
-            + "current_version.content_length, current_version.created_at "
+            + "current_version.content_length, current_version.outline_json, current_version.created_at "
             + "FROM t_knowledge_document_version current_version "
             + "LEFT JOIN t_knowledge_document_version newer_version "
             + "ON BINARY newer_version.source = BINARY current_version.source "
@@ -32,7 +38,7 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
             + "ORDER BY current_version.created_at DESC, current_version.id DESC")
     List<KnowledgeDocumentVersionEntity> selectCurrentVersions();
 
-    @Select("SELECT id, source, version, content_length, created_at "
+    @Select("SELECT id, source, version, content_length, outline_json, created_at "
             + "FROM t_knowledge_document_version "
             + "WHERE BINARY source = BINARY #{source} "
             + "ORDER BY id DESC")

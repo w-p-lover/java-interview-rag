@@ -8,6 +8,7 @@ public final class MarkdownContentImporter {
     private final MarkdownImportRegistry registry;
     private final MarkdownHeadingParser headingParser = new MarkdownHeadingParser();
     private final MarkdownSectionChunker sectionChunker = new MarkdownSectionChunker();
+    private final KnowledgeDocumentOutlineBuilder outlineBuilder = new KnowledgeDocumentOutlineBuilder();
     private final MarkdownChunkIndexer chunkIndexer;
     private final int maxChunkLength;
 
@@ -27,12 +28,12 @@ public final class MarkdownContentImporter {
 
     public MarkdownImportResult importContent(String source, String content) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
-        if (!registry.register(document)) {
-            return new MarkdownImportResult(document, false, List.of());
-        }
-
         List<MarkdownSection> sections = headingParser.parse(document);
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
+        if (!registry.register(document, outline)) {
+            return new MarkdownImportResult(document, false, List.of());
+        }
         try {
             chunkIndexer.index(document, chunks);
             chunkIndexer.deleteOtherVersions(document);
@@ -62,6 +63,7 @@ public final class MarkdownContentImporter {
         List<MarkdownSection> sections = headingParser.parse(document);
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         chunkIndexer.rebuild(document, chunks);
+        registry.updateOutline(document, outlineBuilder.build(sections, chunks));
         return new MarkdownRebuildResult(document, chunks);
     }
 

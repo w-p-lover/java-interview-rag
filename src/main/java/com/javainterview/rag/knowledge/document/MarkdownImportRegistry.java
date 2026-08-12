@@ -6,11 +6,15 @@ public interface MarkdownImportRegistry {
 
     boolean register(MarkdownDocument document);
 
+    boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline);
+
     boolean isRegistered(MarkdownDocument document);
 
     boolean unregister(MarkdownDocument document);
 
     boolean unregisterBySource(String source);
+
+    void updateOutline(MarkdownDocument document, KnowledgeDocumentOutline outline);
 
     List<KnowledgeDocumentSummary> findCurrentDocuments();
 
