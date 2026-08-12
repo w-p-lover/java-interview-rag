@@ -49,12 +49,15 @@ const {
   detailsLoading,
   detailsError,
   deleting: documentDeleting,
+  rebuilding: documentRebuilding,
+  rebuildError,
   notice: catalogNotice,
   refresh: refreshCatalog,
   selectDocument,
   closeDetails,
   retryDetails,
   deleteSelectedDocument,
+  rebuildSelectedDocument,
 } = useKnowledgeCatalog();
 
 const activeError = computed(() => {
@@ -130,7 +133,7 @@ function handleAskFromSearch(searchQuery: string): void {
         :documents="catalogResult?.documents ?? []"
         :selected-source="selectedSource"
         :notice="catalogNotice"
-        :busy="documentDeleting"
+        :busy="documentDeleting || documentRebuilding"
         @refresh="refreshCatalog"
         @select="selectDocument"
       />
@@ -141,9 +144,12 @@ function handleAskFromSearch(searchQuery: string): void {
         :loading="detailsLoading"
         :error="detailsError"
         :deleting="documentDeleting"
+        :rebuilding="documentRebuilding"
+        :rebuild-error="rebuildError"
         @close="closeDetails"
         @retry="retryDetails"
         @retire="deleteSelectedDocument"
+        @rebuild="rebuildSelectedDocument"
       />
     </div>
 

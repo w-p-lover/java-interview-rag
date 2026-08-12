@@ -70,6 +70,12 @@ export interface MarkdownDeleteResponse {
   deleted: boolean;
 }
 
+export interface MarkdownRebuildResponse {
+  source: string;
+  version: string;
+  chunkCount: number;
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -80,6 +86,21 @@ export async function importMarkdown(
 
   const response = await request.post<MarkdownImportResponse>(
     "/knowledge/documents/import",
+    formData,
+  );
+  return response.data;
+}
+
+export async function rebuildMarkdown(
+  file: File,
+  source: string,
+): Promise<MarkdownRebuildResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("source", source);
+
+  const response = await request.post<MarkdownRebuildResponse>(
+    "/knowledge/documents/rebuild",
     formData,
   );
   return response.data;

@@ -4,6 +4,7 @@ import {
   deleteKnowledgeDocument,
   getKnowledgeDocumentDetails,
   listKnowledgeDocuments,
+  rebuildMarkdown,
   type KnowledgeDocumentCatalogResponse,
   type KnowledgeDocumentDetailsResponse,
 } from "@/api/knowledge";
@@ -18,6 +19,8 @@ export function useKnowledgeCatalog() {
   const detailsLoading = shallowRef(false);
   const detailsError = shallowRef("");
   const deleting = shallowRef(false);
+  const rebuilding = shallowRef(false);
+  const rebuildError = shallowRef("");
   const notice = shallowRef("");
   let detailsRequestId = 0;
 
@@ -46,8 +49,8 @@ export function useKnowledgeCatalog() {
     }
   }
 
-  async function selectDocument(source: string): Promise<void> {
-    if (deleting.value) {
+  async function selectDocument(source: string, allowDuringRebuild = false): Promise<void> {
+    if (deleting.value || (rebuilding.value && !allowDuringRebuild)) {
       return;
     }
     const requestId = ++detailsRequestId;
@@ -55,6 +58,7 @@ export function useKnowledgeCatalog() {
     details.value = null;
     detailsLoading.value = true;
     detailsError.value = "";
+    rebuildError.value = "";
     notice.value = "";
     try {
       const response = await getKnowledgeDocumentDetails(source);
@@ -88,7 +92,7 @@ export function useKnowledgeCatalog() {
 
   async function deleteSelectedDocument(): Promise<void> {
     const source = selectedSource.value;
-    if (!source || deleting.value) {
+    if (!source || deleting.value || rebuilding.value) {
       return;
     }
 
@@ -108,6 +112,26 @@ export function useKnowledgeCatalog() {
     }
   }
 
+  async function rebuildSelectedDocument(file: File): Promise<void> {
+    const source = selectedSource.value;
+    if (!source || rebuilding.value || deleting.value) {
+      return;
+    }
+
+    rebuilding.value = true;
+    rebuildError.value = "";
+    notice.value = "";
+    try {
+      const response = await rebuildMarkdown(file, source);
+      await selectDocument(source, true);
+      notice.value = `已重建当前版本：${response.source}（${response.chunkCount} 个切片）`;
+    } catch (requestError) {
+      rebuildError.value = resolveApiError(requestError, "当前版本重建失败");
+    } finally {
+      rebuilding.value = false;
+    }
+  }
+
   onMounted(() => {
     void load();
   });
@@ -121,6 +145,8 @@ export function useKnowledgeCatalog() {
     detailsLoading,
     detailsError,
     deleting,
+    rebuilding,
+    rebuildError,
     notice,
     load,
     refresh,
@@ -128,5 +154,6 @@ export function useKnowledgeCatalog() {
     closeDetails,
     retryDetails,
     deleteSelectedDocument,
+    rebuildSelectedDocument,
   };
 }
