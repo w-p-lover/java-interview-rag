@@ -1,5 +1,8 @@
 # 固定 RAG 评估
 
+PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线不依赖 RAG 语料、
+数据库或模型调用。
+
 本目录保存阶段 4 的可复现评估语料。物理路径位于 `evaluation/corpus/`，导入时使用去掉 `evaluation/corpus/` 前缀后的路径作为逻辑来源：
 
 | 物理文件 | 逻辑来源 | 覆盖题目 |

@@ -1,0 +1,49 @@
+{
+  "parser" : "pdfbox-position-sort-v1",
+  "evaluator" : "repository-deterministic-v1",
+  "caseCount" : 3,
+  "passedCaseCount" : 2,
+  "keyPhraseHitRate" : 1.0,
+  "readingOrderPassed" : false,
+  "textlessRejected" : true,
+  "cases" : [ {
+    "caseId" : "single-column",
+    "expectedPageCount" : 2,
+    "actualPageCount" : 2,
+    "keyPhraseCount" : 5,
+    "keyPhraseHitCount" : 5,
+    "keyPhraseHitRate" : 1.0,
+    "readingOrderPassed" : true,
+    "expectedOrder" : [ "JAVA_INTERVIEW_RESUME", "NAME ALICE", "EMAIL alice@example.test", "SKILLS Java Spring MySQL", "PROJECT RAG KNOWLEDGE BASE", "RESULT retrieval baseline" ],
+    "observedOrder" : [ "JAVA_INTERVIEW_RESUME", "NAME ALICE", "EMAIL alice@example.test", "SKILLS Java Spring MySQL", "PROJECT RAG KNOWLEDGE BASE", "RESULT retrieval baseline" ],
+    "expectedFailureType" : null,
+    "actualFailureType" : null,
+    "passed" : true
+  }, {
+    "caseId" : "two-column",
+    "expectedPageCount" : 1,
+    "actualPageCount" : 1,
+    "keyPhraseCount" : 5,
+    "keyPhraseHitCount" : 5,
+    "keyPhraseHitRate" : 1.0,
+    "readingOrderPassed" : false,
+    "expectedOrder" : [ "TWO_COLUMN_RESUME", "LEFT_SKILLS", "LEFT_EDUCATION", "RIGHT_EXPERIENCE", "RIGHT_PROJECT" ],
+    "observedOrder" : [ "TWO_COLUMN_RESUME", "LEFT_SKILLS", "RIGHT_EXPERIENCE", "LEFT_EDUCATION", "RIGHT_PROJECT" ],
+    "expectedFailureType" : null,
+    "actualFailureType" : null,
+    "passed" : false
+  }, {
+    "caseId" : "textless",
+    "expectedPageCount" : 1,
+    "actualPageCount" : null,
+    "keyPhraseCount" : 0,
+    "keyPhraseHitCount" : 0,
+    "keyPhraseHitRate" : null,
+    "readingOrderPassed" : null,
+    "expectedOrder" : [ ],
+    "observedOrder" : [ ],
+    "expectedFailureType" : "TEXT_LAYER_MISSING",
+    "actualFailureType" : "TEXT_LAYER_MISSING",
+    "passed" : true
+  } ]
+}
