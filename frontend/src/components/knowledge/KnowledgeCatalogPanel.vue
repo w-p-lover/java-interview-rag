@@ -38,7 +38,12 @@ function formatVersion(value: string): string {
 </script>
 
 <template>
-  <section class="catalog-panel" aria-labelledby="catalog-title" aria-live="polite">
+  <section
+    class="catalog-panel"
+    :class="{ 'has-selection': Boolean(selectedSource) }"
+    aria-labelledby="catalog-title"
+    aria-live="polite"
+  >
     <header class="catalog-header">
       <div>
         <span>当前登记范围</span>
@@ -103,6 +108,8 @@ function formatVersion(value: string): string {
         <button
           class="detail-button"
           type="button"
+          :aria-label="`查看资料详情：${document.source}`"
+          :title="`查看资料详情：${document.source}`"
           :aria-pressed="selectedSource === document.source"
           :disabled="busy"
           @click="$emit('select', document.source)"
@@ -132,10 +139,10 @@ function formatVersion(value: string): string {
 .catalog-panel {
   display: grid;
   align-content: start;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   min-width: 0;
-  min-height: 28rem;
-  padding: var(--space-xs) 0 var(--space-xl);
+  padding: var(--space-xs) 0 var(--space-lg);
+  container-type: inline-size;
 }
 
 .catalog-header,
@@ -152,8 +159,8 @@ function formatVersion(value: string): string {
 .catalog-header {
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--space-lg);
-  padding-bottom: var(--space-md);
+  gap: var(--space-md);
+  padding-bottom: var(--space-sm);
   border-bottom: var(--rule-thin) solid var(--color-rule-2);
 }
 
@@ -233,8 +240,8 @@ function formatVersion(value: string): string {
   grid-template-columns: 2rem minmax(14rem, 1.2fr) minmax(18rem, 1fr) auto;
   align-items: center;
   gap: var(--space-md);
-  min-height: 5rem;
-  padding: var(--space-md) var(--space-xs);
+  min-height: 4.25rem;
+  padding: var(--space-sm) var(--space-xs);
 }
 
 .catalog-list li.is-selected {
@@ -358,9 +365,8 @@ function formatVersion(value: string): string {
 .catalog-note {
   align-items: flex-start;
   gap: var(--space-sm);
-  padding: var(--space-md);
-  border-radius: var(--radius-control);
-  background: var(--color-paper-2);
+  padding-top: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-rule);
   line-height: 1.6;
 }
 
@@ -401,6 +407,12 @@ function formatVersion(value: string): string {
 }
 
 @media (max-width: 50rem) {
+  .catalog-panel.has-selection {
+    max-height: 32rem;
+    padding-inline-end: var(--space-xs);
+    overflow-y: auto;
+  }
+
   .catalog-list li {
     grid-template-columns: 2rem minmax(0, 1fr);
   }
@@ -415,9 +427,51 @@ function formatVersion(value: string): string {
   }
 }
 
+@container (max-width: 34rem) {
+  .catalog-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .catalog-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .catalog-list li {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+  }
+
+  .catalog-list dl {
+    display: none;
+  }
+
+  .detail-button {
+    grid-column: 3;
+    width: auto;
+    padding-inline: var(--space-xs);
+  }
+
+  .detail-button span {
+    display: none;
+  }
+}
+
+@media (min-width: 58.001rem) {
+  .catalog-panel {
+    position: sticky;
+    top: var(--space-md);
+    max-height: calc(100dvh - (var(--space-3xl) * 2));
+    padding-inline-end: var(--space-xs);
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 40rem) {
   .catalog-panel {
-    min-height: 20rem;
+    padding-bottom: var(--space-md);
   }
 
   .catalog-header {

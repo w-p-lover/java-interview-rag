@@ -115,6 +115,7 @@ function formatChunkRange(node: KnowledgeDocumentOutlineNode): string {
 
 .outline-row button {
   display: inline-flex;
+  position: relative;
   min-height: 2rem;
   flex: 0 0 auto;
   align-items: center;
@@ -128,6 +129,12 @@ function formatChunkRange(node: KnowledgeDocumentOutlineNode): string {
   font: inherit;
   font-size: var(--text-xs);
   font-weight: 700;
+}
+
+.outline-row button::before {
+  position: absolute;
+  inset: calc(var(--space-xs) * -1);
+  content: "";
 }
 
 .outline-row button:focus-visible {

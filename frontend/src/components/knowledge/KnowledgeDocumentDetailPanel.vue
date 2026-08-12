@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { shallowRef, useTemplateRef, watch } from "vue";
-import { CircleAlert, History, RefreshCw, RotateCw, Trash2, X } from "@lucide/vue";
+import { CircleAlert, History, RefreshCw, RotateCw, Settings2, Trash2, X } from "@lucide/vue";
 
 import type { KnowledgeDocumentDetailsResponse } from "@/api/knowledge";
 import KnowledgeDocumentOutline from "@/components/knowledge/KnowledgeDocumentOutline.vue";
@@ -125,97 +125,106 @@ function formatVersion(value: string): string {
         </div>
       </dl>
 
-      <KnowledgeDocumentOutline
-        :outline="details.outline"
-        :disabled="deleting || rebuilding"
-        @search="emit('search', $event)"
-      />
+      <div class="detail-body">
+        <div class="detail-primary">
+          <KnowledgeDocumentOutline
+            :outline="details.outline"
+            :disabled="deleting || rebuilding"
+            @search="emit('search', $event)"
+          />
+        </div>
 
-      <div class="version-history">
-        <header>
-          <History :size="18" aria-hidden="true" />
-          <h3>版本历史</h3>
-        </header>
-        <ol>
-          <li v-for="version in details.versions" :key="version.version">
-            <div>
-              <code :title="version.version">{{ formatVersion(version.version) }}</code>
-              <strong v-if="version.current">当前生效</strong>
-              <span v-else>历史登记</span>
-            </div>
-            <dl>
+        <aside class="detail-secondary" aria-label="版本与资料维护">
+          <div class="version-history">
+            <header>
+              <History :size="18" aria-hidden="true" />
+              <h3>版本历史</h3>
+            </header>
+            <ol>
+              <li v-for="version in details.versions" :key="version.version">
+                <div>
+                  <code :title="version.version">{{ formatVersion(version.version) }}</code>
+                  <strong v-if="version.current">当前生效</strong>
+                  <span v-else>历史登记</span>
+                </div>
+                <dl>
+                  <div>
+                    <dt>内容规模</dt>
+                    <dd>{{ formatContentLength(version.contentLength) }}</dd>
+                  </div>
+                  <div>
+                    <dt>登记时间</dt>
+                    <dd><time :datetime="version.registeredAt">{{ formatRegisteredAt(version.registeredAt) }}</time></dd>
+                  </div>
+                </dl>
+              </li>
+            </ol>
+          </div>
+
+          <section class="maintenance" aria-labelledby="maintenance-title">
+            <header>
+              <Settings2 :size="18" aria-hidden="true" />
+              <h3 id="maintenance-title">资料维护</h3>
+            </header>
+
+            <dl class="lifecycle-summary">
               <div>
-                <dt>内容规模</dt>
-                <dd>{{ formatContentLength(version.contentLength) }}</dd>
+                <dt>版本替换</dt>
+                <dd>新版本入库后，旧向量退出检索，历史登记继续保留。</dd>
               </div>
               <div>
-                <dt>登记时间</dt>
-                <dd><time :datetime="version.registeredAt">{{ formatRegisteredAt(version.registeredAt) }}</time></dd>
+                <dt>人工淘汰</dt>
+                <dd>删除全部向量和版本登记，页面内无法撤销。</dd>
               </div>
             </dl>
-          </li>
-        </ol>
+
+            <div class="rebuild-action">
+              <div>
+                <strong>重建当前版本</strong>
+                <p>重新选择当前原文件；内容不一致时服务端会拒绝。</p>
+              </div>
+              <button type="button" :disabled="deleting || rebuilding" @click="chooseRebuildFile">
+                <RotateCw :size="17" aria-hidden="true" />
+                <span>{{ rebuilding ? "正在重建" : "选择原文件" }}</span>
+              </button>
+              <input
+                ref="rebuildFileInput"
+                hidden
+                type="file"
+                accept=".md,.markdown,text/markdown"
+                :disabled="deleting || rebuilding"
+                @change="handleRebuildFileChange"
+              />
+              <p v-if="rebuildError" class="rebuild-error" role="alert">{{ rebuildError }}</p>
+            </div>
+
+            <div v-if="confirmingDelete" class="delete-confirmation">
+              <div>
+                <strong>确认淘汰这份资料？</strong>
+                <p>将删除“{{ details.source }}”的全部向量和 {{ details.versionCount }} 条版本登记。</p>
+              </div>
+              <div class="confirmation-actions">
+                <button type="button" :disabled="deleting || rebuilding" @click="confirmingDelete = false">取消</button>
+                <button class="danger-button" type="button" :disabled="deleting || rebuilding" @click="emit('retire')">
+                  <Trash2 :size="17" aria-hidden="true" />
+                  <span>{{ deleting ? "正在淘汰" : "确认淘汰" }}</span>
+                </button>
+              </div>
+            </div>
+
+            <button
+              v-else
+              class="delete-button"
+              type="button"
+              :disabled="deleting || rebuilding"
+              @click="confirmingDelete = true"
+            >
+              <Trash2 :size="17" aria-hidden="true" />
+              <span>淘汰资料</span>
+            </button>
+          </section>
+        </aside>
       </div>
-
-      <dl class="lifecycle-summary">
-        <div>
-          <dt>版本替换</dt>
-          <dd>新版本完成向量写入后，旧版本向量退出检索，历史登记继续保留。</dd>
-        </div>
-        <div>
-          <dt>当前版本重建</dt>
-          <dd>重新选择当前原文件后重建向量，不会恢复历史版本或修改版本登记。</dd>
-        </div>
-        <div>
-          <dt>人工淘汰</dt>
-          <dd>删除该来源全部向量和版本登记；向量清理失败时不会先删除登记。</dd>
-        </div>
-      </dl>
-
-      <div class="rebuild-action">
-        <div>
-          <strong>重建当前版本</strong>
-          <p>请选择与当前版本一致的原 Markdown 文件。内容不一致时服务端会拒绝重建。</p>
-        </div>
-        <button type="button" :disabled="deleting || rebuilding" @click="chooseRebuildFile">
-          <RotateCw :size="17" aria-hidden="true" />
-          <span>{{ rebuilding ? "正在重建" : "选择原文件并重建" }}</span>
-        </button>
-        <input
-          ref="rebuildFileInput"
-          hidden
-          type="file"
-          accept=".md,.markdown,text/markdown"
-          :disabled="deleting || rebuilding"
-          @change="handleRebuildFileChange"
-        />
-        <p v-if="rebuildError" class="rebuild-error" role="alert">{{ rebuildError }}</p>
-      </div>
-
-      <div v-if="confirmingDelete" class="delete-confirmation">
-        <div>
-          <strong>确认淘汰这份资料？</strong>
-          <p>将删除“{{ details.source }}”的全部向量和 {{ details.versionCount }} 条版本登记，页面内无法撤销。</p>
-        </div>
-        <div class="confirmation-actions">
-          <button type="button" :disabled="deleting || rebuilding" @click="confirmingDelete = false">取消</button>
-          <button class="danger-button" type="button" :disabled="deleting || rebuilding" @click="emit('retire')">
-            <Trash2 :size="17" aria-hidden="true" />
-            <span>{{ deleting ? "正在淘汰" : "确认淘汰" }}</span>
-          </button>
-        </div>
-      </div>
-
-      <button
-        v-else
-        class="delete-button"
-        type="button"
-        :disabled="deleting || rebuilding"
-        @click="confirmingDelete = true"
-      >
-        <Trash2 :size="17" aria-hidden="true" />
-        <span>淘汰资料</span>
-      </button>
     </template>
   </section>
 </template>
@@ -223,17 +232,19 @@ function formatVersion(value: string): string {
 <style scoped lang="scss">
 .detail-panel {
   display: grid;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   min-width: 0;
   padding: var(--space-lg);
-  border-top: var(--rule-thin) solid var(--color-rule-2);
+  border-block: var(--rule-thin) solid var(--color-rule-2);
   background: var(--color-paper-2);
+  container-type: inline-size;
 }
 
 .detail-header,
 .detail-error,
 .detail-error button,
 .version-history header,
+.maintenance header,
 .version-history li > div,
 .rebuild-action,
 .rebuild-action button,
@@ -300,6 +311,25 @@ function formatVersion(value: string): string {
   gap: var(--space-md);
 }
 
+.detail-body {
+  display: grid;
+  grid-template-columns: minmax(20rem, 1.35fr) minmax(16rem, 0.65fr);
+  align-items: start;
+  gap: var(--space-xl);
+  padding-top: var(--space-sm);
+  border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.detail-primary,
+.detail-secondary {
+  min-width: 0;
+}
+
+.detail-secondary {
+  display: grid;
+  gap: var(--space-xl);
+}
+
 .detail-summary > div,
 .lifecycle-summary > div {
   display: grid;
@@ -332,6 +362,24 @@ function formatVersion(value: string): string {
   color: var(--color-accent-strong);
 }
 
+.maintenance {
+  display: grid;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  border-top: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.maintenance header {
+  gap: var(--space-xs);
+  color: var(--color-accent-strong);
+}
+
+.maintenance h3 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-md);
+}
+
 .version-history h3 {
   color: var(--color-ink);
   font-size: var(--text-md);
@@ -346,8 +394,7 @@ function formatVersion(value: string): string {
 
 .version-history li {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.8fr) minmax(0, 1.2fr);
-  gap: var(--space-md);
+  gap: var(--space-sm);
   padding: var(--space-sm) 0;
 }
 
@@ -367,7 +414,7 @@ function formatVersion(value: string): string {
 .version-history dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
 .version-history dl > div {
@@ -377,23 +424,15 @@ function formatVersion(value: string): string {
 
 .lifecycle-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border-left: var(--rule-focus) solid var(--color-accent);
-  background: var(--color-surface);
+  gap: var(--space-sm);
+  padding: 0;
 }
 
 .rebuild-action {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule-2);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .rebuild-action > div {
@@ -418,7 +457,7 @@ function formatVersion(value: string): string {
 }
 
 .rebuild-action button {
-  flex: 0 0 auto;
+  width: fit-content;
   justify-content: center;
   gap: var(--space-xs);
   min-height: 2.5rem;
@@ -426,7 +465,7 @@ function formatVersion(value: string): string {
   border: var(--rule-thin) solid var(--color-rule-2);
   border-radius: var(--radius-control);
   color: var(--color-ink-2);
-  background: var(--color-paper-2);
+  background: var(--color-surface);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 700;
@@ -458,12 +497,14 @@ function formatVersion(value: string): string {
 }
 
 .delete-button {
-  width: fit-content;
+  width: 100%;
   color: var(--color-error);
 }
 
 .delete-confirmation {
-  align-items: flex-end;
+  align-items: stretch;
+  flex-direction: column;
+  gap: var(--space-md);
   padding: var(--space-md);
   border: var(--rule-thin) solid var(--color-error-rule);
   border-radius: var(--radius-control);
@@ -489,7 +530,7 @@ function formatVersion(value: string): string {
 }
 
 .confirmation-actions {
-  flex: 0 0 auto;
+  justify-content: flex-end;
   gap: var(--space-sm);
 }
 
@@ -544,21 +585,19 @@ button:focus-visible {
   }
 }
 
-@media (max-width: 48rem) {
-  .detail-summary,
-  .version-history li,
-  .version-history dl,
-  .lifecycle-summary {
+@container (max-width: 46rem) {
+  .detail-body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .delete-confirmation {
-    align-items: stretch;
-    flex-direction: column;
+  .detail-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .rebuild-action {
-    align-items: stretch;
+@container (max-width: 32rem) {
+  .detail-summary,
+  .version-history dl {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -566,12 +605,6 @@ button:focus-visible {
     width: 100%;
   }
 
-  .confirmation-actions {
-    justify-content: flex-end;
-  }
-}
-
-@media (max-width: 32rem) {
   .confirmation-actions {
     align-items: stretch;
     flex-direction: column-reverse;

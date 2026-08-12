@@ -160,6 +160,13 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
         @rebuild="rebuildSelectedDocument"
         @search="handleSearchFromOutline"
       />
+      <section v-else class="detail-placeholder" aria-labelledby="detail-placeholder-title">
+        <LibraryBig :size="28" aria-hidden="true" />
+        <div>
+          <h2 id="detail-placeholder-title">选择一份资料查看详情</h2>
+          <p>章节结构、版本历史和维护操作会显示在这里。</p>
+        </div>
+      </section>
     </div>
 
     <div v-else-if="activeMode === 'answer'" class="answer-grid">
@@ -201,7 +208,6 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
 <style scoped lang="scss">
 .answer-workspace {
   display: grid;
-  gap: var(--space-xl);
   margin-left: var(--workspace-rail);
   padding: var(--space-xl) clamp(var(--space-lg), 4vw, var(--space-3xl)) var(--space-2xl);
 }
@@ -211,6 +217,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
   align-items: end;
   justify-content: space-between;
   gap: var(--space-xl);
+  margin-bottom: var(--space-lg);
   padding-bottom: var(--space-lg);
   border-bottom: var(--rule-thin) solid var(--color-rule-2);
 }
@@ -253,6 +260,7 @@ h1 {
 .mode-switch {
   display: inline-flex;
   width: fit-content;
+  margin-bottom: var(--space-md);
   padding: var(--space-2xs);
   border: var(--rule-thin) solid var(--color-rule-2);
   border-radius: var(--radius-surface);
@@ -287,6 +295,7 @@ h1 {
 }
 
 .error-banner {
+  margin-bottom: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   border: var(--rule-thin) solid var(--color-error-rule);
   border-radius: var(--radius-control);
@@ -304,8 +313,41 @@ h1 {
 
 .catalog-workspace {
   display: grid;
+  grid-template-columns: 18.5rem minmax(0, 1fr);
+  align-items: start;
   gap: var(--space-lg);
   min-width: 0;
+}
+
+.detail-placeholder {
+  display: flex;
+  min-height: 24rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  border-block: var(--rule-thin) solid var(--color-rule-2);
+  color: var(--color-muted);
+}
+
+.detail-placeholder > div {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.detail-placeholder h2,
+.detail-placeholder p {
+  margin: 0;
+}
+
+.detail-placeholder h2 {
+  color: var(--color-ink);
+  font-size: var(--text-lg);
+}
+
+.detail-placeholder p {
+  max-width: 42ch;
+  font-size: var(--text-sm);
 }
 
 @media (max-width: 68rem) {
@@ -324,6 +366,14 @@ h1 {
   .answer-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-xl);
+  }
+
+  .catalog-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-placeholder {
+    min-height: 16rem;
   }
 }
 
