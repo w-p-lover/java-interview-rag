@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef } from "vue";
+import { computed, nextTick, shallowRef } from "vue";
 import { FileSearch, LibraryBig, MessageCircleQuestion } from "@lucide/vue";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
@@ -80,6 +80,14 @@ function handleAskFromSearch(searchQuery: string): void {
   question.value = searchQuery;
   activeMode.value = "answer";
 }
+
+async function handleSearchFromOutline(searchQuery: string): Promise<void> {
+  clearSearch();
+  query.value = searchQuery;
+  activeMode.value = "search";
+  await nextTick();
+  document.getElementById("knowledge-question-input")?.focus();
+}
 </script>
 
 <template>
@@ -150,6 +158,7 @@ function handleAskFromSearch(searchQuery: string): void {
         @retry="retryDetails"
         @retire="deleteSelectedDocument"
         @rebuild="rebuildSelectedDocument"
+        @search="handleSearchFromOutline"
       />
     </div>
 

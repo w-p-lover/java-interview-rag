@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { BookOpenText, CircleAlert } from "@lucide/vue";
+import { BookOpenText, CircleAlert, Search } from "@lucide/vue";
 
 import type {
   KnowledgeDocumentOutline,
@@ -9,12 +9,18 @@ import type {
 
 const props = defineProps<{
   outline: KnowledgeDocumentOutline | null;
+  disabled: boolean;
+}>();
+
+const emit = defineEmits<{
+  search: [query: string];
 }>();
 
 interface OutlineRow {
   key: string;
   node: KnowledgeDocumentOutlineNode;
   depth: number;
+  query: string;
 }
 
 const rows = computed(() => {
@@ -22,14 +28,16 @@ const rows = computed(() => {
     return [];
   }
   const flattened: OutlineRow[] = [];
-  const append = (nodes: KnowledgeDocumentOutlineNode[], depth: number, parentKey: string): void => {
+  const append = (nodes: KnowledgeDocumentOutlineNode[], depth: number,
+    parentKey: string, parentTitles: string[]): void => {
     nodes.forEach((node, index) => {
       const key = `${parentKey}.${index}`;
-      flattened.push({ key, node, depth });
-      append(node.children, depth + 1, key);
+      const titles = [...parentTitles, node.title];
+      flattened.push({ key, node, depth, query: titles.join(" ") });
+      append(node.children, depth + 1, key, titles);
     });
   };
-  append(props.outline.roots, 0, "root");
+  append(props.outline.roots, 0, "root", []);
   return flattened;
 });
 
@@ -73,6 +81,16 @@ function formatChunkRange(node: KnowledgeDocumentOutlineNode): string {
         <span class="outline-level">H{{ row.node.level }}</span>
         <strong class="outline-title">{{ row.node.title }}</strong>
         <span class="outline-chunks">{{ formatChunkRange(row.node) }}</span>
+        <button
+          type="button"
+          :aria-label="`按标题路径查资料：${row.query}`"
+          :title="`按标题路径查资料：${row.query}`"
+          :disabled="disabled"
+          @click="emit('search', row.query)"
+        >
+          <Search :size="15" aria-hidden="true" />
+          <span>查资料</span>
+        </button>
       </li>
     </ol>
 
@@ -93,6 +111,33 @@ function formatChunkRange(node: KnowledgeDocumentOutlineNode): string {
 .outline-row {
   display: flex;
   align-items: center;
+}
+
+.outline-row button {
+  display: inline-flex;
+  min-height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding-inline: var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.outline-row button:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
+}
+
+.outline-row button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .outline-header {
@@ -209,8 +254,15 @@ function formatChunkRange(node: KnowledgeDocumentOutlineNode): string {
   }
 
   .outline-chunks {
-    width: 100%;
+    flex: 1 1 auto;
     padding-inline-start: calc(2rem + var(--space-sm));
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .outline-row button:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
   }
 }
 </style>

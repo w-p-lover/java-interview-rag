@@ -20,6 +20,7 @@ const emit = defineEmits<{
   retry: [];
   retire: [];
   rebuild: [file: File];
+  search: [query: string];
 }>();
 
 const confirmingDelete = shallowRef(false);
@@ -124,7 +125,11 @@ function formatVersion(value: string): string {
         </div>
       </dl>
 
-      <KnowledgeDocumentOutline :outline="details.outline" />
+      <KnowledgeDocumentOutline
+        :outline="details.outline"
+        :disabled="deleting || rebuilding"
+        @search="emit('search', $event)"
+      />
 
       <div class="version-history">
         <header>
