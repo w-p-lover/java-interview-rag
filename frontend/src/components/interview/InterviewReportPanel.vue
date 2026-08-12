@@ -72,9 +72,9 @@ const emit = defineEmits<{
   display: grid;
   gap: var(--space-xl);
   padding: var(--space-xl);
-  border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-surface);
   background: var(--color-surface);
+  box-shadow: var(--shadow-whisper);
 }
 
 header,
@@ -142,11 +142,10 @@ button {
   justify-items: start;
   gap: var(--space-xs);
   padding: var(--space-xl);
-  border-right: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 .report-score strong {
-  color: var(--color-graphite-text);
+  color: var(--color-info-rule);
   font-family: var(--font-display);
   font-size: var(--text-display-s);
   letter-spacing: 0;
@@ -174,7 +173,6 @@ button {
   display: grid;
   gap: var(--space-xs);
   padding: var(--space-xl) var(--space-lg);
-  border-right: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 .report-metrics div:last-child {
@@ -234,7 +232,6 @@ button {
 
   .report-score {
     border-right: 0;
-    border-bottom: var(--rule-thin) solid var(--color-graphite-2);
   }
 
   button {

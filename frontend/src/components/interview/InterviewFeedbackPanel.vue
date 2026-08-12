@@ -125,11 +125,12 @@ defineProps<{
   padding: var(--space-xl);
   color: var(--color-graphite-text);
   background: var(--color-graphite);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-whisper);
 }
 
 header {
   padding-bottom: var(--space-md);
-  border-bottom: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 h2,
@@ -160,8 +161,8 @@ h2 {
   height: 2.5rem;
   place-items: center;
   border-radius: var(--radius-control);
-  color: var(--color-accent-soft);
-  background: var(--color-graphite-2);
+  color: var(--color-ink);
+  background: var(--color-accent-soft);
 }
 
 .feedback-empty > div {
@@ -215,7 +216,6 @@ h2 {
   display: grid;
   gap: var(--space-sm);
   padding-block: var(--space-md);
-  border-block: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 .score-item {
@@ -267,7 +267,7 @@ h2 {
 }
 
 .score-item--technical {
-  --score-color: var(--color-accent);
+  --score-color: var(--color-error-rule);
 }
 
 .score-item--completeness {
@@ -275,7 +275,7 @@ h2 {
 }
 
 .score-item--communication {
-  --score-color: var(--color-info-rule);
+  --score-color: var(--color-accent);
 }
 
 .evidence-note {
@@ -295,7 +295,6 @@ section {
   display: grid;
   gap: var(--space-sm);
   padding-top: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 h3 {

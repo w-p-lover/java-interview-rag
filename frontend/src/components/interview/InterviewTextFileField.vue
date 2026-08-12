@@ -177,21 +177,21 @@ legend small {
   min-height: 5.5rem;
   padding: var(--space-lg);
   overflow: hidden;
-  border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-control);
-  background: var(--color-surface);
+  background: var(--color-paper-2);
+  box-shadow: inset 0 0 0 var(--rule-thin) var(--color-rule);
   cursor: pointer;
   transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out), transform var(--dur-short) var(--ease-out);
 }
 
 .file-selector.is-success {
-  border-color: var(--color-success);
   background: var(--color-success-soft);
+  box-shadow: inset 0 0 0 var(--rule-thin) var(--color-success-rule);
 }
 
 .file-selector.is-error {
-  border-color: var(--color-error-rule);
   background: var(--color-error-soft);
+  box-shadow: inset 0 0 0 var(--rule-thin) var(--color-error-rule);
 }
 
 .file-selector.is-reading,
@@ -290,7 +290,6 @@ legend small {
   display: grid;
   gap: var(--space-xs);
   margin-top: var(--space-2xs);
-  border-top: var(--rule-thin) solid var(--color-rule);
 }
 
 .text-fallback summary {
@@ -337,13 +336,7 @@ textarea {
 
 @media (hover: hover) and (pointer: fine) {
   .file-selector:hover:not(.is-reading) {
-    border-color: var(--color-accent);
     background: var(--color-accent-soft);
-    transform: translateY(-2px);
-  }
-
-  .file-selector:hover:not(.is-reading) .file-mark {
-    transform: translateY(-1px);
   }
 }
 

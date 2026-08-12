@@ -37,7 +37,7 @@ function handleSubmit(): void {
   <section class="question-panel" aria-labelledby="current-question-title">
     <header class="question-header">
       <div class="question-count">
-        <span>第 {{ questionIndex + 1 }} 题</span>
+        <span class="question-number">Q{{ String(questionIndex + 1).padStart(2, "0") }}</span>
         <strong>共 {{ questionCount }} 题</strong>
       </div>
       <p class="question-objective">
@@ -91,8 +91,10 @@ function handleSubmit(): void {
   display: grid;
   gap: var(--space-lg);
   min-width: 0;
-  padding: var(--space-xl);
+  padding: var(--space-xl) var(--space-2xl);
   background: var(--color-surface);
+  border-radius: var(--radius-surface);
+  box-shadow: var(--shadow-whisper);
 }
 
 .question-header,
@@ -106,7 +108,25 @@ function handleSubmit(): void {
 
 .question-header {
   padding-bottom: var(--space-md);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
+}
+
+.question-count {
+  justify-content: flex-start;
+}
+
+.question-number {
+  display: inline-grid;
+  min-width: 4.25rem;
+  min-height: 2.5rem;
+  place-items: center;
+  border: var(--rule-thin) solid var(--color-ink);
+  color: var(--color-ink) !important;
+  background: var(--color-accent-soft);
+  font-family: var(--font-display) !important;
+  font-size: var(--text-lg) !important;
+  font-weight: 800;
+  line-height: 1;
+  transform: rotate(-1deg);
 }
 
 .question-header span,
@@ -155,7 +175,8 @@ h2 {
 
 h2 {
   max-width: 34ch;
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
+  letter-spacing: 0;
   line-height: 1.3;
   text-wrap: balance;
 }
@@ -175,7 +196,6 @@ h2 {
 
 .sources {
   padding: var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-control);
   background: var(--color-paper-2);
 }
@@ -225,7 +245,8 @@ textarea {
   border: var(--rule-thin) solid var(--color-rule-2);
   border-radius: var(--radius-control);
   color: var(--color-ink);
-  background: var(--color-paper);
+  border-color: var(--color-rule);
+  background: var(--color-paper-2);
   line-height: 1.7;
   resize: vertical;
   transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);

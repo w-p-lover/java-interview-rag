@@ -67,6 +67,7 @@ function handleSubmit(): void {
   <form class="setup" @submit.prevent="handleSubmit">
     <header class="setup-heading">
       <div class="heading-copy">
+        <span class="setup-kicker">Interview room / 02</span>
         <h1>开始一场模拟面试</h1>
         <p>上传简历，选择目标岗位。题目会根据你的经历和岗位要求生成。</p>
       </div>
@@ -198,21 +199,46 @@ function handleSubmit(): void {
 <style scoped lang="scss">
 .setup {
   display: grid;
-  gap: var(--space-2xl);
+  gap: var(--space-lg);
 }
 
 .setup-heading {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(21rem, 0.72fr);
   align-items: end;
-  gap: var(--space-3xl);
-  padding-block: var(--space-md) var(--space-xl);
-  border-bottom: var(--rule-thin) solid var(--color-rule-2);
+  gap: var(--space-2xl);
+  padding: var(--space-md) 0 var(--space-xl);
+  background: transparent;
+}
+
+.setup-heading::before {
+  position: absolute;
+  top: calc(var(--space-lg) * -1);
+  left: 50%;
+  z-index: 0;
+  color: var(--color-paper-3);
+  content: "02";
+  font-family: var(--font-display);
+  font-size: 8rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .heading-copy {
+  position: relative;
+  z-index: var(--z-base);
   display: grid;
   gap: var(--space-sm);
+}
+
+.setup-kicker {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 h1,
@@ -222,10 +248,12 @@ p {
 }
 
 h1 {
+  min-width: 0;
   color: var(--color-ink);
   font-size: var(--text-3xl);
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
   line-height: 1.08;
+  overflow-wrap: anywhere;
   text-wrap: balance;
 }
 
@@ -250,7 +278,22 @@ h1 {
 }
 
 .materials {
-  padding-block: var(--space-xs);
+  position: relative;
+  padding: var(--space-xl);
+  border-radius: var(--radius-surface);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-whisper);
+}
+
+.materials::before {
+  position: absolute;
+  top: calc(var(--space-xs) * -1);
+  left: var(--space-xl);
+  width: 5.5rem;
+  height: var(--space-xs);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+  background: var(--color-signal-rule);
+  content: "";
 }
 
 .section-heading,
@@ -262,8 +305,7 @@ h1 {
 
 .section-heading {
   color: var(--color-accent);
-  padding-bottom: var(--space-sm);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
+  padding-bottom: var(--space-xs);
 }
 
 .section-heading h2,
@@ -281,10 +323,12 @@ h1 {
 }
 
 .role-field {
-  padding: var(--space-sm) var(--space-md);
-  border: var(--rule-thin) solid var(--color-rule);
+  position: relative;
+  z-index: var(--z-base);
+  padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-control);
-  background: var(--color-surface);
+  background: var(--color-accent-soft);
+  box-shadow: var(--space-xs) var(--space-xs) 0 var(--color-signal-soft);
 }
 
 .role-field input {
@@ -317,21 +361,33 @@ select {
   top: calc(var(--space-lg) + 4rem);
   padding: var(--space-xl);
   border-radius: var(--radius-surface);
-  color: var(--color-graphite-text);
-  background: var(--color-graphite);
+  color: var(--color-ink);
+  background: var(--color-accent-soft);
   box-shadow: var(--shadow-whisper);
+}
+
+.settings::before {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  width: var(--space-sm);
+  height: var(--space-sm);
+  border-radius: var(--radius-round);
+  background: var(--color-signal-rule);
+  content: "";
+  transform: rotate(8deg);
 }
 
 .settings-heading h2,
 .settings-heading,
 .settings label {
-  color: var(--color-graphite-text);
+  color: var(--color-ink);
 }
 
 .settings select {
-  border-color: var(--color-graphite-muted);
-  color: var(--color-graphite-text);
-  background: var(--color-graphite-2);
+  border-color: transparent;
+  color: var(--color-ink);
+  background: var(--color-surface);
 }
 
 .count-grid {
@@ -354,12 +410,12 @@ select {
 }
 
 .readiness-copy span {
-  color: var(--color-graphite-muted);
+  color: var(--color-muted);
   font-size: var(--text-xs);
 }
 
 .readiness-copy strong {
-  color: var(--color-graphite-text);
+  color: var(--color-ink);
   font-size: var(--text-sm);
 }
 
@@ -367,7 +423,7 @@ select {
   height: var(--space-xs);
   overflow: hidden;
   border-radius: var(--radius-round);
-  background: var(--color-graphite-2);
+  background: var(--color-paper-3);
 }
 
 .readiness-track span {
@@ -383,7 +439,6 @@ select {
   gap: var(--space-sm);
   margin: 0;
   padding-block: var(--space-md);
-  border-block: var(--rule-thin) solid var(--color-graphite-2);
 }
 
 .material-state div {
@@ -400,19 +455,19 @@ select {
 
 .material-state dt,
 .settings-note {
-  color: var(--color-graphite-muted);
+  color: var(--color-muted);
 }
 
 .material-state dd {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  color: var(--color-graphite-muted);
+  color: var(--color-muted);
   font-weight: 700;
 }
 
 .material-state dd.ready {
-  color: var(--color-graphite-text);
+  color: var(--color-ink);
 }
 
 .material-state dd.ready svg {
@@ -454,6 +509,11 @@ button.ready {
     gap: var(--space-xl);
   }
 
+  .setup-heading::before {
+    right: 0;
+    left: auto;
+  }
+
   .settings {
     position: static;
   }
@@ -468,7 +528,15 @@ button.ready {
     font-size: var(--text-2xl);
   }
 
+  .setup-heading::before {
+    display: none;
+  }
+
   .settings {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .materials {
     padding: var(--space-lg) var(--space-md);
   }
 }

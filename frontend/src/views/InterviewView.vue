@@ -187,9 +187,9 @@ function handleAssistantScheduled(): void {
 .interview-workspace {
   display: grid;
   gap: var(--space-md);
-  width: min(calc(100% - (var(--space-lg) * 2)), 82rem);
-  margin-inline: auto;
-  padding-block: var(--space-lg) var(--space-2xl);
+  width: auto;
+  margin-left: var(--workspace-rail);
+  padding: var(--space-xl) clamp(var(--space-lg), 4vw, var(--space-3xl)) var(--space-2xl);
 }
 
 .error-banner,
@@ -214,12 +214,11 @@ function handleAssistantScheduled(): void {
 
 .interview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(19rem, 0.72fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(20rem, 0.68fr);
   align-items: stretch;
-  overflow: hidden;
-  border: var(--rule-thin) solid var(--color-rule);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
+  gap: var(--space-lg);
+  overflow: visible;
+  background: transparent;
 }
 
 .completion-stack {
@@ -233,9 +232,17 @@ function handleAssistantScheduled(): void {
   }
 }
 
+@media (max-width: 68rem) {
+  .interview-workspace {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 40rem) {
   .interview-workspace {
     width: calc(100% - (var(--space-md) * 2));
+    margin-inline: auto;
+    padding-inline: 0;
     padding-block: var(--space-md) var(--space-xl);
   }
 }

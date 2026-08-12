@@ -71,9 +71,9 @@ function statusCopy(): string {
   grid-template-columns: 12rem minmax(0, 1fr);
   align-items: end;
   gap: var(--space-xl);
-  padding-block: var(--space-md);
-  border-top: var(--rule-thin) solid var(--color-rule-2);
-  border-bottom: var(--rule-thin) solid var(--color-rule-2);
+  padding: var(--space-sm) var(--space-xl) var(--space-xl);
+  border-radius: 0 0 var(--radius-surface) var(--radius-surface);
+  background: var(--color-workbench);
 }
 
 .pipeline > header {
@@ -83,17 +83,17 @@ function statusCopy(): string {
 
 .pipeline h3 {
   margin: 0;
-  color: var(--color-ink);
+  color: var(--color-graphite-text);
   font-family: var(--font-display);
   font-size: var(--text-md);
   font-style: normal;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .pipeline header p {
   margin: 0;
-  color: var(--color-muted);
+  color: var(--color-graphite-muted);
   font-size: var(--text-xs);
   line-height: 1.5;
 }
@@ -101,9 +101,11 @@ function statusCopy(): string {
 .workflow-steps {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
+  gap: var(--space-xs);
   margin: 0;
-  padding: 0;
+  padding: var(--space-xs);
+  border-radius: var(--radius-surface);
+  background: var(--color-workbench-raised);
   list-style: none;
 }
 
@@ -113,15 +115,19 @@ function statusCopy(): string {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-xs);
   padding: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-control);
+}
+
+.workflow-steps li.is-current {
+  background: var(--color-surface);
 }
 
 .workflow-steps li + li {
-  border-left: var(--rule-thin) solid var(--color-rule);
+  border-left: 0;
 }
 
 .step-node {
-  color: var(--color-muted);
+  color: var(--color-graphite-muted);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
@@ -134,13 +140,13 @@ function statusCopy(): string {
 }
 
 .step-copy strong {
-  color: var(--color-muted);
+  color: var(--color-graphite-muted);
   font-size: var(--text-sm);
   font-weight: 600;
 }
 
 .step-copy small {
-  color: var(--color-faint);
+  color: var(--color-graphite-muted);
   font-size: var(--text-xs);
   line-height: 1.45;
 }
@@ -201,7 +207,7 @@ function statusCopy(): string {
   }
 
   .workflow-steps li:nth-child(even) {
-    border-left: var(--rule-thin) solid var(--color-rule);
+    border-left: 0;
   }
 }
 </style>

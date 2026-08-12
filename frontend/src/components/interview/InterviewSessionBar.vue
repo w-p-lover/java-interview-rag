@@ -42,8 +42,9 @@ const emit = defineEmits<{
   grid-template-columns: minmax(12rem, auto) minmax(8rem, 1fr) auto;
   align-items: center;
   gap: var(--space-md);
-  padding: 0 0 var(--space-md);
-  border-bottom: var(--rule-thin) solid var(--color-rule);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
 }
 
 .session-bar__main {
@@ -80,7 +81,7 @@ button {
 .session-bar__track {
   height: var(--space-xs);
   overflow: hidden;
-  border-radius: var(--radius-round);
+  border-radius: 0;
   background: var(--color-paper-3);
 }
 
@@ -88,7 +89,7 @@ button {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: inherit;
+  border-radius: 0;
   background: var(--color-accent);
   transform-origin: left center;
   transition: transform var(--dur-long) var(--ease-out);

@@ -76,10 +76,8 @@ defineProps<{
 <style scoped lang="scss">
 .ledger {
   min-width: 0;
-  padding: var(--space-lg);
-  border: var(--rule-thin) solid var(--color-rule-2);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
+  padding: 0;
+  background: transparent;
 }
 
 .panel-heading {
@@ -97,7 +95,7 @@ defineProps<{
   font-size: var(--text-md);
   font-style: normal;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .panel-heading p {
@@ -108,7 +106,6 @@ defineProps<{
 
 .chunk-count {
   padding: var(--space-2xs) var(--space-xs);
-  border: var(--rule-thin) solid var(--color-rule-2);
   border-radius: var(--radius-control);
   color: var(--color-muted);
   font-family: var(--font-mono);
@@ -122,9 +119,8 @@ defineProps<{
   place-items: center;
   align-content: center;
   padding: var(--space-xl);
-  border: var(--rule-thin) dashed var(--color-rule-2);
   border-radius: var(--radius-control);
-  background: var(--color-paper);
+  background: var(--color-paper-2);
   text-align: center;
 }
 
@@ -175,8 +171,6 @@ defineProps<{
   gap: var(--space-md);
   margin-bottom: var(--space-sm);
   padding-block: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-success-rule);
-  border-bottom: var(--rule-thin) solid var(--color-success-rule);
   background: var(--color-success-soft);
 }
 
@@ -220,7 +214,6 @@ defineProps<{
 .status-note {
   margin-bottom: var(--space-sm);
   padding: var(--space-sm);
-  border: var(--rule-thin) solid var(--color-rule);
   border-radius: var(--radius-control);
   color: var(--color-muted);
   background: var(--color-paper-2);
@@ -229,24 +222,24 @@ defineProps<{
 }
 
 .status-note.is-warning {
-  border-color: var(--color-warning-rule);
   color: var(--color-warning);
   background: var(--color-warning-soft);
 }
 
 .chunk-list {
   display: grid;
+  gap: var(--space-xs);
   max-height: 42rem;
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  border-top: var(--rule-thin) solid var(--color-rule-2);
   list-style: none;
 }
 
 .chunk-row {
   min-width: 0;
-  border-bottom: var(--rule-thin) solid var(--color-rule-2);
+  overflow: hidden;
+  border-radius: var(--radius-control);
 }
 
 .chunk-row header {
@@ -297,7 +290,7 @@ defineProps<{
 
 @media (max-width: 39.99rem) {
   .ledger {
-    padding: var(--space-md);
+    padding: 0;
   }
 
   .panel-heading {

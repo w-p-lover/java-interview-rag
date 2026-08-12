@@ -180,10 +180,8 @@ function formatFileSize(size: number): string {
 
 <style scoped lang="scss">
 .import-panel {
-  padding: var(--space-lg);
-  border: var(--rule-thin) solid var(--color-rule-2);
-  border-radius: var(--radius-surface);
-  background: var(--color-surface);
+  padding: 0;
+  background: transparent;
 }
 
 .panel-heading {
@@ -201,7 +199,7 @@ h3 {
   font-size: var(--text-md);
   font-style: normal;
   font-weight: 700;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }
 
 .panel-intro {
@@ -237,12 +235,11 @@ h3 {
   padding: var(--space-lg);
   place-items: center;
   align-content: center;
-  border: var(--rule-thin) dashed var(--color-rule-2);
   border-radius: var(--radius-control);
   outline: var(--rule-focus) solid transparent;
   outline-offset: var(--space-3xs);
   color: var(--color-ink);
-  background: var(--color-paper);
+  background: var(--color-paper-2);
   text-align: center;
   transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
 }
@@ -300,7 +297,6 @@ h3 {
   width: 3rem;
   height: 2.5rem;
   place-items: center;
-  border: var(--rule-thin) solid var(--color-rule-2);
   border-radius: var(--radius-control);
   color: var(--color-accent);
   background: var(--color-surface);
@@ -429,7 +425,6 @@ h3 {
 .session-note {
   margin: var(--space-md) 0 0;
   padding-top: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-rule);
   color: var(--color-muted);
   font-size: var(--text-xs);
   line-height: 1.5;
@@ -455,7 +450,7 @@ h3 {
 
 @media (max-width: 39.99rem) {
   .import-panel {
-    padding: var(--space-md);
+    padding: 0;
   }
 
   .panel-heading {
