@@ -22,6 +22,12 @@ PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线�
 python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080
 ```
 
+需要保留完整结果时显式指定输出文件：
+
+```shell
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --output evaluation/results/YYYY-MM-DD-rag-retrieval-baseline.json
+```
+
 运行器会调用现有导入接口，再调用固定批量检索评估接口。重复执行不会重复向量化相同“来源 + 版本”；脚本不调用 Chat 模型，也不会自动删除已导入的基线资料。导入新版本会调用 Embedding 并写入 Qdrant，因此只能在明确授权模型费用后执行。
 
 检索报告保留原有期望来源命中数，并增加以下指标：
@@ -33,6 +39,8 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080
 - 无答案拒答准确率：3 道无答案题在生产回答阈值 `0.60` 下没有可靠候选的比例。
 
 脚本校验题量和指标结构，不预设未经真实运行验证的质量门槛。旧的 6 题基线结果保留为历史证据，不能当作当前 20 题结果。
+
+2026-08-13 的首轮真实困难基线使用 `text-embedding-v3`、8 份语料和 18 个 chunk，结果见 `evaluation/results/2026-08-13-rag-hard-retrieval-baseline.json`：Hit@1 为 `1.0000`、Mean Recall@5 为 `0.9706`、MRR 为 `1.0000`、标题路径召回率为 `0.9130`、无答案拒答准确率为 `1.0000`。主要缺口集中在跨主题 Map 问题漏掉普通 HashMap 来源，以及一个歧义 Map 问题漏掉“扩容与负载因子”标题；当前没有证据支持直接引入 rerank。
 
 ## 回答要点覆盖
 
