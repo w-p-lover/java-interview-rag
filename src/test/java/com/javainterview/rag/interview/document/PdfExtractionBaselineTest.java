@@ -6,7 +6,9 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
@@ -25,39 +27,43 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class PdfExtractionBaselineTest {
 
     private static final String TEXT_LAYER_MISSING = "TEXT_LAYER_MISSING";
     private static final Path OUTPUT_DIRECTORY = Path.of("target", "pdf-extraction-baseline");
+    private static final Path CHINESE_FONT = Path.of("C:", "Windows", "Fonts", "simhei.ttf");
     private static final Path EXPECTED_REPORT = Path.of(
-            "evaluation", "results", "2026-08-13-pdf-layout-aware-baseline.json");
+            "evaluation", "results", "2026-08-13-pdf-complex-resume-baseline.json");
 
     private final PdfInterviewDocumentTextExtractor extractor = new PdfInterviewDocumentTextExtractor();
     private final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
     @Test
     void recordsDeterministicPdfExtractionBaseline() throws IOException {
+        assumeTrue(Files.isRegularFile(CHINESE_FONT), "当前环境缺少中文 PDF 基线字体：" + CHINESE_FONT);
         Files.createDirectories(OUTPUT_DIRECTORY.resolve("fixtures"));
 
         List<PdfExtractionCaseResult> cases = List.of(
                 evaluateTextCase(singleColumnCase()),
                 evaluateTextCase(twoColumnCase()),
+                evaluateTextCase(chineseResumeCase()),
+                evaluateTextCase(dateRailCase()),
+                evaluateTextCase(skillsTableCase()),
+                evaluateTextCase(complexSidebarCase()),
                 evaluateTextCase(mixedCase()),
                 evaluateTextlessCase(textlessCase()));
         PdfExtractionBaselineReport report = new PdfExtractionBaselineReport(
                 "pdfbox-layout-aware-v2",
-                "repository-deterministic-v1",
+                "repository-deterministic-v2",
                 cases.size(),
                 (int) cases.stream().filter(PdfExtractionCaseResult::passed).count(),
                 averageKeyPhraseHitRate(cases),
                 cases.stream()
-                        .filter(result -> "two-column".equals(result.caseId()))
-                        .findFirst()
-                        .orElseThrow()
-                        .readingOrderPassed(),
+                        .filter(result -> result.readingOrderPassed() != null)
+                        .allMatch(PdfExtractionCaseResult::readingOrderPassed),
                 cases.stream()
                         .filter(result -> "textless".equals(result.caseId()))
                         .findFirst()
@@ -73,8 +79,8 @@ class PdfExtractionBaselineTest {
         Path actualReport = OUTPUT_DIRECTORY.resolve("report.json");
         objectMapper.writeValue(actualReport.toFile(), report);
 
-        assertEquals(4, report.caseCount());
-        assertEquals(4, report.passedCaseCount());
+        assertEquals(8, report.caseCount());
+        assertEquals(8, report.passedCaseCount());
         assertEquals(1.0, report.keyPhraseHitRate());
         assertTrue(report.readingOrderPassed());
         assertTrue(report.textlessRejected());
@@ -203,6 +209,101 @@ class PdfExtractionBaselineTest {
         }
     }
 
+    private PdfBaselineCase chineseResumeCase() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDFont font = PDType0Font.load(document, CHINESE_FONT.toFile());
+            addSingleColumnPage(document, font, List.of(
+                    "候选人：示例用户",
+                    "求职方向：Java 后端开发工程师",
+                    "技术能力：Spring AI 与 RAG",
+                    "项目成果：固定评估集首位命中率百分之百"));
+            return new PdfBaselineCase(
+                    "chinese-resume",
+                    save(document),
+                    1,
+                    List.of("示例用户", "Java 后端开发工程师", "Spring AI 与 RAG", "固定评估集"),
+                    List.of("候选人", "求职方向", "技术能力", "项目成果"),
+                    PdfDocumentType.TEXT_BASED,
+                    0,
+                    List.of());
+        }
+    }
+
+    private PdfBaselineCase dateRailCase() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeLine(stream, 72, 760, 14, "WORK EXPERIENCE");
+                writeLine(stream, 72, 710, 12, "BACKEND ENGINEER Example Company");
+                writeLine(stream, 475, 710, 10, "2022-2024");
+                writeLine(stream, 72, 670, 12, "JAVA DEVELOPER Sample Company");
+                writeLine(stream, 475, 670, 10, "2020-2022");
+            }
+            return new PdfBaselineCase(
+                    "date-rail",
+                    save(document),
+                    1,
+                    List.of("WORK EXPERIENCE", "BACKEND ENGINEER", "2022-2024", "JAVA DEVELOPER", "2020-2022"),
+                    List.of("WORK EXPERIENCE", "BACKEND ENGINEER", "2022-2024", "JAVA DEVELOPER", "2020-2022"),
+                    PdfDocumentType.TEXT_BASED,
+                    0,
+                    List.of());
+        }
+    }
+
+    private PdfBaselineCase skillsTableCase() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeLine(stream, 72, 760, 14, "TECHNICAL SKILLS");
+                writeLine(stream, 72, 710, 12, "LANGUAGE");
+                writeLine(stream, 250, 710, 12, "Java SQL");
+                writeLine(stream, 72, 675, 12, "FRAMEWORK");
+                writeLine(stream, 250, 675, 12, "Spring Boot Spring AI");
+                writeLine(stream, 72, 625, 12, "PROJECT EVIDENCE FROM RAG EVALUATION");
+                writeLine(stream, 72, 585, 12, "DATABASE");
+                writeLine(stream, 250, 585, 12, "MySQL Qdrant");
+            }
+            return new PdfBaselineCase(
+                    "skills-table",
+                    save(document),
+                    1,
+                    List.of("TECHNICAL SKILLS", "LANGUAGE", "Java SQL", "FRAMEWORK", "Spring Boot Spring AI",
+                            "PROJECT EVIDENCE", "DATABASE", "MySQL Qdrant"),
+                    List.of("TECHNICAL SKILLS", "LANGUAGE", "Java SQL", "FRAMEWORK", "Spring Boot Spring AI",
+                            "PROJECT EVIDENCE", "DATABASE", "MySQL Qdrant"),
+                    PdfDocumentType.TEXT_BASED,
+                    0,
+                    List.of());
+        }
+    }
+
+    private PdfBaselineCase complexSidebarCase() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeLine(stream, 72, 770, 16, "JAVA BACKEND RESUME");
+                writeLine(stream, 72, 710, 12, "CONTACT example@test.local");
+                writeLine(stream, 72, 675, 12, "SKILLS Java Spring MySQL");
+                writeLine(stream, 330, 710, 12, "EXPERIENCE Backend Platform");
+                writeLine(stream, 330, 675, 12, "PROJECT Interview RAG System");
+                writeLine(stream, 330, 640, 12, "RESULT Evidence Based Scoring");
+            }
+            return new PdfBaselineCase(
+                    "complex-sidebar",
+                    save(document),
+                    1,
+                    List.of("JAVA BACKEND RESUME", "CONTACT", "SKILLS", "EXPERIENCE", "PROJECT", "RESULT"),
+                    List.of("JAVA BACKEND RESUME", "CONTACT", "SKILLS", "EXPERIENCE", "PROJECT", "RESULT"),
+                    PdfDocumentType.TEXT_BASED,
+                    1,
+                    List.of());
+        }
+    }
+
     private PdfBaselineCase mixedCase() throws IOException {
         try (PDDocument document = new PDDocument()) {
             addSingleColumnPage(document, List.of("MIXED_DOCUMENT_TEXT_PAGE", "Java backend profile"));
@@ -247,12 +348,16 @@ class PdfExtractionBaselineTest {
     }
 
     private void addSingleColumnPage(PDDocument document, List<String> lines) throws IOException {
+        addSingleColumnPage(document, new PDType1Font(Standard14Fonts.FontName.HELVETICA), lines);
+    }
+
+    private void addSingleColumnPage(PDDocument document, PDFont font, List<String> lines) throws IOException {
         PDPage page = new PDPage(PDRectangle.A4);
         document.addPage(page);
         try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
             float y = 760;
             for (String line : lines) {
-                writeLine(stream, 72, y, 12, line);
+                writeLine(stream, font, 72, y, 12, line);
                 y -= 30;
             }
         }
@@ -260,7 +365,12 @@ class PdfExtractionBaselineTest {
 
     private void writeLine(PDPageContentStream stream, float x, float y, float fontSize, String text)
             throws IOException {
-        stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), fontSize);
+        writeLine(stream, new PDType1Font(Standard14Fonts.FontName.HELVETICA), x, y, fontSize, text);
+    }
+
+    private void writeLine(PDPageContentStream stream, PDFont font, float x, float y, float fontSize, String text)
+            throws IOException {
+        stream.setFont(font, fontSize);
         stream.beginText();
         stream.newLineAtOffset(x, y);
         stream.showText(text);
