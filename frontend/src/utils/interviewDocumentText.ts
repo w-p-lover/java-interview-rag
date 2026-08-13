@@ -8,6 +8,12 @@ export interface InterviewDocumentExtraction {
   content: string;
   format: "PDF" | "TEXT";
   pageCount?: number;
+  documentType?: "TEXT_BASED" | "MIXED" | "IMAGE_BASED" | "EMPTY";
+  textPageCount?: number;
+  imagePageCount?: number;
+  reorderedPageCount?: number;
+  pagesNeedingOcr?: number[];
+  warnings?: string[];
 }
 
 export async function extractInterviewDocumentText(file: File): Promise<InterviewDocumentExtraction> {

@@ -190,6 +190,22 @@ export interface InterviewDocumentExtraction {
   content: string;
   format: "PDF";
   pageCount: number;
+  documentType: "TEXT_BASED" | "MIXED" | "IMAGE_BASED" | "EMPTY";
+  textPageCount: number;
+  imagePageCount: number;
+  reorderedPageCount: number;
+  pagesNeedingOcr: number[];
+  warnings: string[];
+  pages: InterviewPdfPageExtraction[];
+}
+
+export interface InterviewPdfPageExtraction {
+  pageNumber: number;
+  contentType: "TEXT" | "TEXT_WITH_IMAGES" | "IMAGE_ONLY" | "EMPTY";
+  layout: "SINGLE_COLUMN" | "TWO_COLUMN";
+  textCharacterCount: number;
+  imageCount: number;
+  requiresOcr: boolean;
 }
 
 export async function extractInterviewPdfText(file: File): Promise<InterviewDocumentExtraction> {

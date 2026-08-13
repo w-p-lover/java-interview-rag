@@ -33,7 +33,7 @@ class PdfExtractionBaselineTest {
     private static final String TEXT_LAYER_MISSING = "TEXT_LAYER_MISSING";
     private static final Path OUTPUT_DIRECTORY = Path.of("target", "pdf-extraction-baseline");
     private static final Path EXPECTED_REPORT = Path.of(
-            "evaluation", "results", "2026-08-12-pdf-extraction-baseline.json");
+            "evaluation", "results", "2026-08-13-pdf-layout-aware-baseline.json");
 
     private final PdfInterviewDocumentTextExtractor extractor = new PdfInterviewDocumentTextExtractor();
     private final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -45,9 +45,10 @@ class PdfExtractionBaselineTest {
         List<PdfExtractionCaseResult> cases = List.of(
                 evaluateTextCase(singleColumnCase()),
                 evaluateTextCase(twoColumnCase()),
+                evaluateTextCase(mixedCase()),
                 evaluateTextlessCase(textlessCase()));
         PdfExtractionBaselineReport report = new PdfExtractionBaselineReport(
-                "pdfbox-position-sort-v1",
+                "pdfbox-layout-aware-v2",
                 "repository-deterministic-v1",
                 cases.size(),
                 (int) cases.stream().filter(PdfExtractionCaseResult::passed).count(),
@@ -62,16 +63,22 @@ class PdfExtractionBaselineTest {
                         .findFirst()
                         .orElseThrow()
                         .passed(),
+                cases.stream()
+                        .filter(result -> "mixed".equals(result.caseId()))
+                        .findFirst()
+                        .orElseThrow()
+                        .passed(),
                 cases);
 
         Path actualReport = OUTPUT_DIRECTORY.resolve("report.json");
         objectMapper.writeValue(actualReport.toFile(), report);
 
-        assertEquals(3, report.caseCount());
-        assertEquals(2, report.passedCaseCount());
+        assertEquals(4, report.caseCount());
+        assertEquals(4, report.passedCaseCount());
         assertEquals(1.0, report.keyPhraseHitRate());
-        assertFalse(report.readingOrderPassed());
+        assertTrue(report.readingOrderPassed());
         assertTrue(report.textlessRejected());
+        assertTrue(report.mixedDocumentIdentified());
         assertTrue(Files.exists(EXPECTED_REPORT), "缺少已审核的 PDF 解析基线报告");
         assertEquals(objectMapper.readTree(EXPECTED_REPORT.toFile()), objectMapper.readTree(actualReport.toFile()));
     }
@@ -89,7 +96,10 @@ class PdfExtractionBaselineTest {
                 : observedOrder.equals(baselineCase.expectedOrder());
         boolean passed = extraction.pageCount() == baselineCase.expectedPageCount()
                 && hitCount == baselineCase.keyPhrases().size()
-                && !Boolean.FALSE.equals(orderPassed);
+                && !Boolean.FALSE.equals(orderPassed)
+                && extraction.documentType() == baselineCase.expectedDocumentType()
+                && extraction.reorderedPageCount() == baselineCase.expectedReorderedPageCount()
+                && extraction.pagesNeedingOcr().equals(baselineCase.expectedPagesNeedingOcr());
         return new PdfExtractionCaseResult(
                 baselineCase.caseId(),
                 baselineCase.expectedPageCount(),
@@ -100,6 +110,12 @@ class PdfExtractionBaselineTest {
                 orderPassed,
                 baselineCase.expectedOrder(),
                 observedOrder,
+                baselineCase.expectedDocumentType(),
+                extraction.documentType(),
+                baselineCase.expectedReorderedPageCount(),
+                extraction.reorderedPageCount(),
+                baselineCase.expectedPagesNeedingOcr(),
+                extraction.pagesNeedingOcr(),
                 null,
                 null,
                 passed);
@@ -126,6 +142,12 @@ class PdfExtractionBaselineTest {
                 null,
                 List.of(),
                 List.of(),
+                PdfDocumentType.IMAGE_BASED,
+                null,
+                0,
+                null,
+                List.of(1),
+                List.of(),
                 TEXT_LAYER_MISSING,
                 actualFailureType,
                 passed);
@@ -149,7 +171,10 @@ class PdfExtractionBaselineTest {
                             "PROJECT RAG KNOWLEDGE BASE", "retrieval baseline"),
                     List.of("JAVA_INTERVIEW_RESUME", "NAME ALICE", "EMAIL alice@example.test",
                             "SKILLS Java Spring MySQL", "PROJECT RAG KNOWLEDGE BASE",
-                            "RESULT retrieval baseline"));
+                            "RESULT retrieval baseline"),
+                    PdfDocumentType.TEXT_BASED,
+                    0,
+                    List.of());
         }
     }
 
@@ -171,29 +196,53 @@ class PdfExtractionBaselineTest {
                     List.of("TWO_COLUMN_RESUME", "LEFT_SKILLS", "LEFT_EDUCATION",
                             "RIGHT_EXPERIENCE", "RIGHT_PROJECT"),
                     List.of("TWO_COLUMN_RESUME", "LEFT_SKILLS", "LEFT_EDUCATION",
-                            "RIGHT_EXPERIENCE", "RIGHT_PROJECT"));
+                            "RIGHT_EXPERIENCE", "RIGHT_PROJECT"),
+                    PdfDocumentType.TEXT_BASED,
+                    1,
+                    List.of());
+        }
+    }
+
+    private PdfBaselineCase mixedCase() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            addSingleColumnPage(document, List.of("MIXED_DOCUMENT_TEXT_PAGE", "Java backend profile"));
+            addImageOnlyPage(document, "SCANNED SECOND PAGE");
+            return new PdfBaselineCase(
+                    "mixed",
+                    save(document),
+                    2,
+                    List.of("MIXED_DOCUMENT_TEXT_PAGE", "Java backend profile"),
+                    List.of("MIXED_DOCUMENT_TEXT_PAGE", "Java backend profile"),
+                    PdfDocumentType.MIXED,
+                    0,
+                    List.of(2));
         }
     }
 
     private PdfBaselineCase textlessCase() throws IOException {
         try (PDDocument document = new PDDocument()) {
-            PDPage page = new PDPage(PDRectangle.A4);
-            document.addPage(page);
-            BufferedImage image = new BufferedImage(900, 1200, BufferedImage.TYPE_INT_RGB);
-            Graphics2D graphics = image.createGraphics();
-            graphics.setColor(Color.WHITE);
-            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
-            graphics.setColor(Color.BLACK);
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 48));
-            graphics.drawString("SCANNED RESUME IMAGE", 90, 160);
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 30));
-            graphics.drawString("No PDF text operators on this page", 90, 250);
-            graphics.dispose();
-            PDImageXObject pdfImage = LosslessFactory.createFromImage(document, image);
-            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
-                stream.drawImage(pdfImage, 72, 72, 451, 601);
-            }
-            return new PdfBaselineCase("textless", save(document), 1, List.of(), List.of());
+            addImageOnlyPage(document, "SCANNED RESUME IMAGE");
+            return new PdfBaselineCase("textless", save(document), 1, List.of(), List.of(),
+                    PdfDocumentType.IMAGE_BASED, 0, List.of(1));
+        }
+    }
+
+    private void addImageOnlyPage(PDDocument document, String title) throws IOException {
+        PDPage page = new PDPage(PDRectangle.A4);
+        document.addPage(page);
+        BufferedImage image = new BufferedImage(900, 1200, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+        graphics.setColor(Color.BLACK);
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 48));
+        graphics.drawString(title, 90, 160);
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 30));
+        graphics.drawString("No PDF text operators on this page", 90, 250);
+        graphics.dispose();
+        PDImageXObject pdfImage = LosslessFactory.createFromImage(document, image);
+        try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+            stream.drawImage(pdfImage, 72, 72, 451, 601);
         }
     }
 
@@ -254,7 +303,10 @@ class PdfExtractionBaselineTest {
             byte[] pdfContent,
             int expectedPageCount,
             List<String> keyPhrases,
-            List<String> expectedOrder) {
+            List<String> expectedOrder,
+            PdfDocumentType expectedDocumentType,
+            int expectedReorderedPageCount,
+            List<Integer> expectedPagesNeedingOcr) {
     }
 
     private record PdfExtractionCaseResult(
@@ -267,6 +319,12 @@ class PdfExtractionBaselineTest {
             Boolean readingOrderPassed,
             List<String> expectedOrder,
             List<String> observedOrder,
+            PdfDocumentType expectedDocumentType,
+            PdfDocumentType actualDocumentType,
+            int expectedReorderedPageCount,
+            Integer actualReorderedPageCount,
+            List<Integer> expectedPagesNeedingOcr,
+            List<Integer> actualPagesNeedingOcr,
             String expectedFailureType,
             String actualFailureType,
             boolean passed) {
@@ -280,6 +338,7 @@ class PdfExtractionBaselineTest {
             double keyPhraseHitRate,
             boolean readingOrderPassed,
             boolean textlessRejected,
+            boolean mixedDocumentIdentified,
             List<PdfExtractionCaseResult> cases) {
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle2, ChevronDown, FileText, Upload } from "@lucide/vue";
+import { AlertTriangle, CheckCircle2, ChevronDown, FileText, Upload } from "@lucide/vue";
 import { computed, shallowRef } from "vue";
 
 import { extractInterviewDocumentText } from "@/utils/interviewDocumentText";
@@ -22,6 +22,8 @@ const readState = shallowRef<ReadState>("idle");
 const fileName = shallowRef("");
 const extractedCharacters = shallowRef(0);
 const extractedPageCount = shallowRef<number | null>(null);
+const reorderedPageCount = shallowRef(0);
+const extractionWarnings = shallowRef<string[]>([]);
 const localError = shallowRef("");
 
 const fileInputId = computed(() => `${props.inputId}-file`);
@@ -29,13 +31,20 @@ const textInputId = computed(() => `${props.inputId}-text`);
 const statusId = computed(() => `${props.inputId}-status`);
 const inputDisabled = computed(() => props.busy || readState.value === "reading");
 const extractionSummary = computed(() => extractedPageCount.value
-  ? `${extractedPageCount.value} 页 · ${extractedCharacters.value} 字`
+  ? [
+      `${extractedPageCount.value} 页`,
+      `${extractedCharacters.value} 字`,
+      reorderedPageCount.value > 0 ? `${reorderedPageCount.value} 页双栏已调整` : "",
+    ].filter(Boolean).join(" · ")
   : `${extractedCharacters.value} 字`);
+const extractionWarning = computed(() => extractionWarnings.value.join("；"));
 
 function setError(message: string): void {
   readState.value = "error";
   extractedCharacters.value = 0;
   extractedPageCount.value = null;
+  reorderedPageCount.value = 0;
+  extractionWarnings.value = [];
   localError.value = message;
 }
 
@@ -50,6 +59,7 @@ async function handleFileInput(event: Event): Promise<void> {
 
   fileName.value = file.name;
   localError.value = "";
+  extractionWarnings.value = [];
 
   readState.value = "reading";
   try {
@@ -67,6 +77,8 @@ async function handleFileInput(event: Event): Promise<void> {
     model.value = content;
     extractedCharacters.value = content.length;
     extractedPageCount.value = extraction.pageCount ?? null;
+    reorderedPageCount.value = extraction.reorderedPageCount ?? 0;
+    extractionWarnings.value = extraction.warnings ?? [];
     readState.value = "success";
   } catch (error) {
     setError(error instanceof Error
@@ -120,8 +132,18 @@ async function handleFileInput(event: Event): Promise<void> {
       </span>
     </label>
 
-    <p :id="statusId" class="file-status" :class="{ 'is-error': localError }" aria-live="polite">
-      {{ localError || "文件只用于本场面试；扫描版 PDF 和 DOCX 暂不支持。" }}
+    <p
+      :id="statusId"
+      class="file-status"
+      :class="{ 'is-error': localError, 'is-warning': !localError && extractionWarning }"
+      aria-live="polite"
+    >
+      <AlertTriangle
+        v-if="!localError && extractionWarning"
+        :size="14"
+        aria-hidden="true"
+      />
+      <span>{{ localError || extractionWarning || "文件只用于本场面试；扫描版 PDF 和 DOCX 暂不支持。" }}</span>
     </p>
 
     <details class="text-fallback">
@@ -278,12 +300,24 @@ legend small {
 }
 
 .file-status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
   min-height: 1.5em;
   margin: 0;
 }
 
 .file-status.is-error {
   color: var(--color-error);
+}
+
+.file-status.is-warning {
+  color: var(--color-warning, #7a4b08);
+}
+
+.file-status.is-warning svg {
+  flex: 0 0 auto;
+  margin-top: 0.15em;
 }
 
 .text-fallback {

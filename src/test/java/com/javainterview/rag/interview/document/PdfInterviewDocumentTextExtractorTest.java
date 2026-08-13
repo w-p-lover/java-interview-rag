@@ -5,9 +5,14 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -25,8 +30,27 @@ class PdfInterviewDocumentTextExtractorTest {
 
         assertEquals("PDF", extraction.format());
         assertEquals(2, extraction.pageCount());
+        assertEquals(PdfDocumentType.TEXT_BASED, extraction.documentType());
+        assertEquals(2, extraction.textPageCount());
+        assertEquals(0, extraction.imagePageCount());
+        assertEquals(0, extraction.reorderedPageCount());
+        assertEquals(true, extraction.pagesNeedingOcr().isEmpty());
         assertEquals(true, extraction.content().contains("Java backend experience"));
         assertEquals(true, extraction.content().contains("RAG project experience"));
+    }
+
+    @Test
+    void returnsTextFromMixedPdfAndIdentifiesPagesNeedingOcr() throws IOException {
+        InterviewDocumentExtraction extraction = extractor.extract(file("mixed-resume.pdf", mixedPdf()));
+
+        assertEquals(PdfDocumentType.MIXED, extraction.documentType());
+        assertEquals(2, extraction.pageCount());
+        assertEquals(1, extraction.textPageCount());
+        assertEquals(1, extraction.imagePageCount());
+        assertEquals(java.util.List.of(2), extraction.pagesNeedingOcr());
+        assertEquals(PdfPageContentType.TEXT, extraction.pages().get(0).contentType());
+        assertEquals(PdfPageContentType.IMAGE_ONLY, extraction.pages().get(1).contentType());
+        assertEquals(true, extraction.warnings().get(0).contains("第 2 页"));
     }
 
     @Test
@@ -76,6 +100,35 @@ class PdfInterviewDocumentTextExtractorTest {
     private byte[] blankPdf() throws IOException {
         try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             document.addPage(new PDPage());
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private byte[] mixedPdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDPage textPage = new PDPage();
+            document.addPage(textPage);
+            try (PDPageContentStream stream = new PDPageContentStream(document, textPage)) {
+                stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                stream.beginText();
+                stream.newLineAtOffset(72, 720);
+                stream.showText("Java backend experience");
+                stream.endText();
+            }
+            PDPage imagePage = new PDPage();
+            document.addPage(imagePage);
+            BufferedImage image = new BufferedImage(300, 200, BufferedImage.TYPE_INT_RGB);
+            Graphics2D graphics = image.createGraphics();
+            graphics.setColor(Color.WHITE);
+            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+            graphics.setColor(Color.BLACK);
+            graphics.drawString("scanned page", 30, 60);
+            graphics.dispose();
+            PDImageXObject pdfImage = LosslessFactory.createFromImage(document, image);
+            try (PDPageContentStream stream = new PDPageContentStream(document, imagePage)) {
+                stream.drawImage(pdfImage, 72, 400, 300, 200);
+            }
             document.save(output);
             return output.toByteArray();
         }

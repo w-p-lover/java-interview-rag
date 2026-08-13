@@ -2,6 +2,10 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.document.InterviewDocumentExtraction;
 import com.javainterview.rag.interview.document.InterviewDocumentTextExtractor;
+import com.javainterview.rag.interview.document.PdfDocumentType;
+import com.javainterview.rag.interview.document.PdfPageContentType;
+import com.javainterview.rag.interview.document.PdfPageExtraction;
+import com.javainterview.rag.interview.document.PdfPageLayout;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,7 +26,15 @@ class InterviewDocumentControllerTest {
     void extractsPdfTextFromMultipartRequest() throws Exception {
         InterviewDocumentTextExtractor extractor = mock(InterviewDocumentTextExtractor.class);
         when(extractor.extract(any())).thenReturn(new InterviewDocumentExtraction(
-                "Java 后端项目经历", "PDF", 2));
+                "Java 后端项目经历", "PDF", 2,
+                PdfDocumentType.MIXED, 1, 1, 1,
+                java.util.List.of(2),
+                java.util.List.of("第 2 页未提取到文字，可能需要 OCR；请检查或手动补充正文"),
+                java.util.List.of(
+                        new PdfPageExtraction(1, PdfPageContentType.TEXT, PdfPageLayout.TWO_COLUMN,
+                                8, 0, false),
+                        new PdfPageExtraction(2, PdfPageContentType.IMAGE_ONLY, PdfPageLayout.SINGLE_COLUMN,
+                                0, 1, true))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewDocumentController(extractor)).build();
 
         mockMvc.perform(multipart("/api/interviews/documents/extract")
@@ -30,7 +42,14 @@ class InterviewDocumentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Java 后端项目经历"))
                 .andExpect(jsonPath("$.format").value("PDF"))
-                .andExpect(jsonPath("$.pageCount").value(2));
+                .andExpect(jsonPath("$.pageCount").value(2))
+                .andExpect(jsonPath("$.documentType").value("MIXED"))
+                .andExpect(jsonPath("$.textPageCount").value(1))
+                .andExpect(jsonPath("$.imagePageCount").value(1))
+                .andExpect(jsonPath("$.reorderedPageCount").value(1))
+                .andExpect(jsonPath("$.pagesNeedingOcr[0]").value(2))
+                .andExpect(jsonPath("$.pages[0].layout").value("TWO_COLUMN"))
+                .andExpect(jsonPath("$.pages[1].requiresOcr").value(true));
     }
 
     @Test
