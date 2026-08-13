@@ -12,10 +12,22 @@ from pathlib import Path
 CORPUS_ROOT = Path(__file__).resolve().parent / "corpus"
 CORPUS_SOURCES = (
     "java/collections.md",
+    "java/concurrent-collections.md",
     "java/concurrency.md",
     "java/jvm.md",
+    "mysql/indexes.md",
     "mysql/transactions.md",
+    "rag/agent-basics.md",
     "rag/rag-basics.md",
+)
+
+RATE_FIELDS = (
+    "expectedSourceHitRate",
+    "hitAt1Rate",
+    "meanRecallAt5",
+    "meanReciprocalRank",
+    "headingPathRecallRate",
+    "rejectionAccuracy",
 )
 
 
@@ -68,6 +80,30 @@ def evaluate(base_url: str, timeout: float) -> dict:
     return request_json(request, timeout)
 
 
+def validate_report(report: dict) -> list[str]:
+    errors = []
+    if report.get("totalCaseCount") != 20:
+        errors.append("固定评估题数量不是 20")
+    if report.get("answerableCaseCount") != 17:
+        errors.append("可回答题数量不是 17")
+    if report.get("noAnswerCaseCount") != 3:
+        errors.append("无答案题数量不是 3")
+    for field in RATE_FIELDS:
+        value = report.get(field)
+        if not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+            errors.append(f"指标 {field} 缺失或超出 0 到 1")
+    return errors
+
+
+def print_summary(report: dict) -> None:
+    print("\n检索基线摘要")
+    print(f"- Hit@1: {report['hitAt1Rate']:.4f}")
+    print(f"- Mean Recall@5: {report['meanRecallAt5']:.4f}")
+    print(f"- MRR: {report['meanReciprocalRank']:.4f}")
+    print(f"- 标题路径召回率: {report['headingPathRecallRate']:.4f}")
+    print(f"- 无答案拒答准确率: {report['rejectionAccuracy']:.4f}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入固定语料并运行真实 RAG 检索基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
@@ -85,10 +121,13 @@ def main() -> int:
         print(f"评估执行失败：{exception}", file=sys.stderr)
         return 1
 
-    print(json.dumps(report, ensure_ascii=False, indent=2))
-    if report.get("expectedSourceHitCount") != report.get("totalCaseCount"):
-        print("固定题集未全部命中期望来源。", file=sys.stderr)
+    errors = validate_report(report)
+    if errors:
+        for error in errors:
+            print(f"评估报告无效：{error}", file=sys.stderr)
         return 1
+    print_summary(report)
+    print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 
 

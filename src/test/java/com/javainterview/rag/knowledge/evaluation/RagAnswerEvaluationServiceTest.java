@@ -20,10 +20,12 @@ class RagAnswerEvaluationServiceTest {
         FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
         RagAnswerService answerService = mock(RagAnswerService.class);
         RagEvaluationCase hashMapCase = new RagEvaluationCase(
-                "hashmap", "HashMap 问题", List.of("java/collections.md"),
+                "hashmap", "HashMap 问题", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "HashMap")),
                 List.of("平均查询复杂度为 O(1)", "链表长度达到 8", "数组容量至少为 64"));
         RagEvaluationCase volatileCase = new RagEvaluationCase(
-                "volatile", "volatile 问题", List.of("java/concurrency.md"),
+                "volatile", "volatile 问题", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/concurrency.md"), List.of(List.of("Java 并发", "volatile")),
                 List.of("保证可见性", "多线程自增需要原子类或锁"));
         when(dataset.findAll()).thenReturn(List.of(hashMapCase, volatileCase));
         when(answerService.answer("HashMap 问题")).thenReturn(new RagAnswerResult(
@@ -55,6 +57,24 @@ class RagAnswerEvaluationServiceTest {
         assertFalse(second.expectedSourceMatched());
         assertEquals(List.of(), second.matchedAnswerPoints());
         assertEquals(0.0, second.answerPointCoverageRate());
+    }
+
+    @Test
+    void treatsAnEmptySourceResultAsExpectedForNoAnswerCases() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase noAnswerCase = new RagEvaluationCase(
+                "no-answer", "知识库外问题", RagEvaluationCaseType.NO_ANSWER,
+                List.of(), List.of(), List.of("知识库中没有足够可靠的资料"));
+        when(dataset.findAll()).thenReturn(List.of(noAnswerCase));
+        when(answerService.answer("知识库外问题")).thenReturn(new RagAnswerResult(
+                "知识库中没有足够可靠的资料回答这个问题。", false, List.of()));
+
+        RagAnswerEvaluationReport report = new RagAnswerEvaluationService(dataset, answerService).evaluate();
+
+        assertEquals(1, report.expectedSourceHitCount());
+        assertTrue(report.cases().get(0).expectedSourceMatched());
+        assertEquals(1.0, report.cases().get(0).answerPointCoverageRate());
     }
 
     private MarkdownSearchResult source(String source) {

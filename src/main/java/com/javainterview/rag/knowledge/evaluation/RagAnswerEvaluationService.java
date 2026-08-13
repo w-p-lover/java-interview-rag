@@ -47,9 +47,11 @@ public class RagAnswerEvaluationService {
         List<RagRetrievalSource> actualSources = answerResult.sources().stream()
                 .map(RagRetrievalSource::from)
                 .toList();
-        boolean expectedSourceMatched = actualSources.stream()
-                .map(RagRetrievalSource::source)
-                .anyMatch(evaluationCase.expectedSources()::contains);
+        boolean expectedSourceMatched = evaluationCase.type() == RagEvaluationCaseType.NO_ANSWER
+                ? actualSources.isEmpty()
+                : actualSources.stream()
+                        .map(RagRetrievalSource::source)
+                        .anyMatch(evaluationCase.expectedSources()::contains);
         String normalizedAnswer = normalize(answerResult.answer());
         List<String> matchedAnswerPoints = evaluationCase.expectedAnswerPoints().stream()
                 .filter(point -> containsNormalized(normalizedAnswer, point))

@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.web;
 
+import com.javainterview.rag.knowledge.evaluation.RagEvaluationCaseType;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationCaseResult;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
@@ -21,20 +22,32 @@ class RagRetrievalEvaluationControllerTest {
     @Test
     void returnsTheBatchRetrievalEvaluationReport() throws Exception {
         RagRetrievalEvaluationService service = mock(RagRetrievalEvaluationService.class);
-        when(service.evaluate()).thenReturn(new RagRetrievalEvaluationReport(5, 0.0, 1, 1, 1.0,
-                List.of(new RagRetrievalEvaluationCaseResult(
-                        "java-collections-hashmap", "HashMap 问题", List.of("java/collections.md"),
-                        List.of(new RagRetrievalSource("java/collections.md", "version-1", 0,
-                                List.of("Java", "集合"), 0.91)), true
-                ))));
+        RagRetrievalEvaluationCaseResult caseResult = new RagRetrievalEvaluationCaseResult(
+                "java-collections-hashmap", "HashMap 问题", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "HashMap")),
+                List.of(new RagRetrievalSource("java/collections.md", "version-1", 0,
+                        List.of("Java 集合", "HashMap"), 0.91)),
+                true, 1, true, 1.0, 1.0, 1, 1.0,
+                false, false, false);
+        when(service.evaluate()).thenReturn(new RagRetrievalEvaluationReport(
+                5, 0.0, 0.60, 1, 1, 0, 1, 1.0,
+                1, 1.0, 1.0, 1.0, 1, 1, 1.0, 0, 0.0,
+                List.of(caseResult)));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new RagRetrievalEvaluationController(service)).build();
 
         mockMvc.perform(get("/api/knowledge/evaluations/retrieval"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.topK").value(5))
+                .andExpect(jsonPath("$.answerSimilarityThreshold").value(0.60))
+                .andExpect(jsonPath("$.hitAt1Rate").value(1.0))
+                .andExpect(jsonPath("$.meanRecallAt5").value(1.0))
+                .andExpect(jsonPath("$.meanReciprocalRank").value(1.0))
+                .andExpect(jsonPath("$.headingPathRecallRate").value(1.0))
                 .andExpect(jsonPath("$.expectedSourceHitCount").value(1))
                 .andExpect(jsonPath("$.cases[0].evaluationCaseId").value("java-collections-hashmap"))
+                .andExpect(jsonPath("$.cases[0].type").value("EXACT_TERM"))
                 .andExpect(jsonPath("$.cases[0].actualSources[0].source").value("java/collections.md"))
-                .andExpect(jsonPath("$.cases[0].expectedSourceMatched").value(true));
+                .andExpect(jsonPath("$.cases[0].firstRelevantRank").value(1))
+                .andExpect(jsonPath("$.cases[0].hitAt1").value(true));
     }
 }

@@ -19,9 +19,11 @@ class RagEvaluationDatasetControllerTest {
 
         mockMvc.perform(get("/api/knowledge/evaluation-cases"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6))
+                .andExpect(jsonPath("$.length()").value(20))
                 .andExpect(jsonPath("$[0].id").value("java-collections-hashmap"))
+                .andExpect(jsonPath("$[0].type").value("EXACT_TERM"))
                 .andExpect(jsonPath("$[0].expectedSources[0]").value("java/collections.md"))
+                .andExpect(jsonPath("$[0].expectedHeadingPaths[0][0]").value("Java 集合"))
                 .andExpect(jsonPath("$[0].expectedAnswerPoints").isNotEmpty());
     }
 }
