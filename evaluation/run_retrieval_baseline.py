@@ -80,9 +80,12 @@ def import_corpus(base_url: str, timeout: float) -> list[dict]:
     return imported_documents
 
 
-def evaluate(base_url: str, timeout: float) -> dict:
+def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool) -> dict:
+    path = "/api/knowledge/evaluations/retrieval"
+    if compare_query_decomposition:
+        path += "/query-decomposition"
     request = urllib.request.Request(
-        f"{base_url}/api/knowledge/evaluations/retrieval",
+        f"{base_url}{path}",
         method="GET",
     )
     return request_json(request, timeout)
@@ -103,6 +106,26 @@ def validate_report(report: dict) -> list[str]:
     return errors
 
 
+def validate_comparison(comparison: dict) -> list[str]:
+    errors = []
+    if comparison.get("candidateStrategy") != "deterministic-clause-rrf-v1":
+        errors.append("候选查询拆分策略标识不正确")
+    if not isinstance(comparison.get("decomposedCaseCount"), int):
+        errors.append("拆分题数量缺失")
+    if not isinstance(comparison.get("additionalQueryCount"), int):
+        errors.append("额外查询数量缺失")
+    queries = comparison.get("retrievalQueries")
+    if not isinstance(queries, dict) or len(queries) != 20:
+        errors.append("逐题查询计划不是 20 题")
+    for name in ("baseline", "candidate"):
+        report = comparison.get(name)
+        if not isinstance(report, dict):
+            errors.append(f"{name} 报告缺失")
+        else:
+            errors.extend(f"{name}: {error}" for error in validate_report(report))
+    return errors
+
+
 def print_summary(report: dict) -> None:
     print("\n检索基线摘要")
     print(f"- Hit@1: {report['hitAt1Rate']:.4f}")
@@ -112,11 +135,26 @@ def print_summary(report: dict) -> None:
     print(f"- 无答案拒答准确率: {report['rejectionAccuracy']:.4f}")
 
 
+def print_comparison_summary(comparison: dict) -> None:
+    print(f"\n查询拆分策略: {comparison['candidateStrategy']}")
+    print(f"- 拆分题数: {comparison['decomposedCaseCount']}")
+    print(f"- 额外查询数: {comparison['additionalQueryCount']}")
+    print("\n原查询", end="")
+    print_summary(comparison["baseline"])
+    print("\n查询拆分候选", end="")
+    print_summary(comparison["candidate"])
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入固定语料并运行真实 RAG 检索基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
     parser.add_argument("--timeout", type=float, default=120.0, help="单次 HTTP 请求超时秒数")
     parser.add_argument("--output", type=Path, help="可选的评估结果 JSON 输出路径")
+    parser.add_argument(
+        "--compare-query-decomposition",
+        action="store_true",
+        help="比较原查询与确定性子句拆分策略，不改变生产检索",
+    )
     return parser.parse_args()
 
 
@@ -125,12 +163,13 @@ def main() -> int:
     base_url = args.base_url.rstrip("/")
     try:
         corpus = import_corpus(base_url, args.timeout)
-        report = evaluate(base_url, args.timeout)
+        evaluation_result = evaluate(base_url, args.timeout, args.compare_query_decomposition)
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exception:
         print(f"评估执行失败：{exception}", file=sys.stderr)
         return 1
 
-    errors = validate_report(report)
+    errors = (validate_comparison(evaluation_result)
+              if args.compare_query_decomposition else validate_report(evaluation_result))
     if errors:
         for error in errors:
             print(f"评估报告无效：{error}", file=sys.stderr)
@@ -143,14 +182,20 @@ def main() -> int:
             "corpusDocumentCount": len(CORPUS_SOURCES),
             "importedDocumentCount": sum(1 for document in corpus if document["imported"]),
             "embeddedChunkCountThisRun": sum(document["chunkCount"] for document in corpus),
-            "note": "独立知识库中同时存在规划报告；报告保留真实竞争来源。本次只执行 Embedding 检索，不调用 Chat。",
-            "report": report,
+            "note": ("独立知识库中同时存在规划报告；本次比较原查询与确定性查询拆分，"
+                     "只执行 Embedding 检索，不调用 Chat。"
+                     if args.compare_query_decomposition else
+                     "独立知识库中同时存在规划报告；报告保留真实竞争来源。本次只执行 Embedding 检索，不调用 Chat。"),
+            "report": evaluation_result,
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(f"评估结果已写入：{args.output}")
-    print_summary(report)
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    if args.compare_query_decomposition:
+        print_comparison_summary(evaluation_result)
+    else:
+        print_summary(evaluation_result)
+    print(json.dumps(evaluation_result, ensure_ascii=False, indent=2))
     return 0
 
 

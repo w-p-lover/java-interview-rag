@@ -42,6 +42,18 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 
 2026-08-13 的首轮真实困难基线使用 `text-embedding-v3`、8 份语料和 18 个 chunk，结果见 `evaluation/results/2026-08-13-rag-hard-retrieval-baseline.json`：Hit@1 为 `1.0000`、Mean Recall@5 为 `0.9706`、MRR 为 `1.0000`、标题路径召回率为 `0.9130`、无答案拒答准确率为 `1.0000`。主要缺口集中在跨主题 Map 问题漏掉普通 HashMap 来源，以及一个歧义 Map 问题漏掉“扩容与负载因子”标题；当前没有证据支持直接引入 rerank。
 
+## 查询拆分对照
+
+可以在同一语料和指标口径下显式比较原查询与 `deterministic-clause-rrf-v1`：
+
+```shell
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --compare-query-decomposition
+```
+
+候选策略不调用 Chat：它保留原问题，再从多句、多子句和带“分别/各自/两者”的协调结构中确定性生成最多 3 个额外查询，分别取 Top5 后按 chunk 身份去重并使用 Reciprocal Rank Fusion 合并为最终 Top5。当前固定题集会拆分 13 题并增加 29 次查询；对照响应同时返回原查询报告、候选报告、逐题查询计划、拆分题数和额外查询数，每题原查询只执行一次并被两份报告复用。
+
+该策略当前只存在于评估接口 `/api/knowledge/evaluations/retrieval/query-decomposition`，没有接入资料检索、RAG 回答或面试链路。运行对照会为查询产生真实 Embedding 调用，必须显式授权费用；在真实结果同时改善多证据召回、保持 Hit@1/MRR 且不降低无答案拒答准确率前，不得把它写成生产能力。
+
 ## 回答要点覆盖
 
 基线资料导入后，可以显式执行回答评估：

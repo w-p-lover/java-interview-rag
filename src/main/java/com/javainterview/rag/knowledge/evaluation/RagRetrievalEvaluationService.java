@@ -1,10 +1,14 @@
 package com.javainterview.rag.knowledge.evaluation;
 
 import com.javainterview.rag.knowledge.rag.RagRetrievalSource;
+import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -13,20 +17,83 @@ public class RagRetrievalEvaluationService {
     private static final int EVALUATION_TOP_K = 5;
     private static final double EVALUATION_SIMILARITY_THRESHOLD = 0.0;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
+    private static final String QUERY_DECOMPOSITION_STRATEGY = "deterministic-clause-rrf-v1";
 
     private final FixedRagEvaluationDataset dataset;
     private final MarkdownSimilaritySearchService searchService;
+    private final RagEvaluationQueryPlanner queryPlanner;
+    private final RagEvaluationResultFusion resultFusion;
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          MarkdownSimilaritySearchService searchService) {
+        this(dataset, searchService, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+    }
+
+    RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                  MarkdownSimilaritySearchService searchService,
+                                  RagEvaluationQueryPlanner queryPlanner,
+                                  RagEvaluationResultFusion resultFusion) {
         this.dataset = Objects.requireNonNull(dataset, "固定评估题集不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
+        this.queryPlanner = Objects.requireNonNull(queryPlanner, "评估查询规划器不能为空");
+        this.resultFusion = Objects.requireNonNull(resultFusion, "评估结果融合器不能为空");
     }
 
     public RagRetrievalEvaluationReport evaluate() {
         List<RagRetrievalEvaluationCaseResult> results = dataset.findAll().stream()
-                .map(this::evaluateCase)
+                .map(evaluationCase -> evaluateCase(evaluationCase,
+                        searchService.search(evaluationCase.question(),
+                                EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD).stream()
+                                .map(RagRetrievalSource::from)
+                                .toList()))
                 .toList();
+        return buildReport(results);
+    }
+
+    public RagRetrievalEvaluationComparisonReport compareQueryDecomposition() {
+        List<RagEvaluationCase> evaluationCases = dataset.findAll();
+        Map<String, List<String>> retrievalQueries = new LinkedHashMap<>();
+        List<RagRetrievalEvaluationCaseResult> baselineResults = new ArrayList<>();
+        List<RagRetrievalEvaluationCaseResult> candidateResults = new ArrayList<>();
+        int decomposedCaseCount = 0;
+        int additionalQueryCount = 0;
+
+        for (RagEvaluationCase evaluationCase : evaluationCases) {
+            List<String> queries = queryPlanner.plan(evaluationCase.question());
+            retrievalQueries.put(evaluationCase.id(), queries);
+            List<MarkdownSearchResult> baselineSearchResults = searchService.search(
+                    queries.get(0), EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD);
+            baselineResults.add(evaluateCase(evaluationCase, baselineSearchResults.stream()
+                    .map(RagRetrievalSource::from)
+                    .toList()));
+
+            List<List<MarkdownSearchResult>> rankedResults = new ArrayList<>();
+            rankedResults.add(baselineSearchResults);
+            for (String additionalQuery : queries.subList(1, queries.size())) {
+                rankedResults.add(searchService.search(additionalQuery,
+                        EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD));
+            }
+            if (queries.size() > 1) {
+                decomposedCaseCount++;
+                additionalQueryCount += queries.size() - 1;
+            }
+            candidateResults.add(evaluateCase(evaluationCase,
+                    resultFusion.fuse(rankedResults, EVALUATION_TOP_K).stream()
+                            .map(RagRetrievalSource::from)
+                            .toList()));
+        }
+
+        return new RagRetrievalEvaluationComparisonReport(
+                QUERY_DECOMPOSITION_STRATEGY,
+                decomposedCaseCount,
+                additionalQueryCount,
+                retrievalQueries,
+                buildReport(baselineResults),
+                buildReport(candidateResults)
+        );
+    }
+
+    private RagRetrievalEvaluationReport buildReport(List<RagRetrievalEvaluationCaseResult> results) {
         List<RagRetrievalEvaluationCaseResult> answerableResults = results.stream()
                 .filter(result -> !result.rejectionExpected())
                 .toList();
@@ -72,12 +139,8 @@ public class RagRetrievalEvaluationService {
         );
     }
 
-    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase) {
-        List<RagRetrievalSource> actualSources = searchService.search(evaluationCase.question(),
-                        EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD)
-                .stream()
-                .map(RagRetrievalSource::from)
-                .toList();
+    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
+                                                          List<RagRetrievalSource> actualSources) {
         Set<String> actualLogicalSources = actualSources.stream()
                 .map(RagRetrievalSource::source)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));

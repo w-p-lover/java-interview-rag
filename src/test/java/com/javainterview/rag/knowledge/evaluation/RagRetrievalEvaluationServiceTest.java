@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RagRetrievalEvaluationServiceTest {
@@ -84,6 +86,47 @@ class RagRetrievalEvaluationServiceTest {
         assertTrue(fourth.rejectionExpected());
         assertFalse(fourth.rejectedAtAnswerThreshold());
         assertFalse(fourth.rejectionCorrect());
+    }
+
+    @Test
+    void comparesQueryDecompositionWithoutRepeatingOriginalSearch() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        String question = "单线程映射与高并发映射应如何选择，并分别关注哪些查询和竞争成本？";
+        RagEvaluationCase evaluationCase = evaluationCase(
+                "cross-map", question, RagEvaluationCaseType.CROSS_SECTION,
+                List.of("java/collections.md", "java/concurrent-collections.md"),
+                List.of(List.of("Java 集合", "HashMap"),
+                        List.of("Java 并发集合", "ConcurrentHashMap")));
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(searchService.search(question,
+                5, 0.0)).thenReturn(List.of(
+                result("并发映射", "java/concurrent-collections.md",
+                        List.of("Java 并发集合", "ConcurrentHashMap"), 0.81)
+        ));
+        when(searchService.search("单线程映射", 5, 0.0)).thenReturn(List.of(
+                result("普通映射", "java/collections.md", List.of("Java 集合", "HashMap"), 0.72)
+        ));
+        when(searchService.search("高并发映射应如何选择，并分别关注哪些查询和竞争成本", 5, 0.0)).thenReturn(List.of(
+                result("并发映射", "java/concurrent-collections.md",
+                        List.of("Java 并发集合", "ConcurrentHashMap"), 0.75)
+        ));
+        when(searchService.search("单线程映射与高并发映射应如何选择", 5, 0.0)).thenReturn(List.of(
+                result("普通映射", "java/collections.md", List.of("Java 集合", "HashMap"), 0.79)
+        ));
+
+        RagRetrievalEvaluationComparisonReport comparison =
+                new RagRetrievalEvaluationService(dataset, searchService).compareQueryDecomposition();
+
+        assertEquals("deterministic-clause-rrf-v1", comparison.candidateStrategy());
+        assertEquals(1, comparison.decomposedCaseCount());
+        assertEquals(3, comparison.additionalQueryCount());
+        assertEquals(4, comparison.retrievalQueries().get("cross-map").size());
+        assertEquals(0.5, comparison.baseline().meanRecallAt5());
+        assertEquals(1.0, comparison.candidate().meanRecallAt5());
+        assertEquals(0.5, comparison.baseline().headingPathRecallRate());
+        assertEquals(1.0, comparison.candidate().headingPathRecallRate());
+        verify(searchService, times(1)).search(question, 5, 0.0);
     }
 
     private RagEvaluationCase evaluationCase(String id, String question, RagEvaluationCaseType type,

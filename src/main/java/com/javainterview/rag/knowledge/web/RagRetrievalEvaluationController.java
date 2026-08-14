@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.web;
 
+import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationComparisonReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
 import org.springframework.context.annotation.Profile;
@@ -21,5 +22,10 @@ public class RagRetrievalEvaluationController {
     @GetMapping
     public RagRetrievalEvaluationReport evaluate() {
         return evaluationService.evaluate();
+    }
+
+    @GetMapping("/query-decomposition")
+    public RagRetrievalEvaluationComparisonReport compareQueryDecomposition() {
+        return evaluationService.compareQueryDecomposition();
     }
 }
