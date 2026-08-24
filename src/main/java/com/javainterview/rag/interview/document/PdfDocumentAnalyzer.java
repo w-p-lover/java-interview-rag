@@ -18,6 +18,7 @@ import java.util.Map;
 class PdfDocumentAnalyzer {
 
     private static final float LINE_Y_TOLERANCE = 2.5f;
+    private static final float VISUAL_ROW_Y_TOLERANCE = 4.0f;
     private static final float LEFT_COLUMN_LIMIT = 0.48f;
     private static final float RIGHT_COLUMN_LIMIT = 0.52f;
     private static final float MINIMUM_GUTTER_RATIO = 0.06f;
@@ -68,11 +69,35 @@ class PdfDocumentAnalyzer {
                     });
             line.add(position);
         }
-        return groups.stream()
+        List<TextLine> lines = groups.stream()
                 .flatMap(group -> toLines(group).stream())
                 .filter(line -> !line.text().isBlank())
-                .sorted(Comparator.comparing(TextLine::y).thenComparing(TextLine::xStart))
                 .toList();
+        return orderByVisualRows(lines);
+    }
+
+    private List<TextLine> orderByVisualRows(List<TextLine> lines) {
+        List<List<TextLine>> rows = new ArrayList<>();
+        for (TextLine line : lines.stream().sorted(Comparator.comparing(TextLine::y)).toList()) {
+            List<TextLine> row = rows.stream()
+                    .filter(candidate -> Math.abs(averageLineY(candidate) - line.y())
+                            <= VISUAL_ROW_Y_TOLERANCE)
+                    .findFirst()
+                    .orElseGet(() -> {
+                        List<TextLine> created = new ArrayList<>();
+                        rows.add(created);
+                        return created;
+                    });
+            row.add(line);
+        }
+        return rows.stream()
+                .sorted(Comparator.comparingDouble(this::averageLineY))
+                .flatMap(row -> row.stream().sorted(Comparator.comparing(TextLine::xStart)))
+                .toList();
+    }
+
+    private double averageLineY(List<TextLine> lines) {
+        return lines.stream().mapToDouble(TextLine::y).average().orElse(0.0);
     }
 
     private float averageY(List<TextPosition> positions) {

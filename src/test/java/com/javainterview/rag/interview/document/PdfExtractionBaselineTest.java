@@ -36,7 +36,7 @@ class PdfExtractionBaselineTest {
     private static final Path OUTPUT_DIRECTORY = Path.of("target", "pdf-extraction-baseline");
     private static final Path CHINESE_FONT = Path.of("C:", "Windows", "Fonts", "simhei.ttf");
     private static final Path EXPECTED_REPORT = Path.of(
-            "evaluation", "results", "2026-08-13-pdf-complex-resume-baseline.json");
+            "evaluation", "results", "2026-08-24-pdf-right-metadata-baseline.json");
 
     private final PdfInterviewDocumentTextExtractor extractor = new PdfInterviewDocumentTextExtractor();
     private final ObjectMapper objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
@@ -56,7 +56,7 @@ class PdfExtractionBaselineTest {
                 evaluateTextCase(mixedCase()),
                 evaluateTextlessCase(textlessCase()));
         PdfExtractionBaselineReport report = new PdfExtractionBaselineReport(
-                "pdfbox-layout-aware-v2",
+                "pdfbox-layout-aware-v3",
                 "repository-deterministic-v2",
                 cases.size(),
                 (int) cases.stream().filter(PdfExtractionCaseResult::passed).count(),
@@ -236,9 +236,9 @@ class PdfExtractionBaselineTest {
             try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
                 writeLine(stream, 72, 760, 14, "WORK EXPERIENCE");
                 writeLine(stream, 72, 710, 12, "BACKEND ENGINEER Example Company");
-                writeLine(stream, 475, 710, 10, "2022-2024");
+                writeLine(stream, 475, 713.5f, 9, "2022-2024");
                 writeLine(stream, 72, 670, 12, "JAVA DEVELOPER Sample Company");
-                writeLine(stream, 475, 670, 10, "2020-2022");
+                writeLine(stream, 475, 673.5f, 9, "2020-2022");
             }
             return new PdfBaselineCase(
                     "date-rail",

@@ -11,7 +11,7 @@ Chat、Embedding、OCR、数据库或向量库。
 | `single-column` | 两页单栏、页数、关键短语和顺序 | 通过 |
 | `two-column` | 跨栏标题、左右两栏关键短语和阅读顺序 | `v2` 按左栏后右栏输出；`v1` 交错失败保留在历史报告 |
 | `chinese-resume` | 运行时嵌入黑体的脱敏中文单栏简历 | 中文关键短语与从上到下顺序通过 |
-| `date-rail` | 经历正文配右侧窄日期列 | 保守保持逐行单栏，不误判为双栏 |
+| `date-rail` | 经历正文配轻微纵向偏移的右侧窄日期列 | 保持主体先于对应日期，不误判为双栏 |
 | `skills-table` | 无边框技能键值列与中部跨行说明 | 保守保持逐行单栏，不把键值列拆成左右正文 |
 | `complex-sidebar` | 左侧联系方式/技能侧栏与右侧经历主栏 | 按左侧栏后右主栏输出 |
 | `mixed` | 一页文本和一页仅位图 | 保留文本并将第 2 页列为 OCR 候选 |
@@ -24,14 +24,15 @@ Chat、Embedding、OCR、数据库或向量库。
 ```
 
 测试会把当次生成的 PDF 和报告写到 `target/pdf-extraction-baseline/`，然后与当前候选报告
-`evaluation/results/2026-08-13-pdf-complex-resume-baseline.json` 比较。原始
+`evaluation/results/2026-08-24-pdf-right-metadata-baseline.json` 比较。原始
 `2026-08-12-pdf-extraction-baseline.json` 保留 `pdfbox-position-sort-v1` 的双栏失败，候选
-`2026-08-13-pdf-layout-aware-baseline.json` 保留四类样本结果；当前报告沿用
-`pdfbox-layout-aware-v2` 解析器并将仓库评估器升级为 `repository-deterministic-v2`，不能通过改名覆盖旧结果。
+`2026-08-13-pdf-layout-aware-baseline.json` 保留四类样本结果，
+`2026-08-13-pdf-complex-resume-baseline.json` 保留 8 类 `v2` 结果；当前报告使用
+`pdfbox-layout-aware-v3` 和同一 `repository-deterministic-v2` 评估器，不能通过改名覆盖旧结果。
 
 `keyPhraseHitRate` 是固定关键短语的字面命中率，`readingOrderPassed` 是固定标记的相对
 顺序断言；二者不是 `pdf-inspector` 公布的 NID、TEDS 或 MHS 指标，也不能外推为真实简历
 总体解析质量。中文样本运行时使用 `C:/Windows/Fonts/simhei.ttf` 生成，字体不存在时整条
-基线会明确跳过，仓库不提交系统字体。当前没有证据支持继续调整生产版面算法；下一步应加入
-经授权脱敏的真实中文简历和更复杂的字体编码、嵌套表格样本，再决定是否增强本地解析。
+基线会明确跳过，仓库不提交系统字体。`v3` 的右侧日期形态来自授权真实简历暴露的问题，但
+fixture 已完全脱敏且不包含真实原文；后续仍需用新的授权样本覆盖复杂字体编码和嵌套表格。
 OCR 候选页不会自动触发外部服务。

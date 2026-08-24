@@ -80,6 +80,25 @@ class PdfDocumentAnalyzerTest {
     }
 
     @Test
+    void keepsSlightlyOffsetRightMetadataAfterLeftSubject() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addPage(document);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeLine(stream, 72, 740, 12, "EXAMPLE UNIVERSITY");
+                writeLine(stream, 470, 743.5f, 9, "2021-2025");
+                writeLine(stream, 72, 700, 12, "PROJECT ALPHA");
+                writeLine(stream, 470, 703.5f, 9, "2024-02 TO 2024-08");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.SINGLE_COLUMN, result.layout());
+            assertOrder(result.content(), "EXAMPLE UNIVERSITY", "2021-2025",
+                    "PROJECT ALPHA", "2024-02 TO 2024-08");
+        }
+    }
+
+    @Test
     void classifiesTextImageAndEmptyPagesIndependently() throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDPage textWithImage = addPage(document);
@@ -111,7 +130,12 @@ class PdfDocumentAnalyzerTest {
     }
 
     private void writeLine(PDPageContentStream stream, float x, float y, String text) throws IOException {
-        stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+        writeLine(stream, x, y, 12, text);
+    }
+
+    private void writeLine(PDPageContentStream stream, float x, float y,
+                           float fontSize, String text) throws IOException {
+        stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), fontSize);
         stream.beginText();
         stream.newLineAtOffset(x, y);
         stream.showText(text);

@@ -1,0 +1,68 @@
+{
+  "runAt": "2026-08-24T10:43:08+08:00",
+  "note": "用户授权的单页真实校招简历；原始 PDF、提取正文和完整审计结果均未持久化。本报告不含个人信息、事实、引文、缺失/风险/建议正文。",
+  "privacy": {
+    "externalModelAuthorized": true,
+    "rawPdfPersisted": false,
+    "extractedTextPersisted": false,
+    "fullAuditPersisted": false,
+    "databaseWritten": false,
+    "vectorStoreWritten": false
+  },
+  "pdf": {
+    "parserVersion": "pdfbox-layout-aware-v3",
+    "pageCount": 1,
+    "documentType": "TEXT_BASED",
+    "textPageCount": 1,
+    "imagePageCount": 1,
+    "imageObjectCount": 4,
+    "extractedCharacterCount": 1550,
+    "reorderedPageCount": 0,
+    "pagesNeedingOcr": [],
+    "rightMetadataOrderPassed": true
+  },
+  "audit": {
+    "status": "SUCCEEDED",
+    "role": "RESUME_EVIDENCE_AUDITOR",
+    "promptVersion": "resume-evidence-audit-v1",
+    "modelName": "qwen3.7-plus",
+    "confirmedFactCount": 27,
+    "factTypeCounts": {
+      "PROJECT": 4,
+      "TECHNOLOGY": 11,
+      "RESPONSIBILITY": 4,
+      "TIME": 4,
+      "RESULT": 4
+    },
+    "legalFactCount": 27,
+    "evidenceLegalRate": 1.0,
+    "missingInformationCount": 4,
+    "riskCount": 4,
+    "suggestionCount": 4,
+    "promptTokens": 1497,
+    "completionTokens": 6063,
+    "totalTokens": 7560,
+    "elapsedMillis": 104550,
+    "maximumFactCount": 30,
+    "factCapacityUsageRate": 0.9
+  },
+  "manualReview": {
+    "factRecallMeasured": false,
+    "expectedTimeAssociationCount": 4,
+    "correctTimeAssociationCount": 4,
+    "obviousResultFactCount": 4,
+    "personalSkillSectionFactCount": 0,
+    "projectResponsibilityFactCount": 0,
+    "minimumClassificationIssueCount": 2,
+    "classificationPrecisionUpperBound": 0.9259,
+    "unsupportedMissingInformationCount": 1,
+    "findings": [
+      "固定五类事实无法表达教育和任职主体，模型将两类内容错误归为 PROJECT。",
+      "个人技能区没有形成 TECHNOLOGY 事实，项目行为主要被归为 TECHNOLOGY 而不是 RESPONSIBILITY。",
+      "四组时间关联和四条明显量化结果全部保留。",
+      "至少一条信息缺失要求与简历审计无关的企业工商信息，属于低价值噪声。",
+      "27 条事实已使用 30 条结构上限的 90%，更完整的社招简历存在容量不足风险。"
+    ],
+    "decision": "NOT_READY_FOR_FRONTEND"
+  }
+}
