@@ -19,16 +19,16 @@ PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线�
 先以 `storage` profile 启动后端，再执行：
 
 ```shell
-python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --allow-embedding-calls
 ```
 
 需要保留完整结果时显式指定输出文件：
 
 ```shell
-python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --output evaluation/results/YYYY-MM-DD-rag-retrieval-baseline.json
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --allow-embedding-calls --output evaluation/results/YYYY-MM-DD-rag-retrieval-baseline.json
 ```
 
-运行器会调用现有导入接口，再调用固定批量检索评估接口。重复执行不会重复向量化相同“来源 + 版本”；脚本不调用 Chat 模型，也不会自动删除已导入的基线资料。导入新版本会调用 Embedding 并写入 Qdrant，因此只能在明确授权模型费用后执行。
+运行器会调用现有导入接口，再调用固定批量检索评估接口。重复执行不会重复向量化相同“来源 + 版本”；脚本不调用 Chat 模型，也不会自动删除已导入的基线资料。导入新版本和每道检索都会调用 Embedding，因此运行器默认在任何 HTTP 请求前拒绝执行，只有明确费用授权后显式提供 `--allow-embedding-calls` 才会继续。
 
 检索报告保留原有期望来源命中数，并增加以下指标：
 
@@ -47,7 +47,7 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 可以在同一语料和指标口径下显式比较原查询与 `deterministic-clause-rrf-v1`：
 
 ```shell
-python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --compare-query-decomposition
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --allow-embedding-calls --compare-query-decomposition
 ```
 
 候选策略不调用 Chat：它保留原问题，再从多句、多子句和带“分别/各自/两者”的协调结构中确定性生成最多 3 个额外查询，分别取 Top5 后按 chunk 身份去重并使用 Reciprocal Rank Fusion 合并为最终 Top5。当前固定题集会拆分 13 题并增加 29 次查询；对照响应同时返回原查询报告、候选报告、逐题查询计划、拆分题数和额外查询数，每题原查询只执行一次并被两份报告复用。
@@ -79,15 +79,15 @@ curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
 六类固定简历证据审计不依赖 RAG 语料，但会调用 Chat 模型。明确费用授权并以 `storage` profile 启动后端后执行：
 
 ```shell
-python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls
 ```
 
 需要保存脱敏报告时显式指定输出文件：
 
 ```shell
-python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --output evaluation/results/YYYY-MM-DD-resume-audit-baseline.json
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls --output evaluation/results/YYYY-MM-DD-resume-audit-baseline.json
 ```
 
-接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛和提示注入六类合成样本，每例产生一次 Chat 调用。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
+接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛和提示注入六类合成样本，每例产生一次 Chat 调用。运行器默认在任何 HTTP 请求前拒绝执行，只有明确费用授权后显式提供 `--allow-chat-calls` 才会继续。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
 
 响应和可选结果文件不含简历、确认事实、证据、风险或建议正文，只保留版本、样本 ID、计数、比率、token、耗时和失败类型。当前仓库尚未执行真实模型基线，不能把 Mock 测试结果写成质量指标。

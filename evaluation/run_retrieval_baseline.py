@@ -151,6 +151,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=float, default=120.0, help="单次 HTTP 请求超时秒数")
     parser.add_argument("--output", type=Path, help="可选的评估结果 JSON 输出路径")
     parser.add_argument(
+        "--allow-embedding-calls",
+        action="store_true",
+        help="确认允许语料导入和检索评估产生真实 Embedding 调用",
+    )
+    parser.add_argument(
         "--compare-query-decomposition",
         action="store_true",
         help="比较原查询与确定性子句拆分策略，不改变生产检索",
@@ -160,6 +165,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if not args.allow_embedding_calls:
+        print(
+            "未执行评估：语料导入或检索可能产生真实 Embedding 调用；"
+            "确认费用授权后请显式添加 --allow-embedding-calls。",
+            file=sys.stderr,
+        )
+        return 2
     base_url = args.base_url.rstrip("/")
     try:
         corpus = import_corpus(base_url, args.timeout)

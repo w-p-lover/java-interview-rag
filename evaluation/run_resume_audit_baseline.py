@@ -79,11 +79,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
     parser.add_argument("--timeout", type=float, default=180.0, help="整批 HTTP 请求超时秒数")
     parser.add_argument("--output", type=Path, help="可选的脱敏评估结果 JSON 输出路径")
+    parser.add_argument(
+        "--allow-chat-calls",
+        action="store_true",
+        help="确认允许本次固定评估产生 6 次真实 Chat 调用",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if not args.allow_chat_calls:
+        print(
+            "未执行评估：该命令会产生 6 次真实 Chat 调用；"
+            "确认费用授权后请显式添加 --allow-chat-calls。",
+            file=sys.stderr,
+        )
+        return 2
     try:
         report = request_json(args.base_url.rstrip("/"), args.timeout)
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exception:
