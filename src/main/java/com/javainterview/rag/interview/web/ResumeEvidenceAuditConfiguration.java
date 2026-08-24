@@ -2,6 +2,8 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.persistence.MySqlResumeEvidenceAuditRequestLogStore;
 import com.javainterview.rag.interview.persistence.ResumeEvidenceAuditRequestLogMapper;
+import com.javainterview.rag.interview.resume.FixedResumeEvidenceAuditDataset;
+import com.javainterview.rag.interview.resume.FixedResumeEvidenceAuditEvaluationService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogStore;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
@@ -33,5 +35,12 @@ public class ResumeEvidenceAuditConfiguration {
             ResumeEvidenceAuditRequestLogStore logStore,
             @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
         return new ResumeEvidenceAuditService(ragAnswerChatClient, logStore, modelName);
+    }
+
+    @Bean
+    FixedResumeEvidenceAuditEvaluationService fixedResumeEvidenceAuditEvaluationService(
+            FixedResumeEvidenceAuditDataset dataset,
+            ResumeEvidenceAuditService auditService) {
+        return new FixedResumeEvidenceAuditEvaluationService(dataset, auditService);
     }
 }

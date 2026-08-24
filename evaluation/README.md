@@ -73,3 +73,21 @@ curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
 ```
 
 接口依次执行五个脱敏样本。空回答在服务端拒绝，其余四项各产生一次 Chat 调用；响应只返回分数、知识依据状态、回答证据条数和知识证据条数，不返回回答、知识正文或引文。每次调用生成独立 `baselineRunId`，可以通过 `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...` 恢复分数、耗时和失败类型。评分链路当前不记录 token，不能从 HTTP 请求数推算 provider 计费回合。
+
+## 简历证据审计
+
+六类固定简历证据审计不依赖 RAG 语料，但会调用 Chat 模型。明确费用授权并以 `storage` profile 启动后端后执行：
+
+```shell
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080
+```
+
+需要保存脱敏报告时显式指定输出文件：
+
+```shell
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --output evaluation/results/YYYY-MM-DD-resume-audit-baseline.json
+```
+
+接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛和提示注入六类合成样本，每例产生一次 Chat 调用。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
+
+响应和可选结果文件不含简历、确认事实、证据、风险或建议正文，只保留版本、样本 ID、计数、比率、token、耗时和失败类型。当前仓库尚未执行真实模型基线，不能把 Mock 测试结果写成质量指标。

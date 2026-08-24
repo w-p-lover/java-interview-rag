@@ -54,11 +54,20 @@ public class ResumeEvidenceAuditService {
     }
 
     public ResumeEvidenceAuditResult audit(String resumeText) {
+        EvaluationAttempt attempt = auditForEvaluation(resumeText);
+        if (attempt.failure() != null) {
+            throw attempt.failure();
+        }
+        return attempt.result();
+    }
+
+    EvaluationAttempt auditForEvaluation(String resumeText) {
         String normalizedResume = requireResume(resumeText);
         SanitizedResume sanitizedResume = sanitize(normalizedResume);
         String requestId = UUID.randomUUID().toString();
         long startedAt = System.nanoTime();
         ResponseEntity<ChatResponse, ResumeEvidenceAuditDraft> modelResponse = null;
+        ResumeEvidenceAuditDraft draft = null;
         try {
             modelResponse = chatClient.prompt()
                     .system(SYSTEM_PROMPT)
@@ -68,17 +77,41 @@ public class ResumeEvidenceAuditService {
             if (modelResponse == null || modelResponse.entity() == null) {
                 throw new IllegalStateException("模型未返回可用的简历审计结果");
             }
+            draft = modelResponse.entity();
             ResumeEvidenceAuditResult result = toVerifiedResult(
-                    requestId, sanitizedResume, modelResponse.entity());
+                    requestId, sanitizedResume, draft);
+            TokenUsage usage = tokenUsage(modelResponse.response());
+            long elapsedMillis = elapsedMillis(startedAt);
             record(requestId, ResumeEvidenceAuditRequestLog.Status.SUCCEEDED,
-                    modelResponse.response(), null, startedAt);
-            return result;
+                    usage, null, elapsedMillis);
+            return EvaluationAttempt.succeeded(
+                    result, draft.facts().size(), draft.facts().size(),
+                    usage, elapsedMillis);
         } catch (RuntimeException exception) {
+            TokenUsage usage = tokenUsage(modelResponse == null ? null : modelResponse.response());
+            long elapsedMillis = elapsedMillis(startedAt);
             record(requestId, ResumeEvidenceAuditRequestLog.Status.FAILED,
-                    modelResponse == null ? null : modelResponse.response(),
-                    exception.getClass().getSimpleName(), startedAt);
-            throw exception;
+                    usage, exception.getClass().getSimpleName(), elapsedMillis);
+            int candidateFactCount = draft == null ? 0 : draft.facts().size();
+            int legalEvidenceCount = draft == null ? 0 : (int) draft.facts().stream()
+                    .filter(fact -> sanitizedResume.modelInput().contains(fact.evidence()))
+                    .count();
+            return EvaluationAttempt.failed(
+                    draft != null, candidateFactCount, legalEvidenceCount,
+                    usage, elapsedMillis, exception);
         }
+    }
+
+    String roleName() {
+        return ROLE_NAME;
+    }
+
+    String promptVersion() {
+        return PROMPT_VERSION;
+    }
+
+    String modelName() {
+        return modelName;
     }
 
     private String requireResume(String resumeText) {
@@ -154,11 +187,9 @@ public class ResumeEvidenceAuditService {
 
     private void record(String requestId,
                         ResumeEvidenceAuditRequestLog.Status status,
-                        ChatResponse response,
+                        TokenUsage usage,
                         String errorType,
-                        long startedAt) {
-        TokenUsage usage = tokenUsage(response);
-        long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+                        long elapsedMillis) {
         try {
             logStore.record(new ResumeEvidenceAuditRequestLog(
                     null,
@@ -176,6 +207,10 @@ public class ResumeEvidenceAuditService {
         } catch (RuntimeException exception) {
             LOGGER.warn("记录简历证据审计请求日志失败，requestId={}", requestId, exception);
         }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
     }
 
     private TokenUsage tokenUsage(ChatResponse response) {
@@ -202,6 +237,48 @@ public class ResumeEvidenceAuditService {
 
         private static TokenUsage empty() {
             return new TokenUsage(null, null, null);
+        }
+    }
+
+    record EvaluationAttempt(
+            ResumeEvidenceAuditResult result,
+            boolean structuredOutputAvailable,
+            int candidateFactCount,
+            int legalEvidenceCount,
+            Integer promptTokens,
+            Integer completionTokens,
+            Integer totalTokens,
+            long elapsedMillis,
+            RuntimeException failure
+    ) {
+
+        private static EvaluationAttempt succeeded(
+                ResumeEvidenceAuditResult result,
+                int candidateFactCount,
+                int legalEvidenceCount,
+                TokenUsage usage,
+                long elapsedMillis) {
+            return new EvaluationAttempt(
+                    result, true, candidateFactCount, legalEvidenceCount,
+                    usage.promptTokens(), usage.completionTokens(), usage.totalTokens(),
+                    elapsedMillis, null);
+        }
+
+        private static EvaluationAttempt failed(
+                boolean structuredOutputAvailable,
+                int candidateFactCount,
+                int legalEvidenceCount,
+                TokenUsage usage,
+                long elapsedMillis,
+                RuntimeException failure) {
+            return new EvaluationAttempt(
+                    null, structuredOutputAvailable, candidateFactCount, legalEvidenceCount,
+                    usage.promptTokens(), usage.completionTokens(), usage.totalTokens(),
+                    elapsedMillis, failure);
+        }
+
+        boolean succeeded() {
+            return failure == null;
         }
     }
 }
