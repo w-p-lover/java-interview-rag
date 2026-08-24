@@ -1,10 +1,9 @@
 package com.javainterview.rag.interview.resume;
 
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 public class FixedResumeEvidenceAuditEvaluationService {
@@ -54,21 +53,22 @@ public class FixedResumeEvidenceAuditEvaluationService {
         }
 
         ResumeEvidenceAuditResult result = attempt.result();
-        Set<FactKey> expectedFacts = evaluationCase.expectedFacts().stream()
+        List<FactKey> expectedFacts = evaluationCase.expectedFacts().stream()
                 .map(fact -> new FactKey(fact.type(), fact.evidence()))
-                .collect(java.util.stream.Collectors.toSet());
-        Set<FactKey> actualFacts = result.confirmedFacts().stream()
+                .distinct()
+                .toList();
+        List<FactKey> actualFacts = result.confirmedFacts().stream()
                 .map(fact -> new FactKey(fact.type(), fact.evidence()))
-                .collect(java.util.stream.Collectors.toSet());
-        Set<FactKey> matchedFacts = new HashSet<>(actualFacts);
-        matchedFacts.retainAll(expectedFacts);
+                .distinct()
+                .toList();
+        int matchedFactCount = countMatchedFacts(expectedFacts, actualFacts);
 
         int matchedMissingSignals = countMatchedSignals(
                 evaluationCase.expectedMissingSignals(), result.missingInformation());
         int matchedRiskSignals = countMatchedSignals(
                 evaluationCase.expectedRiskSignals(), result.risks());
-        int unmatchedConfirmedFactCount = actualFacts.size() - matchedFacts.size();
-        boolean passed = matchedFacts.size() == expectedFacts.size()
+        int unmatchedConfirmedFactCount = actualFacts.size() - matchedFactCount;
+        boolean passed = matchedFactCount == expectedFacts.size()
                 && unmatchedConfirmedFactCount == 0
                 && matchedMissingSignals == evaluationCase.expectedMissingSignals().size()
                 && matchedRiskSignals == evaluationCase.expectedRiskSignals().size()
@@ -80,7 +80,7 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 passed,
                 true,
                 expectedFacts.size(),
-                matchedFacts.size(),
+                matchedFactCount,
                 actualFacts.size(),
                 unmatchedConfirmedFactCount,
                 evaluationCase.expectedMissingSignals().size(),
@@ -96,9 +96,41 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 null);
     }
 
-    private int countMatchedSignals(List<String> expectedSignals, List<String> actualValues) {
+    private int countMatchedFacts(List<FactKey> expectedFacts, List<FactKey> actualFacts) {
+        List<FactKey> unmatchedActualFacts = new ArrayList<>(actualFacts);
+        int matchedCount = 0;
+        for (FactKey expectedFact : expectedFacts) {
+            int matchedIndex = unmatchedActualFacts.indexOf(expectedFact);
+            if (matchedIndex < 0) {
+                matchedIndex = findContainedEvidence(expectedFact, unmatchedActualFacts);
+            }
+            if (matchedIndex >= 0) {
+                unmatchedActualFacts.remove(matchedIndex);
+                matchedCount++;
+            }
+        }
+        return matchedCount;
+    }
+
+    private int findContainedEvidence(FactKey expectedFact, List<FactKey> actualFacts) {
+        for (int index = 0; index < actualFacts.size(); index++) {
+            FactKey actualFact = actualFacts.get(index);
+            if (actualFact.type() == expectedFact.type()
+                    && (actualFact.evidence().contains(expectedFact.evidence())
+                    || expectedFact.evidence().contains(actualFact.evidence()))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private int countMatchedSignals(
+            List<FixedResumeEvidenceAuditDataset.ExpectedSignal> expectedSignals,
+            List<String> actualValues) {
         return (int) expectedSignals.stream()
-                .filter(signal -> actualValues.stream().anyMatch(value -> value.contains(signal)))
+                .filter(signal -> signal.alternatives().stream()
+                        .anyMatch(alternative -> actualValues.stream()
+                                .anyMatch(value -> value.contains(alternative))))
                 .count();
     }
 

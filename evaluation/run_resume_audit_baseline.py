@@ -39,7 +39,7 @@ def validate_report(report: dict) -> list[str]:
     errors = []
     if report.get("totalCaseCount") != 6:
         errors.append("固定简历审计样本数量不是 6")
-    if report.get("datasetVersion") != "resume-evidence-audit-dataset-v1":
+    if report.get("datasetVersion") != "resume-evidence-audit-dataset-v2":
         errors.append("简历审计数据集版本不正确")
     metrics = report.get("metrics")
     if not isinstance(metrics, dict):

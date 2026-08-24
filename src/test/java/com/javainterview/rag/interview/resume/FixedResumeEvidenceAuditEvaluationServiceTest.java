@@ -23,7 +23,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals(FixedResumeEvidenceAuditDataset.VERSION, report.datasetVersion());
+        assertEquals("resume-evidence-audit-dataset-v2", report.datasetVersion());
         assertEquals("resume-evidence-audit-v1", report.promptVersion());
         assertEquals(6, report.totalCaseCount());
         assertEquals(6, report.passedCaseCount());
@@ -67,15 +67,15 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         assertEquals(5, report.passedCaseCount());
         assertEquals(0.8333, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
-        assertEquals(0.9, report.metrics().expectedFactRecallRate());
-        assertEquals(0.9, report.metrics().evidenceLegalRate());
+        assertEquals(0.85, report.metrics().expectedFactRecallRate());
+        assertEquals(0.85, report.metrics().evidenceLegalRate());
         FixedResumeEvidenceAuditEvaluationService.CaseResult failed = report.cases().stream()
                 .filter(result -> "missing-result".equals(result.caseId()))
                 .findFirst()
                 .orElseThrow();
         assertEquals("FAILED", failed.status());
         assertEquals("IllegalStateException", failed.errorType());
-        assertEquals(1, failed.candidateFactCount());
+        assertEquals(3, failed.candidateFactCount());
         assertEquals(0, failed.legalEvidenceCount());
     }
 
@@ -123,17 +123,24 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
     private ResumeEvidenceAuditResult result(FixedResumeEvidenceAuditDataset.Case evaluationCase) {
         List<String> missingInformation = evaluationCase.expectedMissingSignals().isEmpty()
                 ? List.of()
-                : List.of("缺少" + String.join("和", evaluationCase.expectedMissingSignals()));
+                : evaluationCase.expectedMissingSignals().stream()
+                .map(signal -> "缺少" + signal.alternatives().get(0))
+                .toList();
         List<String> risks = evaluationCase.expectedRiskSignals().isEmpty()
                 ? List.of()
-                : List.of(String.join("和", evaluationCase.expectedRiskSignals()) + "需要人工核对");
+                : evaluationCase.expectedRiskSignals().stream()
+                .map(signal -> signal.alternatives().get(0) + "需要人工核对")
+                .toList();
         return new ResumeEvidenceAuditResult(
                 "request-" + evaluationCase.id(),
                 "RESUME_EVIDENCE_AUDITOR",
                 "resume-evidence-audit-v1",
                 evaluationCase.expectedFacts().stream()
                         .map(fact -> new ResumeEvidenceAuditResult.ConfirmedFact(
-                                fact.type(), fact.evidence(), fact.evidence()))
+                                fact.type(), fact.evidence(),
+                                "missing-result".equals(evaluationCase.id())
+                                        ? "使用 Spring Boot 开发订单服务"
+                                        : fact.evidence()))
                         .toList(),
                 missingInformation,
                 risks,
