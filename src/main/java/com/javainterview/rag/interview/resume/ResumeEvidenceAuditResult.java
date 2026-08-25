@@ -40,6 +40,8 @@ public record ResumeEvidenceAuditResult(
     }
 
     public enum FactType {
+        EDUCATION,
+        EMPLOYMENT,
         PROJECT,
         TECHNOLOGY,
         RESPONSIBILITY,

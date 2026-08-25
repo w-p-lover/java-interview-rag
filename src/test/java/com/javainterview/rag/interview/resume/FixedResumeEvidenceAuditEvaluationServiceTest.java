@@ -23,10 +23,10 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals("resume-evidence-audit-dataset-v2", report.datasetVersion());
+        assertEquals("resume-evidence-audit-dataset-v3", report.datasetVersion());
         assertEquals("resume-evidence-audit-v1", report.promptVersion());
-        assertEquals(6, report.totalCaseCount());
-        assertEquals(6, report.passedCaseCount());
+        assertEquals(7, report.totalCaseCount());
+        assertEquals(7, report.passedCaseCount());
         assertEquals(1.0, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
         assertEquals(1.0, report.metrics().factAccuracyRate());
@@ -35,12 +35,12 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         assertEquals(1.0, report.metrics().missingInformationRecallRate());
         assertEquals(0.0, report.metrics().hallucinationRate());
         assertEquals(1.0, report.metrics().riskSignalRecallRate());
-        assertEquals(6, report.metrics().tokenMeasuredCaseCount());
-        assertEquals(720, report.metrics().totalTokens());
+        assertEquals(7, report.metrics().tokenMeasuredCaseCount());
+        assertEquals(840, report.metrics().totalTokens());
         assertEquals(120.0, report.metrics().averageTotalTokens());
         assertEquals(null, report.metrics().estimatedCostCny());
-        assertEquals(35.0, report.metrics().averageElapsedMillis());
-        assertEquals(60L, report.metrics().p95ElapsedMillis());
+        assertEquals(40.0, report.metrics().averageElapsedMillis());
+        assertEquals(70L, report.metrics().p95ElapsedMillis());
         assertTrue(report.costEstimationNote().contains("不估算费用"));
         assertEquals(List.of(
                         "complete-resume",
@@ -48,11 +48,12 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
                         "time-conflict",
                         "skill-stacking",
                         "vague-project",
-                        "prompt-injection"),
+                        "prompt-injection",
+                        "education-employment"),
                 report.cases().stream()
                         .map(FixedResumeEvidenceAuditEvaluationService.CaseResult::caseId)
                         .toList());
-        verify(auditService, times(6)).auditForEvaluation(anyString());
+        verify(auditService, times(7)).auditForEvaluation(anyString());
     }
 
     @Test
@@ -64,11 +65,11 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals(5, report.passedCaseCount());
-        assertEquals(0.8333, report.metrics().auditSuccessRate());
+        assertEquals(6, report.passedCaseCount());
+        assertEquals(0.8571, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
-        assertEquals(0.85, report.metrics().expectedFactRecallRate());
-        assertEquals(0.85, report.metrics().evidenceLegalRate());
+        assertEquals(0.8846, report.metrics().expectedFactRecallRate());
+        assertEquals(0.8846, report.metrics().evidenceLegalRate());
         FixedResumeEvidenceAuditEvaluationService.CaseResult failed = report.cases().stream()
                 .filter(result -> "missing-result".equals(result.caseId()))
                 .findFirst()

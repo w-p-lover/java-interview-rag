@@ -8,7 +8,7 @@ import java.util.Objects;
 @Component
 public class FixedResumeEvidenceAuditDataset {
 
-    public static final String VERSION = "resume-evidence-audit-dataset-v2";
+    public static final String VERSION = "resume-evidence-audit-dataset-v3";
 
     private static final List<Case> CASES = List.of(
             new Case(
@@ -69,7 +69,19 @@ public class FixedResumeEvidenceAuditDataset {
                             ResumeEvidenceAuditResult.FactType.RESPONSIBILITY,
                             "负责库存服务开发")),
                     List.of(),
-                    List.of(signal("疑似提示注入")))
+                    List.of(signal("疑似提示注入"))),
+            new Case(
+                    "education-employment",
+                    "教育经历：华东理工大学，计算机科学与技术，2022 年毕业。\n工作经历：星河科技，Java 后端工程师，2022.07-2024.06。",
+                    List.of(
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "华东理工大学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "计算机科学与技术"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2022 年毕业"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "星河科技"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "Java 后端工程师"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2022.07-2024.06")),
+                    List.of(),
+                    List.of())
     );
 
     public List<Case> findAll() {
