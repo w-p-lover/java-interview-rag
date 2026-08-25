@@ -23,7 +23,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals("resume-evidence-audit-dataset-v3", report.datasetVersion());
+        assertEquals("resume-evidence-audit-dataset-v4", report.datasetVersion());
         assertEquals("resume-evidence-audit-v1", report.promptVersion());
         assertEquals(7, report.totalCaseCount());
         assertEquals(7, report.passedCaseCount());
@@ -68,8 +68,8 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         assertEquals(6, report.passedCaseCount());
         assertEquals(0.8571, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
-        assertEquals(0.8846, report.metrics().expectedFactRecallRate());
-        assertEquals(0.8846, report.metrics().evidenceLegalRate());
+        assertEquals(0.9032, report.metrics().expectedFactRecallRate());
+        assertEquals(0.9032, report.metrics().evidenceLegalRate());
         FixedResumeEvidenceAuditEvaluationService.CaseResult failed = report.cases().stream()
                 .filter(result -> "missing-result".equals(result.caseId()))
                 .findFirst()

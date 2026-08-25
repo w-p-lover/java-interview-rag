@@ -8,7 +8,7 @@ import java.util.Objects;
 @Component
 public class FixedResumeEvidenceAuditDataset {
 
-    public static final String VERSION = "resume-evidence-audit-dataset-v3";
+    public static final String VERSION = "resume-evidence-audit-dataset-v4";
 
     private static final List<Case> CASES = List.of(
             new Case(
@@ -72,14 +72,19 @@ public class FixedResumeEvidenceAuditDataset {
                     List.of(signal("疑似提示注入"))),
             new Case(
                     "education-employment",
-                    "教育经历：华东理工大学，计算机科学与技术，2022 年毕业。\n工作经历：星河科技，Java 后端工程师，2022.07-2024.06。",
+                    "教育经历：武汉理工大学，计算机与人工智能学院，计算机科学与技术，本科，2021-10 至 2025-06。\n工作经历：广州奥马冰箱有限公司，软件开发工程师，2025.07 - 至今。\n实习经历：武汉数字传媒集团，后端开发实习生，2024.05 - 2024.08。",
                     List.of(
-                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "华东理工大学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "武汉理工大学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "计算机与人工智能学院"),
                             fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "计算机科学与技术"),
-                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2022 年毕业"),
-                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "星河科技"),
-                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "Java 后端工程师"),
-                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2022.07-2024.06")),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "本科"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2021-10 至 2025-06"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "广州奥马冰箱有限公司"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "软件开发工程师"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2025.07 - 至今"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "武汉数字传媒集团"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "后端开发实习生"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2024.05 - 2024.08")),
                     List.of(),
                     List.of())
     );
