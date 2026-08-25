@@ -37,9 +37,9 @@ def request_json(base_url: str, timeout: float) -> dict:
 
 def validate_report(report: dict) -> list[str]:
     errors = []
-    if report.get("totalCaseCount") != 6:
-        errors.append("固定简历审计样本数量不是 6")
-    if report.get("datasetVersion") != "resume-evidence-audit-dataset-v2":
+    if report.get("totalCaseCount") != 7:
+        errors.append("固定简历审计样本数量不是 7")
+    if report.get("datasetVersion") != "resume-evidence-audit-dataset-v4":
         errors.append("简历审计数据集版本不正确")
     metrics = report.get("metrics")
     if not isinstance(metrics, dict):
@@ -49,8 +49,8 @@ def validate_report(report: dict) -> list[str]:
         if not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
             errors.append(f"指标 {field} 缺失或超出 0 到 1")
     cases = report.get("cases")
-    if not isinstance(cases, list) or len(cases) != 6:
-        errors.append("逐样本结果不是 6 条")
+    if not isinstance(cases, list) or len(cases) != 7:
+        errors.append("逐样本结果不是 7 条")
     forbidden_fields = {"resumeText", "confirmedFacts", "evidence", "suggestions", "risks"}
     if forbidden_fields.intersection(report):
         errors.append("报告顶层包含不应保存的审计正文")
@@ -75,14 +75,14 @@ def print_summary(report: dict) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="运行六类固定简历证据审计真实模型基线")
+    parser = argparse.ArgumentParser(description="运行七类固定简历证据审计真实模型基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
     parser.add_argument("--timeout", type=float, default=180.0, help="整批 HTTP 请求超时秒数")
     parser.add_argument("--output", type=Path, help="可选的脱敏评估结果 JSON 输出路径")
     parser.add_argument(
         "--allow-chat-calls",
         action="store_true",
-        help="确认允许本次固定评估产生 6 次真实 Chat 调用",
+        help="确认允许本次固定评估产生 7 次真实 Chat 调用",
     )
     return parser.parse_args()
 
@@ -91,7 +91,7 @@ def main() -> int:
     args = parse_args()
     if not args.allow_chat_calls:
         print(
-            "未执行评估：该命令会产生 6 次真实 Chat 调用；"
+            "未执行评估：该命令会产生 7 次真实 Chat 调用；"
             "确认费用授权后请显式添加 --allow-chat-calls。",
             file=sys.stderr,
         )
@@ -111,7 +111,7 @@ def main() -> int:
     if args.output:
         output = {
             "runAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
-            "note": "六类脱敏固定样本；报告不含简历、事实证据、风险或建议正文。",
+            "note": "七类固定样本；报告不含简历、事实证据、风险或建议正文。",
             "report": report,
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
