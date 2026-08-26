@@ -21,6 +21,10 @@ public class ResumeEvidenceAuditService {
     private static final int RESUME_MAX_LENGTH = 50_000;
     private static final String ROLE_NAME = "RESUME_EVIDENCE_AUDITOR";
     private static final String PROMPT_VERSION = "resume-evidence-audit-v1";
+    private static final String SKILL_USAGE_CONTEXT_MISSING =
+            "缺少技能在具体项目中的使用场景或实践证据。";
+    private static final Pattern STANDALONE_SKILL_LIST_PATTERN = Pattern.compile(
+            "(?iu)^\\s*(技能|专业技能|技术栈)\\s*[：:].+$");
     private static final Pattern STRONG_INSTRUCTION_PATTERN = Pattern.compile(
             "(?iu)(忽略.{0,24}(之前|以上|前述|所有).{0,24}(规则|指令|要求)"
                     + "|不要遵守.{0,24}(规则|指令|要求)"
@@ -171,9 +175,26 @@ public class ResumeEvidenceAuditService {
                 ROLE_NAME,
                 PROMPT_VERSION,
                 facts,
-                draft.missingInformation(),
+                completeMissingInformation(sanitizedResume.modelInput(), draft.missingInformation()),
                 risks.stream().distinct().toList(),
                 draft.suggestions());
+    }
+
+    private List<String> completeMissingInformation(
+            String trustedResume,
+            List<String> modelMissingInformation) {
+        List<String> missingInformation = new ArrayList<>(modelMissingInformation);
+        if (STANDALONE_SKILL_LIST_PATTERN.matcher(trustedResume).matches()
+                && missingInformation.stream().noneMatch(this::describesSkillUsageContext)) {
+            missingInformation.add(SKILL_USAGE_CONTEXT_MISSING);
+        }
+        return missingInformation;
+    }
+
+    private boolean describesSkillUsageContext(String value) {
+        return value.contains("场景")
+                || value.contains("使用证据")
+                || value.contains("实践证据");
     }
 
     private ResumeEvidenceAuditResult.ConfirmedFact verifyFact(

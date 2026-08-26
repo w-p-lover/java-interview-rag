@@ -171,6 +171,43 @@ class ResumeEvidenceAuditServiceTest {
     }
 
     @Test
+    void addsMissingUsageContextForStandaloneSkillList() {
+        ChatClient chatClient = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.CallResponseSpec responseSpec = mock(ChatClient.CallResponseSpec.class);
+        ResumeEvidenceAuditDraft draft = draft(
+                List.of(fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY,
+                        "列出 Java 与 Redis", "Java、Redis")),
+                List.of(), List.of("技能列表缺少使用证据"), List.of());
+        stubModel(chatClient, requestSpec, responseSpec, draft, 80, 20, 100);
+        ResumeEvidenceAuditService service = new ResumeEvidenceAuditService(
+                chatClient, mock(ResumeEvidenceAuditRequestLogStore.class), "qwen3.7-plus");
+
+        ResumeEvidenceAuditResult result = service.audit("技能：Java、Redis");
+
+        assertEquals(List.of("缺少技能在具体项目中的使用场景或实践证据。"),
+                result.missingInformation());
+    }
+
+    @Test
+    void doesNotDuplicateExistingSkillUsageContext() {
+        ChatClient chatClient = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.CallResponseSpec responseSpec = mock(ChatClient.CallResponseSpec.class);
+        ResumeEvidenceAuditDraft draft = draft(
+                List.of(fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY,
+                        "列出 Java 与 Redis", "Java、Redis")),
+                List.of("缺少技术对应的项目场景"), List.of(), List.of());
+        stubModel(chatClient, requestSpec, responseSpec, draft, 80, 20, 100);
+        ResumeEvidenceAuditService service = new ResumeEvidenceAuditService(
+                chatClient, mock(ResumeEvidenceAuditRequestLogStore.class), "qwen3.7-plus");
+
+        ResumeEvidenceAuditResult result = service.audit("专业技能：Java、Redis");
+
+        assertEquals(List.of("缺少技术对应的项目场景"), result.missingInformation());
+    }
+
+    @Test
     void rejectsBlankResumeBeforeCallingModel() {
         ChatClient chatClient = mock(ChatClient.class);
         ResumeEvidenceAuditRequestLogStore logStore = mock(ResumeEvidenceAuditRequestLogStore.class);
@@ -249,10 +286,10 @@ class ResumeEvidenceAuditServiceTest {
                         "技能：Java、Spring Boot、MySQL、Redis、Qdrant。",
                         draft(List.of(fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY,
                                         "列出多项技术", "Java、Spring Boot、MySQL、Redis、Qdrant")),
-                                List.of("缺少技术对应的项目场景"), List.of("技能列表缺少使用证据"),
+                                List.of(), List.of("技能列表缺少使用证据"),
                                 List.of("为核心技术补充项目和职责")),
                         1,
-                        "缺少技术对应的项目场景"),
+                        "使用场景"),
                 new FixedSample(
                         "vague-project",
                         "负责电商项目开发，完成相关功能。",
