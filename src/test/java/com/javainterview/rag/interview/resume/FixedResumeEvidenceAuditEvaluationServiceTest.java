@@ -23,10 +23,10 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals("resume-evidence-audit-dataset-v4", report.datasetVersion());
-        assertEquals("resume-evidence-audit-v1", report.promptVersion());
-        assertEquals(7, report.totalCaseCount());
-        assertEquals(7, report.passedCaseCount());
+        assertEquals("resume-evidence-audit-dataset-v6", report.datasetVersion());
+        assertEquals("resume-evidence-audit-v3", report.promptVersion());
+        assertEquals(9, report.totalCaseCount());
+        assertEquals(9, report.passedCaseCount());
         assertEquals(1.0, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
         assertEquals(1.0, report.metrics().factAccuracyRate());
@@ -35,12 +35,20 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         assertEquals(1.0, report.metrics().missingInformationRecallRate());
         assertEquals(0.0, report.metrics().hallucinationRate());
         assertEquals(1.0, report.metrics().riskSignalRecallRate());
-        assertEquals(7, report.metrics().tokenMeasuredCaseCount());
-        assertEquals(840, report.metrics().totalTokens());
+        assertEquals(30, report.metrics().factCapacityLimit());
+        assertEquals(25, report.metrics().maxCandidateFactCount());
+        assertEquals(0, report.metrics().capacityReachedCaseCount());
+        assertEquals(9, report.metrics().tokenMeasuredCaseCount());
+        assertEquals(1080, report.metrics().totalTokens());
         assertEquals(120.0, report.metrics().averageTotalTokens());
         assertEquals(null, report.metrics().estimatedCostCny());
-        assertEquals(40.0, report.metrics().averageElapsedMillis());
-        assertEquals(70L, report.metrics().p95ElapsedMillis());
+        assertEquals(50.0, report.metrics().averageElapsedMillis());
+        assertEquals(90L, report.metrics().p95ElapsedMillis());
+        assertEquals(List.of(7, 6, 10, 14, 10, 12, 5), report.factTypeMetrics().stream()
+                .map(FixedResumeEvidenceAuditEvaluationService.FactTypeMetric::expectedFactCount)
+                .toList());
+        assertTrue(report.factTypeMetrics().stream()
+                .allMatch(metric -> metric.recallRate() == 1.0 && metric.accuracyRate() == 1.0));
         assertTrue(report.costEstimationNote().contains("不估算费用"));
         assertEquals(List.of(
                         "complete-resume",
@@ -49,11 +57,13 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
                         "skill-stacking",
                         "vague-project",
                         "prompt-injection",
-                        "education-employment"),
+                        "education-employment",
+                        "project-responsibility",
+                        "multi-section-capacity"),
                 report.cases().stream()
                         .map(FixedResumeEvidenceAuditEvaluationService.CaseResult::caseId)
                         .toList());
-        verify(auditService, times(7)).auditForEvaluation(anyString());
+        verify(auditService, times(9)).auditForEvaluation(anyString());
     }
 
     @Test
@@ -65,11 +75,11 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals(6, report.passedCaseCount());
-        assertEquals(0.8571, report.metrics().auditSuccessRate());
+        assertEquals(8, report.passedCaseCount());
+        assertEquals(0.8889, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
-        assertEquals(0.9032, report.metrics().expectedFactRecallRate());
-        assertEquals(0.9032, report.metrics().evidenceLegalRate());
+        assertEquals(0.9531, report.metrics().expectedFactRecallRate());
+        assertEquals(0.9531, report.metrics().evidenceLegalRate());
         FixedResumeEvidenceAuditEvaluationService.CaseResult failed = report.cases().stream()
                 .filter(result -> "missing-result".equals(result.caseId()))
                 .findFirst()
@@ -85,7 +95,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
             String failedCaseId) {
         ResumeEvidenceAuditService auditService = mock(ResumeEvidenceAuditService.class);
         when(auditService.roleName()).thenReturn("RESUME_EVIDENCE_AUDITOR");
-        when(auditService.promptVersion()).thenReturn("resume-evidence-audit-v1");
+        when(auditService.promptVersion()).thenReturn("resume-evidence-audit-v3");
         when(auditService.modelName()).thenReturn("model-test");
         when(auditService.auditForEvaluation(anyString())).thenAnswer(invocation -> {
             String resumeText = invocation.getArgument(0);
@@ -135,7 +145,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         return new ResumeEvidenceAuditResult(
                 "request-" + evaluationCase.id(),
                 "RESUME_EVIDENCE_AUDITOR",
-                "resume-evidence-audit-v1",
+                "resume-evidence-audit-v3",
                 evaluationCase.expectedFacts().stream()
                         .map(fact -> new ResumeEvidenceAuditResult.ConfirmedFact(
                                 fact.type(), fact.evidence(),

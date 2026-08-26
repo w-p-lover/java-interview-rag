@@ -1,6 +1,7 @@
 package com.javainterview.rag.interview.resume;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -23,6 +24,7 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 .map(this::evaluateCase)
                 .toList();
         Metrics metrics = calculateMetrics(caseResults);
+        List<FactTypeMetric> factTypeMetrics = aggregateFactTypeMetrics(caseResults);
         return new Report(
                 UUID.randomUUID().toString(),
                 FixedResumeEvidenceAuditDataset.VERSION,
@@ -32,11 +34,16 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 caseResults.size(),
                 (int) caseResults.stream().filter(CaseResult::passed).count(),
                 metrics,
+                factTypeMetrics,
                 "未配置模型单价，不估算费用；真实费用以模型服务商账单为准。",
                 caseResults);
     }
 
     private CaseResult evaluateCase(FixedResumeEvidenceAuditDataset.Case evaluationCase) {
+        List<FactKey> expectedFacts = evaluationCase.expectedFacts().stream()
+                .map(fact -> new FactKey(fact.type(), fact.evidence()))
+                .distinct()
+                .toList();
         ResumeEvidenceAuditService.EvaluationAttempt attempt =
                 auditService.auditForEvaluation(evaluationCase.resumeText());
         if (!attempt.succeeded()) {
@@ -49,19 +56,19 @@ public class FixedResumeEvidenceAuditEvaluationService {
                     attempt.completionTokens(),
                     attempt.totalTokens(),
                     attempt.elapsedMillis(),
-                    attempt.failure().getClass().getSimpleName());
+                    attempt.failure().getClass().getSimpleName(),
+                    calculateFactTypeMetrics(expectedFacts, List.of()));
         }
 
         ResumeEvidenceAuditResult result = attempt.result();
-        List<FactKey> expectedFacts = evaluationCase.expectedFacts().stream()
-                .map(fact -> new FactKey(fact.type(), fact.evidence()))
-                .distinct()
-                .toList();
         List<FactKey> actualFacts = result.confirmedFacts().stream()
                 .map(fact -> new FactKey(fact.type(), fact.evidence()))
                 .distinct()
                 .toList();
-        int matchedFactCount = countMatchedFacts(expectedFacts, actualFacts);
+        List<FactTypeMetric> factTypeMetrics = calculateFactTypeMetrics(expectedFacts, actualFacts);
+        int matchedFactCount = factTypeMetrics.stream()
+                .mapToInt(FactTypeMetric::matchedExpectedFactCount)
+                .sum();
 
         int matchedMissingSignals = countMatchedSignals(
                 evaluationCase.expectedMissingSignals(), result.missingInformation());
@@ -89,11 +96,69 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 matchedRiskSignals,
                 attempt.candidateFactCount(),
                 attempt.legalEvidenceCount(),
+                attempt.candidateFactCount() >= ResumeEvidenceAuditDraft.MAX_FACT_COUNT,
                 attempt.promptTokens(),
                 attempt.completionTokens(),
                 attempt.totalTokens(),
                 attempt.elapsedMillis(),
-                null);
+                null,
+                factTypeMetrics);
+    }
+
+    private List<FactTypeMetric> calculateFactTypeMetrics(
+            List<FactKey> expectedFacts,
+            List<FactKey> actualFacts) {
+        return Arrays.stream(ResumeEvidenceAuditResult.FactType.values())
+                .map(type -> {
+                    List<FactKey> expectedByType = expectedFacts.stream()
+                            .filter(fact -> fact.type() == type)
+                            .toList();
+                    List<FactKey> actualByType = actualFacts.stream()
+                            .filter(fact -> fact.type() == type)
+                            .toList();
+                    int matchedCount = countMatchedFacts(expectedByType, actualByType);
+                    int unmatchedCount = actualByType.size() - matchedCount;
+                    return new FactTypeMetric(
+                            type,
+                            expectedByType.size(),
+                            matchedCount,
+                            actualByType.size(),
+                            unmatchedCount,
+                            rate(matchedCount, expectedByType.size()),
+                            rate(matchedCount, actualByType.size()));
+                })
+                .toList();
+    }
+
+    private List<FactTypeMetric> aggregateFactTypeMetrics(List<CaseResult> results) {
+        return Arrays.stream(ResumeEvidenceAuditResult.FactType.values())
+                .map(type -> {
+                    List<FactTypeMetric> metrics = results.stream()
+                            .flatMap(result -> result.factTypeMetrics().stream())
+                            .filter(metric -> metric.type() == type)
+                            .toList();
+                    int expectedCount = metrics.stream()
+                            .mapToInt(FactTypeMetric::expectedFactCount)
+                            .sum();
+                    int matchedCount = metrics.stream()
+                            .mapToInt(FactTypeMetric::matchedExpectedFactCount)
+                            .sum();
+                    int actualCount = metrics.stream()
+                            .mapToInt(FactTypeMetric::actualConfirmedFactCount)
+                            .sum();
+                    int unmatchedCount = metrics.stream()
+                            .mapToInt(FactTypeMetric::unmatchedConfirmedFactCount)
+                            .sum();
+                    return new FactTypeMetric(
+                            type,
+                            expectedCount,
+                            matchedCount,
+                            actualCount,
+                            unmatchedCount,
+                            rate(matchedCount, expectedCount),
+                            rate(matchedCount, actualCount));
+                })
+                .toList();
     }
 
     private int countMatchedFacts(List<FactKey> expectedFacts, List<FactKey> actualFacts) {
@@ -147,6 +212,13 @@ public class FixedResumeEvidenceAuditEvaluationService {
         int matchedMissingSignals = sum(results, CaseResult::matchedMissingSignalCount);
         int expectedRiskSignals = sum(results, CaseResult::expectedRiskSignalCount);
         int matchedRiskSignals = sum(results, CaseResult::matchedRiskSignalCount);
+        int maxCandidateFactCount = results.stream()
+                .mapToInt(CaseResult::candidateFactCount)
+                .max()
+                .orElse(0);
+        int capacityReachedCaseCount = (int) results.stream()
+                .filter(CaseResult::factCapacityReached)
+                .count();
 
         List<Integer> measuredTokens = results.stream()
                 .map(CaseResult::totalTokens)
@@ -171,6 +243,9 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 rate(unmatchedFacts, actualFacts),
                 rate(matchedRiskSignals, expectedRiskSignals),
                 1.0,
+                ResumeEvidenceAuditDraft.MAX_FACT_COUNT,
+                maxCandidateFactCount,
+                capacityReachedCaseCount,
                 measuredTokens.size(),
                 totalTokens,
                 averageTokens,
@@ -211,6 +286,7 @@ public class FixedResumeEvidenceAuditEvaluationService {
             int totalCaseCount,
             int passedCaseCount,
             Metrics metrics,
+            List<FactTypeMetric> factTypeMetrics,
             String costEstimationNote,
             List<CaseResult> cases
     ) {
@@ -222,6 +298,8 @@ public class FixedResumeEvidenceAuditEvaluationService {
             promptVersion = requireText(promptVersion, "简历审计评估 Prompt 版本不能为空");
             modelName = requireText(modelName, "简历审计评估模型名称不能为空");
             Objects.requireNonNull(metrics, "简历审计评估指标不能为空");
+            factTypeMetrics = List.copyOf(Objects.requireNonNull(
+                    factTypeMetrics, "简历审计事实类型指标不能为空"));
             costEstimationNote = requireText(costEstimationNote, "简历审计费用说明不能为空");
             cases = List.copyOf(Objects.requireNonNull(cases, "简历审计评估结果不能为空"));
         }
@@ -237,6 +315,9 @@ public class FixedResumeEvidenceAuditEvaluationService {
             double hallucinationRate,
             double riskSignalRecallRate,
             double averageModelCallCount,
+            int factCapacityLimit,
+            int maxCandidateFactCount,
+            int capacityReachedCaseCount,
             int tokenMeasuredCaseCount,
             Integer totalTokens,
             Double averageTotalTokens,
@@ -261,12 +342,19 @@ public class FixedResumeEvidenceAuditEvaluationService {
             int matchedRiskSignalCount,
             int candidateFactCount,
             int legalEvidenceCount,
+            boolean factCapacityReached,
             Integer promptTokens,
             Integer completionTokens,
             Integer totalTokens,
             long elapsedMillis,
-            String errorType
+            String errorType,
+            List<FactTypeMetric> factTypeMetrics
     ) {
+
+        public CaseResult {
+            factTypeMetrics = List.copyOf(Objects.requireNonNull(
+                    factTypeMetrics, "逐样本事实类型指标不能为空"));
+        }
 
         private static CaseResult failed(
                 FixedResumeEvidenceAuditDataset.Case evaluationCase,
@@ -277,7 +365,8 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 Integer completionTokens,
                 Integer totalTokens,
                 long elapsedMillis,
-                String errorType) {
+                String errorType,
+                List<FactTypeMetric> factTypeMetrics) {
             return new CaseResult(
                     evaluationCase.id(),
                     "FAILED",
@@ -293,11 +382,28 @@ public class FixedResumeEvidenceAuditEvaluationService {
                     0,
                     candidateFactCount,
                     legalEvidenceCount,
+                    candidateFactCount >= ResumeEvidenceAuditDraft.MAX_FACT_COUNT,
                     promptTokens,
                     completionTokens,
                     totalTokens,
                     elapsedMillis,
-                    requireText(errorType, "简历审计评估失败类型不能为空"));
+                    requireText(errorType, "简历审计评估失败类型不能为空"),
+                    factTypeMetrics);
+        }
+    }
+
+    public record FactTypeMetric(
+            ResumeEvidenceAuditResult.FactType type,
+            int expectedFactCount,
+            int matchedExpectedFactCount,
+            int actualConfirmedFactCount,
+            int unmatchedConfirmedFactCount,
+            double recallRate,
+            double accuracyRate
+    ) {
+
+        public FactTypeMetric {
+            Objects.requireNonNull(type, "简历审计事实类型不能为空");
         }
     }
 

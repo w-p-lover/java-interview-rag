@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { BriefcaseBusiness, CheckCircle2, Circle, Play, SlidersHorizontal } from "@lucide/vue";
+import {
+  BriefcaseBusiness,
+  CheckCircle2,
+  Circle,
+  Play,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "@lucide/vue";
 import { computed, reactive, watch } from "vue";
 
 import type { InterviewSessionStartPayload } from "@/api/interview";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
+import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
+import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
 
-defineProps<{
+const props = defineProps<{
   busy: boolean;
 }>();
 
@@ -29,8 +38,18 @@ const form = reactive<InterviewSetupFormData>({
   maxQuestionCount: 8,
 });
 
+const {
+  result: auditResult,
+  loading: auditLoading,
+  error: auditError,
+  canAudit,
+  isStale: auditStale,
+  audit: runResumeAudit,
+} = useResumeEvidenceAudit(() => form.resumeText);
+
 const initialQuestionOptions = [3, 4, 5, 6, 7, 8];
 const canStart = computed(() => Boolean(form.targetRole.trim() && form.resumeText.trim()));
+const interactionBusy = computed(() => props.busy || auditLoading.value);
 const readyRequirementCount = computed(() => [form.targetRole, form.resumeText]
   .filter((value) => value.trim()).length);
 const readinessPercent = computed(() => readyRequirementCount.value * 50);
@@ -49,7 +68,7 @@ watch(
 );
 
 function handleSubmit(): void {
-  if (!canStart.value) {
+  if (!canStart.value || interactionBusy.value) {
     return;
   }
 
@@ -99,7 +118,16 @@ function handleSubmit(): void {
           :rows="10"
           :max-length="50000"
           placeholder="粘贴简历中的技能、项目和工作经历。"
-          :busy="busy"
+          :busy="interactionBusy"
+        />
+
+        <ResumeEvidenceAuditPanel
+          :result="auditResult"
+          :loading="auditLoading"
+          :error="auditError"
+          :can-audit="canAudit"
+          :stale="auditStale"
+          @audit="runResumeAudit"
         />
 
         <InterviewTextFileField
@@ -110,7 +138,7 @@ function handleSubmit(): void {
           :rows="5"
           :max-length="30000"
           placeholder="粘贴岗位要求，让题目更贴近目标岗位。"
-          :busy="busy"
+          :busy="interactionBusy"
         />
       </section>
 
@@ -181,15 +209,27 @@ function handleSubmit(): void {
               {{ form.jobDescription.trim() ? "已准备" : "可选" }}
             </dd>
           </div>
+          <div>
+            <dt>简历检查</dt>
+            <dd :class="{ ready: auditResult && !auditStale }">
+              <ShieldCheck v-if="auditResult && !auditStale" :size="15" aria-hidden="true" />
+              <Circle v-else :size="15" aria-hidden="true" />
+              {{ auditResult ? (auditStale ? "待更新" : "已检查") : "可选" }}
+            </dd>
+          </div>
         </dl>
 
-        <button type="submit" :class="{ ready: canStart }" :disabled="busy || !canStart">
+        <button
+          type="submit"
+          :class="{ ready: canStart }"
+          :disabled="interactionBusy || !canStart"
+        >
           <Play :size="17" aria-hidden="true" />
-          <span>{{ busy ? "正在提交…" : "开始面试" }}</span>
+          <span>{{ props.busy ? "正在提交…" : (auditLoading ? "正在检查简历…" : "开始面试") }}</span>
         </button>
 
         <p class="settings-note">
-          {{ canStart ? "材料已就绪，可以开始。" : "上传简历后即可开始。" }}
+          {{ auditLoading ? "检查完成后即可继续。" : (canStart ? "材料已就绪，可以开始。" : "上传简历后即可开始。") }}
         </p>
       </aside>
     </div>

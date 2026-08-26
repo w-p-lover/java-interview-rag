@@ -10,7 +10,7 @@ public record ResumeEvidenceAuditDraft(
         List<String> suggestions
 ) {
 
-    private static final int MAX_FACT_COUNT = 30;
+    static final int MAX_FACT_COUNT = 30;
     private static final int MAX_LIST_COUNT = 20;
 
     public ResumeEvidenceAuditDraft {

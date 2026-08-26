@@ -76,7 +76,7 @@ curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
 
 ## 简历证据审计
 
-七类固定简历证据审计不依赖 RAG 语料，但会调用 Chat 模型。明确费用授权并以 `storage` profile 启动后端后执行：
+九类固定简历证据审计不依赖 RAG 语料，但会调用 Chat 模型。明确费用授权并以 `storage` profile 启动后端后执行：
 
 ```shell
 python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls
@@ -88,7 +88,7 @@ python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080
 python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls --output evaluation/results/YYYY-MM-DD-resume-audit-baseline.json
 ```
 
-接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛、提示注入和教育/任职分类七类样本，每例产生一次 Chat 调用。教育/任职样本只保留用户简历中的最小分类字段。运行器默认在任何 HTTP 请求前拒绝执行，只有明确费用授权后显式提供 `--allow-chat-calls` 才会继续。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
+接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛、提示注入、教育/任职分类、项目职责边界和多段容量九类样本，每例产生一次 Chat 调用。教育/任职样本只保留用户简历中的最小分类字段，其他新增主体均为合成内容。运行器默认在任何 HTTP 请求前拒绝执行，只有明确费用授权后显式提供 `--allow-chat-calls` 才会继续；每轮固定产生 9 次 Chat。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，增加七种事实类型的准确率/召回率以及 30 条事实容量诊断，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
 
 响应和可选结果文件不含简历、确认事实、证据、风险或建议正文，只保留版本、样本 ID、计数、比率、token、耗时和失败类型。
 
@@ -99,3 +99,7 @@ python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080
 同日一份用户授权的真实校招 PDF 在 `pdfbox-layout-aware-v3` 修复右侧日期顺序后，执行了一次生产 `resume-evidence-audit-v1` 审计。脱敏摘要保存在 `results/2026-08-24-real-resume-audit-summary.json`：27 条事实全部通过字面证据校验，返回 4 条缺失、4 条风险和 4 条建议，总 token `7560`、耗时 `104550ms`。人工复核至少发现 2 条事实类型错误、个人技能和项目职责分类遗漏、1 条低价值缺失诊断，且已使用 30 条事实上限的 90%；因此证据合法率不能替代语义准确率，当前角色仍不进入前端。原 PDF、提取正文和完整审计结果均未持久化。
 
 2026-08-25 用户授权的 `resume-evidence-audit-dataset-v4` 真实基线保存在 `results/2026-08-25-resume-audit-baseline-v4.json`：7/7 审计和结构解析成功，事实准确率 `1.0000`、预期事实召回率 `0.9677`、证据合法率 `1.0000`、信息缺失识别率 `0.7500`、虚构率 `0`、风险信号召回率 `1.0000`，严格通过 `5/7`。教育/任职样本 11 条事实全部命中，未匹配事实为 0；总 token `19714`、平均 `2816.2857`、平均耗时 `35730.7143ms`、P95 `54305ms`。该结果证明新增类型没有造成证据或事实准确率退化，但缺少信息识别仍是主要缺口。
+
+2026-08-26 在用户明确授权下执行两轮、合计 18 次 `qwen3.7-plus` Chat。第一轮 `dataset-v5` 报告保存在 `results/2026-08-26-resume-audit-baseline-v5.json`：9/9 审计与结构成功，事实召回率 `1.0000`，但事实准确率为 `0.9688`、虚构率为 `0.0313`。类型级计数把两条额外事实定位为 `vague-project` 中可逐字证明的职责和 `prompt-injection` 中可逐字证明的项目名称，因此 v5 是固定评估标签校准失败证据，不是正式质量基线。
+
+补齐上述两条标签后的正式 `dataset-v6` 报告保存在 `results/2026-08-26-resume-audit-baseline-v6.json`：9/9 审计与结构成功，事实准确率 `1.0000`、预期事实召回率 `0.9219`、证据合法率 `1.0000`、信息缺失识别率 `1.0000`、虚构率 `0`、风险召回率 `1.0000`，严格通过 `8/9`；最大候选事实数为 `25/30`，没有触顶样本。总 token `28391`、平均 `3154.5556`，平均耗时 `39062.2222ms`、P95 `85476ms`。项目、技术、职责、时间和结果召回率均为 `1.0000`；教育/任职样本本轮只命中 `6/11`，而同一 Prompt 的 v5 第一轮命中 `11/11`，说明单样本召回存在模型波动。该结果支持把审计作为可选证据检查接入前端，但不支持“完整简历解析”或稳定全量召回的表述。

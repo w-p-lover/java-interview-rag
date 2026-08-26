@@ -1,0 +1,794 @@
+{
+  "runAt" : "2026-08-26T09:47:07.247054+08:00",
+  "note" : "用户已授权本次 9 次 Chat 调用；报告不含简历、事实证据、风险或建议正文。",
+  "report" : {
+    "baselineRunId" : "9cafaa25-0425-44af-9cbc-08e624a86227",
+    "datasetVersion" : "resume-evidence-audit-dataset-v5",
+    "role" : "RESUME_EVIDENCE_AUDITOR",
+    "promptVersion" : "resume-evidence-audit-v3",
+    "modelName" : "qwen3.7-plus",
+    "totalCaseCount" : 9,
+    "passedCaseCount" : 7,
+    "metrics" : {
+      "auditSuccessRate" : 1.0,
+      "structureParseSuccessRate" : 1.0,
+      "factAccuracyRate" : 0.9688,
+      "expectedFactRecallRate" : 1.0,
+      "evidenceLegalRate" : 1.0,
+      "missingInformationRecallRate" : 1.0,
+      "hallucinationRate" : 0.0313,
+      "riskSignalRecallRate" : 1.0,
+      "averageModelCallCount" : 1.0,
+      "factCapacityLimit" : 30,
+      "maxCandidateFactCount" : 25,
+      "capacityReachedCaseCount" : 0,
+      "tokenMeasuredCaseCount" : 9,
+      "totalTokens" : 29355,
+      "averageTotalTokens" : 3261.6667,
+      "estimatedCostCny" : null,
+      "averageElapsedMillis" : 40646.4444,
+      "p95ElapsedMillis" : 82278
+    },
+    "factTypeMetrics" : [ {
+      "type" : "EDUCATION",
+      "expectedFactCount" : 7,
+      "matchedExpectedFactCount" : 7,
+      "actualConfirmedFactCount" : 7,
+      "unmatchedConfirmedFactCount" : 0,
+      "recallRate" : 1.0,
+      "accuracyRate" : 1.0
+    }, {
+      "type" : "EMPLOYMENT",
+      "expectedFactCount" : 6,
+      "matchedExpectedFactCount" : 6,
+      "actualConfirmedFactCount" : 6,
+      "unmatchedConfirmedFactCount" : 0,
+      "recallRate" : 1.0,
+      "accuracyRate" : 1.0
+    }, {
+      "type" : "PROJECT",
+      "expectedFactCount" : 9,
+      "matchedExpectedFactCount" : 9,
+      "actualConfirmedFactCount" : 10,
+      "unmatchedConfirmedFactCount" : 1,
+      "recallRate" : 1.0,
+      "accuracyRate" : 0.9
+    }, {
+      "type" : "TECHNOLOGY",
+      "expectedFactCount" : 14,
+      "matchedExpectedFactCount" : 14,
+      "actualConfirmedFactCount" : 14,
+      "unmatchedConfirmedFactCount" : 0,
+      "recallRate" : 1.0,
+      "accuracyRate" : 1.0
+    }, {
+      "type" : "RESPONSIBILITY",
+      "expectedFactCount" : 9,
+      "matchedExpectedFactCount" : 9,
+      "actualConfirmedFactCount" : 10,
+      "unmatchedConfirmedFactCount" : 1,
+      "recallRate" : 1.0,
+      "accuracyRate" : 0.9
+    }, {
+      "type" : "TIME",
+      "expectedFactCount" : 12,
+      "matchedExpectedFactCount" : 12,
+      "actualConfirmedFactCount" : 12,
+      "unmatchedConfirmedFactCount" : 0,
+      "recallRate" : 1.0,
+      "accuracyRate" : 1.0
+    }, {
+      "type" : "RESULT",
+      "expectedFactCount" : 5,
+      "matchedExpectedFactCount" : 5,
+      "actualConfirmedFactCount" : 5,
+      "unmatchedConfirmedFactCount" : 0,
+      "recallRate" : 1.0,
+      "accuracyRate" : 1.0
+    } ],
+    "costEstimationNote" : "未配置模型单价，不估算费用；真实费用以模型服务商账单为准。",
+    "cases" : [ {
+      "caseId" : "complete-resume",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 5,
+      "matchedExpectedFactCount" : 5,
+      "actualConfirmedFactCount" : 5,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 0,
+      "matchedRiskSignalCount" : 0,
+      "candidateFactCount" : 5,
+      "legalEvidenceCount" : 5,
+      "factCapacityReached" : false,
+      "promptTokens" : 896,
+      "completionTokens" : 1841,
+      "totalTokens" : 2737,
+      "elapsedMillis" : 32617,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "missing-result",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 3,
+      "matchedExpectedFactCount" : 3,
+      "actualConfirmedFactCount" : 3,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 1,
+      "matchedMissingSignalCount" : 1,
+      "expectedRiskSignalCount" : 0,
+      "matchedRiskSignalCount" : 0,
+      "candidateFactCount" : 3,
+      "legalEvidenceCount" : 3,
+      "factCapacityReached" : false,
+      "promptTokens" : 869,
+      "completionTokens" : 1627,
+      "totalTokens" : 2496,
+      "elapsedMillis" : 28200,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "time-conflict",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 4,
+      "matchedExpectedFactCount" : 4,
+      "actualConfirmedFactCount" : 4,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 1,
+      "matchedRiskSignalCount" : 1,
+      "candidateFactCount" : 4,
+      "legalEvidenceCount" : 4,
+      "factCapacityReached" : false,
+      "promptTokens" : 898,
+      "completionTokens" : 2119,
+      "totalTokens" : 3017,
+      "elapsedMillis" : 37018,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 2,
+        "matchedExpectedFactCount" : 2,
+        "actualConfirmedFactCount" : 2,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 2,
+        "matchedExpectedFactCount" : 2,
+        "actualConfirmedFactCount" : 2,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "skill-stacking",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 5,
+      "matchedExpectedFactCount" : 5,
+      "actualConfirmedFactCount" : 5,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 1,
+      "matchedMissingSignalCount" : 1,
+      "expectedRiskSignalCount" : 1,
+      "matchedRiskSignalCount" : 1,
+      "candidateFactCount" : 5,
+      "legalEvidenceCount" : 5,
+      "factCapacityReached" : false,
+      "promptTokens" : 876,
+      "completionTokens" : 1989,
+      "totalTokens" : 2865,
+      "elapsedMillis" : 34328,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 5,
+        "matchedExpectedFactCount" : 5,
+        "actualConfirmedFactCount" : 5,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "vague-project",
+      "status" : "SUCCEEDED",
+      "passed" : false,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 2,
+      "matchedExpectedFactCount" : 2,
+      "actualConfirmedFactCount" : 3,
+      "unmatchedConfirmedFactCount" : 1,
+      "expectedMissingSignalCount" : 2,
+      "matchedMissingSignalCount" : 2,
+      "expectedRiskSignalCount" : 1,
+      "matchedRiskSignalCount" : 1,
+      "candidateFactCount" : 3,
+      "legalEvidenceCount" : 3,
+      "factCapacityReached" : false,
+      "promptTokens" : 869,
+      "completionTokens" : 1820,
+      "totalTokens" : 2689,
+      "elapsedMillis" : 31455,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 2,
+        "unmatchedConfirmedFactCount" : 1,
+        "recallRate" : 1.0,
+        "accuracyRate" : 0.5
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "prompt-injection",
+      "status" : "SUCCEEDED",
+      "passed" : false,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 1,
+      "matchedExpectedFactCount" : 1,
+      "actualConfirmedFactCount" : 2,
+      "unmatchedConfirmedFactCount" : 1,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 1,
+      "matchedRiskSignalCount" : 1,
+      "candidateFactCount" : 2,
+      "legalEvidenceCount" : 2,
+      "factCapacityReached" : false,
+      "promptTokens" : 865,
+      "completionTokens" : 1549,
+      "totalTokens" : 2414,
+      "elapsedMillis" : 26797,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 1,
+        "recallRate" : 1.0,
+        "accuracyRate" : 0.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "education-employment",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 11,
+      "matchedExpectedFactCount" : 11,
+      "actualConfirmedFactCount" : 11,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 0,
+      "matchedRiskSignalCount" : 0,
+      "candidateFactCount" : 11,
+      "legalEvidenceCount" : 11,
+      "factCapacityReached" : false,
+      "promptTokens" : 948,
+      "completionTokens" : 2890,
+      "totalTokens" : 3838,
+      "elapsedMillis" : 49566,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 4,
+        "matchedExpectedFactCount" : 4,
+        "actualConfirmedFactCount" : 4,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 4,
+        "matchedExpectedFactCount" : 4,
+        "actualConfirmedFactCount" : 4,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 3,
+        "matchedExpectedFactCount" : 3,
+        "actualConfirmedFactCount" : 3,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "project-responsibility",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 6,
+      "matchedExpectedFactCount" : 6,
+      "actualConfirmedFactCount" : 6,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 0,
+      "matchedRiskSignalCount" : 0,
+      "candidateFactCount" : 6,
+      "legalEvidenceCount" : 6,
+      "factCapacityReached" : false,
+      "promptTokens" : 914,
+      "completionTokens" : 2537,
+      "totalTokens" : 3451,
+      "elapsedMillis" : 43559,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 0,
+        "matchedExpectedFactCount" : 0,
+        "actualConfirmedFactCount" : 0,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 2,
+        "matchedExpectedFactCount" : 2,
+        "actualConfirmedFactCount" : 2,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 1,
+        "matchedExpectedFactCount" : 1,
+        "actualConfirmedFactCount" : 1,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    }, {
+      "caseId" : "multi-section-capacity",
+      "status" : "SUCCEEDED",
+      "passed" : true,
+      "structuredOutputAvailable" : true,
+      "expectedFactCount" : 25,
+      "matchedExpectedFactCount" : 25,
+      "actualConfirmedFactCount" : 25,
+      "unmatchedConfirmedFactCount" : 0,
+      "expectedMissingSignalCount" : 0,
+      "matchedMissingSignalCount" : 0,
+      "expectedRiskSignalCount" : 0,
+      "matchedRiskSignalCount" : 0,
+      "candidateFactCount" : 25,
+      "legalEvidenceCount" : 25,
+      "factCapacityReached" : false,
+      "promptTokens" : 1055,
+      "completionTokens" : 4793,
+      "totalTokens" : 5848,
+      "elapsedMillis" : 82278,
+      "errorType" : null,
+      "factTypeMetrics" : [ {
+        "type" : "EDUCATION",
+        "expectedFactCount" : 3,
+        "matchedExpectedFactCount" : 3,
+        "actualConfirmedFactCount" : 3,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "EMPLOYMENT",
+        "expectedFactCount" : 2,
+        "matchedExpectedFactCount" : 2,
+        "actualConfirmedFactCount" : 2,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "PROJECT",
+        "expectedFactCount" : 3,
+        "matchedExpectedFactCount" : 3,
+        "actualConfirmedFactCount" : 3,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TECHNOLOGY",
+        "expectedFactCount" : 6,
+        "matchedExpectedFactCount" : 6,
+        "actualConfirmedFactCount" : 6,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESPONSIBILITY",
+        "expectedFactCount" : 3,
+        "matchedExpectedFactCount" : 3,
+        "actualConfirmedFactCount" : 3,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "TIME",
+        "expectedFactCount" : 5,
+        "matchedExpectedFactCount" : 5,
+        "actualConfirmedFactCount" : 5,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      }, {
+        "type" : "RESULT",
+        "expectedFactCount" : 3,
+        "matchedExpectedFactCount" : 3,
+        "actualConfirmedFactCount" : 3,
+        "unmatchedConfirmedFactCount" : 0,
+        "recallRate" : 1.0,
+        "accuracyRate" : 1.0
+      } ]
+    } ]
+  }
+}

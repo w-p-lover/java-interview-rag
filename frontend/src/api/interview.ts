@@ -199,6 +199,31 @@ export interface InterviewDocumentExtraction {
   pages: InterviewPdfPageExtraction[];
 }
 
+export type ResumeEvidenceFactType =
+  | "EDUCATION"
+  | "EMPLOYMENT"
+  | "PROJECT"
+  | "TECHNOLOGY"
+  | "RESPONSIBILITY"
+  | "TIME"
+  | "RESULT";
+
+export interface ResumeEvidenceConfirmedFact {
+  type: ResumeEvidenceFactType;
+  statement: string;
+  evidence: string;
+}
+
+export interface ResumeEvidenceAuditResult {
+  requestId: string;
+  role: "RESUME_EVIDENCE_AUDITOR";
+  promptVersion: string;
+  confirmedFacts: readonly ResumeEvidenceConfirmedFact[];
+  missingInformation: readonly string[];
+  risks: readonly string[];
+  suggestions: readonly string[];
+}
+
 export interface InterviewPdfPageExtraction {
   pageNumber: number;
   contentType: "TEXT" | "TEXT_WITH_IMAGES" | "IMAGE_ONLY" | "EMPTY";
@@ -215,6 +240,17 @@ export async function extractInterviewPdfText(file: File): Promise<InterviewDocu
     "/interviews/documents/extract",
     formData,
     { timeout: 30_000 },
+  );
+  return response.data;
+}
+
+export async function auditResumeEvidence(
+  resumeText: string,
+): Promise<ResumeEvidenceAuditResult> {
+  const response = await request.post<ResumeEvidenceAuditResult>(
+    "/interviews/resume-audits",
+    { resumeText },
+    { timeout: 120_000 },
   );
   return response.data;
 }
