@@ -26,7 +26,7 @@ class ResumeEvidenceAuditEvaluationControllerTest {
         mockMvc.perform(post("/api/interviews/evaluations/resume-audits"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.baselineRunId").value("run-1"))
-                .andExpect(jsonPath("$.datasetVersion").value("resume-evidence-audit-dataset-v6"))
+                .andExpect(jsonPath("$.datasetVersion").value("resume-evidence-audit-dataset-v7"))
                 .andExpect(jsonPath("$.metrics.factAccuracyRate").value(1.0))
                 .andExpect(jsonPath("$.metrics.factCapacityLimit").value(30))
                 .andExpect(jsonPath("$.metrics.totalTokens").value(120))
@@ -59,7 +59,7 @@ class ResumeEvidenceAuditEvaluationControllerTest {
                         100, 20, 120, 500L, null, List.of(factTypeMetric));
         return new FixedResumeEvidenceAuditEvaluationService.Report(
                 "run-1",
-                "resume-evidence-audit-dataset-v6",
+                "resume-evidence-audit-dataset-v7",
                 "RESUME_EVIDENCE_AUDITOR",
                 "resume-evidence-audit-v3",
                 "model-test",

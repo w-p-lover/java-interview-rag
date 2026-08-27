@@ -8,7 +8,7 @@ import java.util.Objects;
 @Component
 public class FixedResumeEvidenceAuditDataset {
 
-    public static final String VERSION = "resume-evidence-audit-dataset-v6";
+    public static final String VERSION = "resume-evidence-audit-dataset-v7";
 
     private static final List<Case> CASES = List.of(
             new Case(
@@ -90,6 +90,46 @@ public class FixedResumeEvidenceAuditDataset {
                     List.of(),
                     List.of()),
             new Case(
+                    "education-employment-date-first",
+                    "2022.09-2025.06\n南岭大学 数据科学 硕士\n2025.07-至今\n澄海信息技术有限公司 AI 应用开发工程师",
+                    List.of(
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2022.09-2025.06"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "南岭大学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "数据科学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "硕士"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2025.07-至今"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "澄海信息技术有限公司"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "AI 应用开发工程师")),
+                    List.of(),
+                    List.of()),
+            new Case(
+                    "education-employment-multiple",
+                    """
+                    教育经历
+                    2017.09-2021.06 北辰学院 软件工程 本科
+                    2021.09-2024.06 云州大学 计算机技术 硕士
+                    工作经历
+                    2024.07-2025.02 山河数科 后端开发工程师
+                    2025.03-至今 星海智能 Java AI 应用工程师
+                    """,
+                    List.of(
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2017.09-2021.06"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "北辰学院"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "软件工程"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "本科"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2021.09-2024.06"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "云州大学"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "计算机技术"),
+                            fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "硕士"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2024.07-2025.02"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "山河数科"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "后端开发工程师"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2025.03-至今"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "星海智能"),
+                            fact(ResumeEvidenceAuditResult.FactType.EMPLOYMENT, "Java AI 应用工程师")),
+                    List.of(),
+                    List.of()),
+            new Case(
                     "project-responsibility",
                     "项目经历：订单履约平台\n2024.01-2024.06\n负责设计幂等提交方案，使用 Redis 防止重复请求；重构批量写入流程，接口 P95 降低 35%。",
                     List.of(
@@ -112,6 +152,8 @@ public class FixedResumeEvidenceAuditDataset {
                     负责实现库存扣减与补偿流程；使用 Redis 和 RabbitMQ；库存差异下降 60%。
                     项目三：知识库问答系统，2025.04-至今。
                     负责设计文档切分与来源引用；使用 Spring AI 和 Qdrant；固定评估 Hit@1 达到 100%。
+                    项目四：面试复习助手，2025.05-2025.07。
+                    负责实现会话级工具隔离；使用 Spring AI Tool Calling；越权调用拦截率达到 100%。
                     """,
                     List.of(
                             fact(ResumeEvidenceAuditResult.FactType.EDUCATION, "海州大学"),
@@ -138,7 +180,12 @@ public class FixedResumeEvidenceAuditDataset {
                             fact(ResumeEvidenceAuditResult.FactType.RESPONSIBILITY, "负责设计文档切分与来源引用"),
                             fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY, "Spring AI"),
                             fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY, "Qdrant"),
-                            fact(ResumeEvidenceAuditResult.FactType.RESULT, "固定评估 Hit@1 达到 100%")),
+                            fact(ResumeEvidenceAuditResult.FactType.RESULT, "固定评估 Hit@1 达到 100%"),
+                            fact(ResumeEvidenceAuditResult.FactType.PROJECT, "面试复习助手"),
+                            fact(ResumeEvidenceAuditResult.FactType.TIME, "2025.05-2025.07"),
+                            fact(ResumeEvidenceAuditResult.FactType.RESPONSIBILITY, "负责实现会话级工具隔离"),
+                            fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY, "Spring AI Tool Calling"),
+                            fact(ResumeEvidenceAuditResult.FactType.RESULT, "越权调用拦截率达到 100%")),
                     List.of(),
                     List.of())
     );

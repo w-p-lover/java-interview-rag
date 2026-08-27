@@ -23,10 +23,10 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals("resume-evidence-audit-dataset-v6", report.datasetVersion());
+        assertEquals("resume-evidence-audit-dataset-v7", report.datasetVersion());
         assertEquals("resume-evidence-audit-v3", report.promptVersion());
-        assertEquals(9, report.totalCaseCount());
-        assertEquals(9, report.passedCaseCount());
+        assertEquals(11, report.totalCaseCount());
+        assertEquals(11, report.passedCaseCount());
         assertEquals(1.0, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
         assertEquals(1.0, report.metrics().factAccuracyRate());
@@ -36,15 +36,15 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         assertEquals(0.0, report.metrics().hallucinationRate());
         assertEquals(1.0, report.metrics().riskSignalRecallRate());
         assertEquals(30, report.metrics().factCapacityLimit());
-        assertEquals(25, report.metrics().maxCandidateFactCount());
-        assertEquals(0, report.metrics().capacityReachedCaseCount());
-        assertEquals(9, report.metrics().tokenMeasuredCaseCount());
-        assertEquals(1080, report.metrics().totalTokens());
+        assertEquals(30, report.metrics().maxCandidateFactCount());
+        assertEquals(1, report.metrics().capacityReachedCaseCount());
+        assertEquals(11, report.metrics().tokenMeasuredCaseCount());
+        assertEquals(1320, report.metrics().totalTokens());
         assertEquals(120.0, report.metrics().averageTotalTokens());
         assertEquals(null, report.metrics().estimatedCostCny());
-        assertEquals(50.0, report.metrics().averageElapsedMillis());
-        assertEquals(90L, report.metrics().p95ElapsedMillis());
-        assertEquals(List.of(7, 6, 10, 14, 10, 12, 5), report.factTypeMetrics().stream()
+        assertEquals(60.0, report.metrics().averageElapsedMillis());
+        assertEquals(110L, report.metrics().p95ElapsedMillis());
+        assertEquals(List.of(16, 12, 11, 15, 11, 19, 6), report.factTypeMetrics().stream()
                 .map(FixedResumeEvidenceAuditEvaluationService.FactTypeMetric::expectedFactCount)
                 .toList());
         assertTrue(report.factTypeMetrics().stream()
@@ -58,12 +58,14 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
                         "vague-project",
                         "prompt-injection",
                         "education-employment",
+                        "education-employment-date-first",
+                        "education-employment-multiple",
                         "project-responsibility",
                         "multi-section-capacity"),
                 report.cases().stream()
                         .map(FixedResumeEvidenceAuditEvaluationService.CaseResult::caseId)
                         .toList());
-        verify(auditService, times(9)).auditForEvaluation(anyString());
+        verify(auditService, times(11)).auditForEvaluation(anyString());
     }
 
     @Test
@@ -75,11 +77,11 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
 
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
-        assertEquals(8, report.passedCaseCount());
-        assertEquals(0.8889, report.metrics().auditSuccessRate());
+        assertEquals(10, report.passedCaseCount());
+        assertEquals(0.9091, report.metrics().auditSuccessRate());
         assertEquals(1.0, report.metrics().structureParseSuccessRate());
-        assertEquals(0.9531, report.metrics().expectedFactRecallRate());
-        assertEquals(0.9531, report.metrics().evidenceLegalRate());
+        assertEquals(0.9667, report.metrics().expectedFactRecallRate());
+        assertEquals(0.9667, report.metrics().evidenceLegalRate());
         FixedResumeEvidenceAuditEvaluationService.CaseResult failed = report.cases().stream()
                 .filter(result -> "missing-result".equals(result.caseId()))
                 .findFirst()
