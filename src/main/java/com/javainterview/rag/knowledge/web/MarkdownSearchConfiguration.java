@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,5 +14,10 @@ public class MarkdownSearchConfiguration {
     @Bean
     MarkdownSimilaritySearchService markdownSimilaritySearchService(VectorStore vectorStore) {
         return new MarkdownSimilaritySearchService(vectorStore);
+    }
+
+    @Bean
+    MarkdownAdjacentChunkExpander markdownAdjacentChunkExpander(VectorStore vectorStore) {
+        return new MarkdownAdjacentChunkExpander(vectorStore);
     }
 }

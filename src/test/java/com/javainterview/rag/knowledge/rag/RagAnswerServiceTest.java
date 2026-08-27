@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -89,6 +90,29 @@ class RagAnswerServiceTest {
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.INSUFFICIENT, logCaptor.getValue().status());
         assertEquals(List.of(), logCaptor.getValue().sources());
+    }
+
+    @Test
+    void expandsContextOnlyAfterInitialSearchReturnsReliableSources() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        MarkdownAdjacentChunkExpander contextExpander = mock(MarkdownAdjacentChunkExpander.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult seed = new MarkdownSearchResult(
+                "当前段", "java/collections.md", "version-1", 1,
+                List.of("Java", "集合"), 0.91);
+        MarkdownSearchResult neighbor = new MarkdownSearchResult(
+                "相邻段", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.55);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(seed));
+        when(contextExpander.expand(List.of(seed))).thenReturn(List.of(seed, neighbor));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("基于资料回答 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, contextExpander, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals(List.of(seed, neighbor), result.sources());
+        verify(contextExpander).expand(List.of(seed));
     }
 
     @Test

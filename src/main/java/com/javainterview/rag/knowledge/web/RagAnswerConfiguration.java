@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.web;
 import com.javainterview.rag.knowledge.rag.RagAnswerService;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.persistence.MySqlRagRetrievalLogStore;
 import com.javainterview.rag.knowledge.persistence.RagRetrievalLogMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +29,8 @@ public class RagAnswerConfiguration {
 
     @Bean
     RagAnswerService ragAnswerService(MarkdownSimilaritySearchService searchService,
+                                      MarkdownAdjacentChunkExpander contextExpander,
                                       ChatClient ragAnswerChatClient, RagRetrievalLogStore logStore) {
-        return new RagAnswerService(searchService, ragAnswerChatClient, logStore);
+        return new RagAnswerService(searchService, contextExpander, ragAnswerChatClient, logStore);
     }
 }

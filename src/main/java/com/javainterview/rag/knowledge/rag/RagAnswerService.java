@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
+import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -25,12 +26,20 @@ public class RagAnswerService {
             """;
 
     private final MarkdownSimilaritySearchService searchService;
+    private final MarkdownAdjacentChunkExpander contextExpander;
     private final ChatClient chatClient;
     private final RagRetrievalLogStore logStore;
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
+        this(searchService, null, chatClient, logStore);
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
+        this.contextExpander = contextExpander;
         this.chatClient = Objects.requireNonNull(chatClient, "聊天客户端不能为空");
         this.logStore = Objects.requireNonNull(logStore, "RAG 召回日志存储不能为空");
     }
@@ -43,6 +52,9 @@ public class RagAnswerService {
         List<MarkdownSearchResult> sources = List.of();
         try {
             sources = searchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            if (contextExpander != null) {
+                sources = contextExpander.expand(sources);
+            }
             if (sources.isEmpty()) {
                 return recordAndReturn(question, sources,
                         new RagAnswerResult(INSUFFICIENT_ANSWER, false, List.of()), startedAt);
