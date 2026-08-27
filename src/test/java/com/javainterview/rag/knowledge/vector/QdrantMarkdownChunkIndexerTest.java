@@ -54,6 +54,24 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(0, firstWrite.get(0).getMetadata().get("section_order"));
         assertEquals(1, firstWrite.get(0).getMetadata().get("heading_level"));
         assertEquals(List.of("Java"), firstWrite.get(0).getMetadata().get("heading_path"));
+        assertEquals("MARKDOWN", firstWrite.get(0).getMetadata().get("document_format"));
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void preservesPdfFormatAndPageMetadataForKnowledgeChunks() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/collections-guide", "# 第 3 页\nHashMap");
+
+        indexer.index(document, List.of(new MarkdownChunk(document.source(), 0, 0, 1,
+                List.of("第 3 页"), "HashMap")));
+
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(vectorStore).add(captor.capture());
+        Document stored = (Document) captor.getValue().get(0);
+        assertEquals("PDF", stored.getMetadata().get("document_format"));
+        assertEquals(3, stored.getMetadata().get("page_number"));
     }
 
     @Test

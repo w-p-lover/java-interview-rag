@@ -9,13 +9,17 @@ import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
 
     private static final int EMBEDDING_BATCH_SIZE = 10;
+    private static final Pattern PDF_PAGE_TITLE = Pattern.compile("^第 (\\d+) 页$");
 
     private final VectorStore vectorStore;
 
@@ -79,18 +83,33 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
     }
 
     private Document toVectorDocument(MarkdownDocument document, MarkdownChunk chunk) {
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("source", document.source());
+        metadata.put("document_version", document.version());
+        metadata.put("chunk_order", chunk.order());
+        metadata.put("section_order", chunk.sectionOrder());
+        metadata.put("heading_level", chunk.headingLevel());
+        metadata.put("heading_path", chunk.headingPath());
+        Integer pageNumber = pageNumber(chunk.headingPath());
+        metadata.put("document_format", pageNumber == null ? "MARKDOWN" : "PDF");
+        if (pageNumber != null) {
+            metadata.put("page_number", pageNumber);
+        }
         return Document.builder()
                 .id(stableDocumentId(document, chunk))
                 .text(chunk.content())
-                .metadata(Map.of(
-                        "source", document.source(),
-                        "document_version", document.version(),
-                        "chunk_order", chunk.order(),
-                        "section_order", chunk.sectionOrder(),
-                        "heading_level", chunk.headingLevel(),
-                        "heading_path", chunk.headingPath()
-                ))
+                .metadata(metadata)
                 .build();
+    }
+
+    private Integer pageNumber(List<String> headingPath) {
+        for (String title : headingPath) {
+            Matcher matcher = PDF_PAGE_TITLE.matcher(title);
+            if (matcher.matches()) {
+                return Integer.valueOf(matcher.group(1));
+            }
+        }
+        return null;
     }
 
     private String stableDocumentId(MarkdownDocument document, MarkdownChunk chunk) {

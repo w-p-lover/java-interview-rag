@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownImportRegistry;
 import com.javainterview.rag.knowledge.vector.QdrantMarkdownChunkIndexer;
@@ -47,5 +48,10 @@ public class MarkdownImportConfiguration {
     MarkdownContentImporter markdownContentImporter(MarkdownImportRegistry registry,
                                                      MarkdownChunkIndexer chunkIndexer) {
         return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH, chunkIndexer);
+    }
+
+    @Bean
+    PdfKnowledgeDocumentExtractor pdfKnowledgeDocumentExtractor() {
+        return new PdfKnowledgeDocumentExtractor();
     }
 }

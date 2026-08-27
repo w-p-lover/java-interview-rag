@@ -47,6 +47,21 @@ defineProps<{
           <span class="summary-label">内容版本</span>
           <code :title="result.version">{{ result.version }}</code>
         </div>
+        <div class="format-summary">
+          <span class="summary-label">格式</span>
+          <strong>{{ result.format }}</strong>
+        </div>
+        <div v-if="result.pageCount" class="format-summary">
+          <span class="summary-label">页数</span>
+          <strong>{{ result.pageCount }}</strong>
+        </div>
+      </div>
+
+      <div v-if="result.warnings.length" class="status-note is-warning">
+        <strong>解析提醒</strong>
+        <ul>
+          <li v-for="warning in result.warnings" :key="warning">{{ warning }}</li>
+        </ul>
       </div>
 
       <div v-if="!result.imported" class="status-note is-warning">
@@ -180,7 +195,8 @@ defineProps<{
 }
 
 .summary-source,
-.version-summary {
+.version-summary,
+.format-summary {
   display: grid;
   min-width: 0;
   gap: var(--space-2xs);
@@ -194,7 +210,8 @@ defineProps<{
 }
 
 .summary-source strong,
-.version-summary code {
+.version-summary code,
+.format-summary strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -211,6 +228,11 @@ defineProps<{
   font-size: var(--text-xs);
 }
 
+.format-summary strong {
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
 .status-note {
   margin-bottom: var(--space-sm);
   padding: var(--space-sm);
@@ -224,6 +246,11 @@ defineProps<{
 .status-note.is-warning {
   color: var(--color-warning);
   background: var(--color-warning-soft);
+}
+
+.status-note ul {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-lg);
 }
 
 .chunk-list {

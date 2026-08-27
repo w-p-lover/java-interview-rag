@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class PdfDocumentAnalyzer {
+public final class PdfDocumentAnalyzer {
 
     private static final float LINE_Y_TOLERANCE = 2.5f;
     private static final float VISUAL_ROW_Y_TOLERANCE = 4.0f;
@@ -25,7 +25,7 @@ class PdfDocumentAnalyzer {
     private static final float MINIMUM_COLUMN_TEXT_WIDTH_RATIO = 0.16f;
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
 
-    List<PdfPageAnalysis> analyze(PDDocument document) throws IOException {
+    public List<PdfPageAnalysis> analyze(PDDocument document) throws IOException {
         PositionCollector collector = new PositionCollector();
         collector.getText(document);
 

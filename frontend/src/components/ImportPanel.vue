@@ -80,7 +80,7 @@ function handleDrop(event: DragEvent): void {
 
 function submitImport(): void {
   if (!selectedFile.value) {
-    localError.value = "请先选择一份 Markdown 知识资料。";
+    localError.value = "请先选择一份 Markdown 或 PDF 知识资料。";
     return;
   }
   if (!source.value.trim()) {
@@ -128,13 +128,13 @@ function formatFileSize(size: number): string {
           id="markdown-file"
           class="file-input"
           type="file"
-          accept=".md,text/markdown,text/plain"
+          accept=".md,.markdown,.pdf,text/markdown,text/plain,application/pdf"
           :disabled="busy"
           @change="handleFileInput"
         />
-        <span class="file-mark" aria-hidden="true">MD</span>
+        <span class="file-mark" aria-hidden="true">{{ selectedFile?.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'MD' }}</span>
         <strong>{{ selectedFile ? selectedFile.name : "选择 Markdown 文件" }}</strong>
-        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "点击选择，或拖放到这里" }}</span>
+        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "支持 Markdown 与文本型 PDF" }}</span>
       </label>
 
       <div class="field-group">
@@ -145,7 +145,7 @@ function formatFileSize(size: number): string {
           name="source"
           type="text"
           autocomplete="off"
-          placeholder="例如 java/concurrency/thread-pool.md"
+          placeholder="例如 java/concurrency/thread-pool.md 或 java/concurrency.pdf"
           :disabled="busy"
           :aria-invalid="Boolean(visibleError)"
           aria-describedby="source-helper"

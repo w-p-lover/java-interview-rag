@@ -14,6 +14,10 @@ export interface MarkdownImportResponse {
   imported: boolean;
   chunkCount: number;
   chunks: MarkdownChunk[];
+  format: "MARKDOWN" | "PDF";
+  pageCount: number | null;
+  pagesNeedingOcr: number[];
+  warnings: string[];
 }
 
 export interface KnowledgeAnswerSource {
@@ -89,6 +93,10 @@ export interface MarkdownRebuildResponse {
   source: string;
   version: string;
   chunkCount: number;
+  format: "MARKDOWN" | "PDF";
+  pageCount: number | null;
+  pagesNeedingOcr: number[];
+  warnings: string[];
 }
 
 export async function importMarkdown(

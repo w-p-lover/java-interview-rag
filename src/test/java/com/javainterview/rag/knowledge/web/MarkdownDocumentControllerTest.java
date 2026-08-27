@@ -9,6 +9,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -55,6 +65,19 @@ class MarkdownDocumentControllerTest {
                 .andExpect(jsonPath("$.imported").value(false))
                 .andExpect(jsonPath("$.chunkCount").value(0))
                 .andExpect(jsonPath("$.chunks").isEmpty());
+    }
+
+    @Test
+    void importsTextPdfAsTraceableKnowledgeContent() throws Exception {
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(new MockMultipartFile("file", "collections.pdf", "application/pdf", textPdf()))
+                        .param("source", "java/collections.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.format").value("PDF"))
+                .andExpect(jsonPath("$.pageCount").value(1))
+                .andExpect(jsonPath("$.pagesNeedingOcr").isEmpty())
+                .andExpect(jsonPath("$.chunks[0].headingPath[0]").value("第 1 页"))
+                .andExpect(jsonPath("$.chunks[0].content").value("HashMap structure"));
     }
 
     @Test
@@ -199,5 +222,21 @@ class MarkdownDocumentControllerTest {
     private MockMultipartFile markdownFile(String content) {
         return new MockMultipartFile("file", "basic.md", "text/markdown",
                 content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private byte[] textPdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                stream.beginText();
+                stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                stream.newLineAtOffset(40, 760);
+                stream.showText("HashMap structure");
+                stream.endText();
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
     }
 }

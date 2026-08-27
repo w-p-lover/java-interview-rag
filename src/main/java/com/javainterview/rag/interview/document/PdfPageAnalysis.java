@@ -1,6 +1,6 @@
 package com.javainterview.rag.interview.document;
 
-record PdfPageAnalysis(
+public record PdfPageAnalysis(
         int pageNumber,
         String content,
         int textCharacterCount,
@@ -8,7 +8,7 @@ record PdfPageAnalysis(
         PdfPageContentType contentType,
         PdfPageLayout layout) {
 
-    boolean requiresOcr() {
+    public boolean requiresOcr() {
         return contentType == PdfPageContentType.IMAGE_ONLY;
     }
 }

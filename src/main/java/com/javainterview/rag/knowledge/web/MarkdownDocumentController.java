@@ -4,6 +4,8 @@ import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
+import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtraction;
+import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/knowledge/documents")
@@ -28,11 +31,14 @@ public class MarkdownDocumentController {
 
     private final MarkdownContentImporter contentImporter;
     private final MarkdownImportRegistry importRegistry;
+    private final PdfKnowledgeDocumentExtractor pdfExtractor;
 
     public MarkdownDocumentController(MarkdownContentImporter contentImporter,
-                                      MarkdownImportRegistry importRegistry) {
+                                      MarkdownImportRegistry importRegistry,
+                                      PdfKnowledgeDocumentExtractor pdfExtractor) {
         this.contentImporter = contentImporter;
         this.importRegistry = importRegistry;
+        this.pdfExtractor = pdfExtractor;
     }
 
     @GetMapping
@@ -53,16 +59,18 @@ public class MarkdownDocumentController {
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MarkdownImportResponse importDocument(@RequestParam MultipartFile file,
                                                  @RequestParam String source) throws IOException {
-        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-        MarkdownImportResult result = contentImporter.importContent(source, content);
-        return MarkdownImportResponse.from(result);
+        KnowledgeUploadContent upload = readContent(file);
+        MarkdownImportResult result = contentImporter.importContent(source, upload.content());
+        return MarkdownImportResponse.from(result, upload.format(), upload.pageCount(),
+                upload.pagesNeedingOcr(), upload.warnings());
     }
 
     @PostMapping(value = "/rebuild", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MarkdownRebuildResponse rebuildDocument(@RequestParam MultipartFile file,
                                                     @RequestParam String source) throws IOException {
-        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
-        return MarkdownRebuildResponse.from(contentImporter.rebuildContent(source, content));
+        KnowledgeUploadContent upload = readContent(file);
+        return MarkdownRebuildResponse.from(contentImporter.rebuildContent(source, upload.content()),
+                upload.format(), upload.pageCount(), upload.pagesNeedingOcr(), upload.warnings());
     }
 
     @DeleteMapping
@@ -89,5 +97,23 @@ public class MarkdownDocumentController {
         if (!source.equals(source.strip())) {
             throw new IllegalArgumentException("文档来源不能包含首尾空白");
         }
+    }
+
+    private KnowledgeUploadContent readContent(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("资料文件不能为空");
+        }
+        String filename = file.getOriginalFilename();
+        if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            PdfKnowledgeDocumentExtraction extraction = pdfExtractor.extract(file);
+            return new KnowledgeUploadContent(extraction.markdownContent(), "PDF",
+                    extraction.pageCount(), extraction.pagesNeedingOcr(), extraction.warnings());
+        }
+        return new KnowledgeUploadContent(new String(file.getBytes(), StandardCharsets.UTF_8),
+                "MARKDOWN", null, List.of(), List.of());
+    }
+
+    private record KnowledgeUploadContent(String content, String format, Integer pageCount,
+                                          List<Integer> pagesNeedingOcr, List<String> warnings) {
     }
 }
