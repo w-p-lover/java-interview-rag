@@ -90,8 +90,10 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
         metadata.put("section_order", chunk.sectionOrder());
         metadata.put("heading_level", chunk.headingLevel());
         metadata.put("heading_path", chunk.headingPath());
-        Integer pageNumber = pageNumber(chunk.headingPath());
+        Integer pageNumber = chunk.pageNumber() != null
+                ? chunk.pageNumber() : pageNumber(chunk.headingPath());
         metadata.put("document_format", pageNumber == null ? "MARKDOWN" : "PDF");
+        metadata.put("block_type", chunk.blockType().name());
         if (pageNumber != null) {
             metadata.put("page_number", pageNumber);
         }

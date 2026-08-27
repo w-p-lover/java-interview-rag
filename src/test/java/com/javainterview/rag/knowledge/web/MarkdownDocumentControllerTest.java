@@ -77,6 +77,8 @@ class MarkdownDocumentControllerTest {
                 .andExpect(jsonPath("$.pageCount").value(1))
                 .andExpect(jsonPath("$.pagesNeedingOcr").isEmpty())
                 .andExpect(jsonPath("$.chunks[0].headingPath[0]").value("第 1 页"))
+                .andExpect(jsonPath("$.chunks[0].pageNumber").value(1))
+                .andExpect(jsonPath("$.chunks[0].blockType").value("TEXT"))
                 .andExpect(jsonPath("$.chunks[0].content").value("HashMap structure"));
     }
 

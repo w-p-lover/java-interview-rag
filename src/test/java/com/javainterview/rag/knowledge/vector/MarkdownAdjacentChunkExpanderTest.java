@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.vector;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -35,7 +36,7 @@ class MarkdownAdjacentChunkExpanderTest {
 
         assertEquals(List.of(seed, new MarkdownSearchResult(
                 "前一段", "java/collections.md", "version-1", 0,
-                List.of("Java", "集合"), 0.55)), expanded);
+                List.of("Java", "集合"), 0.55, 2, KnowledgeBlockType.LIST)), expanded);
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
     }
 
@@ -56,7 +57,9 @@ class MarkdownAdjacentChunkExpanderTest {
                         "source", source,
                         "document_version", version,
                         "chunk_order", order,
-                        "heading_path", List.of("Java", "集合")
+                        "heading_path", List.of("Java", "集合"),
+                        "page_number", 2,
+                        "block_type", "LIST"
                 ))
                 .score(0.55)
                 .build();

@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.rag;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
@@ -102,9 +103,22 @@ public class RagAnswerService {
 
     private String formatSource(int sourceNumber, MarkdownSearchResult source) {
         String headingPath = String.join(" / ", source.headingPath());
+        String structure = source.pageNumber() == null ? ""
+                : "页码：第 " + source.pageNumber() + " 页\n"
+                + "内容类型：" + blockTypeLabel(source.blockType()) + "\n";
         return "[资料 " + sourceNumber + "]\n"
                 + "来源：" + source.source() + "\n"
                 + "标题：" + headingPath + "\n"
+                + structure
                 + "内容：" + source.content();
+    }
+
+    private String blockTypeLabel(KnowledgeBlockType blockType) {
+        return switch (blockType) {
+            case TEXT -> "正文";
+            case LIST -> "列表";
+            case CODE -> "代码";
+            case TABLE -> "表格";
+        };
     }
 }

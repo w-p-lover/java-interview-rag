@@ -6,7 +6,11 @@ export interface MarkdownChunk {
   headingLevel: number;
   headingPath: string[];
   content: string;
+  pageNumber: number | null;
+  blockType: KnowledgeBlockType;
 }
+
+export type KnowledgeBlockType = "TEXT" | "LIST" | "CODE" | "TABLE";
 
 export interface MarkdownImportResponse {
   source: string;
@@ -27,6 +31,8 @@ export interface KnowledgeAnswerSource {
   chunkOrder: number;
   headingPath: string[];
   similarity: number | null;
+  pageNumber: number | null;
+  blockType: KnowledgeBlockType;
 }
 
 export interface KnowledgeAnswerResponse {

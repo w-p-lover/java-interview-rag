@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.vector;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
@@ -28,7 +29,9 @@ class MarkdownSimilaritySearchServiceTest {
                         "source", "java/collections.md",
                         "document_version", "version-1",
                         "chunk_order", 2,
-                        "heading_path", List.of("Java", "集合", "HashMap")
+                        "heading_path", List.of("Java", "集合", "HashMap"),
+                        "page_number", 7,
+                        "block_type", "TABLE"
                 ))
                 .score(0.91)
                 .build();
@@ -49,7 +52,9 @@ class MarkdownSimilaritySearchServiceTest {
                 "version-1",
                 2,
                 List.of("Java", "集合", "HashMap"),
-                0.91
+                0.91,
+                7,
+                KnowledgeBlockType.TABLE
         )), results);
     }
 

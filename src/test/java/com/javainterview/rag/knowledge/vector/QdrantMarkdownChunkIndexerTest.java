@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.vector;
 
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
@@ -55,6 +56,7 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(1, firstWrite.get(0).getMetadata().get("heading_level"));
         assertEquals(List.of("Java"), firstWrite.get(0).getMetadata().get("heading_path"));
         assertEquals("MARKDOWN", firstWrite.get(0).getMetadata().get("document_format"));
+        assertEquals("TEXT", firstWrite.get(0).getMetadata().get("block_type"));
     }
 
     @Test
@@ -65,13 +67,14 @@ class QdrantMarkdownChunkIndexerTest {
         MarkdownDocument document = MarkdownDocument.create("java/collections-guide", "# 第 3 页\nHashMap");
 
         indexer.index(document, List.of(new MarkdownChunk(document.source(), 0, 0, 1,
-                List.of("第 3 页"), "HashMap")));
+                List.of("HashMap"), "HashMap", 3, KnowledgeBlockType.CODE)));
 
         ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
         verify(vectorStore).add(captor.capture());
         Document stored = (Document) captor.getValue().get(0);
         assertEquals("PDF", stored.getMetadata().get("document_format"));
         assertEquals(3, stored.getMetadata().get("page_number"));
+        assertEquals("CODE", stored.getMetadata().get("block_type"));
     }
 
     @Test

@@ -33,7 +33,9 @@ public final class PdfDocumentAnalyzer {
         for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
             PDPage page = document.getPage(pageIndex);
             List<TextLine> lines = buildLines(collector.positions(pageIndex + 1));
-            PageText pageText = orderPage(lines, page.getCropBox().getWidth());
+            float pageWidth = page.getCropBox().getWidth();
+            float pageHeight = page.getCropBox().getHeight();
+            PageText pageText = orderPage(lines, pageWidth);
             ImageCounter imageCounter = new ImageCounter(page);
             imageCounter.processPage(page);
             int imageCount = imageCounter.imageCount();
@@ -46,7 +48,10 @@ public final class PdfDocumentAnalyzer {
                     characterCount,
                     imageCount,
                     contentType,
-                    pageText.layout()));
+                    pageText.layout(),
+                    pageWidth,
+                    pageHeight,
+                    pageText.lines().stream().map(TextLine::toAnalysis).toList()));
         }
         return List.copyOf(pages);
     }
@@ -90,10 +95,19 @@ public final class PdfDocumentAnalyzer {
                     });
             row.add(line);
         }
-        return rows.stream()
+        List<TextLine> ordered = new ArrayList<>();
+        List<List<TextLine>> sortedRows = rows.stream()
                 .sorted(Comparator.comparingDouble(this::averageLineY))
-                .flatMap(row -> row.stream().sorted(Comparator.comparing(TextLine::xStart)))
                 .toList();
+        for (int rowIndex = 0; rowIndex < sortedRows.size(); rowIndex++) {
+            List<TextLine> row = sortedRows.get(rowIndex).stream()
+                    .sorted(Comparator.comparing(TextLine::xStart))
+                    .toList();
+            for (TextLine line : row) {
+                ordered.add(line.withVisualRow(rowIndex, row.size()));
+            }
+        }
+        return List.copyOf(ordered);
     }
 
     private double averageLineY(List<TextLine> lines) {
@@ -151,12 +165,28 @@ public final class PdfDocumentAnalyzer {
                 .map(position -> position.getXDirAdj() + position.getWidthDirAdj())
                 .max(Float::compare)
                 .orElse(xStart);
-        return new TextLine(text.toString().trim(), xStart, xEnd, averageY(ordered));
+        float fontSize = (float) ordered.stream()
+                .mapToDouble(TextPosition::getFontSizeInPt)
+                .average()
+                .orElse(0.0);
+        boolean bold = ordered.stream().anyMatch(position -> fontName(position).contains("bold"));
+        boolean monospaced = ordered.stream().anyMatch(position -> {
+            String fontName = fontName(position);
+            return fontName.contains("courier") || fontName.contains("mono")
+                    || fontName.contains("consolas") || fontName.contains("code");
+        });
+        return new TextLine(text.toString().trim(), xStart, xEnd, averageY(ordered),
+                fontSize, bold, monospaced, 0, 1);
+    }
+
+    private String fontName(TextPosition position) {
+        return position.getFont() == null || position.getFont().getName() == null
+                ? "" : position.getFont().getName().toLowerCase(java.util.Locale.ROOT);
     }
 
     private PageText orderPage(List<TextLine> lines, float pageWidth) {
         if (lines.isEmpty()) {
-            return new PageText("", PdfPageLayout.SINGLE_COLUMN);
+            return new PageText(List.of(), PdfPageLayout.SINGLE_COLUMN);
         }
         float leftLimit = pageWidth * LEFT_COLUMN_LIMIT;
         float rightLimit = pageWidth * RIGHT_COLUMN_LIMIT;
@@ -164,7 +194,7 @@ public final class PdfDocumentAnalyzer {
         List<TextLine> rightCandidates = lines.stream().filter(line -> line.xStart() >= rightLimit).toList();
         ColumnBlock block = detectColumnBlock(leftCandidates, rightCandidates, pageWidth);
         if (block == null) {
-            return new PageText(join(lines), PdfPageLayout.SINGLE_COLUMN);
+            return new PageText(lines, PdfPageLayout.SINGLE_COLUMN);
         }
 
         List<TextLine> before = lines.stream().filter(line -> line.y() < block.startY() - LINE_Y_TOLERANCE).toList();
@@ -179,7 +209,7 @@ public final class PdfDocumentAnalyzer {
                 .filter(line -> !left.contains(line) && !right.contains(line))
                 .toList();
         if (!middleSpanning.isEmpty()) {
-            return new PageText(join(lines), PdfPageLayout.SINGLE_COLUMN);
+            return new PageText(lines, PdfPageLayout.SINGLE_COLUMN);
         }
         List<TextLine> after = lines.stream().filter(line -> line.y() > block.endY() + LINE_Y_TOLERANCE).toList();
 
@@ -188,7 +218,7 @@ public final class PdfDocumentAnalyzer {
         ordered.addAll(left);
         ordered.addAll(right);
         ordered.addAll(after);
-        return new PageText(join(ordered), PdfPageLayout.TWO_COLUMN);
+        return new PageText(List.copyOf(ordered), PdfPageLayout.TWO_COLUMN);
     }
 
     private ColumnBlock detectColumnBlock(List<TextLine> left, List<TextLine> right, float pageWidth) {
@@ -243,10 +273,27 @@ public final class PdfDocumentAnalyzer {
         return PdfPageContentType.EMPTY;
     }
 
-    private record TextLine(String text, float xStart, float xEnd, float y) {
+    private record TextLine(String text, float xStart, float xEnd, float y,
+                            float fontSize, boolean bold, boolean monospaced,
+                            int visualRow, int visualRowSegmentCount) {
+
+        private TextLine withVisualRow(int row, int segmentCount) {
+            return new TextLine(text, xStart, xEnd, y, fontSize, bold, monospaced,
+                    row, segmentCount);
+        }
+
+        private PdfTextLineAnalysis toAnalysis() {
+            return new PdfTextLineAnalysis(text, xStart, xEnd, y, fontSize, bold, monospaced,
+                    visualRow, visualRowSegmentCount);
+        }
     }
 
-    private record PageText(String content, PdfPageLayout layout) {
+    private record PageText(List<TextLine> lines, PdfPageLayout layout) {
+
+        private String content() {
+            return lines.stream().map(TextLine::text)
+                    .reduce((left, right) -> left + "\n" + right).orElse("");
+        }
     }
 
     private record ColumnBlock(float startY, float endY) {

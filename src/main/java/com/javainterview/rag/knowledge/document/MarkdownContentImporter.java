@@ -29,6 +29,17 @@ public final class MarkdownContentImporter {
     public MarkdownImportResult importContent(String source, String content) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
         List<MarkdownSection> sections = headingParser.parse(document);
+        return importDocument(document, sections);
+    }
+
+    public MarkdownImportResult importStructuredContent(String source, String content,
+                                                        List<MarkdownSection> sections) {
+        MarkdownDocument document = MarkdownDocument.create(source, content);
+        return importDocument(document, validateSections(document, sections));
+    }
+
+    private MarkdownImportResult importDocument(MarkdownDocument document,
+                                                List<MarkdownSection> sections) {
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
         if (!registry.register(document, outline)) {
@@ -50,6 +61,17 @@ public final class MarkdownContentImporter {
 
     public MarkdownRebuildResult rebuildContent(String source, String content) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
+        return rebuildDocument(document, headingParser.parse(document));
+    }
+
+    public MarkdownRebuildResult rebuildStructuredContent(String source, String content,
+                                                           List<MarkdownSection> sections) {
+        MarkdownDocument document = MarkdownDocument.create(source, content);
+        return rebuildDocument(document, validateSections(document, sections));
+    }
+
+    private MarkdownRebuildResult rebuildDocument(MarkdownDocument document,
+                                                   List<MarkdownSection> sections) {
         List<KnowledgeDocumentSummary> versions = registry.findVersionsBySource(document.source());
         boolean registered = versions.stream()
                 .anyMatch(version -> version.version().equals(document.version()));
@@ -59,12 +81,26 @@ public final class MarkdownContentImporter {
         if (!versions.get(0).version().equals(document.version())) {
             throw new IllegalArgumentException("只能重建当前版本，历史版本不能直接恢复为检索版本");
         }
-
-        List<MarkdownSection> sections = headingParser.parse(document);
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         chunkIndexer.rebuild(document, chunks);
         registry.updateOutline(document, outlineBuilder.build(sections, chunks));
         return new MarkdownRebuildResult(document, chunks);
+    }
+
+    private List<MarkdownSection> validateSections(MarkdownDocument document,
+                                                   List<MarkdownSection> sections) {
+        Objects.requireNonNull(sections, "结构化章节不能为空");
+        List<MarkdownSection> copy = List.copyOf(sections);
+        for (int index = 0; index < copy.size(); index++) {
+            MarkdownSection section = Objects.requireNonNull(copy.get(index), "结构化章节不能为空");
+            if (!section.source().equals(document.source())) {
+                throw new IllegalArgumentException("结构化章节来源必须与文档来源一致");
+            }
+            if (section.order() != index) {
+                throw new IllegalArgumentException("结构化章节顺序必须连续且从 0 开始");
+            }
+        }
+        return copy;
     }
 
     public boolean deleteBySource(String source) {

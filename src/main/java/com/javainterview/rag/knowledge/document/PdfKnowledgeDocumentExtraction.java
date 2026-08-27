@@ -6,7 +6,8 @@ import java.util.Objects;
 public record PdfKnowledgeDocumentExtraction(String markdownContent, int pageCount,
                                              List<Integer> pagesNeedingOcr,
                                              List<String> warnings,
-                                             List<PdfKnowledgePage> pages) {
+                                             List<PdfKnowledgePage> pages,
+                                             List<PdfKnowledgeBlock> blocks) {
 
     public PdfKnowledgeDocumentExtraction {
         Objects.requireNonNull(markdownContent, "PDF 转换正文不能为空");
@@ -19,5 +20,6 @@ public record PdfKnowledgeDocumentExtraction(String markdownContent, int pageCou
         pagesNeedingOcr = List.copyOf(Objects.requireNonNull(pagesNeedingOcr, "OCR 候选页不能为空"));
         warnings = List.copyOf(Objects.requireNonNull(warnings, "PDF 解析告警不能为空"));
         pages = List.copyOf(Objects.requireNonNull(pages, "PDF 页面不能为空"));
+        blocks = List.copyOf(Objects.requireNonNull(blocks, "PDF 内容块不能为空"));
     }
 }

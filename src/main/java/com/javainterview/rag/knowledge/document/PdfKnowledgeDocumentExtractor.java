@@ -22,13 +22,16 @@ public final class PdfKnowledgeDocumentExtractor {
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;
 
     private final PdfDocumentAnalyzer analyzer;
+    private final PdfKnowledgeStructureParser structureParser;
 
     public PdfKnowledgeDocumentExtractor() {
-        this(new PdfDocumentAnalyzer());
+        this(new PdfDocumentAnalyzer(), new PdfKnowledgeStructureParser());
     }
 
-    PdfKnowledgeDocumentExtractor(PdfDocumentAnalyzer analyzer) {
+    PdfKnowledgeDocumentExtractor(PdfDocumentAnalyzer analyzer,
+                                  PdfKnowledgeStructureParser structureParser) {
         this.analyzer = Objects.requireNonNull(analyzer, "PDF 页面分析器不能为空");
+        this.structureParser = Objects.requireNonNull(structureParser, "PDF 结构解析器不能为空");
     }
 
     public PdfKnowledgeDocumentExtraction extract(MultipartFile file) {
@@ -44,18 +47,19 @@ public final class PdfKnowledgeDocumentExtractor {
                     .map(PdfKnowledgePage::pageNumber)
                     .toList();
             List<String> warnings = buildWarnings(pagesNeedingOcr, pages);
-            String markdownContent = pages.stream()
-                    .filter(page -> !page.content().isBlank())
-                    .map(page -> "# 第 " + page.pageNumber() + " 页\n\n" + page.content())
-                    .collect(Collectors.joining("\n\n"))
-                    .trim();
+            List<PdfKnowledgeBlock> blocks = structureParser.parse(analyses);
+            String markdownContent = structureParser.toMarkdown(blocks);
             return new PdfKnowledgeDocumentExtraction(markdownContent, pages.size(), pagesNeedingOcr,
-                    warnings, pages);
+                    warnings, pages, blocks);
         } catch (InvalidPasswordException exception) {
             throw new IllegalArgumentException("PDF 已加密，当前无法提取正文，请先解除密码保护");
         } catch (IOException exception) {
             throw new IllegalArgumentException("PDF 解析失败，请确认文件完整");
         }
+    }
+
+    public List<MarkdownSection> toSections(String source, List<PdfKnowledgeBlock> blocks) {
+        return structureParser.toSections(source, blocks);
     }
 
     private List<String> buildWarnings(List<Integer> pagesNeedingOcr, List<PdfKnowledgePage> pages) {

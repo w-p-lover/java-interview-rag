@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.vector;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -96,7 +97,9 @@ public final class MarkdownAdjacentChunkExpander {
                 requiredString(metadata, "document_version"),
                 requiredInt(metadata, "chunk_order"),
                 requiredStringList(metadata, "heading_path"),
-                document.getScore()
+                document.getScore(),
+                optionalInt(metadata, "page_number"),
+                blockType(metadata)
         );
     }
 
@@ -111,6 +114,29 @@ public final class MarkdownAdjacentChunkExpander {
             return number.intValue();
         }
         throw new IllegalStateException("检索结果元数据类型错误：" + key);
+    }
+
+    private Integer optionalInt(Map<String, Object> metadata, String key) {
+        Object value = metadata.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        throw new IllegalStateException("检索结果元数据类型错误：" + key);
+    }
+
+    private KnowledgeBlockType blockType(Map<String, Object> metadata) {
+        Object value = metadata.get("block_type");
+        if (value == null) {
+            return KnowledgeBlockType.TEXT;
+        }
+        try {
+            return KnowledgeBlockType.valueOf(value.toString());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalStateException("检索结果元数据类型错误：block_type", exception);
+        }
     }
 
     private List<String> requiredStringList(Map<String, Object> metadata, String key) {

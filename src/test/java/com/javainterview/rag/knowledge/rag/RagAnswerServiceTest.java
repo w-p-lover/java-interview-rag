@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.rag;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
@@ -42,8 +43,9 @@ class RagAnswerServiceTest {
         RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
         MarkdownSearchResult source = new MarkdownSearchResult(
                 "HashMap 在 Java 8 中使用数组、链表和红黑树。",
-                "java/collections.md", "version-1", 0,
-                List.of("Java", "集合", "HashMap"), 0.91);
+                "java/collections.pdf", "version-1", 0,
+                List.of("Java", "集合", "HashMap"), 0.91,
+                3, KnowledgeBlockType.CODE);
         MarkdownSearchResult secondSource = new MarkdownSearchResult(
                 "HashMap 的平均查询复杂度是 O(1)。",
                 "java/performance.md", "version-2", 0,
@@ -63,13 +65,17 @@ class RagAnswerServiceTest {
         assertEquals(true, promptCaptor.getValue().contains("问题：HashMap 底层结构"));
         assertEquals(true, promptCaptor.getValue().contains("[资料 1]"));
         assertEquals(true, promptCaptor.getValue().contains("[资料 2]"));
-        assertEquals(true, promptCaptor.getValue().contains("来源：java/collections.md"));
+        assertEquals(true, promptCaptor.getValue().contains("来源：java/collections.pdf"));
+        assertEquals(true, promptCaptor.getValue().contains("页码：第 3 页"));
+        assertEquals(true, promptCaptor.getValue().contains("内容类型：代码"));
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
         assertEquals("rag-answer-v1", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
-        assertEquals("java/collections.md", logCaptor.getValue().sources().get(0).source());
+        assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
+        assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());
+        assertEquals(KnowledgeBlockType.CODE, logCaptor.getValue().sources().get(0).blockType());
     }
 
     @Test

@@ -7,6 +7,13 @@ defineProps<{
   result: MarkdownImportResponse | null;
   state: ImportState;
 }>();
+
+const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockType"], string> = {
+  TEXT: "正文",
+  LIST: "列表",
+  CODE: "代码",
+  TABLE: "表格",
+};
 </script>
 
 <template>
@@ -79,7 +86,11 @@ defineProps<{
             <span class="heading-path">
               {{ chunk.headingPath.length ? chunk.headingPath.join(" / ") : "文档导语" }}
             </span>
-            <span class="section-order">段落 {{ chunk.sectionOrder + 1 }}</span>
+            <span class="chunk-structure">
+              <span v-if="chunk.pageNumber">第 {{ chunk.pageNumber }} 页</span>
+              <span>{{ blockTypeLabels[chunk.blockType] }}</span>
+              <span>段落 {{ chunk.sectionOrder + 1 }}</span>
+            </span>
           </header>
           <pre>{{ chunk.content }}</pre>
         </li>
@@ -294,7 +305,9 @@ defineProps<{
   white-space: nowrap;
 }
 
-.section-order {
+.chunk-structure {
+  display: flex;
+  gap: var(--space-xs);
   white-space: nowrap;
 }
 
@@ -341,8 +354,9 @@ defineProps<{
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .section-order {
+  .chunk-structure {
     grid-column: 2;
+    flex-wrap: wrap;
   }
 }
 

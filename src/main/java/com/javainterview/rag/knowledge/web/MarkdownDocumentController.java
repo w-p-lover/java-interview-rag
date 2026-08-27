@@ -4,6 +4,8 @@ import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
+import com.javainterview.rag.knowledge.document.MarkdownRebuildResult;
+import com.javainterview.rag.knowledge.document.MarkdownSection;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtraction;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import org.springframework.http.HttpStatus;
@@ -59,8 +61,10 @@ public class MarkdownDocumentController {
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MarkdownImportResponse importDocument(@RequestParam MultipartFile file,
                                                  @RequestParam String source) throws IOException {
-        KnowledgeUploadContent upload = readContent(file);
-        MarkdownImportResult result = contentImporter.importContent(source, upload.content());
+        KnowledgeUploadContent upload = readContent(file, source);
+        MarkdownImportResult result = upload.structured()
+                ? contentImporter.importStructuredContent(source, upload.content(), upload.sections())
+                : contentImporter.importContent(source, upload.content());
         return MarkdownImportResponse.from(result, upload.format(), upload.pageCount(),
                 upload.pagesNeedingOcr(), upload.warnings());
     }
@@ -68,8 +72,11 @@ public class MarkdownDocumentController {
     @PostMapping(value = "/rebuild", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public MarkdownRebuildResponse rebuildDocument(@RequestParam MultipartFile file,
                                                     @RequestParam String source) throws IOException {
-        KnowledgeUploadContent upload = readContent(file);
-        return MarkdownRebuildResponse.from(contentImporter.rebuildContent(source, upload.content()),
+        KnowledgeUploadContent upload = readContent(file, source);
+        MarkdownRebuildResult result = upload.structured()
+                ? contentImporter.rebuildStructuredContent(source, upload.content(), upload.sections())
+                : contentImporter.rebuildContent(source, upload.content());
+        return MarkdownRebuildResponse.from(result,
                 upload.format(), upload.pageCount(), upload.pagesNeedingOcr(), upload.warnings());
     }
 
@@ -99,7 +106,7 @@ public class MarkdownDocumentController {
         }
     }
 
-    private KnowledgeUploadContent readContent(MultipartFile file) throws IOException {
+    private KnowledgeUploadContent readContent(MultipartFile file, String source) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("资料文件不能为空");
         }
@@ -107,13 +114,19 @@ public class MarkdownDocumentController {
         if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
             PdfKnowledgeDocumentExtraction extraction = pdfExtractor.extract(file);
             return new KnowledgeUploadContent(extraction.markdownContent(), "PDF",
-                    extraction.pageCount(), extraction.pagesNeedingOcr(), extraction.warnings());
+                    extraction.pageCount(), extraction.pagesNeedingOcr(), extraction.warnings(),
+                    pdfExtractor.toSections(source, extraction.blocks()));
         }
         return new KnowledgeUploadContent(new String(file.getBytes(), StandardCharsets.UTF_8),
-                "MARKDOWN", null, List.of(), List.of());
+                "MARKDOWN", null, List.of(), List.of(), List.of());
     }
 
     private record KnowledgeUploadContent(String content, String format, Integer pageCount,
-                                          List<Integer> pagesNeedingOcr, List<String> warnings) {
+                                          List<Integer> pagesNeedingOcr, List<String> warnings,
+                                          List<MarkdownSection> sections) {
+
+        private boolean structured() {
+            return "PDF".equals(format);
+        }
     }
 }

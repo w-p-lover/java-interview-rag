@@ -63,6 +63,7 @@ public final class MarkdownSectionChunker {
 
     private void addChunk(List<MarkdownChunk> chunks, MarkdownSection section, String content) {
         chunks.add(new MarkdownChunk(section.source(), chunks.size(), section.order(),
-                section.headingLevel(), section.headingPath(), content));
+                section.headingLevel(), section.headingPath(), content,
+                section.pageNumber(), section.blockType()));
     }
 }

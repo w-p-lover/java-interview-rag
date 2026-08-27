@@ -6,7 +6,14 @@ public record PdfPageAnalysis(
         int textCharacterCount,
         int imageCount,
         PdfPageContentType contentType,
-        PdfPageLayout layout) {
+        PdfPageLayout layout,
+        float width,
+        float height,
+        java.util.List<PdfTextLineAnalysis> lines) {
+
+    public PdfPageAnalysis {
+        lines = java.util.List.copyOf(lines);
+    }
 
     public boolean requiresOcr() {
         return contentType == PdfPageContentType.IMAGE_ONLY;

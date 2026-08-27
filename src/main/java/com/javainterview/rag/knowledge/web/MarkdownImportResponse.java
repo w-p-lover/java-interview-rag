@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 
 import java.util.List;
 
@@ -31,11 +32,12 @@ public record MarkdownImportResponse(String source, String version, boolean impo
     }
 
     public record ChunkResponse(int order, int sectionOrder, int headingLevel,
-                                List<String> headingPath, String content) {
+                                List<String> headingPath, String content,
+                                Integer pageNumber, KnowledgeBlockType blockType) {
 
         private static ChunkResponse from(MarkdownChunk chunk) {
             return new ChunkResponse(chunk.order(), chunk.sectionOrder(), chunk.headingLevel(),
-                    chunk.headingPath(), chunk.content());
+                    chunk.headingPath(), chunk.content(), chunk.pageNumber(), chunk.blockType());
         }
     }
 }
