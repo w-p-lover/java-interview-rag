@@ -36,7 +36,7 @@ class MySqlRagRetrievalLogStoreTest {
         assertEquals("HashMap 底层结构", entity.getQuestion());
         assertEquals("ANSWERED", entity.getStatus());
         assertEquals("rag-answer-v1", entity.getPromptVersion());
-        assertEquals("[{\"source\":\"java/collections.md\",\"documentVersion\":\"version-1\",\"chunkOrder\":0,\"headingPath\":[\"Java\",\"集合\",\"HashMap\"],\"similarity\":0.91}]",
+        assertEquals("[{\"source\":\"java/collections.md\",\"documentVersion\":\"version-1\",\"chunkOrder\":0,\"headingPath\":[\"Java\",\"集合\",\"HashMap\"],\"similarity\":0.91,\"pageNumber\":null,\"blockType\":\"TEXT\"}]",
                 entity.getRetrievedSourcesJson());
     }
 
