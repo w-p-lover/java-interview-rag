@@ -7,16 +7,15 @@ import com.javainterview.rag.knowledge.rag.RagRetrievalLog;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStatus;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import com.javainterview.rag.knowledge.rag.RagRetrievalSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
+@Slf4j
 public class MySqlRagRetrievalLogStore implements RagRetrievalLogStore {
 
-    private static final Logger log = LoggerFactory.getLogger(MySqlRagRetrievalLogStore.class);
     private static final TypeReference<List<RagRetrievalSource>> SOURCE_LIST_TYPE = new TypeReference<>() {
     };
 

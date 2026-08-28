@@ -1,7 +1,6 @@
 package com.javainterview.rag.knowledge.vector;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.ApplicationRunner;
@@ -11,9 +10,8 @@ import org.springframework.context.annotation.Profile;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
+@Slf4j
 public class VectorStoreHealthConfiguration {
-
-    private static final Logger log = LoggerFactory.getLogger(VectorStoreHealthConfiguration.class);
 
     @Bean
     ApplicationRunner vectorStoreHealthRunner(VectorStore vectorStore) {

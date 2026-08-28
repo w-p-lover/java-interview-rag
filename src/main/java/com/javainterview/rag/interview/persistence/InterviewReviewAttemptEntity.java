@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.review.InterviewReviewAttempt;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_interview_review_attempt")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InterviewReviewAttemptEntity {
 
     @TableId(type = IdType.INPUT)
@@ -53,21 +59,4 @@ public class InterviewReviewAttemptEntity {
         return entity;
     }
 
-    public String getId() { return id; }
-    public String getSessionId() { return sessionId; }
-    public String getReviewTaskId() { return reviewTaskId; }
-    public Integer getQuestionIndex() { return questionIndex; }
-    public Integer getAttemptNumber() { return attemptNumber; }
-    public String getAnswer() { return answer; }
-    public String getEvaluationJson() { return evaluationJson; }
-    public Boolean getKnowledgeGrounded() { return knowledgeGrounded; }
-    public String getKnowledgeSourcesJson() { return knowledgeSourcesJson; }
-    public String getPromptVersion() { return promptVersion; }
-    public String getRubricVersion() { return rubricVersion; }
-    public String getModelName() { return modelName; }
-    public Integer getOriginalOverallScore() { return originalOverallScore; }
-    public Integer getPreviousOverallScore() { return previousOverallScore; }
-    public Integer getScoreDeltaFromOriginal() { return scoreDeltaFromOriginal; }
-    public Integer getScoreDeltaFromPrevious() { return scoreDeltaFromPrevious; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

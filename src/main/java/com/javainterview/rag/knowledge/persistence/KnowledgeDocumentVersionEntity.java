@@ -3,10 +3,16 @@ package com.javainterview.rag.knowledge.persistence;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_knowledge_document_version")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class KnowledgeDocumentVersionEntity {
 
     @TableId(type = IdType.AUTO)
@@ -28,27 +34,4 @@ public class KnowledgeDocumentVersionEntity {
         return entity;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getSource() {
-        return source;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public Integer getContentLength() {
-        return contentLength;
-    }
-
-    public String getOutlineJson() {
-        return outlineJson;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

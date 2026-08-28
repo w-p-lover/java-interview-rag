@@ -94,6 +94,8 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 
 后端默认监听 `http://127.0.0.1:18080`。再启动前端：
 
+后端启动后可访问 Knife4j 接口文档 `http://127.0.0.1:8080/doc.html`；原始 OpenAPI JSON 为 `http://127.0.0.1:8080/v3/api-docs`。
+
 ```shell
 cd frontend
 npm install

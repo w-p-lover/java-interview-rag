@@ -1,5 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLog;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import org.springframework.context.annotation.Profile;
@@ -17,6 +19,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/knowledge/retrieval-logs")
+@Tag(name = "RAG 召回日志", description = "查询 RAG 召回元数据和来源")
 public class RagRetrievalLogController {
 
     private static final int DEFAULT_LIMIT = 20;
@@ -29,6 +32,7 @@ public class RagRetrievalLogController {
     }
 
     @GetMapping
+    @Operation(summary = "查询最近召回日志")
     public List<RagRetrievalLog> findRecent(@RequestParam(defaultValue = "20") int limit) {
         if (limit < 1 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException("日志查询数量必须在 1 到 100 之间");

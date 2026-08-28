@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLog;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_interview_tool_execution_log")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InterviewToolExecutionLogEntity {
 
     @TableId(type = IdType.AUTO)
@@ -37,43 +43,4 @@ public class InterviewToolExecutionLogEntity {
         return entity;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getExecutionId() {
-        return executionId;
-    }
-
-    public String getAssistantRequestId() {
-        return assistantRequestId;
-    }
-
-    public String getToolName() {
-        return toolName;
-    }
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public Integer getResultCount() {
-        return resultCount;
-    }
-
-    public Long getElapsedMillis() {
-        return elapsedMillis;
-    }
-
-    public String getErrorType() {
-        return errorType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

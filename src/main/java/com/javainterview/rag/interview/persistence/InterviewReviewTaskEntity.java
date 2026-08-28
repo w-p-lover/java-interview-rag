@@ -4,11 +4,17 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @TableName("t_interview_review_task")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InterviewReviewTaskEntity {
 
     @TableId(type = IdType.INPUT)
@@ -46,55 +52,4 @@ public class InterviewReviewTaskEntity {
         return entity;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public Integer getQuestionIndex() {
-        return questionIndex;
-    }
-
-    public String getQuestion() {
-        return question;
-    }
-
-    public String getObjective() {
-        return objective;
-    }
-
-    public String getGapsJson() {
-        return gapsJson;
-    }
-
-    public String getImprovementSuggestion() {
-        return improvementSuggestion;
-    }
-
-    public Boolean getKnowledgeGrounded() {
-        return knowledgeGrounded;
-    }
-
-    public String getKnowledgeSourcesJson() {
-        return knowledgeSourcesJson;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public LocalDate getPlannedReviewDate() {
-        return plannedReviewDate;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getCompletedAt() {
-        return completedAt;
-    }
 }

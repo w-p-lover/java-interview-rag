@@ -4,6 +4,8 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLog;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +23,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/resume-audits")
+@Tag(name = "简历证据审计", description = "基于简历原文进行可追溯事实审计")
 public class ResumeEvidenceAuditController {
 
     private final ResumeEvidenceAuditService auditService;
@@ -34,6 +37,7 @@ public class ResumeEvidenceAuditController {
     }
 
     @PostMapping
+    @Operation(summary = "审计简历证据", description = "只返回可由简历原文逐字支持的事实、缺失信息、风险和建议")
     public ResumeEvidenceAuditResult audit(@RequestBody ResumeEvidenceAuditRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("简历证据审计请求不能为空");
@@ -42,6 +46,7 @@ public class ResumeEvidenceAuditController {
     }
 
     @GetMapping("/requests")
+    @Operation(summary = "查询最近审计请求", description = "仅返回审计元数据，不返回简历正文")
     public List<ResumeEvidenceAuditRequestLog> findRecentRequests(
             @RequestParam(defaultValue = "20") int limit) {
         return logQueryService.findRecent(limit);

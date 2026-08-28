@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLog;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_resume_evidence_audit_request_log")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResumeEvidenceAuditRequestLogEntity {
 
     @TableId(type = IdType.AUTO)
@@ -41,51 +47,4 @@ public class ResumeEvidenceAuditRequestLogEntity {
         return entity;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getRequestId() {
-        return requestId;
-    }
-
-    public String getRoleName() {
-        return roleName;
-    }
-
-    public String getPromptVersion() {
-        return promptVersion;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public Integer getPromptTokens() {
-        return promptTokens;
-    }
-
-    public Integer getCompletionTokens() {
-        return completionTokens;
-    }
-
-    public Integer getTotalTokens() {
-        return totalTokens;
-    }
-
-    public Long getElapsedMillis() {
-        return elapsedMillis;
-    }
-
-    public String getErrorType() {
-        return errorType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

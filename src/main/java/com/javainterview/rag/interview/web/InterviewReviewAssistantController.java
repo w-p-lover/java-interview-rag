@@ -3,6 +3,8 @@ package com.javainterview.rag.interview.web;
 import com.javainterview.rag.interview.tool.InterviewAssistantRequestLog;
 import com.javainterview.rag.interview.tool.InterviewAssistantRequestLogQueryService;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.interview.tool.InterviewReviewAssistantResult;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/review-assistant")
+@Tag(name = "复习助手", description = "基于复习任务提供查询和进展分析")
 public class InterviewReviewAssistantController {
 
     private final InterviewReviewAssistantService service;
@@ -34,6 +37,7 @@ public class InterviewReviewAssistantController {
     }
 
     @PostMapping
+    @Operation(summary = "调用复习助手")
     public InterviewReviewAssistantResponse respond(
             @RequestBody InterviewReviewAssistantRequest request) {
         if (request == null) {
@@ -45,6 +49,7 @@ public class InterviewReviewAssistantController {
     }
 
     @GetMapping("/requests")
+    @Operation(summary = "查询复习助手请求")
     public List<InterviewAssistantRequestLog> findRecentRequests(
             @RequestParam(defaultValue = "20") int limit) {
         return requestLogQueryService.findRecent(limit);

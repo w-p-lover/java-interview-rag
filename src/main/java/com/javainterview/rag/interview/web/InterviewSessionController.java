@@ -4,6 +4,8 @@ import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +23,7 @@ import java.util.NoSuchElementException;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/sessions")
+@Tag(name = "模拟面试", description = "面试会话创建、查询与回答提交")
 public class InterviewSessionController {
 
     private final InterviewSessionService sessionService;
@@ -33,6 +36,7 @@ public class InterviewSessionController {
     }
 
     @PostMapping("/start")
+    @Operation(summary = "开始一次模拟面试", description = "根据岗位、简历和岗位描述生成面试会话")
     public InterviewSession start(@RequestBody InterviewSessionStartRequest request) {
         return startService.start(
                 request.targetRole(),
@@ -43,6 +47,7 @@ public class InterviewSessionController {
     }
 
     @PostMapping
+    @Operation(summary = "创建面试会话")
     public InterviewSession create(@RequestBody InterviewSessionCreateRequest request) {
         if (request.questions() == null) {
             throw new IllegalArgumentException("面试题不能为空");
@@ -54,11 +59,13 @@ public class InterviewSessionController {
     }
 
     @GetMapping("/{sessionId}")
+    @Operation(summary = "查询面试会话")
     public InterviewSession find(@PathVariable String sessionId) {
         return sessionService.find(sessionId);
     }
 
     @PostMapping("/{sessionId}/answers")
+    @Operation(summary = "提交面试回答", description = "按题目序号提交回答并进行版本校验")
     public InterviewSession submitAnswer(@PathVariable String sessionId,
                                          @RequestBody InterviewAnswerSubmissionRequest request) {
         return sessionService.submitAnswer(

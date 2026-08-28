@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.session.InterviewSession;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_interview_session")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InterviewSessionEntity {
 
     @TableId(type = IdType.INPUT)
@@ -43,51 +49,4 @@ public class InterviewSessionEntity {
         return entity;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getTargetRole() {
-        return targetRole;
-    }
-
-    public String getProfileJson() {
-        return profileJson;
-    }
-
-    public String getQuestionsJson() {
-        return questionsJson;
-    }
-
-    public String getAnswersJson() {
-        return answersJson;
-    }
-
-    public Integer getMaxQuestionCount() {
-        return maxQuestionCount;
-    }
-
-    public String getReportJson() {
-        return reportJson;
-    }
-
-    public Integer getCurrentQuestionIndex() {
-        return currentQuestionIndex;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
 }

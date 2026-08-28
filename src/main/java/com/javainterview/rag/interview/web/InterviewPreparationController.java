@@ -2,6 +2,8 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.preparation.InterviewPreparationResult;
 import com.javainterview.rag.interview.preparation.InterviewPreparationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +18,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/preparations")
+@Tag(name = "面试准备", description = "生成面试准备方向与知识来源")
 public class InterviewPreparationController {
 
     private final InterviewPreparationService preparationService;
@@ -25,6 +28,7 @@ public class InterviewPreparationController {
     }
 
     @PostMapping
+    @Operation(summary = "生成面试准备建议")
     public InterviewPreparationResult prepare(@RequestBody InterviewPreparationRequest request) {
         return preparationService.prepare(request.targetRole(), request.resumeText(), request.jobDescription());
     }

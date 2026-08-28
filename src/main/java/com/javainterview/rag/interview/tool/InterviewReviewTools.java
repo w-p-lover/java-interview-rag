@@ -9,8 +9,7 @@ import com.javainterview.rag.interview.review.InterviewReviewTaskStatus;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.chat.model.ToolContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -22,9 +21,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
+@Slf4j
 public class InterviewReviewTools {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewTools.class);
     private static final String LIST_REVIEW_TASKS = "list_review_tasks";
     private static final String GET_REVIEW_PROGRESS = "get_review_progress";
     private static final String SCHEDULE_REVIEW_TASK = "schedule_review_task";
@@ -151,7 +150,7 @@ public class InterviewReviewTools {
                     errorType,
                     LocalDateTime.now()));
         } catch (RuntimeException exception) {
-            LOGGER.warn("记录面试工具执行日志失败，executionId={}，toolName={}",
+            log.warn("记录面试工具执行日志失败，executionId={}，toolName={}",
                     executionId, toolName, exception);
         }
     }

@@ -1,5 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
@@ -29,6 +31,7 @@ import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/knowledge/documents")
+@Tag(name = "知识资料", description = "Markdown/PDF 知识资料导入、重建与删除")
 public class MarkdownDocumentController {
 
     private final MarkdownContentImporter contentImporter;
@@ -44,11 +47,13 @@ public class MarkdownDocumentController {
     }
 
     @GetMapping
+    @Operation(summary = "查询当前知识资料", description = "返回每个来源当前生效的知识资料版本")
     public KnowledgeDocumentCatalogResponse findCurrentDocuments() {
         return KnowledgeDocumentCatalogResponse.from(importRegistry.findCurrentDocuments());
     }
 
     @GetMapping("/detail")
+    @Operation(summary = "查询资料版本详情")
     public KnowledgeDocumentDetailsResponse findDocumentDetails(@RequestParam String source) {
         validateSource(source);
         List<KnowledgeDocumentSummary> versions = importRegistry.findVersionsBySource(source);
@@ -59,6 +64,7 @@ public class MarkdownDocumentController {
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "导入知识资料", description = "支持 Markdown 和带文本层的 PDF 文件")
     public MarkdownImportResponse importDocument(@RequestParam MultipartFile file,
                                                  @RequestParam String source) throws IOException {
         KnowledgeUploadContent upload = readContent(file, source);
@@ -70,6 +76,7 @@ public class MarkdownDocumentController {
     }
 
     @PostMapping(value = "/rebuild", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "重建知识资料向量")
     public MarkdownRebuildResponse rebuildDocument(@RequestParam MultipartFile file,
                                                     @RequestParam String source) throws IOException {
         KnowledgeUploadContent upload = readContent(file, source);
@@ -81,6 +88,7 @@ public class MarkdownDocumentController {
     }
 
     @DeleteMapping
+    @Operation(summary = "删除知识资料")
     public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
         return new MarkdownDeleteResponse(source, contentImporter.deleteBySource(source));
     }

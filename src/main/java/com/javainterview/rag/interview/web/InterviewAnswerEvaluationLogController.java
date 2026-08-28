@@ -1,5 +1,7 @@
 package com.javainterview.rag.interview.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLog;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLogQueryService;
 import org.springframework.context.annotation.Profile;
@@ -17,6 +19,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/evaluations/logs")
+@Tag(name = "回答评价日志", description = "查询回答评价调用元数据")
 public class InterviewAnswerEvaluationLogController {
 
     private final InterviewAnswerEvaluationLogQueryService queryService;
@@ -26,6 +29,7 @@ public class InterviewAnswerEvaluationLogController {
     }
 
     @GetMapping
+    @Operation(summary = "查询回答评价日志")
     public InterviewAnswerEvaluationLogQueryService.Report findRecent(
             @RequestParam(defaultValue = "BASELINE") String mode,
             @RequestParam(required = false) String baselineRunId,

@@ -2,17 +2,15 @@ package com.javainterview.rag.interview.evaluation;
 
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+@Slf4j
 public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvaluator {
-
-    private static final Logger log = LoggerFactory.getLogger(ObservableInterviewAnswerEvaluator.class);
 
     private final InterviewAnswerEvaluator delegate;
     private final InterviewAnswerEvaluationLogStore logStore;

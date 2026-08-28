@@ -4,16 +4,15 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.tool.ToolCallbackProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class InterviewReviewAssistantService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(InterviewReviewAssistantService.class);
     private static final int MAX_MESSAGE_LENGTH = 2000;
     private static final String SYSTEM_PROMPT = """
             你是 Java 面试复习助手，只能帮助用户查询单个会话内的复习任务、分析本场练习进步，或为指定任务设置计划复习日期。
@@ -144,7 +143,7 @@ public class InterviewReviewAssistantService {
                     errorType,
                     LocalDateTime.now()));
         } catch (RuntimeException exception) {
-            LOGGER.warn("记录复习助手请求日志失败，requestId={}",
+            log.warn("记录复习助手请求日志失败，requestId={}",
                     requestContext.requestId(), exception);
         }
     }

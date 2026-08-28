@@ -2,6 +2,8 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationResult;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +18,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/questions")
+@Tag(name = "面试题", description = "按岗位和准备资料生成面试题")
 public class InterviewQuestionController {
 
     private final InterviewQuestionGenerationService questionGenerationService;
@@ -25,6 +28,7 @@ public class InterviewQuestionController {
     }
 
     @PostMapping
+    @Operation(summary = "生成面试题")
     public InterviewQuestionGenerationResult generate(@RequestBody InterviewQuestionGenerationRequest request) {
         if (request.questionCount() == null) {
             return questionGenerationService.generate(request.targetRole(), request.profile());

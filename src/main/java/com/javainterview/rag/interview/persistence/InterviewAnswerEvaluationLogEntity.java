@@ -4,10 +4,16 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluationLog;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_interview_answer_evaluation_log")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class InterviewAnswerEvaluationLogEntity {
 
     @TableId(type = IdType.AUTO)
@@ -49,67 +55,4 @@ public class InterviewAnswerEvaluationLogEntity {
         return entity;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getEvaluationMode() {
-        return evaluationMode;
-    }
-
-    public String getBaselineRunId() {
-        return baselineRunId;
-    }
-
-    public String getBaselineCaseId() {
-        return baselineCaseId;
-    }
-
-    public String getPromptVersion() {
-        return promptVersion;
-    }
-
-    public String getRubricVersion() {
-        return rubricVersion;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public Boolean getKnowledgeGrounded() {
-        return knowledgeGrounded;
-    }
-
-    public Integer getTechnicalScore() {
-        return technicalScore;
-    }
-
-    public Integer getCompletenessScore() {
-        return completenessScore;
-    }
-
-    public Integer getCommunicationScore() {
-        return communicationScore;
-    }
-
-    public Integer getOverallScore() {
-        return overallScore;
-    }
-
-    public Long getElapsedMillis() {
-        return elapsedMillis;
-    }
-
-    public String getErrorType() {
-        return errorType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }

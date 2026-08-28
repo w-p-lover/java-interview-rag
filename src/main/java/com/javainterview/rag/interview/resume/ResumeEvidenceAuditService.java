@@ -1,7 +1,6 @@
 package com.javainterview.rag.interview.resume;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ResponseEntity;
 import org.springframework.ai.chat.metadata.Usage;
@@ -15,9 +14,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+@Slf4j
 public class ResumeEvidenceAuditService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ResumeEvidenceAuditService.class);
     private static final int RESUME_MAX_LENGTH = 50_000;
     private static final String ROLE_NAME = "RESUME_EVIDENCE_AUDITOR";
     private static final String PROMPT_VERSION = "resume-evidence-audit-v3";
@@ -229,7 +228,7 @@ public class ResumeEvidenceAuditService {
                     errorType,
                     LocalDateTime.now()));
         } catch (RuntimeException exception) {
-            LOGGER.warn("记录简历证据审计请求日志失败，requestId={}", requestId, exception);
+            log.warn("记录简历证据审计请求日志失败，requestId={}", requestId, exception);
         }
     }
 

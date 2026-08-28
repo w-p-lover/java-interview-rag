@@ -1,5 +1,7 @@
 package com.javainterview.rag.interview.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLog;
 import com.javainterview.rag.interview.tool.InterviewToolExecutionLogQueryService;
 import org.springframework.context.annotation.Profile;
@@ -18,6 +20,7 @@ import java.util.Map;
 @RestController
 @Profile("storage")
 @RequestMapping("/api/interviews/sessions/{sessionId}/tool-executions")
+@Tag(name = "工具执行日志", description = "查询面试助手工具调用元数据")
 public class InterviewToolExecutionLogController {
 
     private final InterviewToolExecutionLogQueryService queryService;
@@ -27,6 +30,7 @@ public class InterviewToolExecutionLogController {
     }
 
     @GetMapping
+    @Operation(summary = "查询工具执行日志")
     public List<InterviewToolExecutionLog> findRecent(
             @PathVariable String sessionId,
             @RequestParam(defaultValue = "20") int limit) {

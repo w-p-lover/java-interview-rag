@@ -1,5 +1,7 @@
 package com.javainterview.rag.interview.web;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.interview.document.InterviewDocumentExtraction;
 import com.javainterview.rag.interview.document.InterviewDocumentTextExtractor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/interviews/documents")
+@Tag(name = "面试资料", description = "提取面试资料文本")
 public class InterviewDocumentController {
 
     private final InterviewDocumentTextExtractor textExtractor;
@@ -26,6 +29,7 @@ public class InterviewDocumentController {
     }
 
     @PostMapping(value = "/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "提取面试资料文本", description = "解析 PDF 文本并返回版面告警")
     public InterviewDocumentExtraction extract(@RequestParam MultipartFile file) {
         return textExtractor.extract(file);
     }

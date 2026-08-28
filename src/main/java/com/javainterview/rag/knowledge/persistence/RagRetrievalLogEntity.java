@@ -5,10 +5,16 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLog;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStatus;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("t_rag_retrieval_log")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RagRetrievalLogEntity {
 
     @TableId(type = IdType.AUTO)
@@ -40,47 +46,4 @@ public class RagRetrievalLogEntity {
         return entity;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getQuestion() {
-        return question;
-    }
-
-    public Integer getTopK() {
-        return topK;
-    }
-
-    public Double getSimilarityThreshold() {
-        return similarityThreshold;
-    }
-
-    public String getPromptVersion() {
-        return promptVersion;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public Boolean getGrounded() {
-        return grounded;
-    }
-
-    public String getRetrievedSourcesJson() {
-        return retrievedSourcesJson;
-    }
-
-    public Long getElapsedMillis() {
-        return elapsedMillis;
-    }
-
-    public String getErrorType() {
-        return errorType;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
 }
