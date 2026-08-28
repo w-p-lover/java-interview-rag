@@ -6,5 +6,6 @@ public enum RagEvaluationCaseType {
     HEADING_PATH,
     AMBIGUOUS,
     NO_ANSWER,
-    CROSS_SECTION
+    CROSS_SECTION,
+    DOCUMENT_STRUCTURE
 }

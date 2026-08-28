@@ -15,6 +15,7 @@ PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线�
 | `mysql/transactions.md` | `mysql/transactions.md` | MVCC 一致性快照 |
 | `rag/agent-basics.md` | `rag/agent-basics.md` | RAG 与 Agent 职责、工具治理边界 |
 | `rag/rag-basics.md` | `rag/rag-basics.md` | 来源、`topK` 与相似度阈值 |
+| `java/structured-java-notes.pdf` | `java/structured-java-notes.pdf` | 独立的 PDF 标题、页码、代码、表格和跨页正文结构题 |
 
 先以 `storage` profile 启动后端，再执行：
 
@@ -41,6 +42,16 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 脚本校验题量和指标结构，不预设未经真实运行验证的质量门槛。旧的 6 题基线结果保留为历史证据，不能当作当前 20 题结果。
 
 2026-08-13 的首轮真实困难基线使用 `text-embedding-v3`、8 份语料和 18 个 chunk，结果见 `evaluation/results/2026-08-13-rag-hard-retrieval-baseline.json`：Hit@1 为 `1.0000`、Mean Recall@5 为 `0.9706`、MRR 为 `1.0000`、标题路径召回率为 `0.9130`、无答案拒答准确率为 `1.0000`。主要缺口集中在跨主题 Map 问题漏掉普通 HashMap 来源，以及一个歧义 Map 问题漏掉“扩容与负载因子”标题；当前没有证据支持直接引入 rerank。
+
+## PDF 结构检索
+
+合成两页 PDF 使用标准字体构造真实标题、跨页小节、代码和两列表格，不包含真实资料或个人信息。结构题与原 20 题分离，避免把 3 道结构题加入回答评估并额外产生 Chat 调用。明确允许 Embedding 费用后执行：
+
+```shell
+python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --allow-embedding-calls --evaluate-structure
+```
+
+接口 `/api/knowledge/evaluations/retrieval/structure` 返回来源、Hit@1 和标题路径指标，并增加页码召回率、内容块类型召回率和“来源 + 标题路径 + 页码 + 块类型”完整结构召回率。运行器会先导入原 8 份竞争语料与合成 PDF；相同版本会在向量化前短路。当前只完成固定语料、指标代码和费用门禁验证，尚未运行真实 `text-embedding-v3` 结构基线，不能据此决定增加块类型权重或章节聚合。
 
 ## 查询拆分对照
 

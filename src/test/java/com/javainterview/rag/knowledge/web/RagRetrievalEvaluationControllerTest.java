@@ -5,6 +5,8 @@ import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationCaseResu
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationComparisonReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
+import com.javainterview.rag.knowledge.evaluation.RagEvaluationStructureExpectation;
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.rag.RagRetrievalSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,14 +29,17 @@ class RagRetrievalEvaluationControllerTest {
         RagRetrievalEvaluationCaseResult caseResult = new RagRetrievalEvaluationCaseResult(
                 "java-collections-hashmap", "HashMap 问题", RagEvaluationCaseType.EXACT_TERM,
                 List.of("java/collections.md"), List.of(List.of("Java 集合", "HashMap")),
+                List.of(),
                 List.of(new RagRetrievalSource("java/collections.md", "version-1", 0,
                         List.of("Java 集合", "HashMap"), 0.91)),
                 true, 1, true, 1.0, 1.0, 1, 1.0,
+                0, 0.0, 0, 0.0, 0, 0.0,
                 false, false, false);
         when(service.evaluate()).thenReturn(new RagRetrievalEvaluationReport(
                 5, 0.0, 0.60, 1, 1, 0, 1, 1.0,
-                1, 1.0, 1.0, 1.0, 1, 1, 1.0, 0, 0.0,
-                List.of(caseResult)));
+                1, 1.0, 1.0, 1.0, 1, 1, 1.0, 0,
+                0, 0, 0.0, 0, 0, 0.0, 0, 0, 0.0,
+                0, 0.0, List.of(caseResult)));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new RagRetrievalEvaluationController(service)).build();
 
         mockMvc.perform(get("/api/knowledge/evaluations/retrieval"))
@@ -58,7 +63,9 @@ class RagRetrievalEvaluationControllerTest {
         RagRetrievalEvaluationService service = mock(RagRetrievalEvaluationService.class);
         RagRetrievalEvaluationReport report = new RagRetrievalEvaluationReport(
                 5, 0.0, 0.60, 0, 0, 0, 0, 0.0,
-                0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0, 0.0, List.of());
+                0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0,
+                0, 0, 0.0, 0, 0, 0.0, 0, 0, 0.0,
+                0, 0.0, List.of());
         when(service.compareQueryDecomposition()).thenReturn(new RagRetrievalEvaluationComparisonReport(
                 "deterministic-clause-rrf-v1", 1, 2,
                 Map.of("cross-map", List.of("原问题", "拆分问题")), report, report));
@@ -72,5 +79,36 @@ class RagRetrievalEvaluationControllerTest {
                 .andExpect(jsonPath("$.retrievalQueries.cross-map[1]").value("拆分问题"))
                 .andExpect(jsonPath("$.baseline.topK").value(5))
                 .andExpect(jsonPath("$.candidate.topK").value(5));
+    }
+
+    @Test
+    void returnsTheStructureRetrievalEvaluationReport() throws Exception {
+        RagRetrievalEvaluationService service = mock(RagRetrievalEvaluationService.class);
+        RagEvaluationStructureExpectation expectation = new RagEvaluationStructureExpectation(
+                "java/structured-java-notes.pdf", List.of("1. HashMap"), 1, KnowledgeBlockType.CODE);
+        RagRetrievalEvaluationCaseResult caseResult = new RagRetrievalEvaluationCaseResult(
+                "pdf-structure-code-treeify", "代码问题", RagEvaluationCaseType.DOCUMENT_STRUCTURE,
+                List.of("java/structured-java-notes.pdf"), List.of(List.of("1. HashMap")),
+                List.of(expectation),
+                List.of(new RagRetrievalSource("java/structured-java-notes.pdf", "version-1", 0,
+                        List.of("1. HashMap"), 0.91, 1, KnowledgeBlockType.CODE)),
+                true, 1, true, 1.0, 1.0, 1, 1.0,
+                1, 1.0, 1, 1.0, 1, 1.0,
+                false, false, false);
+        when(service.evaluateStructure()).thenReturn(new RagRetrievalEvaluationReport(
+                5, 0.0, 0.60, 1, 1, 0, 1, 1.0,
+                1, 1.0, 1.0, 1.0, 1, 1, 1.0, 1,
+                1, 1, 1.0, 1, 1, 1.0, 1, 1, 1.0,
+                0, 0.0, List.of(caseResult)));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new RagRetrievalEvaluationController(service)).build();
+
+        mockMvc.perform(get("/api/knowledge/evaluations/retrieval/structure"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.structureCaseCount").value(1))
+                .andExpect(jsonPath("$.pageNumberRecallRate").value(1.0))
+                .andExpect(jsonPath("$.blockTypeRecallRate").value(1.0))
+                .andExpect(jsonPath("$.structureRecallRate").value(1.0))
+                .andExpect(jsonPath("$.cases[0].expectedStructures[0].blockType").value("CODE"))
+                .andExpect(jsonPath("$.cases[0].actualSources[0].pageNumber").value(1));
     }
 }

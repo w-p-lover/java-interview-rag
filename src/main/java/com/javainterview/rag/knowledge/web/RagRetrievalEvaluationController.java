@@ -24,6 +24,11 @@ public class RagRetrievalEvaluationController {
         return evaluationService.evaluate();
     }
 
+    @GetMapping("/structure")
+    public RagRetrievalEvaluationReport evaluateStructure() {
+        return evaluationService.evaluateStructure();
+    }
+
     @GetMapping("/query-decomposition")
     public RagRetrievalEvaluationComparisonReport compareQueryDecomposition() {
         return evaluationService.compareQueryDecomposition();

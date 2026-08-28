@@ -15,7 +15,9 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
 - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
 - `GET /api/knowledge/evaluation-cases` 返回内置的固定评估题集，包含问题、期望逻辑来源和预期回答要点，不调用模型或数据库。
+- `GET /api/knowledge/evaluation-cases/structure` 返回 3 道合成 PDF 结构检索题，显式包含期望来源、完整标题路径、页码和内容块类型，不调用模型或数据库。
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。
+- `GET /api/knowledge/evaluations/retrieval/structure` 在 `storage` profile 下执行结构检索题，除来源与排序外统计标题路径、页码、块类型及四项联合匹配召回率；会产生 Embedding 检索，不调用 Chat。
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点及总体覆盖率；当前固定题集会产生 6 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
 - `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。
@@ -126,7 +128,7 @@ docker compose up -d mysql qdrant
 
 阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`，已执行到独立数据库 `java_interview_rag`；日志查询接口具备表结构前提，日志存储故障仍只会告警且不影响回答。
 
-固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 6 个基线问题，每题包含稳定标识、问题、期望逻辑来源和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 逐题比较实际命中来源和期望来源，并返回整体命中率。`POST /api/knowledge/evaluations/answers` 复用在线回答服务逐题生成回答，以 `normalized-literal-containment-v1` 规则统一大小写并移除非字母数字字符后比较完整要点，返回命中和未命中要点、实际来源及覆盖率。该指标是可重复的字面覆盖基线，不等同于语义正确率；接口会产生真实模型调用费用并写召回日志。题集不自动导入资料；调用方需要使用对应的逻辑来源导入真实 Markdown，才能得到有意义的真实批量结果。评估结果持久化与语义评分仍待后续实现。
+固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 20 个困难检索问题，每题包含稳定标识、问题、期望逻辑来源、完整标题路径和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 统计 Hit@1、Recall@5、MRR、标题路径召回和拒答准确率。独立的 3 道 PDF 结构题通过 `/api/knowledge/evaluation-cases/structure` 与 `/api/knowledge/evaluations/retrieval/structure` 验证页码、代码/表格/正文块类型和完整结构匹配，不扩大回答评估的 Chat 调用范围。`POST /api/knowledge/evaluations/answers` 仍只复用原 20 题在线回答服务，以 `normalized-literal-containment-v1` 比较完整要点；该指标不等同于语义正确率，接口会产生真实模型费用并写召回日志。仓库提供相应 Markdown 与合成 PDF 语料，真实检索仍必须在费用授权后运行。
 
 仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 5 份基线 Markdown，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 使用 `text-embedding-v3` 和现有 Qdrant collection 运行真实基线，6 道题均在第 1 位命中期望来源，首位相似度为 `0.6755` 至 `0.8585`；原始报告保存在 `evaluation/results/2026-07-25-retrieval-baseline.json`。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接重复执行对照。
 

@@ -11,6 +11,7 @@ public record RagRetrievalEvaluationCaseResult(
         RagEvaluationCaseType type,
         List<String> expectedSources,
         List<List<String>> expectedHeadingPaths,
+        List<RagEvaluationStructureExpectation> expectedStructures,
         List<RagRetrievalSource> actualSources,
         boolean expectedSourceMatched,
         Integer firstRelevantRank,
@@ -19,6 +20,12 @@ public record RagRetrievalEvaluationCaseResult(
         double reciprocalRank,
         int expectedHeadingPathHitCount,
         double headingPathRecall,
+        int expectedPageNumberHitCount,
+        double pageNumberRecall,
+        int expectedBlockTypeHitCount,
+        double blockTypeRecall,
+        int expectedStructureHitCount,
+        double structureRecall,
         boolean rejectionExpected,
         boolean rejectedAtAnswerThreshold,
         boolean rejectionCorrect
@@ -32,6 +39,7 @@ public record RagRetrievalEvaluationCaseResult(
         expectedHeadingPaths = Objects.requireNonNull(expectedHeadingPaths, "期望标题路径不能为空").stream()
                 .map(List::copyOf)
                 .toList();
+        expectedStructures = List.copyOf(Objects.requireNonNull(expectedStructures, "结构期望不能为空"));
         actualSources = List.copyOf(Objects.requireNonNull(actualSources, "实际来源不能为空"));
     }
 }

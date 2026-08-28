@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.evaluation;
 
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.junit.jupiter.api.Test;
@@ -129,6 +130,43 @@ class RagRetrievalEvaluationServiceTest {
         verify(searchService, times(1)).search(question, 5, 0.0);
     }
 
+    @Test
+    void calculatesPageBlockTypeAndCombinedStructureMetrics() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        FixedRagStructureEvaluationDataset structureDataset = mock(FixedRagStructureEvaluationDataset.class);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        RagEvaluationCase codeCase = structureCase(
+                "code", "代码问题", List.of("1. HashMap"), 1, KnowledgeBlockType.CODE);
+        RagEvaluationCase tableCase = structureCase(
+                "table", "表格问题", List.of("1. HashMap"), 1, KnowledgeBlockType.TABLE);
+        when(structureDataset.findAll()).thenReturn(List.of(codeCase, tableCase));
+        when(searchService.search("代码问题", 5, 0.0)).thenReturn(List.of(
+                result("代码", FixedRagStructureEvaluationDataset.STRUCTURED_PDF,
+                        List.of("1. HashMap"), 0.91, 1, KnowledgeBlockType.CODE)
+        ));
+        when(searchService.search("表格问题", 5, 0.0)).thenReturn(List.of(
+                result("错误页的表格", FixedRagStructureEvaluationDataset.STRUCTURED_PDF,
+                        List.of("1. HashMap"), 0.88, 2, KnowledgeBlockType.TABLE)
+        ));
+
+        RagRetrievalEvaluationReport report = new RagRetrievalEvaluationService(
+                dataset, structureDataset, searchService).evaluateStructure();
+
+        assertEquals(2, report.structureCaseCount());
+        assertEquals(2, report.expectedPageNumberCount());
+        assertEquals(1, report.expectedPageNumberHitCount());
+        assertEquals(0.5, report.pageNumberRecallRate());
+        assertEquals(2, report.expectedBlockTypeCount());
+        assertEquals(2, report.expectedBlockTypeHitCount());
+        assertEquals(1.0, report.blockTypeRecallRate());
+        assertEquals(2, report.expectedStructureCount());
+        assertEquals(1, report.expectedStructureHitCount());
+        assertEquals(0.5, report.structureRecallRate());
+        assertEquals(0.0, report.cases().get(1).pageNumberRecall());
+        assertEquals(1.0, report.cases().get(1).blockTypeRecall());
+        assertEquals(0.0, report.cases().get(1).structureRecall());
+    }
+
     private RagEvaluationCase evaluationCase(String id, String question, RagEvaluationCaseType type,
                                              List<String> expectedSources,
                                              List<List<String>> expectedHeadingPaths) {
@@ -137,7 +175,22 @@ class RagRetrievalEvaluationServiceTest {
     }
 
     private MarkdownSearchResult result(String content, String source, List<String> headingPath,
-                                        double similarity) {
+                                         double similarity) {
         return new MarkdownSearchResult(content, source, "version-1", 0, headingPath, similarity);
+    }
+
+    private MarkdownSearchResult result(String content, String source, List<String> headingPath,
+                                        double similarity, int pageNumber, KnowledgeBlockType blockType) {
+        return new MarkdownSearchResult(content, source, "version-1", 0, headingPath, similarity,
+                pageNumber, blockType);
+    }
+
+    private RagEvaluationCase structureCase(String id, String question, List<String> headingPath,
+                                            int pageNumber, KnowledgeBlockType blockType) {
+        RagEvaluationStructureExpectation expectation = new RagEvaluationStructureExpectation(
+                FixedRagStructureEvaluationDataset.STRUCTURED_PDF, headingPath, pageNumber, blockType);
+        return new RagEvaluationCase(id, question, RagEvaluationCaseType.DOCUMENT_STRUCTURE,
+                List.of(FixedRagStructureEvaluationDataset.STRUCTURED_PDF), List.of(headingPath),
+                List.of(expectation), List.of("回答要点"));
     }
 }

@@ -20,20 +20,31 @@ public class RagRetrievalEvaluationService {
     private static final String QUERY_DECOMPOSITION_STRATEGY = "deterministic-clause-rrf-v1";
 
     private final FixedRagEvaluationDataset dataset;
+    private final FixedRagStructureEvaluationDataset structureDataset;
     private final MarkdownSimilaritySearchService searchService;
     private final RagEvaluationQueryPlanner queryPlanner;
     private final RagEvaluationResultFusion resultFusion;
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          MarkdownSimilaritySearchService searchService) {
-        this(dataset, searchService, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+        this(dataset, new FixedRagStructureEvaluationDataset(), searchService,
+                new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+    }
+
+    public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                         FixedRagStructureEvaluationDataset structureDataset,
+                                         MarkdownSimilaritySearchService searchService) {
+        this(dataset, structureDataset, searchService,
+                new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
     RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                  FixedRagStructureEvaluationDataset structureDataset,
                                   MarkdownSimilaritySearchService searchService,
                                   RagEvaluationQueryPlanner queryPlanner,
                                   RagEvaluationResultFusion resultFusion) {
         this.dataset = Objects.requireNonNull(dataset, "固定评估题集不能为空");
+        this.structureDataset = Objects.requireNonNull(structureDataset, "固定结构评估题集不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.queryPlanner = Objects.requireNonNull(queryPlanner, "评估查询规划器不能为空");
         this.resultFusion = Objects.requireNonNull(resultFusion, "评估结果融合器不能为空");
@@ -44,6 +55,17 @@ public class RagRetrievalEvaluationService {
                 .map(evaluationCase -> evaluateCase(evaluationCase,
                         searchService.search(evaluationCase.question(),
                                 EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD).stream()
+                                .map(RagRetrievalSource::from)
+                                .toList()))
+                .toList();
+        return buildReport(results);
+    }
+
+    public RagRetrievalEvaluationReport evaluateStructure() {
+        List<RagRetrievalEvaluationCaseResult> results = structureDataset.findAll().stream()
+                .map(evaluationCase -> evaluateCase(evaluationCase,
+                        searchService.search(evaluationCase.question(),
+                                        EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD).stream()
                                 .map(RagRetrievalSource::from)
                                 .toList()))
                 .toList();
@@ -112,6 +134,21 @@ public class RagRetrievalEvaluationService {
         int expectedHeadingPathHitCount = answerableResults.stream()
                 .mapToInt(RagRetrievalEvaluationCaseResult::expectedHeadingPathHitCount)
                 .sum();
+        List<RagRetrievalEvaluationCaseResult> structureResults = answerableResults.stream()
+                .filter(result -> !result.expectedStructures().isEmpty())
+                .toList();
+        int expectedStructureCount = structureResults.stream()
+                .mapToInt(result -> result.expectedStructures().size())
+                .sum();
+        int expectedPageNumberHitCount = structureResults.stream()
+                .mapToInt(RagRetrievalEvaluationCaseResult::expectedPageNumberHitCount)
+                .sum();
+        int expectedBlockTypeHitCount = structureResults.stream()
+                .mapToInt(RagRetrievalEvaluationCaseResult::expectedBlockTypeHitCount)
+                .sum();
+        int expectedStructureHitCount = structureResults.stream()
+                .mapToInt(RagRetrievalEvaluationCaseResult::expectedStructureHitCount)
+                .sum();
         int correctRejectionCount = (int) noAnswerResults.stream()
                 .filter(RagRetrievalEvaluationCaseResult::rejectionCorrect)
                 .count();
@@ -133,6 +170,16 @@ public class RagRetrievalEvaluationService {
                 expectedHeadingPathCount,
                 expectedHeadingPathHitCount,
                 rate(expectedHeadingPathHitCount, expectedHeadingPathCount),
+                structureResults.size(),
+                expectedStructureCount,
+                expectedPageNumberHitCount,
+                rate(expectedPageNumberHitCount, expectedStructureCount),
+                expectedStructureCount,
+                expectedBlockTypeHitCount,
+                rate(expectedBlockTypeHitCount, expectedStructureCount),
+                expectedStructureCount,
+                expectedStructureHitCount,
+                rate(expectedStructureHitCount, expectedStructureCount),
                 correctRejectionCount,
                 rate(correctRejectionCount, noAnswerResults.size()),
                 results
@@ -154,6 +201,27 @@ public class RagRetrievalEvaluationService {
                 .filter(expectedPath -> actualSources.stream()
                         .anyMatch(actual -> actual.headingPath().equals(expectedPath)))
                 .count();
+        int pageNumberHitCount = (int) evaluationCase.expectedStructures().stream()
+                .distinct()
+                .filter(expected -> actualSources.stream().anyMatch(actual ->
+                        actual.source().equals(expected.source())
+                                && Objects.equals(actual.pageNumber(), expected.pageNumber())))
+                .count();
+        int blockTypeHitCount = (int) evaluationCase.expectedStructures().stream()
+                .distinct()
+                .filter(expected -> actualSources.stream().anyMatch(actual ->
+                        actual.source().equals(expected.source())
+                                && actual.blockType() == expected.blockType()))
+                .count();
+        int structureHitCount = (int) evaluationCase.expectedStructures().stream()
+                .distinct()
+                .filter(expected -> actualSources.stream().anyMatch(actual ->
+                        actual.source().equals(expected.source())
+                                && actual.headingPath().equals(expected.headingPath())
+                                && Objects.equals(actual.pageNumber(), expected.pageNumber())
+                                && actual.blockType() == expected.blockType()))
+                .count();
+        long expectedStructureCount = evaluationCase.expectedStructures().stream().distinct().count();
         boolean rejectionExpected = evaluationCase.type() == RagEvaluationCaseType.NO_ANSWER;
         boolean rejectedAtAnswerThreshold = actualSources.stream()
                 .map(RagRetrievalSource::similarity)
@@ -165,6 +233,7 @@ public class RagRetrievalEvaluationService {
                 evaluationCase.type(),
                 evaluationCase.expectedSources(),
                 evaluationCase.expectedHeadingPaths(),
+                evaluationCase.expectedStructures(),
                 actualSources,
                 expectedSourceHitCount > 0,
                 firstRelevantRank,
@@ -173,6 +242,12 @@ public class RagRetrievalEvaluationService {
                 firstRelevantRank == null ? 0.0 : 1.0 / firstRelevantRank,
                 headingPathHitCount,
                 rate(headingPathHitCount, evaluationCase.expectedHeadingPaths().stream().distinct().count()),
+                pageNumberHitCount,
+                rate(pageNumberHitCount, expectedStructureCount),
+                blockTypeHitCount,
+                rate(blockTypeHitCount, expectedStructureCount),
+                structureHitCount,
+                rate(structureHitCount, expectedStructureCount),
                 rejectionExpected,
                 rejectedAtAnswerThreshold,
                 rejectionExpected && rejectedAtAnswerThreshold
