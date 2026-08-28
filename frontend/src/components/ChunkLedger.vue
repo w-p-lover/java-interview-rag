@@ -19,10 +19,7 @@ const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockTyp
 <template>
   <section class="ledger" aria-labelledby="ledger-title" aria-live="polite">
     <header class="panel-heading">
-      <div>
-        <h3 id="ledger-title">导入结果</h3>
-        <p>核对稳定来源、内容版本与标题路径。</p>
-      </div>
+      <h3 id="ledger-title">导入结果</h3>
       <span v-if="result" class="chunk-count">{{ result.chunkCount }} 个切片</span>
     </header>
 
@@ -39,9 +36,20 @@ const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockTyp
     </div>
 
     <div v-else-if="!result" class="empty-ledger">
-      <span class="empty-symbol" aria-hidden="true">—</span>
-      <strong>等待导入资料</strong>
-      <p>完成导入后，这里会显示版本状态、标题结构和切片正文。</p>
+      <dl aria-label="本次导入结果">
+        <div>
+          <dt>来源</dt>
+          <dd>—</dd>
+        </div>
+        <div>
+          <dt>版本</dt>
+          <dd>—</dd>
+        </div>
+        <div>
+          <dt>切片</dt>
+          <dd>—</dd>
+        </div>
+      </dl>
     </div>
 
     <template v-else>
@@ -124,12 +132,6 @@ const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockTyp
   letter-spacing: 0;
 }
 
-.panel-heading p {
-  margin: var(--space-xs) 0 0;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
 .chunk-count {
   padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--radius-control);
@@ -142,11 +144,47 @@ const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockTyp
 .empty-ledger {
   display: grid;
   min-height: 22rem;
+  align-content: start;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+}
+
+.empty-ledger dl {
+  display: grid;
+  width: 100%;
+  margin: 0;
+}
+
+.empty-ledger dl div {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 4rem;
+  border-bottom: var(--rule-thin) solid var(--color-rule);
+}
+
+.empty-ledger dt,
+.empty-ledger dd {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.empty-ledger dt {
+  color: var(--color-muted);
+}
+
+.empty-ledger dd {
+  color: var(--color-faint);
+  font-family: var(--font-mono);
+}
+
+.empty-ledger.is-loading,
+.empty-ledger.is-error {
   place-items: center;
   align-content: center;
   padding: var(--space-xl);
-  border-radius: var(--radius-control);
-  background: var(--color-paper-2);
   text-align: center;
 }
 

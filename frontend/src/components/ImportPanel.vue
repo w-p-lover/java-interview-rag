@@ -102,11 +102,7 @@ function formatFileSize(size: number): string {
 <template>
   <section class="import-panel" aria-labelledby="import-title">
     <header class="panel-heading">
-      <div>
-        <h3 id="import-title">导入资料</h3>
-        <p class="panel-intro">用于长期检索的 Java 面试笔记、学习资料和项目技术说明均使用 Markdown。</p>
-      </div>
-      <span class="available-state">可操作</span>
+      <h3 id="import-title">导入知识资料</h3>
     </header>
 
     <form class="import-form" @submit.prevent="submitImport">
@@ -151,7 +147,7 @@ function formatFileSize(size: number): string {
           aria-describedby="source-helper"
           @input="handleSourceInput"
         />
-        <p id="source-helper">使用稳定名称记录版本；不会保存本机绝对路径。</p>
+        <p id="source-helper">同一来源用于识别后续版本。</p>
       </div>
 
       <div v-if="visibleError" class="error-message" role="alert">
@@ -174,7 +170,6 @@ function formatFileSize(size: number): string {
       </button>
     </form>
 
-    <footer class="session-note">逻辑来源与内容版本共同决定是否重复导入。</footer>
   </section>
 </template>
 
@@ -200,27 +195,6 @@ h3 {
   font-style: normal;
   font-weight: 700;
   letter-spacing: 0;
-}
-
-.panel-intro {
-  max-width: 45ch;
-  margin: var(--space-xs) 0 0;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-  line-height: 1.55;
-}
-
-.available-state {
-  flex: 0 0 auto;
-  padding: var(--space-2xs) var(--space-xs);
-  border: var(--rule-thin) solid var(--color-success-rule);
-  border-radius: var(--radius-control);
-  color: var(--color-success);
-  background: var(--color-success-soft);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .import-form,
@@ -422,14 +396,6 @@ h3 {
   animation: loading-spin 1s linear infinite;
 }
 
-.session-note {
-  margin: var(--space-md) 0 0;
-  padding-top: var(--space-sm);
-  color: var(--color-muted);
-  font-size: var(--text-xs);
-  line-height: 1.5;
-}
-
 @keyframes loading-spin {
   to { transform: rotate(1turn); }
 }
@@ -455,10 +421,6 @@ h3 {
 
   .panel-heading {
     display: grid;
-  }
-
-  .available-state {
-    justify-self: start;
   }
 
   .drop-zone {

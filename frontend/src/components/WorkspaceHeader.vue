@@ -31,9 +31,8 @@ const commands = computed<WorkspaceCommand[]>(() => {
     ];
   }
   return [
-    { id: "import-workbench", label: "资料导入", description: "选择 Markdown 文件并设置来源" },
-    { id: "pipeline", label: "处理阶段", description: "查看资料进入知识库的步骤" },
-    { id: "import-result", label: "导入结果", description: "检查内容版本和切片" },
+    { id: "import-workbench", label: "资料导入", description: "选择文件并设置来源" },
+    { id: "import-result", label: "导入结果", description: "查看版本和切片" },
   ];
 });
 
@@ -75,7 +74,6 @@ onUnmounted(() => {
         <span class="brand-mark" aria-hidden="true">J/</span>
         <span class="brand-copy">
           <strong>Java 面试台</strong>
-          <small>Practice desk</small>
         </span>
       </RouterLink>
 
@@ -94,12 +92,6 @@ onUnmounted(() => {
         </RouterLink>
       </nav>
 
-      <div class="rail-motif" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-
       <button
         ref="searchTrigger"
         class="search-trigger"
@@ -113,10 +105,6 @@ onUnmounted(() => {
         <kbd><Command :size="12" aria-hidden="true" /> K</kbd>
       </button>
 
-      <span class="session-state" aria-label="当前服务状态">
-        <span class="session-dot" aria-hidden="true"></span>
-        就绪
-      </span>
     </div>
 
     <CommandPalette
@@ -149,41 +137,9 @@ onUnmounted(() => {
   padding: var(--space-lg) var(--space-md);
 }
 
-.rail-motif {
-  display: flex;
-  align-items: end;
-  width: 2rem;
-  height: 1.75rem;
-  gap: var(--space-2xs);
-  margin: var(--space-2xl) 0 0 var(--space-sm);
-}
-
-.rail-motif span {
-  display: block;
-  width: var(--space-2xs);
-  height: var(--space-md);
-  border-radius: var(--radius-round);
-  background: var(--color-graphite-muted);
-}
-
-.rail-motif span:first-child {
-  height: 1.75rem;
-  background: var(--color-signal-rule);
-}
-
-.rail-motif span:nth-child(2) {
-  height: var(--space-lg);
-  background: var(--color-info-rule);
-}
-
-.rail-motif span:last-child {
-  height: var(--space-sm);
-}
-
 .brand,
 .nav-link,
-.search-trigger,
-.session-state {
+.search-trigger {
   min-height: 2.5rem;
   white-space: nowrap;
 }
@@ -220,14 +176,6 @@ onUnmounted(() => {
   letter-spacing: 0;
 }
 
-.brand small {
-  margin-top: var(--space-3xs);
-  color: var(--color-graphite-muted);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  text-transform: uppercase;
-}
-
 .header-links {
   display: grid;
   gap: var(--space-xs);
@@ -247,24 +195,6 @@ onUnmounted(() => {
   font-size: var(--text-sm);
   text-decoration: none;
   transition: background-color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
-}
-
-.nav-link::after {
-  color: currentColor;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-}
-
-.nav-link:first-child::after {
-  content: "01";
-}
-
-.nav-link:nth-child(2)::after {
-  content: "02";
-}
-
-.nav-link:last-child::after {
-  content: "03";
 }
 
 .nav-link.router-link-active,
@@ -302,24 +232,6 @@ onUnmounted(() => {
   background: var(--color-graphite);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-}
-
-.session-state {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-  padding-top: var(--space-md);
-  border-top: var(--rule-thin) solid var(--color-graphite-2);
-  color: var(--color-graphite-muted);
-  font-size: var(--text-sm);
-}
-
-.session-dot {
-  width: var(--space-xs);
-  height: var(--space-xs);
-  border-radius: var(--radius-round);
-  background: var(--color-success);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -373,10 +285,6 @@ onUnmounted(() => {
     margin-top: 0;
   }
 
-  .rail-motif {
-    display: none;
-  }
-
   .nav-link {
     display: inline-flex;
     min-height: 2.5rem;
@@ -406,8 +314,7 @@ onUnmounted(() => {
   }
 
   .search-trigger > span,
-  .search-trigger kbd,
-  .session-state {
+  .search-trigger kbd {
     display: none;
   }
 }

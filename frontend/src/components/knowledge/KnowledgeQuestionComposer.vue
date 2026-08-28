@@ -23,7 +23,6 @@ const canSubmit = computed(() => question.value.trim().length > 0
   && !props.busy);
 const copy = computed(() => props.mode === "search" ? {
   title: "查找资料",
-  description: "按主题或具体问题查找相关原文",
   label: "检索内容",
   placeholder: "例如：HashMap 红黑树转换条件",
   clearLabel: "清空当前检索",
@@ -31,7 +30,6 @@ const copy = computed(() => props.mode === "search" ? {
   submitLabel: "查找资料",
 } : {
   title: "你的问题",
-  description: "Java、项目实践或已导入资料中的具体问题",
   label: "问题",
   placeholder: "例如：HashMap 在什么条件下会从链表转换为红黑树？",
   clearLabel: "清空当前问答",
@@ -52,7 +50,6 @@ function handleKeydown(event: KeyboardEvent): void {
     <header>
       <div>
         <h2 id="question-title">{{ copy.title }}</h2>
-        <p>{{ copy.description }}</p>
       </div>
       <button
         v-if="question || hasResult"
@@ -124,8 +121,7 @@ header > div {
   gap: var(--space-2xs);
 }
 
-h2,
-p {
+h2 {
   margin: 0;
 }
 
@@ -134,7 +130,6 @@ h2 {
   font-size: var(--text-lg);
 }
 
-p,
 footer > span {
   color: var(--color-muted);
   font-size: var(--text-sm);

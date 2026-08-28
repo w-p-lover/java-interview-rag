@@ -1,5 +1,14 @@
 [
   {
+    "date": "2026-08-12",
+    "macrostructure": "Action Dock",
+    "theme": "Mist & Graphite",
+    "enrichment": "functional route dock",
+    "nav": "N9",
+    "footer": "none",
+    "brief": "精简资料导入首屏并以真实功能分流填补下方空间"
+  },
+  {
     "date": "2026-07-23",
     "macrostructure": "Workbench",
     "theme": "Coral",

@@ -10,7 +10,7 @@
 
 1. `AGENTS.md`。
 2. `README.md`。
-3. `docs/00-项目定位.md` 到 `docs/08-项目技术栈与功能总结.md`。
+3. `docs/00-项目定位.md` 到 `docs/09-后续开发路线.md`。
 4. 当前真实代码、配置、测试、`git status` 和 `git diff`。
 5. `C:\Users\IT074\Desktop\Java后端转AI应用与RAG方向规划报告.md`。
 

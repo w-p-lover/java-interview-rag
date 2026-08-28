@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, shallowRef } from "vue";
 import { FileSearch, LibraryBig, MessageCircleQuestion } from "@lucide/vue";
+import { useRoute } from "vue-router";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import KnowledgeAnswerPanel from "@/components/knowledge/KnowledgeAnswerPanel.vue";
@@ -20,7 +21,11 @@ import { useKnowledgeCatalog } from "@/composables/useKnowledgeCatalog";
 
 type KnowledgeMode = "catalog" | "search" | "answer";
 
-const activeMode = shallowRef<KnowledgeMode>("catalog");
+const route = useRoute();
+const initialMode = route.query.mode;
+const activeMode = shallowRef<KnowledgeMode>(
+  initialMode === "search" || initialMode === "answer" ? initialMode : "catalog",
+);
 
 const {
   question,
@@ -95,11 +100,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
 
   <main id="main-content" class="answer-workspace" tabindex="-1">
     <header class="answer-heading">
-      <div>
-        <span>资料检索与问答</span>
-        <h1>查资料或提问</h1>
-      </div>
-      <p>先确认当前资料范围，再浏览相关原文或发起可靠资料问答。</p>
+      <h1>知识问答</h1>
     </header>
 
     <div class="mode-switch" role="group" aria-label="资料使用方式">
@@ -162,10 +163,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
       />
       <section v-else class="detail-placeholder" aria-labelledby="detail-placeholder-title">
         <LibraryBig :size="28" aria-hidden="true" />
-        <div>
-          <h2 id="detail-placeholder-title">选择一份资料查看详情</h2>
-          <p>章节结构、版本历史和维护操作会显示在这里。</p>
-        </div>
+        <h2 id="detail-placeholder-title">选择资料查看详情</h2>
       </section>
     </div>
 
@@ -222,20 +220,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
   border-bottom: var(--rule-thin) solid var(--color-rule-2);
 }
 
-.answer-heading > div {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.answer-heading span {
-  color: var(--color-accent-strong);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 800;
-}
-
 h1,
-.answer-heading p,
 .error-banner {
   margin: 0;
 }
@@ -247,14 +232,6 @@ h1 {
   letter-spacing: 0;
   line-height: 1.1;
   text-wrap: balance;
-}
-
-.answer-heading p {
-  max-width: 52ch;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-  line-height: 1.6;
-  text-wrap: pretty;
 }
 
 .mode-switch {

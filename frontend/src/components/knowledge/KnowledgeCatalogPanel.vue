@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CircleAlert, FileText, Files, LibraryBig, RefreshCw } from "@lucide/vue";
+import { CircleAlert, FileText, LibraryBig, RefreshCw } from "@lucide/vue";
 
 import type { KnowledgeDocumentCatalogItem } from "@/api/knowledge";
 
@@ -46,7 +46,6 @@ function formatVersion(value: string): string {
   >
     <header class="catalog-header">
       <div>
-        <span>当前登记范围</span>
         <h2 id="catalog-title">资料目录</h2>
       </div>
       <div class="catalog-actions">
@@ -128,10 +127,6 @@ function formatVersion(value: string): string {
       </div>
     </div>
 
-    <footer class="catalog-note">
-      <Files :size="17" aria-hidden="true" />
-      <p>目录展示当前生效版本；详情保留历史登记，但不保存资料正文。</p>
-    </footer>
   </section>
 </template>
 
@@ -150,7 +145,6 @@ function formatVersion(value: string): string {
 .catalog-actions button,
 .catalog-empty,
 .catalog-empty button,
-.catalog-note,
 .detail-button {
   display: flex;
   align-items: center;
@@ -172,7 +166,6 @@ function formatVersion(value: string): string {
 .catalog-header span,
 .catalog-actions strong,
 .source-identity span,
-.catalog-note,
 .catalog-empty p,
 .catalog-list dt,
 .catalog-list dd {
@@ -183,7 +176,6 @@ function formatVersion(value: string): string {
 .catalog-header h2,
 .catalog-empty h3,
 .catalog-empty p,
-.catalog-note p,
 .catalog-list dl {
   margin: 0;
 }
@@ -336,8 +328,7 @@ function formatVersion(value: string): string {
   color: var(--color-muted);
 }
 
-.catalog-empty > svg,
-.catalog-note > svg {
+.catalog-empty > svg {
   flex: 0 0 auto;
   color: var(--color-accent);
 }
@@ -360,14 +351,6 @@ function formatVersion(value: string): string {
 .catalog-empty button {
   width: fit-content;
   margin-top: var(--space-xs);
-}
-
-.catalog-note {
-  align-items: flex-start;
-  gap: var(--space-sm);
-  padding-top: var(--space-sm);
-  border-top: var(--rule-thin) solid var(--color-rule);
-  line-height: 1.6;
 }
 
 .catalog-skeleton {

@@ -2,7 +2,7 @@ spring:
   application:
     name: java-interview-rag
   profiles:
-    default: local
+    default: storage
   ai:
     model:
       chat: none
@@ -24,4 +24,4 @@ spring:
       file-size-threshold: 10MB
 
 server:
-  port: 18080
+  port: 8080
