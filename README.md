@@ -104,6 +104,14 @@ npm run dev
 
 浏览器访问 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到本地后端。
 
+启动前端前，可以用零依赖冒烟脚本确认默认本地链路。脚本只适用于 `local` profile，不调用 Chat、Embedding、MySQL 或 Qdrant：
+
+```shell
+python evaluation/run_local_smoke.py
+```
+
+脚本会验证固定评估集读取、Markdown 首次导入、重复导入短路、来源删除、删除后 404，以及非法来源和未知路由的失败响应；执行结束会清理临时来源。
+
 ## MySQL 与 Qdrant
 
 项目采用独立数据库 `java_interview_rag` 和独立 Qdrant collection `java-interview-rag-chunks`，不会写入 `blog-springboot` 的业务数据。本地 Compose 使用 MySQL 8；当前共享服务器实际为 MySQL 5.7.36，仓库 SQL 同时兼容 5.7 与 8。
