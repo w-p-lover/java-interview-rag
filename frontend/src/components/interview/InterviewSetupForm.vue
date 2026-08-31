@@ -11,6 +11,7 @@ import { computed, reactive, watch } from "vue";
 
 import type { InterviewSessionStartPayload } from "@/api/interview";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
+import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue";
 import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
 import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
 
@@ -139,6 +140,12 @@ function handleSubmit(): void {
           :max-length="30000"
           placeholder="粘贴岗位要求，让题目更贴近目标岗位。"
           :busy="interactionBusy"
+        />
+
+        <ResumeJobMatchPanel
+          :target-role="form.targetRole"
+          :job-description="form.jobDescription"
+          :audit-result="auditStale ? null : auditResult"
         />
       </section>
 

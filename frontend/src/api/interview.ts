@@ -224,6 +224,24 @@ export interface ResumeEvidenceAuditResult {
   suggestions: readonly string[];
 }
 
+export type ResumeJobMatchStatus = "MATCHED" | "PARTIAL" | "MISSING" | "NEEDS_VERIFICATION";
+
+export interface ResumeJobMatchAssessment {
+  requirement: string;
+  requirementEvidence: string;
+  status: ResumeJobMatchStatus;
+  resumeEvidence: string | null;
+  explanation: string;
+}
+
+export interface ResumeJobMatchResult {
+  requestId: string;
+  role: "JOB_MATCH_ADVISOR";
+  promptVersion: string;
+  summary: string;
+  assessments: readonly ResumeJobMatchAssessment[];
+}
+
 export interface InterviewPdfPageExtraction {
   pageNumber: number;
   contentType: "TEXT" | "TEXT_WITH_IMAGES" | "IMAGE_ONLY" | "EMPTY";
@@ -250,6 +268,19 @@ export async function auditResumeEvidence(
   const response = await request.post<ResumeEvidenceAuditResult>(
     "/interviews/resume-audits",
     { resumeText },
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function analyzeResumeJobMatch(
+  targetRole: string,
+  jobDescription: string,
+  confirmedFacts: readonly ResumeEvidenceConfirmedFact[],
+): Promise<ResumeJobMatchResult> {
+  const response = await request.post<ResumeJobMatchResult>(
+    "/interviews/job-matches",
+    { targetRole, jobDescription, confirmedFacts },
     { timeout: 120_000 },
   );
   return response.data;
