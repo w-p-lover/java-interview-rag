@@ -136,7 +136,7 @@ docker compose up -d mysql qdrant
 ```
 
 `storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量，同时保留历史登记；手动重建要求重传精确来源和当前版本 Markdown 文件，写入失败时保留登记以便重试；显式淘汰先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，详情按 ID 倒序返回全部历史登记，并从版本登记的 `outline_json` 返回当前章节目录。新导入会保存目录快照；旧登记保持 `null`，只有当前版本向量重建成功后才补齐。部署存储 profile 前需执行 `deploy/mysql/init/014_knowledge_document_outline.sql`。版本写入失败并撤销登记后会自然回退到上一成功版本。默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
-简历证据审计和岗位匹配请求日志分别需要按顺序执行 `015_resume_evidence_audit_request_log.sql` 与 `016_resume_job_match_request_log.sql`；两张日志表都不保存简历、岗位描述、证据或模型正文。启用项目深挖会话前还需执行 `017_interview_session_mode.sql`，为现有会话补充默认 `STANDARD` 模式。
+简历证据审计和岗位匹配请求日志分别需要按顺序执行 `015_resume_evidence_audit_request_log.sql` 与 `016_resume_job_match_request_log.sql`；两张日志表都不保存简历、岗位描述、证据或模型正文。项目深挖会话迁移 `017_interview_session_mode.sql` 已在共享 MySQL 5.7.36 的独立库执行，为现有会话补充默认 `STANDARD` 模式。
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 
