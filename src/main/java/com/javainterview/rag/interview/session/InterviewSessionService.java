@@ -80,6 +80,12 @@ public class InterviewSessionService {
 
     public InterviewSession submitAnswer(String sessionId, int questionIndex,
                                          long expectedVersion, String answer) {
+        return submitAnswer(sessionId, questionIndex, expectedVersion, answer, null);
+    }
+
+    public InterviewSession submitAnswer(String sessionId, int questionIndex,
+                                         long expectedVersion, String answer,
+                                         String conversationContext) {
         String normalizedAnswer = requireText(answer, ANSWER_MAX_LENGTH,
                 "回答不能为空", "回答不能超过 10000 个字符");
         InterviewSession existing = find(sessionId);
@@ -90,8 +96,10 @@ public class InterviewSessionService {
             throw new InterviewSessionConflictException("面试会话已经完成");
         }
         InterviewQuestion currentQuestion = existing.questions().get(existing.currentQuestionIndex());
-        InterviewAnswerAssessment assessment = answerEvaluator.evaluate(
-                existing.profile(), currentQuestion, normalizedAnswer);
+        InterviewAnswerAssessment assessment = conversationContext == null
+                ? answerEvaluator.evaluate(existing.profile(), currentQuestion, normalizedAnswer)
+                : answerEvaluator.evaluateWithContext(existing.profile(), currentQuestion,
+                normalizedAnswer, conversationContext);
         InterviewQuestion followUpQuestion = existing.questions().size() < existing.maxQuestionCount()
                 ? assessment.followUpQuestion() : null;
         InterviewSession updated = existing.answer(

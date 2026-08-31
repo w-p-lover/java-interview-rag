@@ -10,13 +10,14 @@ import {
   scheduleInterviewReviewTask,
   startInterviewSession,
   startProjectDeepDiveSession as requestProjectDeepDiveSession,
-  submitInterviewAnswer,
+  submitInterviewAnswerStream,
   submitInterviewReviewAttempt,
   type InterviewReviewAttempt,
   type InterviewReviewSessionHistory,
   type InterviewReviewTask,
   type InterviewReviewTaskQuery,
   type InterviewSession,
+  type InterviewConversationEvent,
   type InterviewSessionStartPayload,
   type ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
@@ -58,6 +59,7 @@ export function useInterviewSession() {
   const reviewAttemptsLoadingTaskId = shallowRef("");
   const submittingReviewAttemptTaskId = shallowRef("");
   const reviewAttemptError = shallowRef("");
+  const conversationStage = shallowRef<InterviewConversationEvent | null>(null);
 
   const currentQuestion = computed(() => {
     if (!session.value || session.value.status === "COMPLETED") {
@@ -174,13 +176,15 @@ export function useInterviewSession() {
       return;
     }
     loading.value = true;
+    conversationStage.value = null;
     error.value = "";
     try {
-      const updated = await submitInterviewAnswer(
+      const updated = await submitInterviewAnswerStream(
         activeSession.id,
         activeSession.currentQuestionIndex,
         activeSession.version,
         answer,
+        (event) => { conversationStage.value = event; },
       );
       session.value = updated;
       rememberRecentSession(updated);
@@ -439,6 +443,7 @@ export function useInterviewSession() {
     reviewAttemptsLoadingTaskId,
     submittingReviewAttemptTaskId,
     reviewAttemptError,
+    conversationStage,
     submitReviewAttempt,
     reset,
   };

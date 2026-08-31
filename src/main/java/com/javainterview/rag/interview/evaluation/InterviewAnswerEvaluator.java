@@ -11,6 +11,15 @@ public interface InterviewAnswerEvaluator {
                                        InterviewQuestion question,
                                        String answer);
 
+    /** 使用当前会话的受控上下文评价回答。 */
+    default InterviewAnswerAssessment evaluateWithContext(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            String conversationContext) {
+        return evaluate(profile, question, answer);
+    }
+
     default InterviewAnswerAssessment evaluateForReview(
             InterviewPreparationProfile profile,
             InterviewQuestion question,

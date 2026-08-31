@@ -4,6 +4,8 @@ import com.javainterview.rag.interview.deepdive.ProjectDeepDiveSessionStartServi
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionService;
+import com.javainterview.rag.interview.session.InterviewConversationContext;
+import com.javainterview.rag.interview.session.InterviewConversationEvent;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,9 +19,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.http.MediaType;
 
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.List;
 
 @RestController
 @Profile("storage")
@@ -81,6 +86,70 @@ public class InterviewSessionController {
                                          @RequestBody InterviewAnswerSubmissionRequest request) {
         return sessionService.submitAnswer(
                 sessionId, request.questionIndex(), request.expectedVersion(), request.answer());
+    }
+
+    @PostMapping(value = "/{sessionId}/answers/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "流式提交面试回答", description = "先推送评价阶段事件，最后推送完整会话结果")
+    public SseEmitter submitAnswerStream(@PathVariable String sessionId,
+                                         @RequestBody InterviewAnswerSubmissionRequest request) {
+        SseEmitter emitter = new SseEmitter(180_000L);
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                InterviewSession existing = sessionService.find(sessionId);
+                send(emitter, event("ANSWER_SUBMITTED", 1, request.questionIndex(),
+                        "已收到回答，开始处理"));
+                send(emitter, event("EVALUATION_STARTED", 2, request.questionIndex(),
+                        "正在结合本场上下文进行结构化评价"));
+                InterviewSession updated = sessionService.submitAnswer(
+                        sessionId, request.questionIndex(), request.expectedVersion(), request.answer(),
+                        InterviewConversationContext.from(existing));
+                send(emitter, event("EVALUATION_COMPLETED", 3, request.questionIndex(),
+                        "结构化评价已完成"));
+                if (updated.status() == com.javainterview.rag.interview.session.InterviewSessionStatus.COMPLETED) {
+                    send(emitter, event("SESSION_COMPLETED", 4, request.questionIndex(), "本场面试已完成"));
+                } else if (updated.questions().size() > existing.questions().size()) {
+                    send(emitter, event("FOLLOW_UP_GENERATED", 4, updated.currentQuestionIndex(),
+                            "已生成下一步追问"));
+                }
+                emitter.send(SseEmitter.event().name("session").data(updated));
+                emitter.complete();
+            } catch (Exception exception) {
+                try {
+                    emitter.send(SseEmitter.event().name("error").data(Map.of("message", exception.getMessage())));
+                } catch (Exception ignored) {
+                    // 连接已关闭时无需重复处理
+                }
+                emitter.completeWithError(exception);
+            }
+        });
+        return emitter;
+    }
+
+    @GetMapping("/{sessionId}/events")
+    @Operation(summary = "查询会话事件时间线", description = "根据已保存会话状态重建阶段事件，不保存回答正文")
+    public List<InterviewConversationEvent> events(@PathVariable String sessionId) {
+        InterviewSession session = sessionService.find(sessionId);
+        List<InterviewConversationEvent> events = new java.util.ArrayList<>();
+        int sequence = 1;
+        for (var answer : session.answers()) {
+            events.add(event("ANSWER_SUBMITTED", sequence++, answer.questionIndex(), "已提交回答"));
+            events.add(event("EVALUATION_COMPLETED", sequence++, answer.questionIndex(), "结构化评价已完成"));
+        }
+        if (session.status() == com.javainterview.rag.interview.session.InterviewSessionStatus.COMPLETED) {
+            events.add(event("SESSION_COMPLETED", sequence, session.currentQuestionIndex() - 1, "本场面试已完成"));
+        } else if (session.currentQuestionIndex() > 0) {
+            events.add(event("FOLLOW_UP_GENERATED", sequence, session.currentQuestionIndex(), "当前题目已准备就绪"));
+        }
+        return events;
+    }
+
+    private void send(SseEmitter emitter, InterviewConversationEvent event) throws java.io.IOException {
+        emitter.send(SseEmitter.event().name("stage").data(event));
+    }
+
+    private InterviewConversationEvent event(String type, int sequence, int questionIndex, String summary) {
+        return new InterviewConversationEvent(type, sequence, questionIndex, summary,
+                java.time.LocalDateTime.now());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

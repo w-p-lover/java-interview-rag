@@ -91,6 +91,14 @@ export interface InterviewSession {
   updatedAt: string;
 }
 
+export interface InterviewConversationEvent {
+  type: "ANSWER_SUBMITTED" | "EVALUATION_STARTED" | "EVALUATION_COMPLETED" | "FOLLOW_UP_GENERATED" | "SESSION_COMPLETED";
+  sequence: number;
+  questionIndex: number;
+  summary: string;
+  occurredAt: string;
+}
+
 export interface InterviewReviewKnowledgeSource {
   source: string;
   documentVersion: string;
@@ -377,6 +385,46 @@ export async function submitInterviewAnswer(
     { timeout: 120_000 },
   );
   return response.data;
+}
+
+export async function submitInterviewAnswerStream(
+  sessionId: string,
+  questionIndex: number,
+  expectedVersion: number,
+  answer: string,
+  onStage: (event: InterviewConversationEvent) => void,
+): Promise<InterviewSession> {
+  const response = await fetch(`/api/interviews/sessions/${sessionId}/answers/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify({ questionIndex, expectedVersion, answer }),
+  });
+  if (!response.ok || !response.body) {
+    const body = await response.json().catch(() => ({})) as { message?: string };
+    throw new Error(body.message || `提交回答失败，后端返回 ${response.status}。`);
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: InterviewSession | null = null;
+  while (true) {
+    const read = await reader.read();
+    buffer += decoder.decode(read.value || new Uint8Array(), { stream: !read.done });
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() || "";
+    for (const frame of frames) {
+      const eventName = frame.match(/^event:\s*(.+)$/m)?.[1]?.trim();
+      const data = frame.match(/^data:\s*(.+)$/m)?.[1];
+      if (!data) continue;
+      const payload = JSON.parse(data) as InterviewConversationEvent | InterviewSession | { message?: string };
+      if (eventName === "stage") onStage(payload as InterviewConversationEvent);
+      if (eventName === "session") result = payload as InterviewSession;
+      if (eventName === "error") throw new Error((payload as { message?: string }).message || "提交回答失败");
+    }
+    if (read.done) break;
+  }
+  if (!result) throw new Error("面试评价未返回完整会话结果");
+  return result;
 }
 
 export async function generateInterviewReviewTasks(

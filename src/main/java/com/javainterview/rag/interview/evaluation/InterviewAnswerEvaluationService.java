@@ -63,6 +63,15 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
+                                                         InterviewQuestion question,
+                                                         String answer,
+                                                         String conversationContext) {
+        Objects.requireNonNull(conversationContext, "会话上下文不能为空");
+        return evaluate(profile, question, answer, List.of(), true, conversationContext);
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateForReview(
             InterviewPreparationProfile profile,
             InterviewQuestion question,
@@ -102,13 +111,23 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                 String answer,
                                                 List<InterviewAnswerPreviousAttempt> previousAttempts,
                                                 boolean allowFollowUp) {
+        return evaluate(profile, question, answer, previousAttempts, allowFollowUp, "（暂无会话上下文）");
+    }
+
+    private InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
+                                                InterviewQuestion question,
+                                                String answer,
+                                                List<InterviewAnswerPreviousAttempt> previousAttempts,
+                                                boolean allowFollowUp,
+                                                String conversationContext) {
         Objects.requireNonNull(profile, "面试准备画像不能为空");
         Objects.requireNonNull(question, "面试题不能为空");
         if (answer == null || answer.isBlank()) {
             throw new IllegalArgumentException("回答不能为空");
         }
         InterviewAnswerEvaluationDraft draft = chatClient.prompt(
-                        buildPrompt(profile, question, answer, previousAttempts, allowFollowUp))
+                        buildPrompt(profile, question, answer, previousAttempts, allowFollowUp,
+                                conversationContext))
                 .call()
                 .entity(InterviewAnswerEvaluationDraft.class);
         if (draft == null) {
@@ -143,7 +162,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                InterviewQuestion question,
                                String answer,
                                List<InterviewAnswerPreviousAttempt> previousAttempts,
-                               boolean allowFollowUp) {
+                               boolean allowFollowUp,
+                               String conversationContext) {
         String sources = question.knowledgeSources().isEmpty()
                 ? "（无可靠知识资料）"
                 : IntStream.range(0, question.knowledgeSources().size())
@@ -163,6 +183,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                 + "\n当前题目：" + question.question()
                 + "\n考察目标：" + question.objective()
                 + "\n候选人回答：\n<answer>\n" + answer + "\n</answer>"
+                + "\n\n当前会话上下文（仅限本场面试最近摘要，不得当作当前回答证据）：\n"
+                + conversationContext
                 + "\n\n历史复习回答（仅用于比较改进，不得当作当前回答）：\n" + history
                 + "\n\n知识资料：\n" + sources;
     }

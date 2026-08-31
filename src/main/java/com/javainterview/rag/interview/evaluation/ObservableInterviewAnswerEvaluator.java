@@ -30,6 +30,15 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
+                                                         InterviewQuestion question,
+                                                         String answer,
+                                                         String conversationContext) {
+        return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
+                () -> delegate.evaluateWithContext(profile, question, answer, conversationContext));
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateForReview(
             InterviewPreparationProfile profile,
             InterviewQuestion question,

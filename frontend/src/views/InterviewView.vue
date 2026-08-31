@@ -41,6 +41,7 @@ const {
   reviewAttemptsLoadingTaskId,
   submittingReviewAttemptTaskId,
   reviewAttemptError,
+  conversationStage,
   initialize,
   restore,
   start,
@@ -180,6 +181,9 @@ function handleAssistantScheduled(): void {
       </div>
 
       <section v-else-if="currentQuestion" class="interview-grid">
+        <p v-if="loading && conversationStage" class="conversation-stage" aria-live="polite">
+          {{ conversationStage.summary }}
+        </p>
         <InterviewQuestionPanel
           id="current-question"
           :question="currentQuestion"
@@ -236,6 +240,16 @@ function handleAssistantScheduled(): void {
 .completion-stack {
   display: grid;
   gap: var(--space-md);
+}
+
+.conversation-stage {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-muted);
+  background: var(--color-paper-2);
+  font-size: var(--text-sm);
 }
 
 @media (max-width: 62rem) {
