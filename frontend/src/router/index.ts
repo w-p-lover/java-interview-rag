@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import("@/views/InterviewView.vue"),
     },
     {
+      path: "/observability",
+      name: "observability",
+      component: () => import("@/views/ObservabilityView.vue"),
+    },
+    {
       path: "/answer",
       name: "knowledge-answer",
       component: () => import("@/views/KnowledgeAnswerView.vue"),

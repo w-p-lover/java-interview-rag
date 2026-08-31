@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { BookOpen, Command, Database, MessageCircleQuestion, Search } from "@lucide/vue";
+import { Activity, BookOpen, Command, Database, MessageCircleQuestion, Search } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,7 +8,7 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview";
+  mode?: "knowledge" | "answer" | "interview" | "observability";
 }>(), {
   mode: "knowledge",
 });
@@ -28,6 +28,12 @@ const commands = computed<WorkspaceCommand[]>(() => {
       { id: "knowledge-question", label: "提出问题", description: "编辑当前要查询的问题" },
       { id: "knowledge-answer", label: "查看回答", description: "回到本次资料库回答" },
       { id: "knowledge-sources", label: "依据资料", description: "核对命中的原始资料" },
+    ];
+  }
+  if (props.mode === "observability") {
+    return [
+      { id: "observability-overview", label: "运行概览", description: "查看业务请求和失败率" },
+      { id: "observability-operations", label: "路由表现", description: "查看各业务路由耗时" },
     ];
   }
   return [
@@ -89,6 +95,10 @@ onUnmounted(() => {
         <RouterLink to="/interview" class="nav-link" aria-label="打开面试训练">
           <BookOpen :size="16" aria-hidden="true" />
           <span>面试训练</span>
+        </RouterLink>
+        <RouterLink to="/observability" class="nav-link" aria-label="打开运行观测">
+          <Activity :size="16" aria-hidden="true" />
+          <span>运行观测</span>
         </RouterLink>
       </nav>
 
