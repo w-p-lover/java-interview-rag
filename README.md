@@ -23,6 +23,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。
 - `POST /api/interviews/job-matches` 只接收岗位描述和已确认简历事实，返回已有证据、部分覆盖、尚无证据和需要核对的岗位要求；岗位原文与简历证据均由 Java 服务端逐字验真，不接收或保存原始简历。
 - `GET /api/interviews/job-matches/requests?limit=20` 查询岗位匹配模型请求的脱敏元数据，包括模型、Prompt、token、耗时、状态和失败类型，不返回岗位描述、简历证据或匹配正文。
+- `POST /api/interviews/project-deep-dives` 只接收一条 `PROJECT` 类型的已确认事实，确定性生成基础、取舍、故障和扩展四类深挖题；默认不调用模型或向量检索，显式开启后只读检索知识库并把真实来源作为答题背景，不用资料补写项目经历。
 - `POST /api/interviews/questions` 在 `storage` profile 下接收目标岗位和已确认的面试准备画像，通过一次结构化模型调用生成 3 到 8 道首轮面试题；每题返回考察目标、画像依据类型、知识检索查询、可靠知识命中状态和实际 Markdown chunk 来源。
 - `POST /api/interviews/sessions/start` 接收目标岗位、简历、可选 JD、初始题数与整场题数上限，一次完成画像、首轮出题和持久化会话创建；默认首轮 5 道、整场最多 8 道，整场上限可配置到 12 道。
 - `POST /api/interviews/sessions` 保存已有目标岗位、确认画像和题目，创建 `IN_PROGRESS` 文本面试会话。
@@ -45,6 +46,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId`、实际总分是否落入宽松预期区间，以及成功评价的回答证据/知识证据条数；不返回引文正文。五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。
 - Vue `/interview` 在简历证据检查完成且填写岗位描述后提供岗位匹配顾问；岗位描述、目标岗位或审计结果变化后旧结果标记为待更新，匹配失败不阻断开始面试。
+- Vue `/interview` 在简历证据检查确认到项目后提供项目深挖面试官：可以切换已确认项目、显式选择是否补充资料库背景，并查看固定四维问题与可展开的真实来源；项目或审计结果变化后旧结果标记为待更新。
 - 正式面试、复习作答和固定基线评分统一记录 Prompt/rubric/model、分数、知识依据状态、耗时、状态与失败类型；基线日志额外记录运行 UUID 和稳定样本 ID，正式/复习日志保持为空。评价日志不保存简历、题目、回答或知识正文，日志写入失败不影响主评价。证据化 `v3/v2` 两轮基线共执行 8 次 Chat 并写入 10 条日志，8 次成功评价均通过证据验真且分数落入预期区间；完整回答两次均为 `93`，部分回答为 `63/70`，无知识来源回答为 `63/53`，无关回答为 `3/17`。脱敏结果保存在 `evaluation/results/2026-08-08-verifiable-interview-answer-baseline.json`；两轮观测证明当前结构可用，但不足以宣称长期评分稳定或版本优于 `v2/v1`。
 - 逻辑来源按大小写敏感的精确字符串区分，不能包含首尾空白。
 - 后端返回内容版本、首次或重复导入状态，以及保留标题路径和顺序的 chunk。

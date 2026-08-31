@@ -11,6 +11,7 @@ import { computed, reactive, watch } from "vue";
 
 import type { InterviewSessionStartPayload } from "@/api/interview";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
+import ProjectDeepDivePanel from "@/components/interview/ProjectDeepDivePanel.vue";
 import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue";
 import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
 import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
@@ -147,6 +148,8 @@ function handleSubmit(): void {
           :job-description="form.jobDescription"
           :audit-result="auditStale ? null : auditResult"
         />
+
+        <ProjectDeepDivePanel :audit-result="auditStale ? null : auditResult" />
       </section>
 
       <aside class="settings" aria-labelledby="settings-title">

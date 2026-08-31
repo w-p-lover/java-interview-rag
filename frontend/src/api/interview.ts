@@ -242,6 +242,39 @@ export interface ResumeJobMatchResult {
   assessments: readonly ResumeJobMatchAssessment[];
 }
 
+export type ProjectDeepDiveDimension = "FOUNDATION" | "TRADE_OFF" | "FAILURE" | "EVOLUTION";
+
+export interface ProjectDeepDiveKnowledgeSource {
+  content: string;
+  source: string;
+  documentVersion: string;
+  chunkOrder: number;
+  headingPath: string[];
+  similarity: number | null;
+  pageNumber: number | null;
+  blockType: string;
+}
+
+export interface ProjectDeepDiveQuestion {
+  dimension: ProjectDeepDiveDimension;
+  question: string;
+  objective: string;
+  basisEvidence: string;
+  knowledgeQuery: string;
+  knowledgeGrounded: boolean;
+  knowledgeSources: readonly ProjectDeepDiveKnowledgeSource[];
+}
+
+export interface ProjectDeepDiveResult {
+  strategyVersion: "project-deep-dive-v1";
+  project: {
+    statement: string;
+    evidence: string;
+  };
+  knowledgeIncluded: boolean;
+  questions: readonly ProjectDeepDiveQuestion[];
+}
+
 export interface InterviewPdfPageExtraction {
   pageNumber: number;
   contentType: "TEXT" | "TEXT_WITH_IMAGES" | "IMAGE_ONLY" | "EMPTY";
@@ -282,6 +315,18 @@ export async function analyzeResumeJobMatch(
     "/interviews/job-matches",
     { targetRole, jobDescription, confirmedFacts },
     { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function generateProjectDeepDive(
+  project: ResumeEvidenceConfirmedFact,
+  includeKnowledge: boolean,
+): Promise<ProjectDeepDiveResult> {
+  const response = await request.post<ProjectDeepDiveResult>(
+    "/interviews/project-deep-dives",
+    { project, includeKnowledge },
+    { timeout: 30_000 },
   );
   return response.data;
 }
