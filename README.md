@@ -15,6 +15,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
   - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
   - `POST /api/knowledge/answer/stream` 在 `storage` profile 下以 SSE 增量返回同一套 RAG 回答；最后一个 `complete` 事件携带最终回答、可靠资料状态和来源列表。
 - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
+- `GET /actuator/health`、`GET /actuator/info` 和 `GET /actuator/metrics` 提供本地运行状态、HTTP 请求及 Spring AI 调用指标；默认不暴露 Prompt、简历、回答或向量查询正文。
 - `GET /api/knowledge/evaluation-cases` 返回内置的固定评估题集，包含问题、期望逻辑来源和预期回答要点，不调用模型或数据库。
 - `GET /api/knowledge/evaluation-cases/structure` 返回 3 道合成 PDF 结构检索题，显式包含期望来源、完整标题路径、页码和内容块类型，不调用模型或数据库。
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。

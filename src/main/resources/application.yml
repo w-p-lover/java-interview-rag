@@ -6,6 +6,13 @@ spring:
   ai:
     model:
       chat: none
+    chat:
+      observations:
+        log-prompt: false
+        log-completion: false
+    vectorstore:
+      observations:
+        log-query-response: false
   autoconfigure:
     exclude:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
@@ -27,3 +34,18 @@ spring:
 
 server:
   port: 18080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+  observations:
+    key-values:
+      application: java-interview-rag
+  metrics:
+    tags:
+      application: java-interview-rag
