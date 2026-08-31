@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
 
-import type { InterviewReviewTaskQuery, InterviewSessionStartPayload } from "@/api/interview";
+import type {
+  InterviewReviewTaskQuery,
+  InterviewSessionStartPayload,
+  ProjectDeepDiveSessionStartPayload,
+} from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
@@ -40,6 +44,7 @@ const {
   initialize,
   restore,
   start,
+  startProjectDeepDive,
   submit,
   generateReviewTasks,
   completeReviewTask,
@@ -60,6 +65,10 @@ onMounted(initialize);
 
 function handleStart(payload: InterviewSessionStartPayload): void {
   void start(payload);
+}
+
+function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload): void {
+  void startProjectDeepDive(payload);
 }
 
 function handleSubmit(answer: string): void {
@@ -110,6 +119,7 @@ function handleAssistantScheduled(): void {
         id="interview-setup"
         :busy="loading"
         @start="handleStart"
+        @start-project-deep-dive="handleProjectDeepDiveStart"
       />
       <InterviewRecentSessionsPanel
         :sessions="recentSessions"
@@ -123,6 +133,7 @@ function handleAssistantScheduled(): void {
     <template v-else>
       <InterviewSessionBar
         :target-role="session.targetRole"
+        :mode="session.mode"
         :status="session.status"
         :current-question-index="session.currentQuestionIndex"
         :question-count="session.questions.length"
@@ -136,6 +147,7 @@ function handleAssistantScheduled(): void {
           id="interview-report"
           :report="session.report"
           :target-role="session.targetRole"
+          :mode="session.mode"
           @restart="reset"
         />
         <InterviewReviewAssistantPanel

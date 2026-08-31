@@ -9,7 +9,10 @@ import {
 } from "@lucide/vue";
 import { computed, reactive, watch } from "vue";
 
-import type { InterviewSessionStartPayload } from "@/api/interview";
+import type {
+  InterviewSessionStartPayload,
+  ProjectDeepDiveSessionStartPayload,
+} from "@/api/interview";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
 import ProjectDeepDivePanel from "@/components/interview/ProjectDeepDivePanel.vue";
 import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue";
@@ -22,6 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   start: [payload: InterviewSessionStartPayload];
+  startProjectDeepDive: [payload: ProjectDeepDiveSessionStartPayload];
 }>();
 
 interface InterviewSetupFormData {
@@ -81,6 +85,10 @@ function handleSubmit(): void {
     initialQuestionCount: form.initialQuestionCount,
     maxQuestionCount: form.maxQuestionCount,
   });
+}
+
+function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload): void {
+  emit("startProjectDeepDive", payload);
 }
 </script>
 
@@ -149,7 +157,12 @@ function handleSubmit(): void {
           :audit-result="auditStale ? null : auditResult"
         />
 
-        <ProjectDeepDivePanel :audit-result="auditStale ? null : auditResult" />
+        <ProjectDeepDivePanel
+          :audit-result="auditStale ? null : auditResult"
+          :target-role="form.targetRole"
+          :busy="interactionBusy"
+          @start="handleProjectDeepDiveStart"
+        />
       </section>
 
       <aside class="settings" aria-labelledby="settings-title">

@@ -37,6 +37,7 @@ class InterviewSessionServiceTest {
         InterviewSession session = service.start(" Java AI 应用开发工程师 ", profile(), questions());
 
         assertEquals("Java AI 应用开发工程师", session.targetRole());
+        assertEquals(InterviewSessionMode.STANDARD, session.mode());
         assertEquals(InterviewSessionStatus.IN_PROGRESS, session.status());
         assertEquals(0, session.currentQuestionIndex());
         assertEquals(0L, session.version());
@@ -150,6 +151,7 @@ class InterviewSessionServiceTest {
         InterviewSession session = new InterviewSession(
                 "session-1",
                 "Java AI 应用开发工程师",
+                InterviewSessionMode.STANDARD,
                 profile(),
                 questions(),
                 8,

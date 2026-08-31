@@ -2,6 +2,7 @@
 import {
   AlertTriangle,
   BookOpenCheck,
+  Play,
   RefreshCw,
   Search,
   Target,
@@ -17,6 +18,16 @@ import { useProjectDeepDive } from "@/composables/useProjectDeepDive";
 
 const props = defineProps<{
   auditResult: ResumeEvidenceAuditResult | null;
+  targetRole: string;
+  busy: boolean;
+}>();
+
+const emit = defineEmits<{
+  start: [payload: {
+    targetRole: string;
+    project: ResumeEvidenceConfirmedFact;
+    includeKnowledge: boolean;
+  }];
 }>();
 
 const selectedProjectKey = shallowRef("");
@@ -67,6 +78,9 @@ const actionLabel = computed(() => {
   if (loading.value) return "正在生成…";
   return result.value ? "重新生成" : "生成深挖题";
 });
+const canStartSession = computed(() => Boolean(
+  selectedProject.value && props.targetRole.trim() && !props.busy,
+));
 
 function factKey(fact: ResumeEvidenceConfirmedFact): string {
   return `${fact.type}\u0000${fact.statement}\u0000${fact.evidence}`;
@@ -74,6 +88,15 @@ function factKey(fact: ResumeEvidenceConfirmedFact): string {
 
 function handleGenerate(): void {
   void generate();
+}
+
+function handleStart(): void {
+  if (!selectedProject.value || !canStartSession.value) return;
+  emit("start", {
+    targetRole: props.targetRole.trim(),
+    project: selectedProject.value,
+    includeKnowledge: includeKnowledge.value,
+  });
 }
 </script>
 
@@ -87,16 +110,27 @@ function handleGenerate(): void {
           <p>围绕一个已确认项目，固定覆盖基础、取舍、故障和扩展。</p>
         </div>
       </div>
-      <button
-        type="button"
-        class="deep-dive-action"
-        :disabled="!canGenerate || loading"
-        @click="handleGenerate"
-      >
-        <RefreshCw v-if="result" :size="16" aria-hidden="true" />
-        <Search v-else :size="16" aria-hidden="true" />
-        <span>{{ actionLabel }}</span>
-      </button>
+      <div class="deep-dive-actions">
+        <button
+          type="button"
+          class="deep-dive-action deep-dive-action--secondary"
+          :disabled="!canGenerate || loading || props.busy"
+          @click="handleGenerate"
+        >
+          <RefreshCw v-if="result" :size="16" aria-hidden="true" />
+          <Search v-else :size="16" aria-hidden="true" />
+          <span>{{ actionLabel }}</span>
+        </button>
+        <button
+          type="button"
+          class="deep-dive-action"
+          :disabled="!canStartSession || loading"
+          @click="handleStart"
+        >
+          <Play :size="16" aria-hidden="true" />
+          <span>{{ props.busy ? "正在开始…" : "开始项目深挖" }}</span>
+        </button>
+      </div>
     </header>
 
     <p v-if="!props.auditResult" class="deep-dive-empty">
@@ -183,6 +217,7 @@ function handleGenerate(): void {
 
 .deep-dive-heading,
 .deep-dive-title,
+.deep-dive-actions,
 .deep-dive-action,
 .deep-dive-empty,
 .deep-dive-error,
@@ -196,6 +231,11 @@ function handleGenerate(): void {
 .deep-dive-heading {
   justify-content: space-between;
   gap: var(--space-md);
+}
+
+.deep-dive-actions {
+  flex: 0 0 auto;
+  gap: var(--space-xs);
 }
 
 .deep-dive-title {
@@ -260,16 +300,22 @@ function handleGenerate(): void {
   padding-inline: var(--space-md);
   border: var(--rule-thin) solid var(--color-accent);
   border-radius: var(--radius-control);
-  color: var(--color-accent);
-  background: transparent;
+  color: var(--color-accent-ink);
+  background: var(--color-accent);
   cursor: pointer;
   font-size: var(--text-sm);
   font-weight: 700;
 }
 
+.deep-dive-action--secondary {
+  color: var(--color-accent);
+  background: transparent;
+}
+
 .deep-dive-action:disabled {
   border-color: var(--color-rule-2);
   color: var(--color-faint);
+  background: var(--color-paper-2);
   cursor: not-allowed;
 }
 
@@ -449,6 +495,11 @@ function handleGenerate(): void {
 
   .deep-dive-action {
     width: 100%;
+  }
+
+  .deep-dive-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .question-item {

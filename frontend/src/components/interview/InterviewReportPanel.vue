@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { RotateCcw } from "@lucide/vue";
 
-import type { InterviewSessionReport } from "@/api/interview";
+import type { InterviewSessionMode, InterviewSessionReport } from "@/api/interview";
 
 defineProps<{
   report: InterviewSessionReport;
   targetRole: string;
+  mode: InterviewSessionMode;
 }>();
 
 const emit = defineEmits<{
@@ -17,9 +18,12 @@ const emit = defineEmits<{
   <section class="report-card" aria-labelledby="report-title">
     <header>
       <div>
-        <span>面试已完成</span>
+        <span>{{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖已完成" : "面试已完成" }}</span>
         <h2 id="report-title">本场报告</h2>
-        <p>{{ targetRole }} · 共回答 {{ report.answeredQuestions }} 道题</p>
+        <p>
+          {{ targetRole }} · {{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }}
+          · 共回答 {{ report.answeredQuestions }} 道题
+        </p>
       </div>
       <button type="button" @click="emit('restart')">
         <RotateCcw :size="16" aria-hidden="true" />

@@ -6,6 +6,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
@@ -140,6 +141,7 @@ class InterviewReviewTaskServiceTest {
         return new InterviewSession(
                 "session-1",
                 "Java AI 应用开发工程师",
+                InterviewSessionMode.STANDARD,
                 profile(),
                 questions(),
                 3,

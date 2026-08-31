@@ -136,7 +136,7 @@ docker compose up -d mysql qdrant
 ```
 
 `storage` 会使用服务器 `.env` 提供的连接信息，通过 Druid、MyBatis-Plus 和 MySQL 持久化“来源 + 内容版本”登记，并使用 Spring AI 的 DashScope Embedding 与 Qdrant 客户端维护 chunk 向量。向量写入按每批最多 10 个 chunk 调用 Embedding，避免大文档超过当前 DashScope 服务端批量上限。新版本成功写入后会按结构化元数据过滤删除同来源旧向量，同时保留历史登记；手动重建要求重传精确来源和当前版本 Markdown 文件，写入失败时保留登记以便重试；显式淘汰先清理 Qdrant，再删除该来源的全部 MySQL 登记。资料目录按每个大小写敏感来源的最大登记 ID 选择当前版本，详情按 ID 倒序返回全部历史登记，并从版本登记的 `outline_json` 返回当前章节目录。新导入会保存目录快照；旧登记保持 `null`，只有当前版本向量重建成功后才补齐。部署存储 profile 前需执行 `deploy/mysql/init/014_knowledge_document_outline.sql`。版本写入失败并撤销登记后会自然回退到上一成功版本。默认 `local` profile 使用对应的进程内当前版本索引。MySQL `source` 使用 `utf8mb4_bin`，查询和删除 SQL 额外使用 `BINARY` 精确比较，以保持和 Java、Qdrant 相同的大小写敏感语义。Qdrant 启动探测失败只记录警告；MySQL 是该 profile 的必要依赖。Qdrant schema 自动初始化关闭，服务器需要预先创建 collection；MySQL 中需要预先创建 `java_interview_rag` 数据库并按顺序执行仓库内初始化 SQL。
-简历证据审计和岗位匹配请求日志分别需要按顺序执行 `015_resume_evidence_audit_request_log.sql` 与 `016_resume_job_match_request_log.sql`；两张日志表都不保存简历、岗位描述、证据或模型正文。
+简历证据审计和岗位匹配请求日志分别需要按顺序执行 `015_resume_evidence_audit_request_log.sql` 与 `016_resume_job_match_request_log.sql`；两张日志表都不保存简历、岗位描述、证据或模型正文。启用项目深挖会话前还需执行 `017_interview_session_mode.sql`，为现有会话补充默认 `STANDARD` 模式。
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 
@@ -155,6 +155,8 @@ docker compose up -d mysql qdrant
 调用方确认画像后，可以把 `targetRole`、`profile` 与 3 到 8 的 `questionCount` 提交到 `POST /api/interviews/questions`。服务使用 `interview-question-v1` Prompt 生成指定数量的题目，每道题必须绑定画像中已经出现的 `TARGET_ROLE`、`RESUME`、`JOB_DESCRIPTION` 依据类型，并使用独立的 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库。可靠命中时返回实际 chunk；没有命中时题目仍由画像支撑，但 `knowledgeGrounded=false` 且知识来源为空，不伪造引用。
 
 `POST /api/interviews/sessions/start` 可以直接串联画像、指定数量的首轮出题和会话创建。会话只允许按当前题号顺序回答；每次提交先校验 `questionIndex` 和 `expectedVersion`，再调用模型生成结构化评价。评价只把题目已有的真实 chunk 视为可靠知识依据；没有来源时不会声称技术事实已经验证。模型认为存在关键遗漏时可以生成一条追问，服务再次检索真实知识来源并把追问追加到队列末尾，但不会超过 12 道整场上限，也不会追加完全重复的题目。
+
+简历证据检查确认项目事实后，可以调用 `POST /api/interviews/sessions/start-project-deep-dive` 创建 `PROJECT_DEEP_DIVE` 会话。服务不调用 Chat 出题，而是固定生成基础、取舍、故障和扩展四题，并把整场题数上限锁定为 4，因此评价器即使提出追问也不会追加第五题。四题继续复用现有证据化评分、乐观锁、报告和最近会话恢复链路；知识检索默认关闭，只有请求显式开启时才只读补充真实资料来源。
 
 当当前题目队列答完后，会话自动完成，并从已经保存的逐题评价确定性计算四项平均分、最多 5 条优势和最多 5 条薄弱项。页面刷新或应用重启后可以按 UUID 恢复。建表与扩展迁移分别为 `deploy/mysql/init/004_interview_session.sql` 和 `deploy/mysql/init/005_expand_interview_session.sql`；两份脚本已按顺序执行到独立数据库 `java_interview_rag`。受控真实验证已覆盖画像、首轮出题、逐题评分、动态追问、最终报告以及进行中和已完成会话的跨重启恢复；虚构测试会话已清理。
 

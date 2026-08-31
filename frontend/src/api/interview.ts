@@ -73,9 +73,12 @@ export interface InterviewSessionReport {
   completedAt: string;
 }
 
+export type InterviewSessionMode = "STANDARD" | "PROJECT_DEEP_DIVE";
+
 export interface InterviewSession {
   id: string;
   targetRole: string;
+  mode: InterviewSessionMode;
   profile: InterviewPreparationProfile;
   questions: InterviewQuestion[];
   maxQuestionCount: number;
@@ -184,6 +187,12 @@ export interface InterviewSessionStartPayload {
   jobDescription?: string;
   initialQuestionCount: number;
   maxQuestionCount: number;
+}
+
+export interface ProjectDeepDiveSessionStartPayload {
+  targetRole: string;
+  project: ResumeEvidenceConfirmedFact;
+  includeKnowledge: boolean;
 }
 
 export interface InterviewDocumentExtraction {
@@ -337,6 +346,17 @@ export async function startInterviewSession(
   const response = await request.post<InterviewSession>("/interviews/sessions/start", payload, {
     timeout: 120_000,
   });
+  return response.data;
+}
+
+export async function startProjectDeepDiveSession(
+  payload: ProjectDeepDiveSessionStartPayload,
+): Promise<InterviewSession> {
+  const response = await request.post<InterviewSession>(
+    "/interviews/sessions/start-project-deep-dive",
+    payload,
+    { timeout: 120_000 },
+  );
   return response.data;
 }
 

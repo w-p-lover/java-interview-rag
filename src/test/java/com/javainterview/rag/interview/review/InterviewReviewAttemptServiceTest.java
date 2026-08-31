@@ -8,6 +8,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
@@ -148,7 +149,8 @@ class InterviewReviewAttemptServiceTest {
     private InterviewSession completedSession() {
         LocalDateTime time = LocalDateTime.of(2026, 7, 29, 9, 0);
         InterviewSession session = new InterviewSession(
-                "session-1", "Java AI 应用开发工程师", profile(), questions(), 3,
+                "session-1", "Java AI 应用开发工程师", InterviewSessionMode.STANDARD,
+                profile(), questions(), 3,
                 List.of(), 0, InterviewSessionStatus.IN_PROGRESS, 0, null, time, time);
         session = session.answer("正式回答", evaluation(80), null, time.plusMinutes(1));
         session = session.answer("第二回答", evaluation(82), null, time.plusMinutes(2));

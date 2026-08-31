@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 
@@ -63,6 +64,9 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
             return new InterviewSession(
                     entity.getId(),
                     entity.getTargetRole(),
+                    entity.getSessionMode() == null
+                            ? InterviewSessionMode.STANDARD
+                            : InterviewSessionMode.valueOf(entity.getSessionMode()),
                     objectMapper.readValue(entity.getProfileJson(), InterviewPreparationProfile.class),
                     objectMapper.readValue(entity.getQuestionsJson(), QUESTION_LIST_TYPE),
                     entity.getMaxQuestionCount(),

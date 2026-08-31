@@ -61,7 +61,9 @@ function progressLabel(session: RecentInterviewSession): string {
           <CircleDot v-else :size="18" />
         </div>
         <div class="recent-sessions__copy">
-          <strong>{{ session.targetRole }}</strong>
+          <strong>
+            {{ session.mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }} · {{ session.targetRole }}
+          </strong>
           <span>{{ progressLabel(session) }}</span>
         </div>
         <time :datetime="session.updatedAt">

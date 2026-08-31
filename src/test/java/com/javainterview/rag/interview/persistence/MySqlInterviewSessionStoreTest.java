@@ -8,6 +8,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,6 +41,7 @@ class MySqlInterviewSessionStoreTest {
         InterviewSessionEntity entity = captor.getValue();
         assertEquals("session-1", entity.getId());
         assertEquals("Java AI 应用开发工程师", entity.getTargetRole());
+        assertEquals("STANDARD", entity.getSessionMode());
         assertTrue(entity.getProfileJson().contains("具备 Java 后端和 RAG 项目经验"));
         assertTrue(entity.getQuestionsJson().contains("如何保证向量更新一致性"));
         assertEquals(8, entity.getMaxQuestionCount());
@@ -62,12 +64,14 @@ class MySqlInterviewSessionStoreTest {
                 objectMapper.writeValueAsString(session.answers()),
                 objectMapper.writeValueAsString(session.report())
         );
+        entity.setSessionMode(null);
         when(mapper.selectById("session-1")).thenReturn(entity);
 
         InterviewSession restored = store.findById("session-1").orElseThrow();
 
         assertEquals(session, restored);
         assertEquals(InterviewSessionStatus.COMPLETED, restored.status());
+        assertEquals(InterviewSessionMode.STANDARD, restored.mode());
         assertEquals(3, restored.currentQuestionIndex());
         assertEquals("第 1 题回答", restored.answers().get(0).answer());
         assertEquals(80, restored.answers().get(0).evaluation().overallScore());
@@ -76,6 +80,30 @@ class MySqlInterviewSessionStoreTest {
         assertEquals("rag/vector-lifecycle.md",
                 restored.answers().get(0).evaluation().knowledgeEvidence().get(0).source());
         assertEquals(80.0, restored.report().overallAverageScore());
+    }
+
+    @Test
+    void restoresProjectDeepDiveSessionMode() throws Exception {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        ObjectMapper objectMapper = objectMapper();
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper);
+        InterviewSession standard = initialSession();
+        InterviewSession projectDeepDive = new InterviewSession(
+                standard.id(), standard.targetRole(), InterviewSessionMode.PROJECT_DEEP_DIVE,
+                standard.profile(), standard.questions(), standard.maxQuestionCount(),
+                standard.answers(), standard.currentQuestionIndex(), standard.status(),
+                standard.version(), standard.report(), standard.createdAt(), standard.updatedAt());
+        InterviewSessionEntity entity = InterviewSessionEntity.from(
+                projectDeepDive,
+                objectMapper.writeValueAsString(projectDeepDive.profile()),
+                objectMapper.writeValueAsString(projectDeepDive.questions()),
+                objectMapper.writeValueAsString(projectDeepDive.answers()),
+                null);
+        when(mapper.selectById("session-1")).thenReturn(entity);
+
+        InterviewSession restored = store.findById("session-1").orElseThrow();
+
+        assertEquals(InterviewSessionMode.PROJECT_DEEP_DIVE, restored.mode());
     }
 
     @Test
@@ -116,6 +144,7 @@ class MySqlInterviewSessionStoreTest {
         return new InterviewSession(
                 "session-1",
                 "Java AI 应用开发工程师",
+                InterviewSessionMode.STANDARD,
                 profile(),
                 questions(),
                 8,

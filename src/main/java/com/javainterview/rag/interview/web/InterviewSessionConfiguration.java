@@ -16,6 +16,8 @@ import com.javainterview.rag.interview.persistence.MySqlInterviewAssistantReques
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
+import com.javainterview.rag.interview.deepdive.ProjectDeepDiveService;
+import com.javainterview.rag.interview.deepdive.ProjectDeepDiveSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
@@ -167,5 +169,12 @@ public class InterviewSessionConfiguration {
             InterviewSessionService sessionService) {
         return new InterviewSessionStartService(
                 preparationService, questionGenerationService, sessionService);
+    }
+
+    @Bean
+    ProjectDeepDiveSessionStartService projectDeepDiveSessionStartService(
+            ProjectDeepDiveService projectDeepDiveService,
+            InterviewSessionService sessionService) {
+        return new ProjectDeepDiveSessionStartService(projectDeepDiveService, sessionService);
     }
 }

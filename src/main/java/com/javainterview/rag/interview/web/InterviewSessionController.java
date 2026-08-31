@@ -1,5 +1,6 @@
 package com.javainterview.rag.interview.web;
 
+import com.javainterview.rag.interview.deepdive.ProjectDeepDiveSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionService;
@@ -28,11 +29,21 @@ public class InterviewSessionController {
 
     private final InterviewSessionService sessionService;
     private final InterviewSessionStartService startService;
+    private final ProjectDeepDiveSessionStartService projectDeepDiveStartService;
 
     public InterviewSessionController(InterviewSessionService sessionService,
-                                      InterviewSessionStartService startService) {
+                                      InterviewSessionStartService startService,
+                                      ProjectDeepDiveSessionStartService projectDeepDiveStartService) {
         this.sessionService = sessionService;
         this.startService = startService;
+        this.projectDeepDiveStartService = projectDeepDiveStartService;
+    }
+
+    @PostMapping("/start-project-deep-dive")
+    @Operation(summary = "开始项目深挖面试", description = "围绕已确认项目事实创建固定四问会话")
+    public InterviewSession startProjectDeepDive(
+            @RequestBody ProjectDeepDiveSessionStartRequest request) {
+        return projectDeepDiveStartService.start(request.targetRole(), request.toDeepDiveRequest());
     }
 
     @PostMapping("/start")

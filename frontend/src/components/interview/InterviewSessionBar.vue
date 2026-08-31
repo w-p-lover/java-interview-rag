@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { CheckCircle2, RotateCcw } from "@lucide/vue";
 
+import type { InterviewSessionMode } from "@/api/interview";
+
 defineProps<{
   targetRole: string;
+  mode: InterviewSessionMode;
   status: "IN_PROGRESS" | "COMPLETED";
   currentQuestionIndex: number;
   questionCount: number;
@@ -18,7 +21,9 @@ const emit = defineEmits<{
 <template>
   <section id="interview-progress" class="session-bar" aria-label="当前面试进度">
     <div class="session-bar__main">
-      <span class="session-bar__role">{{ targetRole }}</span>
+      <span class="session-bar__role">
+        {{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }} · {{ targetRole }}
+      </span>
       <strong>
         <CheckCircle2 v-if="status === 'COMPLETED'" :size="16" aria-hidden="true" />
         {{ status === "COMPLETED" ? "已完成" : "第 " + (currentQuestionIndex + 1) + " / " + questionCount + " 题" }}

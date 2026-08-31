@@ -9,6 +9,7 @@ import {
   getInterviewSession,
   scheduleInterviewReviewTask,
   startInterviewSession,
+  startProjectDeepDiveSession as requestProjectDeepDiveSession,
   submitInterviewAnswer,
   submitInterviewReviewAttempt,
   type InterviewReviewAttempt,
@@ -17,6 +18,7 @@ import {
   type InterviewReviewTaskQuery,
   type InterviewSession,
   type InterviewSessionStartPayload,
+  type ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
 
@@ -27,6 +29,7 @@ const RECENT_SESSION_LIMIT = 8;
 export interface RecentInterviewSession {
   id: string;
   targetRole: string;
+  mode: InterviewSession["mode"];
   status: InterviewSession["status"];
   currentQuestionIndex: number;
   questionCount: number;
@@ -144,6 +147,22 @@ export function useInterviewSession() {
       rememberRecentSession(created);
     } catch (requestError) {
       error.value = resolveApiError(requestError, "创建面试会话失败");
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function startProjectDeepDive(payload: ProjectDeepDiveSessionStartPayload): Promise<void> {
+    loading.value = true;
+    error.value = "";
+    clearReviewTasks();
+    try {
+      const created = await requestProjectDeepDiveSession(payload);
+      session.value = created;
+      window.localStorage.setItem(SESSION_STORAGE_KEY, created.id);
+      rememberRecentSession(created);
+    } catch (requestError) {
+      error.value = resolveApiError(requestError, "创建项目深挖会话失败");
     } finally {
       loading.value = false;
     }
@@ -379,6 +398,7 @@ export function useInterviewSession() {
     return {
       id: interviewSession.id,
       targetRole: interviewSession.targetRole,
+      mode: interviewSession.mode,
       status: interviewSession.status,
       currentQuestionIndex: interviewSession.currentQuestionIndex,
       questionCount: interviewSession.questions.length,
@@ -408,6 +428,7 @@ export function useInterviewSession() {
     initialize,
     restore,
     start,
+    startProjectDeepDive,
     submit,
     generateReviewTasks,
     completeReviewTask,

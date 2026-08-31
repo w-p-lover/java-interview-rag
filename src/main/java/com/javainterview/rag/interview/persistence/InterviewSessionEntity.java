@@ -19,6 +19,7 @@ public class InterviewSessionEntity {
     @TableId(type = IdType.INPUT)
     private String id;
     private String targetRole;
+    private String sessionMode;
     private String profileJson;
     private String questionsJson;
     private Integer maxQuestionCount;
@@ -36,6 +37,7 @@ public class InterviewSessionEntity {
         InterviewSessionEntity entity = new InterviewSessionEntity();
         entity.id = session.id();
         entity.targetRole = session.targetRole();
+        entity.sessionMode = session.mode().name();
         entity.profileJson = profileJson;
         entity.questionsJson = questionsJson;
         entity.maxQuestionCount = session.maxQuestionCount();

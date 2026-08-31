@@ -1,13 +1,17 @@
 package com.javainterview.rag.interview.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javainterview.rag.interview.deepdive.ProjectDeepDiveRequest;
+import com.javainterview.rag.interview.deepdive.ProjectDeepDiveSessionStartService;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
 import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
@@ -33,7 +37,19 @@ class InterviewSessionControllerTest {
     void startsCreatesRestoresAndAdvancesTheInterviewSession() throws Exception {
         InterviewSessionService service = mock(InterviewSessionService.class);
         InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
+        ProjectDeepDiveSessionStartService projectDeepDiveStartService =
+                mock(ProjectDeepDiveSessionStartService.class);
         InterviewSession initial = session();
+        List<InterviewQuestion> deepDiveQuestions = List.of(
+                question("项目背景是什么？", "项目基础"),
+                question("为何选择当前方案？", "技术取舍"),
+                question("如何处理项目故障？", "故障复盘"),
+                question("项目下一步如何演进？", "架构演进"));
+        InterviewSession deepDive = new InterviewSession(
+                initial.id(), initial.targetRole(), InterviewSessionMode.PROJECT_DEEP_DIVE,
+                initial.profile(), deepDiveQuestions, deepDiveQuestions.size(), initial.answers(),
+                initial.currentQuestionIndex(), initial.status(), initial.version(), initial.report(),
+                initial.createdAt(), initial.updatedAt());
         InterviewSession answered = initial.answer(
                 "使用稳定向量 ID，并在新版本写入成功后清理旧版本。",
                 evaluation(), null, LocalDateTime.of(2026, 7, 27, 11, 5));
@@ -45,8 +61,16 @@ class InterviewSessionControllerTest {
                 "session-1", 0, 0L,
                 "使用稳定向量 ID，并在新版本写入成功后清理旧版本。"))
                 .thenReturn(answered);
+        ProjectDeepDiveRequest deepDiveRequest = new ProjectDeepDiveRequest(
+                new ProjectDeepDiveRequest.ConfirmedProject(
+                        ResumeEvidenceAuditResult.FactType.PROJECT,
+                        "负责 Java 面试训练平台",
+                        "Java Interview RAG"),
+                false);
+        when(projectDeepDiveStartService.start(
+                "Java AI 应用开发工程师", deepDiveRequest)).thenReturn(deepDive);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewSessionController(service, startService)).build();
+                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         mockMvc.perform(post("/api/interviews/sessions/start")
@@ -63,6 +87,24 @@ class InterviewSessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("session-1"))
                 .andExpect(jsonPath("$.maxQuestionCount").value(8));
+
+        mockMvc.perform(post("/api/interviews/sessions/start-project-deep-dive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetRole":"Java AI 应用开发工程师",
+                                  "project":{
+                                    "type":"PROJECT",
+                                    "statement":"负责 Java 面试训练平台",
+                                    "evidence":"Java Interview RAG"
+                                  },
+                                  "includeKnowledge":false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("PROJECT_DEEP_DIVE"))
+                .andExpect(jsonPath("$.questions.length()").value(4))
+                .andExpect(jsonPath("$.maxQuestionCount").value(4));
 
         mockMvc.perform(post("/api/interviews/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -99,6 +141,8 @@ class InterviewSessionControllerTest {
     void mapsInvalidMissingAndConflictingSessionsToHttpStatus() throws Exception {
         InterviewSessionService service = mock(InterviewSessionService.class);
         InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
+        ProjectDeepDiveSessionStartService projectDeepDiveStartService =
+                mock(ProjectDeepDiveSessionStartService.class);
         when(service.start(" ", profile(), questions(), 8))
                 .thenThrow(new IllegalArgumentException("目标岗位不能为空"));
         when(service.find("missing"))
@@ -106,7 +150,7 @@ class InterviewSessionControllerTest {
         when(service.submitAnswer("completed", 3, 3L, "额外回答"))
                 .thenThrow(new InterviewSessionConflictException("面试会话已经完成"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewSessionController(service, startService)).build();
+                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         mockMvc.perform(post("/api/interviews/sessions")
@@ -134,6 +178,7 @@ class InterviewSessionControllerTest {
         return new InterviewSession(
                 "session-1",
                 "Java AI 应用开发工程师",
+                InterviewSessionMode.STANDARD,
                 profile(),
                 questions(),
                 8,

@@ -12,6 +12,7 @@ import java.util.Objects;
 public record InterviewSession(
         String id,
         String targetRole,
+        InterviewSessionMode mode,
         InterviewPreparationProfile profile,
         List<InterviewQuestion> questions,
         int maxQuestionCount,
@@ -30,6 +31,7 @@ public record InterviewSession(
     public InterviewSession {
         id = requireText(id, "面试会话 ID 不能为空");
         targetRole = requireText(targetRole, "目标岗位不能为空");
+        mode = Objects.requireNonNull(mode, "面试会话模式不能为空");
         profile = Objects.requireNonNull(profile, "面试准备画像不能为空");
         questions = List.copyOf(Objects.requireNonNull(questions, "面试题不能为空"));
         if (questions.size() < MIN_QUESTION_COUNT || questions.size() > MAX_QUESTION_COUNT) {
@@ -101,6 +103,7 @@ public record InterviewSession(
         return new InterviewSession(
                 id,
                 targetRole,
+                mode,
                 profile,
                 updatedQuestions,
                 maxQuestionCount,
