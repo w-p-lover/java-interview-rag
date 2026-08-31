@@ -32,6 +32,7 @@ const {
   submittedQuestion,
   result,
   loading,
+  streaming,
   error,
   submit,
   clear,
@@ -178,6 +179,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
       />
       <KnowledgeAnswerPanel
         :loading="loading"
+        :streaming="streaming"
         :question="submittedQuestion"
         :result="result"
       />

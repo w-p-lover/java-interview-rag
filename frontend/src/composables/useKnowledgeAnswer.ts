@@ -1,7 +1,7 @@
 import { shallowRef } from "vue";
 
 import {
-  answerKnowledgeQuestion,
+  streamKnowledgeQuestion,
   type KnowledgeAnswerResponse,
 } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
@@ -13,6 +13,7 @@ export function useKnowledgeAnswer() {
   const submittedQuestion = shallowRef("");
   const result = shallowRef<KnowledgeAnswerResponse | null>(null);
   const loading = shallowRef(false);
+  const streaming = shallowRef(false);
   const error = shallowRef("");
 
   async function submit(): Promise<void> {
@@ -27,15 +28,33 @@ export function useKnowledgeAnswer() {
     }
 
     loading.value = true;
+    streaming.value = true;
     error.value = "";
-    result.value = null;
+    result.value = { answer: "", grounded: false, sources: [] };
     submittedQuestion.value = normalizedQuestion;
     try {
-      result.value = await answerKnowledgeQuestion(normalizedQuestion);
+      await streamKnowledgeQuestion(normalizedQuestion, (event) => {
+        if (event.type === "delta") {
+          result.value = {
+            answer: `${result.value?.answer ?? ""}${event.content}`,
+            grounded: false,
+            sources: [],
+          };
+          return;
+        }
+        result.value = {
+          answer: event.content,
+          grounded: event.grounded,
+          sources: event.sources,
+        };
+      });
     } catch (requestError) {
-      error.value = resolveApiError(requestError, "知识问答失败");
+      error.value = requestError instanceof Error
+        ? requestError.message
+        : resolveApiError(requestError, "知识问答失败");
     } finally {
       loading.value = false;
+      streaming.value = false;
     }
   }
 
@@ -44,6 +63,7 @@ export function useKnowledgeAnswer() {
     submittedQuestion.value = "";
     result.value = null;
     error.value = "";
+    streaming.value = false;
   }
 
   return {
@@ -51,6 +71,7 @@ export function useKnowledgeAnswer() {
     submittedQuestion,
     result,
     loading,
+    streaming,
     error,
     submit,
     clear,

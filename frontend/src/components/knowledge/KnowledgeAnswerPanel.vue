@@ -6,6 +6,7 @@ import KnowledgeSourceList from "@/components/knowledge/KnowledgeSourceList.vue"
 
 defineProps<{
   loading: boolean;
+  streaming: boolean;
   question: string;
   result: KnowledgeAnswerResponse | null;
 }>();
@@ -13,7 +14,7 @@ defineProps<{
 
 <template>
   <section id="knowledge-answer" class="answer-panel" aria-labelledby="answer-title" aria-live="polite">
-    <template v-if="loading">
+    <template v-if="loading && !result">
       <header>
         <div>
           <span>正在检索资料并生成回答</span>
@@ -34,7 +35,10 @@ defineProps<{
           <span>{{ question }}</span>
           <h2 id="answer-title">回答</h2>
         </div>
-        <strong :class="result.grounded ? 'is-grounded' : 'is-insufficient'">
+        <strong v-if="streaming" class="is-streaming">
+          正在生成
+        </strong>
+        <strong v-else :class="result.grounded ? 'is-grounded' : 'is-insufficient'">
           <BookOpenCheck v-if="result.grounded" :size="17" aria-hidden="true" />
           <CircleAlert v-else :size="17" aria-hidden="true" />
           {{ result.grounded ? "资料已支撑" : "资料不足" }}
@@ -118,6 +122,10 @@ header > strong {
 
 .is-insufficient {
   color: var(--color-warning);
+}
+
+.is-streaming {
+  color: var(--color-accent);
 }
 
 .answer-content {

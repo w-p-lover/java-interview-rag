@@ -41,6 +41,13 @@ export interface KnowledgeAnswerResponse {
   sources: KnowledgeAnswerSource[];
 }
 
+export interface KnowledgeAnswerStreamEvent {
+  type: "delta" | "complete";
+  content: string;
+  grounded: boolean;
+  sources: KnowledgeAnswerSource[];
+}
+
 export interface KnowledgeSearchResponse {
   query: string;
   topK: number;
@@ -142,6 +149,53 @@ export async function answerKnowledgeQuestion(question: string): Promise<Knowled
     { timeout: 60_000 },
   );
   return response.data;
+}
+
+export async function streamKnowledgeQuestion(
+  question: string,
+  onEvent: (event: KnowledgeAnswerStreamEvent) => void,
+): Promise<void> {
+  const response = await fetch("/api/knowledge/answer/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify({ question }),
+  });
+  if (!response.ok) {
+    let message = "知识问答失败";
+    try {
+      const body = (await response.json()) as { message?: string };
+      message = body.message || `${message}，后端返回 ${response.status}。`;
+    } catch {
+      message = `${message}，后端返回 ${response.status}。`;
+    }
+    throw new Error(message);
+  }
+  if (!response.body) {
+    throw new Error("后端未返回流式回答");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() || "";
+    for (const frame of frames) {
+      const data = frame
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trimStart())
+        .join("\n");
+      if (data) {
+        onEvent(JSON.parse(data) as KnowledgeAnswerStreamEvent);
+      }
+    }
+    if (done) {
+      break;
+    }
+  }
 }
 
 export async function searchKnowledge(query: string): Promise<KnowledgeSearchResponse> {

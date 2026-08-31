@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,6 +74,45 @@ public class RagAnswerService {
                     exception.getClass().getSimpleName());
             throw exception;
         }
+    }
+
+    public Flux<RagAnswerStreamEvent> streamAnswer(String question) {
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("检索问题不能为空");
+        }
+        return Flux.defer(() -> {
+            long startedAt = System.nanoTime();
+            List<MarkdownSearchResult> sources = searchService.search(
+                    question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            if (contextExpander != null) {
+                sources = contextExpander.expand(sources);
+            }
+            if (sources.isEmpty()) {
+                recordAndReturn(question, sources,
+                        new RagAnswerResult(INSUFFICIENT_ANSWER, false, List.of()), startedAt);
+                return Flux.just(RagAnswerStreamEvent.complete(INSUFFICIENT_ANSWER, false, List.of()));
+            }
+
+            StringBuilder answer = new StringBuilder();
+            List<MarkdownSearchResult> finalSources = sources;
+            return chatClient.prompt(buildPrompt(question, sources)).stream().content()
+                    .doOnNext(answer::append)
+                    .map(RagAnswerStreamEvent::delta)
+                    .concatWith(Flux.defer(() -> {
+                        String completedAnswer = answer.toString();
+                        boolean grounded = !completedAnswer.isBlank()
+                                && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip());
+                        RagAnswerResult result = grounded
+                                ? new RagAnswerResult(completedAnswer, true, finalSources)
+                                : new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources);
+                        recordAndReturn(question, finalSources, result, startedAt);
+                        return Flux.just(RagAnswerStreamEvent.complete(
+                                result.answer(), result.grounded(), result.sources()));
+                    }))
+                    .doOnError(exception -> record(question, finalSources,
+                            RagRetrievalLogStatus.FAILED, false, startedAt,
+                            exception.getClass().getSimpleName()));
+        });
     }
 
     private RagAnswerResult recordAndReturn(String question, List<MarkdownSearchResult> sources,
