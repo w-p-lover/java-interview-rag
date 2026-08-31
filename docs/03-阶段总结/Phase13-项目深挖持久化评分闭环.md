@@ -11,6 +11,7 @@
 - 固定 `maxQuestionCount=4`，复用现有回答评价器但不允许追加第五道动态追问；第四题后复用原报告聚合。
 - 前端支持直接开始项目深挖，并在进度、报告和最近会话中显示模式。
 - 新增并执行 `017_interview_session_mode.sql`；共享 MySQL 5.7.36 的 `java_interview_rag` 中字段已核验为 `VARCHAR(32) NOT NULL DEFAULT 'STANDARD'`，当前会话行数为 0。
+- 以临时 `storage` 实例真实调用项目深挖启动与恢复接口，返回 `PROJECT_DEEP_DIVE`、4 道题和上限 4；临时脱敏会话随后清理。
 
 ## 验证结论
 
@@ -20,7 +21,7 @@
 
 ## 边界
 
-- 本阶段未调用真实 Chat、Embedding 或 Qdrant；MySQL 仅执行了用户明确要求的 `017` 迁移和结构核验。
+- 本阶段未调用真实 Chat、Embedding 或 Qdrant；MySQL 执行了用户明确要求的 `017` 迁移，并完成一次真实 storage 会话写入/读取后清理临时数据。
 - 知识资料仍需用户显式开启，只作为答题背景，不推断或补写候选人的项目事实。
 - 没有新增第二套会话表、评分器、Chat 出题、图工作流或通用 Agent Runtime。
 
