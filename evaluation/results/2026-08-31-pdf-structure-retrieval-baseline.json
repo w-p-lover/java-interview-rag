@@ -1,0 +1,339 @@
+{
+  "runAt": "2026-08-31T08:04:30+08:00",
+  "embeddingModel": "text-embedding-v3",
+  "collection": "java-interview-rag-chunks",
+  "corpusDocumentCount": 9,
+  "importedDocumentCount": 1,
+  "embeddedChunkCountThisRun": 6,
+  "note": "本次使用合成两页 PDF 评估标题、页码和内容块类型召回，只执行 Embedding 检索，不调用 Chat。",
+  "report": {
+    "topK": 5,
+    "similarityThreshold": 0.0,
+    "answerSimilarityThreshold": 0.6,
+    "totalCaseCount": 3,
+    "answerableCaseCount": 3,
+    "noAnswerCaseCount": 0,
+    "expectedSourceHitCount": 3,
+    "expectedSourceHitRate": 1.0,
+    "hitAt1Count": 3,
+    "hitAt1Rate": 1.0,
+    "meanRecallAt5": 1.0,
+    "meanReciprocalRank": 1.0,
+    "expectedHeadingPathCount": 3,
+    "expectedHeadingPathHitCount": 3,
+    "headingPathRecallRate": 1.0,
+    "structureCaseCount": 3,
+    "expectedPageNumberCount": 3,
+    "expectedPageNumberHitCount": 3,
+    "pageNumberRecallRate": 1.0,
+    "expectedBlockTypeCount": 3,
+    "expectedBlockTypeHitCount": 3,
+    "blockTypeRecallRate": 1.0,
+    "expectedStructureCount": 3,
+    "expectedStructureHitCount": 3,
+    "structureRecallRate": 1.0,
+    "correctRejectionCount": 0,
+    "rejectionAccuracy": 0.0,
+    "cases": [
+      {
+        "evaluationCaseId": "pdf-structure-code-treeify",
+        "question": "TREEIFY_THRESHOLD 达到后由哪个方法把 HashMap 桶转换为树？",
+        "type": "DOCUMENT_STRUCTURE",
+        "expectedSources": [
+          "java/structured-java-notes.pdf"
+        ],
+        "expectedHeadingPaths": [
+          [
+            "1. HashMap"
+          ]
+        ],
+        "expectedStructures": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "pageNumber": 1,
+            "blockType": "CODE"
+          }
+        ],
+        "actualSources": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 2,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.7946257591247559,
+            "pageNumber": 1,
+            "blockType": "CODE"
+          },
+          {
+            "source": "java/collections.md",
+            "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+            "chunkOrder": 1,
+            "headingPath": [
+              "Java 集合",
+              "链表树化条件"
+            ],
+            "similarity": 0.6860969066619873,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 5,
+            "headingPath": [
+              "1. HashMap",
+              "1.1 Treeification"
+            ],
+            "similarity": 0.6048750281333923,
+            "pageNumber": 2,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/collections.md",
+            "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+            "chunkOrder": 0,
+            "headingPath": [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            "similarity": 0.5987273454666138,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 0,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.556495189666748,
+            "pageNumber": 1,
+            "blockType": "TEXT"
+          }
+        ],
+        "expectedSourceMatched": true,
+        "firstRelevantRank": 1,
+        "hitAt1": true,
+        "recallAt5": 1.0,
+        "reciprocalRank": 1.0,
+        "expectedHeadingPathHitCount": 1,
+        "headingPathRecall": 1.0,
+        "expectedPageNumberHitCount": 1,
+        "pageNumberRecall": 1.0,
+        "expectedBlockTypeHitCount": 1,
+        "blockTypeRecall": 1.0,
+        "expectedStructureHitCount": 1,
+        "structureRecall": 1.0,
+        "rejectionExpected": false,
+        "rejectedAtAnswerThreshold": false,
+        "rejectionCorrect": false
+      },
+      {
+        "evaluationCaseId": "pdf-structure-table-capacity",
+        "question": "HashMap 示例中的 initialCapacity 和 resizeThreshold 分别是多少？",
+        "type": "DOCUMENT_STRUCTURE",
+        "expectedSources": [
+          "java/structured-java-notes.pdf"
+        ],
+        "expectedHeadingPaths": [
+          [
+            "1. HashMap"
+          ]
+        ],
+        "expectedStructures": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "pageNumber": 1,
+            "blockType": "TABLE"
+          }
+        ],
+        "actualSources": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 3,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.7746900916099548,
+            "pageNumber": 1,
+            "blockType": "TABLE"
+          },
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 1,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.6837671995162964,
+            "pageNumber": 1,
+            "blockType": "LIST"
+          },
+          {
+            "source": "java/collections.md",
+            "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+            "chunkOrder": 2,
+            "headingPath": [
+              "Java 集合",
+              "扩容与负载因子"
+            ],
+            "similarity": 0.6450018286705017,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 0,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.6273534893989563,
+            "pageNumber": 1,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/collections.md",
+            "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+            "chunkOrder": 0,
+            "headingPath": [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            "similarity": 0.5965085029602051,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          }
+        ],
+        "expectedSourceMatched": true,
+        "firstRelevantRank": 1,
+        "hitAt1": true,
+        "recallAt5": 1.0,
+        "reciprocalRank": 1.0,
+        "expectedHeadingPathHitCount": 1,
+        "headingPathRecall": 1.0,
+        "expectedPageNumberHitCount": 1,
+        "pageNumberRecall": 1.0,
+        "expectedBlockTypeHitCount": 1,
+        "blockTypeRecall": 1.0,
+        "expectedStructureHitCount": 1,
+        "structureRecall": 1.0,
+        "rejectionExpected": false,
+        "rejectedAtAnswerThreshold": false,
+        "rejectionCorrect": false
+      },
+      {
+        "evaluationCaseId": "pdf-structure-cross-page-treeification",
+        "question": "碰撞链在什么条件下会转换为 red black tree？",
+        "type": "DOCUMENT_STRUCTURE",
+        "expectedSources": [
+          "java/structured-java-notes.pdf"
+        ],
+        "expectedHeadingPaths": [
+          [
+            "1. HashMap",
+            "1.1 Treeification"
+          ]
+        ],
+        "expectedStructures": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "headingPath": [
+              "1. HashMap",
+              "1.1 Treeification"
+            ],
+            "pageNumber": 2,
+            "blockType": "TEXT"
+          }
+        ],
+        "actualSources": [
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 5,
+            "headingPath": [
+              "1. HashMap",
+              "1.1 Treeification"
+            ],
+            "similarity": 0.8513103723526001,
+            "pageNumber": 2,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/collections.md",
+            "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+            "chunkOrder": 1,
+            "headingPath": [
+              "Java 集合",
+              "链表树化条件"
+            ],
+            "similarity": 0.6476507186889648,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/structured-java-notes.pdf",
+            "documentVersion": "0b84d3cc860627bc40e61dd30e5d6fba596560f34f36a95864b11b306b71c769",
+            "chunkOrder": 2,
+            "headingPath": [
+              "1. HashMap"
+            ],
+            "similarity": 0.508502721786499,
+            "pageNumber": 1,
+            "blockType": "CODE"
+          },
+          {
+            "source": "java/jvm.md",
+            "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+            "chunkOrder": 0,
+            "headingPath": [
+              "JVM 内存管理",
+              "GC Roots 与可达性分析"
+            ],
+            "similarity": 0.48510050773620605,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          },
+          {
+            "source": "java/jvm.md",
+            "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+            "chunkOrder": 1,
+            "headingPath": [
+              "JVM 内存管理",
+              "回收判定边界"
+            ],
+            "similarity": 0.4666585326194763,
+            "pageNumber": null,
+            "blockType": "TEXT"
+          }
+        ],
+        "expectedSourceMatched": true,
+        "firstRelevantRank": 1,
+        "hitAt1": true,
+        "recallAt5": 1.0,
+        "reciprocalRank": 1.0,
+        "expectedHeadingPathHitCount": 1,
+        "headingPathRecall": 1.0,
+        "expectedPageNumberHitCount": 1,
+        "pageNumberRecall": 1.0,
+        "expectedBlockTypeHitCount": 1,
+        "blockTypeRecall": 1.0,
+        "expectedStructureHitCount": 1,
+        "structureRecall": 1.0,
+        "rejectionExpected": false,
+        "rejectedAtAnswerThreshold": false,
+        "rejectionCorrect": false
+      }
+    ]
+  }
+}

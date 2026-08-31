@@ -51,7 +51,9 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --allow-embedding-calls --evaluate-structure
 ```
 
-接口 `/api/knowledge/evaluations/retrieval/structure` 返回来源、Hit@1 和标题路径指标，并增加页码召回率、内容块类型召回率和“来源 + 标题路径 + 页码 + 块类型”完整结构召回率。运行器会先导入原 8 份竞争语料与合成 PDF；相同版本会在向量化前短路。当前只完成固定语料、指标代码和费用门禁验证，尚未运行真实 `text-embedding-v3` 结构基线，不能据此决定增加块类型权重或章节聚合。
+接口 `/api/knowledge/evaluations/retrieval/structure` 返回来源、Hit@1 和标题路径指标，并增加页码召回率、内容块类型召回率和“来源 + 标题路径 + 页码 + 块类型”完整结构召回率。运行器会先导入原 8 份竞争语料与合成 PDF；相同版本会在向量化前短路。
+
+2026-08-31 用户授权完成一次真实 `text-embedding-v3` 结构基线，结果保存在 `results/2026-08-31-pdf-structure-retrieval-baseline.json`：3 道结构题、6 个新 PDF Chunk 均成功导入，来源命中率、Hit@1、Mean Recall@5、MRR、标题路径、页码、内容块类型和四字段联合结构召回均为 `1.0000`。本轮只执行 Embedding，不调用 Chat；合成 PDF 来源随后已从 MySQL/Qdrant 删除。该结果证明当前固定样本没有结构字段缺口，不支持增加块类型权重或章节聚合，也不代表复杂 PDF 的通用准确率。
 
 ## 查询拆分对照
 
