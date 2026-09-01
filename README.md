@@ -32,6 +32,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/interviews/sessions` 保存已有目标岗位、确认画像和题目，创建 `IN_PROGRESS` 文本面试会话。
 - `GET /api/interviews/sessions/{sessionId}` 从 MySQL 恢复完整会话、回答进度和当前题号。
 - `POST /api/interviews/sessions/{sessionId}/answers` 使用当前题号和会话版本提交回答，返回技术、完整性、表达、综合分、优点、遗漏、改进建议，以及 1 到 3 条回答原文证据和最多 3 条知识资料证据；模型候选引文必须经服务端逐字包含、来源序号和来源正文校验后才能持久化。模型可追加一条绑定真实知识来源的追问。当前题目队列答完后自动生成整场报告，乐观锁与题号校验会拒绝并发或延迟重复提交。
+- `POST /api/interviews/sessions/{sessionId}/answers/stream` 以 SSE 推送回答接收、评价开始/完成、下一题准备或本场完成等阶段事件，最后返回完整会话；`GET /api/interviews/sessions/{sessionId}/events` 根据已保存回答重建不含回答正文的事件时间线，前端恢复会话时会展示阶段、题号和时间。
 - `POST /api/interviews/sessions/{sessionId}/review-tasks` 仅为已完成会话生成待复习任务；每道存在回答遗漏的题目生成一条，重复调用不会重复插入。
 - `GET /api/interviews/sessions/{sessionId}/review-tasks?status=PENDING&plannedDateFrom=2026-08-04&plannedDateTo=2026-08-10` 在单个会话内按可选状态和计划日期范围返回任务；不传筛选时按原题顺序返回全部任务。
 - `PATCH /api/interviews/sessions/{sessionId}/review-tasks/{taskId}/complete` 将所属任务幂等地标记为 `COMPLETED`，重复调用保留首次完成时间。

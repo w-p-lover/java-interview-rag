@@ -7,6 +7,7 @@ import {
   getInterviewReviewHistory,
   getInterviewReviewTasks,
   getInterviewSession,
+  getInterviewSessionEvents,
   scheduleInterviewReviewTask,
   startInterviewSession,
   startProjectDeepDiveSession as requestProjectDeepDiveSession,
@@ -60,6 +61,7 @@ export function useInterviewSession() {
   const submittingReviewAttemptTaskId = shallowRef("");
   const reviewAttemptError = shallowRef("");
   const conversationStage = shallowRef<InterviewConversationEvent | null>(null);
+  const conversationEvents = shallowRef<InterviewConversationEvent[]>([]);
 
   const currentQuestion = computed(() => {
     if (!session.value || session.value.status === "COMPLETED") {
@@ -88,6 +90,12 @@ export function useInterviewSession() {
     try {
       const restored = await getInterviewSession(sessionId);
       session.value = restored;
+      try {
+        conversationEvents.value = await getInterviewSessionEvents(restored.id);
+      } catch {
+        // 时间线属于辅助展示，恢复失败不应阻断会话恢复。
+        conversationEvents.value = [];
+      }
       window.localStorage.setItem(SESSION_STORAGE_KEY, restored.id);
       rememberRecentSession(restored);
       if (restored.status === "COMPLETED") {
@@ -142,6 +150,8 @@ export function useInterviewSession() {
     loading.value = true;
     error.value = "";
     clearReviewTasks();
+    conversationEvents.value = [];
+    conversationStage.value = null;
     try {
       const created = await startInterviewSession(payload);
       session.value = created;
@@ -158,6 +168,8 @@ export function useInterviewSession() {
     loading.value = true;
     error.value = "";
     clearReviewTasks();
+    conversationEvents.value = [];
+    conversationStage.value = null;
     try {
       const created = await requestProjectDeepDiveSession(payload);
       session.value = created;
@@ -184,7 +196,10 @@ export function useInterviewSession() {
         activeSession.currentQuestionIndex,
         activeSession.version,
         answer,
-        (event) => { conversationStage.value = event; },
+        (event) => {
+          conversationStage.value = event;
+          conversationEvents.value = [...conversationEvents.value, event];
+        },
       );
       session.value = updated;
       rememberRecentSession(updated);
@@ -350,6 +365,8 @@ export function useInterviewSession() {
     session.value = null;
     error.value = "";
     clearReviewTasks();
+    conversationEvents.value = [];
+    conversationStage.value = null;
     window.localStorage.removeItem(SESSION_STORAGE_KEY);
     void loadRecentSessions();
   }
@@ -444,6 +461,7 @@ export function useInterviewSession() {
     submittingReviewAttemptTaskId,
     reviewAttemptError,
     conversationStage,
+    conversationEvents,
     submitReviewAttempt,
     reset,
   };

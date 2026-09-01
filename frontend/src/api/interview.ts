@@ -373,6 +373,15 @@ export async function getInterviewSession(sessionId: string): Promise<InterviewS
   return response.data;
 }
 
+export async function getInterviewSessionEvents(
+  sessionId: string,
+): Promise<InterviewConversationEvent[]> {
+  const response = await request.get<InterviewConversationEvent[]>(
+    `/interviews/sessions/${sessionId}/events`,
+  );
+  return response.data;
+}
+
 export async function submitInterviewAnswer(
   sessionId: string,
   questionIndex: number,

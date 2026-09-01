@@ -7,6 +7,7 @@ import type {
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
+import InterviewConversationTimeline from "@/components/interview/InterviewConversationTimeline.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
@@ -42,6 +43,7 @@ const {
   submittingReviewAttemptTaskId,
   reviewAttemptError,
   conversationStage,
+  conversationEvents,
   initialize,
   restore,
   start,
@@ -141,6 +143,11 @@ function handleAssistantScheduled(): void {
         :progress="progress"
         :loading="loading"
         @reset="reset"
+      />
+
+      <InterviewConversationTimeline
+        v-if="conversationEvents.length"
+        :events="conversationEvents"
       />
 
       <div v-if="session.status === 'COMPLETED' && session.report" class="completion-stack">
