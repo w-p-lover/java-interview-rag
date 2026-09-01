@@ -44,11 +44,11 @@ spring:
         options:
           model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_EMBED_MODEL:${BLOG_DASHSCOPE_EMBED_MODEL:text-embedding-v3}}
     openai:
-      base-url: ${JAVA_INTERVIEW_RAG_DASHSCOPE_COMPATIBLE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
-      api-key: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}
+      base-url: ${JAVA_INTERVIEW_RAG_OPENAI_BASE_URL:${JAVA_INTERVIEW_RAG_DASHSCOPE_COMPATIBLE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}}
+      api-key: ${JAVA_INTERVIEW_RAG_OPENAI_API_KEY:${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}}
       chat:
         options:
-          model: ${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-plus}
+          model: ${JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL:${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-plus}}
           temperature: 0.2
     vectorstore:
       qdrant:
