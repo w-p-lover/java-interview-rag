@@ -144,7 +144,7 @@ docker compose up -d mysql qdrant
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 
-回答接口使用 OpenAI 兼容端点手动创建 ChatModel，默认模型为 `qwen3.7-plus`、温度为 `0.2`；DashScope 原生客户端继续只承担 `text-embedding-v3`。Chat 的端点、密钥和模型可分别通过 `JAVA_INTERVIEW_RAG_OPENAI_BASE_URL`、`JAVA_INTERVIEW_RAG_OPENAI_API_KEY` 和 `JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL` 覆盖，未覆盖时回退到原 DashScope Chat 配置，避免 Chat 覆盖值污染 Embedding。它固定检索前 5 条且相似度不低于 `0.60` 的资料，将每条资料编号并要求模型只根据资料回答；没有可靠来源或模型返回空内容时，统一返回“知识库中没有足够可靠的资料回答这个问题。”。受控真实调用已验证 `qwen3.7-plus` 返回依据资料的回答、资料引用和 `ANSWERED` 日志；临时资料与测试日志均已清理。
+回答接口使用 OpenAI 兼容端点手动创建 ChatModel，默认模型为 `qwen3.7-max-2026-06-08`、温度为 `0.2`；DashScope 原生客户端继续只承担 `text-embedding-v3`。Chat 的端点、密钥和模型可分别通过 `JAVA_INTERVIEW_RAG_OPENAI_BASE_URL`、`JAVA_INTERVIEW_RAG_OPENAI_API_KEY` 和 `JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL` 覆盖，未覆盖时回退到原 DashScope Chat 配置，避免 Chat 覆盖值污染 Embedding。它固定检索前 5 条且相似度不低于 `0.60` 的资料，将每条资料编号并要求模型只根据资料回答；没有可靠来源或模型返回空内容时，统一返回“知识库中没有足够可靠的资料回答这个问题。”。新默认模型已用 1 次受控 HashMap 问答确认真实调用成功并返回资料引用；历史批量质量基线仍来自 `qwen3.7-plus`，两者不能直接混算。
 
 阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`，已执行到独立数据库 `java_interview_rag`；日志查询接口具备表结构前提，日志存储故障仍只会告警且不影响回答。
 

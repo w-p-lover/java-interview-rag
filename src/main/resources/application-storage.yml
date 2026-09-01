@@ -48,7 +48,7 @@ spring:
       api-key: ${JAVA_INTERVIEW_RAG_OPENAI_API_KEY:${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:${BLOG_DASHSCOPE_API_KEY:}}}
       chat:
         options:
-          model: ${JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL:${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-plus}}
+          model: ${JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL:${JAVA_INTERVIEW_RAG_DASHSCOPE_CHAT_MODEL:qwen3.7-max-2026-06-08}}
           temperature: 0.2
     vectorstore:
       qdrant:
