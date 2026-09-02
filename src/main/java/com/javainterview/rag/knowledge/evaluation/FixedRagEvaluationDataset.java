@@ -22,18 +22,24 @@ public class FixedRagEvaluationDataset {
                     RagEvaluationCaseType.EXACT_TERM,
                     List.of(COLLECTIONS),
                     List.of(path("Java 集合", "HashMap 的查询过程"), path("Java 集合", "链表树化条件")),
+                    List.of(chunk(COLLECTIONS, 0), chunk(COLLECTIONS, 1)),
+                    List.of(chunk(CONCURRENCY, 0)),
                     "Java 8 的桶可由链表树化为红黑树", "链表长度达到 8", "数组容量至少为 64", "常见平均查询复杂度为 O(1)"),
             evaluationCase("java-concurrency-thread-pool",
                     "ThreadPoolExecutor 接收到新任务后如何决定创建线程、入队和拒绝？",
                     RagEvaluationCaseType.EXACT_TERM,
                     List.of(CONCURRENCY),
                     List.of(path("Java 并发", "ThreadPoolExecutor 接收任务")),
+                    List.of(chunk(CONCURRENCY, 0)),
+                    List.of(chunk(CONCURRENCY, 1)),
                     "先创建核心线程", "核心线程满后任务进入工作队列", "队列满后在最大线程数内创建非核心线程", "超过最大线程数后执行拒绝策略"),
             evaluationCase("java-concurrency-volatile",
                     "volatile 能保证什么，为什么不能保证自增操作的原子性？",
                     RagEvaluationCaseType.EXACT_TERM,
                     List.of(CONCURRENCY),
                     List.of(path("Java 并发", "volatile 的可见性与有序性")),
+                    List.of(chunk(CONCURRENCY, 1)),
+                    List.of(chunk(CONCURRENCY, 0)),
                     "保证可见性", "禁止特定指令重排序", "自增包含读取、计算和写回多个步骤", "多线程自增需要原子类或锁"),
             evaluationCase("java-jvm-gc-roots",
                     "JVM 如何通过 GC Roots 判断对象是否可回收？",
@@ -151,6 +157,20 @@ public class FixedRagEvaluationDataset {
                                                      String... expectedAnswerPoints) {
         return new RagEvaluationCase(id, question, type, expectedSources, expectedHeadingPaths,
                 List.of(expectedAnswerPoints));
+    }
+
+    private static RagEvaluationCase evaluationCase(String id, String question, RagEvaluationCaseType type,
+                                                     List<String> expectedSources,
+                                                     List<List<String>> expectedHeadingPaths,
+                                                     List<RagEvaluationChunkExpectation> expectedChunks,
+                                                     List<RagEvaluationChunkExpectation> hardNegativeChunks,
+                                                     String... expectedAnswerPoints) {
+        return new RagEvaluationCase(id, question, type, expectedSources, expectedHeadingPaths,
+                List.of(), List.of(expectedAnswerPoints), expectedChunks, hardNegativeChunks);
+    }
+
+    private static RagEvaluationChunkExpectation chunk(String source, int chunkOrder) {
+        return new RagEvaluationChunkExpectation(source, chunkOrder);
     }
 
     private static List<String> path(String... headings) {

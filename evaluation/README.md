@@ -38,6 +38,8 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 - `MRR`：首个期望来源排名倒数的平均值。
 - 标题路径召回率：实际结果完整标题路径精确命中的比例。
 - 无答案拒答准确率：按当前检索通道的拒答策略计算。Dense/Hybrid 使用余弦阈值 `0.60`；BM25/Sparse 使用 `candidate_presence_v1`，仅空候选才拒答，不把 BM25 原始分数与余弦阈值比较。
+- 字段化 Sparse：BM25 使用 `content=1.0`、`heading=2.0`、`code=2.5`、`java_identifier=3.0`；Chunk 级题记录期望 Chunk，Hard Negative 记录明确不应进入 Top5 的 Chunk。
+- 高级指标：报告的 `advancedMetrics` 包含 Precision@5、nDCG@5、Chunk Recall@5、Hard Negative 避免率、上下文噪声率和检索延迟 P95（毫秒）。Precision/nDCG 对未配置 Chunk 标注的题按期望逻辑来源计算；Chunk Recall 和 Hard Negative 避免率只对有对应标注的题聚合。
 
 脚本校验题量和指标结构，不预设未经真实运行验证的质量门槛。旧的 6 题基线结果保留为历史证据，不能当作当前 20 题结果。
 
@@ -53,7 +55,7 @@ curl.exe "http://127.0.0.1:18080/api/knowledge/evaluations/retrieval/hybrid"
 
 接口在同一 20 题固定集上分别运行 Dense-only、BM25-only 和 Hybrid-RRF，不调用 Chat；Dense 与 Hybrid 会产生 Embedding 检索请求。2026-09-02 的一次真实结果保存在 `results/2026-09-02-hybrid-retrieval-baseline.json`：8 份语料、18 个 Chunk，最多 48 次 Embedding 请求、0 次 Chat。三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense `0.9130`。
 
-本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。文件中的 BM25-only 拒答准确率 `0` 使用了旧的余弦阈值口径，不能与 Dense 的 `1.0000` 直接比较；当前代码已改为按通道隔离策略，后续应使用字段化 BM25 和困难样本重新建立 Sparse 拒答基线。该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
+本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。文件中的 BM25-only 拒答准确率 `0` 使用了旧的余弦阈值口径，不能与 Dense 的 `1.0000` 直接比较；当前代码已改为按通道隔离策略，字段化 BM25 和高级指标已经接入，但需要重新执行真实 storage 对照才能建立新基线。该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
 
 ## PDF 结构检索
 

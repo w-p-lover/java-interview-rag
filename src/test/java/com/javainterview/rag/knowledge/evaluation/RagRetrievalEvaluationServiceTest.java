@@ -114,6 +114,35 @@ class RagRetrievalEvaluationServiceTest {
     }
 
     @Test
+    void calculatesChunkHardNegativePrecisionNdcgNoiseAndLatencyMetrics() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagEvaluationChunkExpectation expectedFirst = new RagEvaluationChunkExpectation("java/map.md", 0);
+        RagEvaluationChunkExpectation expectedSecond = new RagEvaluationChunkExpectation("java/map.md", 1);
+        RagEvaluationChunkExpectation hardNegative = new RagEvaluationChunkExpectation("java/other.md", 0);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "chunk-metrics", "Chunk 评估问题", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/map.md"), List.of(List.of("Java", "Map")), List.of(),
+                List.of("回答要点"), List.of(expectedFirst, expectedSecond), List.of(hardNegative));
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+
+        RagRetrievalEvaluationReport report = new RagRetrievalEvaluationService(dataset,
+                mock(MarkdownSimilaritySearchService.class)).evaluateWith(question -> List.of(
+                        result("命中一", "java/map.md", List.of("Java", "Map"), 0.9),
+                        result("Hard Negative", "java/other.md", List.of("Java"), 0.8),
+                        result("未命中 Chunk", "java/map.md", List.of("Java", "Map"), 0.7)
+                ));
+
+        assertEquals(0.5, report.advancedMetrics().chunkRecallAt5());
+        assertEquals(2.0 / 3.0, report.advancedMetrics().precisionAt5());
+        assertEquals(0.0, report.advancedMetrics().hardNegativeAvoidanceRate());
+        assertEquals(1.0 / 3.0, report.advancedMetrics().contextNoiseRate(), 0.000001);
+        assertTrue(report.advancedMetrics().ndcgAt5() > 0.0);
+        assertTrue(report.advancedMetrics().retrievalLatencyP95Ms() >= 0.0);
+        assertEquals(0.5, report.cases().get(0).chunkRecallAt5());
+        assertEquals(0.0, report.cases().get(0).hardNegativeAvoidanceRate());
+    }
+
+    @Test
     void comparesQueryDecompositionWithoutRepeatingOriginalSearch() {
         FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
         MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);

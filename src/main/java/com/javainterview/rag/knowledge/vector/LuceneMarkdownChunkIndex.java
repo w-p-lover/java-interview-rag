@@ -26,8 +26,11 @@ import org.apache.lucene.store.Directory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** 使用 Lucene 倒排索引提供 BM25 稀疏检索。 */
 public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, AutoCloseable {
@@ -39,10 +42,22 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     private static final String SECTION_ORDER_FIELD = "section_order";
     private static final String HEADING_LEVEL_FIELD = "heading_level";
     private static final String HEADING_PATH_FIELD = "heading_path";
+    private static final String HEADING_TEXT_FIELD = "heading_text";
     private static final String CONTENT_FIELD = "content";
+    private static final String CODE_FIELD = "code";
+    private static final String JAVA_IDENTIFIER_FIELD = "java_identifier";
     private static final String PAGE_NUMBER_FIELD = "page_number";
     private static final String BLOCK_TYPE_FIELD = "block_type";
     private static final String HEADING_SEPARATOR = "\u001f";
+    private static final Pattern JAVA_IDENTIFIER_PATTERN = Pattern.compile(
+            "(?<![A-Za-z0-9_$])[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*(?![A-Za-z0-9_$])");
+    private static final Map<String, Float> FIELD_BOOSTS = Map.of(
+            CONTENT_FIELD, 1.0f,
+            HEADING_TEXT_FIELD, 2.0f,
+            CODE_FIELD, 2.5f,
+            JAVA_IDENTIFIER_FIELD, 3.0f);
+    public static final String FIELD_WEIGHT_POLICY =
+            "content=1.0, heading=2.0, code=2.5, java_identifier=3.0";
 
     private final Directory directory;
     private final Analyzer analyzer;
@@ -126,7 +141,7 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
             IndexSearcher searcher = new IndexSearcher(reader);
             searcher.setSimilarity(new BM25Similarity());
             MultiFieldQueryParser parser = new MultiFieldQueryParser(
-                    new String[]{CONTENT_FIELD, HEADING_PATH_FIELD}, analyzer);
+                    FIELD_BOOSTS.keySet().toArray(String[]::new), analyzer, FIELD_BOOSTS);
             parser.setDefaultOperator(MultiFieldQueryParser.Operator.OR);
             Query parsedQuery;
             try {
@@ -178,8 +193,12 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         result.add(new IntField(CHUNK_ORDER_FIELD, chunk.order(), Field.Store.YES));
         result.add(new StoredField(SECTION_ORDER_FIELD, chunk.sectionOrder()));
         result.add(new StoredField(HEADING_LEVEL_FIELD, chunk.headingLevel()));
+        result.add(new TextField(HEADING_TEXT_FIELD, String.join(" ", chunk.headingPath()), Field.Store.NO));
         result.add(new StoredField(HEADING_PATH_FIELD, String.join(HEADING_SEPARATOR, chunk.headingPath())));
         result.add(new TextField(CONTENT_FIELD, chunk.content(), Field.Store.YES));
+        result.add(new TextField(CODE_FIELD, codeText(chunk), Field.Store.NO));
+        result.add(new TextField(JAVA_IDENTIFIER_FIELD,
+                extractJavaIdentifiers(chunk), Field.Store.NO));
         if (chunk.pageNumber() != null) {
             result.add(new StoredField(PAGE_NUMBER_FIELD, chunk.pageNumber()));
         }
@@ -224,6 +243,24 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
 
     private String stableDocumentId(MarkdownDocument document, MarkdownChunk chunk) {
         return document.source() + "\u0000" + document.version() + "\u0000" + chunk.order();
+    }
+
+    private String codeText(MarkdownChunk chunk) {
+        return chunk.blockType() == com.javainterview.rag.knowledge.document.KnowledgeBlockType.CODE
+                ? chunk.content() : "";
+    }
+
+    private String extractJavaIdentifiers(MarkdownChunk chunk) {
+        String searchableText = String.join(" ", chunk.headingPath()) + " " + chunk.content();
+        Matcher matcher = JAVA_IDENTIFIER_PATTERN.matcher(searchableText);
+        StringBuilder identifiers = new StringBuilder();
+        while (matcher.find()) {
+            if (identifiers.length() > 0) {
+                identifiers.append(' ');
+            }
+            identifiers.append(matcher.group());
+        }
+        return identifiers.toString();
     }
 
     private void closeQuietly() {

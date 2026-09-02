@@ -10,13 +10,24 @@ public record RagEvaluationCase(
         List<String> expectedSources,
         List<List<String>> expectedHeadingPaths,
         List<RagEvaluationStructureExpectation> expectedStructures,
-        List<String> expectedAnswerPoints
+        List<String> expectedAnswerPoints,
+        List<RagEvaluationChunkExpectation> expectedChunks,
+        List<RagEvaluationChunkExpectation> hardNegativeChunks
 ) {
 
     public RagEvaluationCase(String id, String question, RagEvaluationCaseType type,
                              List<String> expectedSources, List<List<String>> expectedHeadingPaths,
                              List<String> expectedAnswerPoints) {
-        this(id, question, type, expectedSources, expectedHeadingPaths, List.of(), expectedAnswerPoints);
+        this(id, question, type, expectedSources, expectedHeadingPaths, List.of(), expectedAnswerPoints,
+                List.of(), List.of());
+    }
+
+    public RagEvaluationCase(String id, String question, RagEvaluationCaseType type,
+                             List<String> expectedSources, List<List<String>> expectedHeadingPaths,
+                             List<RagEvaluationStructureExpectation> expectedStructures,
+                             List<String> expectedAnswerPoints) {
+        this(id, question, type, expectedSources, expectedHeadingPaths, expectedStructures, expectedAnswerPoints,
+                List.of(), List.of());
     }
 
     public RagEvaluationCase {
@@ -26,6 +37,11 @@ public record RagEvaluationCase(
         expectedSources = copyTexts(expectedSources, "期望来源不能为空");
         expectedHeadingPaths = copyHeadingPaths(expectedHeadingPaths);
         expectedStructures = List.copyOf(Objects.requireNonNull(expectedStructures, "结构期望不能为空"));
+        expectedChunks = List.copyOf(Objects.requireNonNull(expectedChunks, "期望 Chunk 不能为空"));
+        hardNegativeChunks = List.copyOf(Objects.requireNonNull(hardNegativeChunks, "Hard Negative Chunk 不能为空"));
+        if (expectedChunks.stream().anyMatch(hardNegativeChunks::contains)) {
+            throw new IllegalArgumentException("同一 Chunk 不能同时是正例和 Hard Negative");
+        }
         if (type != RagEvaluationCaseType.NO_ANSWER
                 && (expectedSources.isEmpty() || expectedHeadingPaths.isEmpty())) {
             throw new IllegalArgumentException("可回答评估题必须配置期望来源和标题路径");
@@ -35,6 +51,9 @@ public record RagEvaluationCase(
         }
         List<String> configuredSources = expectedSources;
         List<List<String>> configuredHeadingPaths = expectedHeadingPaths;
+        if (expectedChunks.stream().anyMatch(chunk -> !configuredSources.contains(chunk.source()))) {
+            throw new IllegalArgumentException("期望 Chunk 来源必须属于期望来源");
+        }
         if (expectedStructures.stream().anyMatch(expectation ->
                 !configuredSources.contains(expectation.source())
                         || !configuredHeadingPaths.contains(expectation.headingPath()))) {

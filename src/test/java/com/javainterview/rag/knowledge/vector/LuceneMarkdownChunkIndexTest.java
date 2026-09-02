@@ -39,6 +39,21 @@ class LuceneMarkdownChunkIndexTest {
     }
 
     @Test
+    void exposesExplainableFieldWeightsAndPrioritizesCodeIdentifiers() {
+        MarkdownDocument document = MarkdownDocument.create("java/fielded.md", "字段权重");
+        index.index(document, List.of(
+                chunk(document, 0, "这是普通文字说明。"),
+                chunk(document, 1, "if (treeifyBin(table, hash)) {}")
+        ));
+
+        List<MarkdownSearchResult> results = index.search("treeifyBin", 2);
+
+        assertEquals("content=1.0, heading=2.0, code=2.5, java_identifier=3.0",
+                LuceneMarkdownChunkIndex.FIELD_WEIGHT_POLICY);
+        assertEquals(1, results.get(0).chunkOrder());
+    }
+
+    @Test
     void repeatedIndexingDoesNotDuplicateStableChunksAndSourceDeletionRemovesHits() {
         MarkdownDocument document = MarkdownDocument.create("java/map.md", "HashMap");
         List<MarkdownChunk> chunks = List.of(chunk(document, 0, "HashMap 在 Java 8 中使用 treeifyBin。"));
