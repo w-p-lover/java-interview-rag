@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 public class RagRetrievalEvaluationService {
 
@@ -51,14 +52,27 @@ public class RagRetrievalEvaluationService {
     }
 
     public RagRetrievalEvaluationReport evaluate() {
+        return evaluateWith(query -> searchService.search(query,
+                EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD));
+    }
+
+    public RagRetrievalEvaluationReport evaluateWith(Function<String, List<MarkdownSearchResult>> retriever) {
+        return evaluateWith(retriever, ANSWER_SIMILARITY_THRESHOLD);
+    }
+
+    public RagRetrievalEvaluationReport evaluateWith(Function<String, List<MarkdownSearchResult>> retriever,
+                                                      double answerSimilarityThreshold) {
+        Objects.requireNonNull(retriever, "检索器不能为空");
+        if (!Double.isFinite(answerSimilarityThreshold) || answerSimilarityThreshold < 0.0) {
+            throw new IllegalArgumentException("回答相似度阈值必须是非负有限数");
+        }
         List<RagRetrievalEvaluationCaseResult> results = dataset.findAll().stream()
                 .map(evaluationCase -> evaluateCase(evaluationCase,
-                        searchService.search(evaluationCase.question(),
-                                EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD).stream()
+                        retriever.apply(evaluationCase.question()).stream()
                                 .map(RagRetrievalSource::from)
-                                .toList()))
+                                .toList(), answerSimilarityThreshold))
                 .toList();
-        return buildReport(results);
+        return buildReport(results, answerSimilarityThreshold);
     }
 
     public RagRetrievalEvaluationReport evaluateStructure() {
@@ -69,7 +83,7 @@ public class RagRetrievalEvaluationService {
                                 .map(RagRetrievalSource::from)
                                 .toList()))
                 .toList();
-        return buildReport(results);
+        return buildReport(results, ANSWER_SIMILARITY_THRESHOLD);
     }
 
     public RagRetrievalEvaluationComparisonReport compareQueryDecomposition() {
@@ -110,12 +124,13 @@ public class RagRetrievalEvaluationService {
                 decomposedCaseCount,
                 additionalQueryCount,
                 retrievalQueries,
-                buildReport(baselineResults),
-                buildReport(candidateResults)
+                buildReport(baselineResults, ANSWER_SIMILARITY_THRESHOLD),
+                buildReport(candidateResults, ANSWER_SIMILARITY_THRESHOLD)
         );
     }
 
-    private RagRetrievalEvaluationReport buildReport(List<RagRetrievalEvaluationCaseResult> results) {
+    private RagRetrievalEvaluationReport buildReport(List<RagRetrievalEvaluationCaseResult> results,
+                                                      double answerSimilarityThreshold) {
         List<RagRetrievalEvaluationCaseResult> answerableResults = results.stream()
                 .filter(result -> !result.rejectionExpected())
                 .toList();
@@ -155,7 +170,7 @@ public class RagRetrievalEvaluationService {
         return new RagRetrievalEvaluationReport(
                 EVALUATION_TOP_K,
                 EVALUATION_SIMILARITY_THRESHOLD,
-                ANSWER_SIMILARITY_THRESHOLD,
+                answerSimilarityThreshold,
                 results.size(),
                 answerableResults.size(),
                 noAnswerResults.size(),
@@ -188,6 +203,12 @@ public class RagRetrievalEvaluationService {
 
     private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
                                                           List<RagRetrievalSource> actualSources) {
+        return evaluateCase(evaluationCase, actualSources, ANSWER_SIMILARITY_THRESHOLD);
+    }
+
+    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
+                                                          List<RagRetrievalSource> actualSources,
+                                                          double answerSimilarityThreshold) {
         Set<String> actualLogicalSources = actualSources.stream()
                 .map(RagRetrievalSource::source)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -226,7 +247,7 @@ public class RagRetrievalEvaluationService {
         boolean rejectedAtAnswerThreshold = actualSources.stream()
                 .map(RagRetrievalSource::similarity)
                 .filter(Objects::nonNull)
-                .noneMatch(similarity -> similarity >= ANSWER_SIMILARITY_THRESHOLD);
+                .noneMatch(similarity -> similarity >= answerSimilarityThreshold);
         return new RagRetrievalEvaluationCaseResult(
                 evaluationCase.id(),
                 evaluationCase.question(),

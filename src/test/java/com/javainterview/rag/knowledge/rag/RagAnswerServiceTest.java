@@ -4,6 +4,7 @@ import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
+import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -164,5 +165,27 @@ class RagAnswerServiceTest {
         assertEquals(RagRetrievalLogStatus.FAILED, logCaptor.getValue().status());
         assertEquals("IllegalStateException", logCaptor.getValue().errorType());
         assertEquals(List.of(RagRetrievalSource.from(source)), logCaptor.getValue().sources());
+    }
+
+    @Test
+    void usesHybridRetrieverWhenConfigured() {
+        MarkdownSimilaritySearchService denseSearchService = mock(MarkdownSimilaritySearchService.class);
+        MarkdownHybridSearchService hybridSearchService = mock(MarkdownHybridSearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "treeifyBin 在冲突链达到阈值后参与树化。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.02);
+        when(hybridSearchService.search("treeifyBin", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("资料说明了 treeifyBin [资料 1]。");
+        RagAnswerService service = new RagAnswerService(denseSearchService, hybridSearchService,
+                null, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("treeifyBin");
+
+        assertEquals(true, result.grounded());
+        assertEquals(List.of(source), result.sources());
+        verify(hybridSearchService).search("treeifyBin", 5, 0.60);
+        verifyNoInteractions(denseSearchService);
     }
 }

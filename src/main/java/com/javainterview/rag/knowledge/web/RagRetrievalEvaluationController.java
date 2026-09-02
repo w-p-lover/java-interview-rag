@@ -5,7 +5,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationComparisonReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
+import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationService;
+import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationReport;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,9 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class RagRetrievalEvaluationController {
 
     private final RagRetrievalEvaluationService evaluationService;
+    private final HybridRetrievalEvaluationService hybridEvaluationService;
 
     public RagRetrievalEvaluationController(RagRetrievalEvaluationService evaluationService) {
+        this(evaluationService, null);
+    }
+
+    @Autowired
+    public RagRetrievalEvaluationController(RagRetrievalEvaluationService evaluationService,
+                                             HybridRetrievalEvaluationService hybridEvaluationService) {
         this.evaluationService = evaluationService;
+        this.hybridEvaluationService = hybridEvaluationService;
     }
 
     @GetMapping
@@ -38,5 +49,14 @@ public class RagRetrievalEvaluationController {
     @Operation(summary = "运行查询拆分对照评估")
     public RagRetrievalEvaluationComparisonReport compareQueryDecomposition() {
         return evaluationService.compareQueryDecomposition();
+    }
+
+    @GetMapping("/hybrid")
+    @Operation(summary = "运行 Dense、BM25 和 Hybrid 对照评估")
+    public HybridRetrievalEvaluationReport evaluateHybrid() {
+        if (hybridEvaluationService == null) {
+            throw new IllegalStateException("Hybrid 检索评估服务未配置");
+        }
+        return hybridEvaluationService.evaluate();
     }
 }

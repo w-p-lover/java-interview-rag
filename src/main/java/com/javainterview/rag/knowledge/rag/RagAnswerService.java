@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.rag;
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
+import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
 import reactor.core.publisher.Flux;
@@ -28,19 +29,28 @@ public class RagAnswerService {
             """;
 
     private final MarkdownSimilaritySearchService searchService;
+    private final MarkdownHybridSearchService hybridSearchService;
     private final MarkdownAdjacentChunkExpander contextExpander;
     private final ChatClient chatClient;
     private final RagRetrievalLogStore logStore;
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
-        this(searchService, null, chatClient, logStore);
+        this(searchService, null, null, chatClient, logStore);
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
                             MarkdownAdjacentChunkExpander contextExpander,
                             ChatClient chatClient, RagRetrievalLogStore logStore) {
+        this(searchService, null, contextExpander, chatClient, logStore);
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
+        this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
         this.chatClient = Objects.requireNonNull(chatClient, "聊天客户端不能为空");
         this.logStore = Objects.requireNonNull(logStore, "RAG 召回日志存储不能为空");
@@ -53,7 +63,7 @@ public class RagAnswerService {
         long startedAt = System.nanoTime();
         List<MarkdownSearchResult> sources = List.of();
         try {
-            sources = searchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            sources = retrieve(question);
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
@@ -82,8 +92,7 @@ public class RagAnswerService {
         }
         return Flux.defer(() -> {
             long startedAt = System.nanoTime();
-            List<MarkdownSearchResult> sources = searchService.search(
-                    question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            List<MarkdownSearchResult> sources = retrieve(question);
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
@@ -121,6 +130,13 @@ public class RagAnswerService {
                 ? RagRetrievalLogStatus.ANSWERED : RagRetrievalLogStatus.INSUFFICIENT;
         record(question, sources, status, result.grounded(), startedAt, null);
         return result;
+    }
+
+    private List<MarkdownSearchResult> retrieve(String question) {
+        if (hybridSearchService != null) {
+            return hybridSearchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+        }
+        return searchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
     }
 
     private void record(String question, List<MarkdownSearchResult> sources, RagRetrievalLogStatus status,

@@ -13,6 +13,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本、无正文章节目录和按新到旧排列的历史登记；只读取版本登记，不返回正文或查询向量库。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
   - `GET /api/knowledge/search/sparse?query=...&topK=5` 在 `local` 与 `storage` profile 下执行 Lucene BM25 稀疏检索，返回关键词匹配的真实 chunk、来源、版本、顺序、标题路径和 BM25 分数；不与向量分数混合。
+  - `GET /api/knowledge/search/hybrid?query=...&topK=5&denseSimilarityThreshold=0.0` 在 `storage` profile 下执行 Dense + BM25 双路候选召回，使用 RRF 按排名融合，并返回每条结果的 Dense/Sparse 排名、原始分数和融合分数。
   - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
   - `POST /api/knowledge/answer/stream` 在 `storage` profile 下以 SSE 增量返回同一套 RAG 回答；最后一个 `complete` 事件携带最终回答、可靠资料状态和来源列表。
   - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
@@ -21,7 +22,8 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/evaluation-cases` 返回内置的固定评估题集，包含问题、期望逻辑来源和预期回答要点，不调用模型或数据库。
 - `GET /api/knowledge/evaluation-cases/structure` 返回 3 道合成 PDF 结构检索题，显式包含期望来源、完整标题路径、页码和内容块类型，不调用模型或数据库。
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。
-- `GET /api/knowledge/evaluations/retrieval/structure` 在 `storage` profile 下执行结构检索题，除来源与排序外统计标题路径、页码、块类型及四项联合匹配召回率；会产生 Embedding 检索，不调用 Chat。
+  - `GET /api/knowledge/evaluations/retrieval/structure` 在 `storage` profile 下执行结构检索题，除来源与排序外统计标题路径、页码、块类型及四项联合匹配召回率；会产生 Embedding 检索，不调用 Chat。
+  - `GET /api/knowledge/evaluations/retrieval/hybrid` 在 `storage` profile 下使用同一固定题集分别执行 Dense-only、BM25-only 和 Hybrid-RRF，返回三份可对照报告；该接口会产生 Dense Embedding 检索，不调用 Chat。
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点及总体覆盖率；当前固定题集会产生 6 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
 - `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。
