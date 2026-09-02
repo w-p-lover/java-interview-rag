@@ -133,6 +133,7 @@ public class InterviewSessionController {
         int sequence = 1;
         for (var answer : session.answers()) {
             events.add(event("ANSWER_SUBMITTED", sequence++, answer.questionIndex(), "已提交回答"));
+            events.add(event("EVALUATION_STARTED", sequence++, answer.questionIndex(), "开始结构化评价"));
             events.add(event("EVALUATION_COMPLETED", sequence++, answer.questionIndex(), "结构化评价已完成"));
         }
         if (session.status() == com.javainterview.rag.interview.session.InterviewSessionStatus.COMPLETED) {

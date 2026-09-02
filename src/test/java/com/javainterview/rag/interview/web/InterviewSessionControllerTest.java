@@ -173,6 +173,27 @@ class InterviewSessionControllerTest {
                 .andExpect(jsonPath("$.message").value("面试会话已经完成"));
     }
 
+    @Test
+    void restoresEvaluationStartedStageForAnsweredSession() throws Exception {
+        InterviewSessionService service = mock(InterviewSessionService.class);
+        InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
+        ProjectDeepDiveSessionStartService projectDeepDiveStartService =
+                mock(ProjectDeepDiveSessionStartService.class);
+        InterviewSession answered = session().answer(
+                "说明向量更新流程。", evaluation(), null, LocalDateTime.of(2026, 7, 27, 11, 5));
+        when(service.find("session-1")).thenReturn(answered);
+
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
+
+        mockMvc.perform(get("/api/interviews/sessions/session-1/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("ANSWER_SUBMITTED"))
+                .andExpect(jsonPath("$[1].type").value("EVALUATION_STARTED"))
+                .andExpect(jsonPath("$[2].type").value("EVALUATION_COMPLETED"))
+                .andExpect(jsonPath("$[3].type").value("FOLLOW_UP_GENERATED"));
+    }
+
     private InterviewSession session() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 27, 11, 0);
         return new InterviewSession(
