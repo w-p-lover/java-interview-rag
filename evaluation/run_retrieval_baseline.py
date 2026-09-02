@@ -86,12 +86,14 @@ def import_corpus(base_url: str, timeout: float, include_structured_pdf: bool) -
 
 
 def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool,
-             evaluate_structure: bool) -> dict:
+             evaluate_structure: bool, evaluate_hybrid: bool) -> dict:
     path = "/api/knowledge/evaluations/retrieval"
     if compare_query_decomposition:
         path += "/query-decomposition"
     elif evaluate_structure:
         path += "/structure"
+    elif evaluate_hybrid:
+        path += "/hybrid"
     request = urllib.request.Request(
         f"{base_url}{path}",
         method="GET",
@@ -116,6 +118,31 @@ def validate_report(report: dict, structure: bool = False) -> list[str]:
         value = report.get(field)
         if not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
             errors.append(f"指标 {field} 缺失或超出 0 到 1")
+    advanced = report.get("advancedMetrics")
+    if not isinstance(advanced, dict):
+        errors.append("advancedMetrics 缺失")
+    else:
+        for field in ("precisionAt5", "ndcgAt5", "chunkRecallAt5",
+                      "hardNegativeAvoidanceRate", "contextNoiseRate"):
+            value = advanced.get(field)
+            if not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+                errors.append(f"高级指标 {field} 缺失或超出 0 到 1")
+        latency = advanced.get("retrievalLatencyP95Ms")
+        if not isinstance(latency, (int, float)) or latency < 0.0:
+            errors.append("高级指标 retrievalLatencyP95Ms 缺失或小于 0")
+    return errors
+
+
+def validate_hybrid(comparison: dict) -> list[str]:
+    errors = []
+    for name in ("dense", "sparse", "hybrid"):
+        report = comparison.get(name)
+        if not isinstance(report, dict):
+            errors.append(f"{name} 报告缺失")
+        else:
+            errors.extend(f"{name}: {error}" for error in validate_report(report))
+    if not isinstance(comparison.get("rejectionMetricNote"), str):
+        errors.append("拒答指标说明缺失")
     return errors
 
 
@@ -167,6 +194,21 @@ def print_comparison_summary(comparison: dict) -> None:
     print_summary(comparison["candidate"])
 
 
+def print_hybrid_summary(comparison: dict) -> None:
+    print("\nDense / Sparse / Hybrid 检索基线摘要")
+    for name in ("dense", "sparse", "hybrid"):
+        report = comparison[name]
+        advanced = report["advancedMetrics"]
+        print(f"\n{name}")
+        print_summary(report)
+        print(f"- Precision@5: {advanced['precisionAt5']:.4f}")
+        print(f"- nDCG@5: {advanced['ndcgAt5']:.4f}")
+        print(f"- Chunk Recall@5: {advanced['chunkRecallAt5']:.4f}")
+        print(f"- Hard Negative 避免率: {advanced['hardNegativeAvoidanceRate']:.4f}")
+        print(f"- 上下文噪声率: {advanced['contextNoiseRate']:.4f}")
+        print(f"- 检索延迟 P95: {advanced['retrievalLatencyP95Ms']:.2f} ms")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入固定语料并运行真实 RAG 检索基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
@@ -188,6 +230,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="导入合成结构化 PDF 并评估标题、页码和内容块类型召回",
     )
+    mode.add_argument(
+        "--evaluate-hybrid",
+        action="store_true",
+        help="运行 Dense-only、BM25-only 和 Hybrid-RRF 三策略对照评估",
+    )
     return parser.parse_args()
 
 
@@ -204,12 +251,15 @@ def main() -> int:
     try:
         corpus = import_corpus(base_url, args.timeout, args.evaluate_structure)
         evaluation_result = evaluate(
-            base_url, args.timeout, args.compare_query_decomposition, args.evaluate_structure)
+            base_url, args.timeout, args.compare_query_decomposition, args.evaluate_structure,
+            args.evaluate_hybrid)
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exception:
         print(f"评估执行失败：{exception}", file=sys.stderr)
         return 1
 
-    errors = (validate_comparison(evaluation_result)
+    errors = (validate_hybrid(evaluation_result)
+              if args.evaluate_hybrid else
+              validate_comparison(evaluation_result)
               if args.compare_query_decomposition
               else validate_report(evaluation_result, args.evaluate_structure))
     if errors:
@@ -220,6 +270,7 @@ def main() -> int:
         output = {
             "runAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
             "embeddingModel": "text-embedding-v3",
+            "sparseFieldWeightPolicy": "content=1.0, heading=2.0, code=2.5, java_identifier=3.0",
             "collection": "java-interview-rag-chunks",
             "corpusDocumentCount": len(corpus),
             "importedDocumentCount": sum(1 for document in corpus if document["imported"]),
@@ -227,6 +278,8 @@ def main() -> int:
             "note": (
                 "独立知识库中同时存在规划报告；本次比较原查询与确定性查询拆分，只执行 Embedding 检索，不调用 Chat。"
                 if args.compare_query_decomposition else
+                "独立知识库中同时存在规划报告；本次比较 Dense-only、BM25-only 和 Hybrid-RRF，只执行 Embedding 检索，不调用 Chat。"
+                if args.evaluate_hybrid else
                 "本次使用合成两页 PDF 评估标题、页码和内容块类型召回，只执行 Embedding 检索，不调用 Chat。"
                 if args.evaluate_structure else
                 "独立知识库中同时存在规划报告；报告保留真实竞争来源。本次只执行 Embedding 检索，不调用 Chat。"
@@ -238,6 +291,8 @@ def main() -> int:
         print(f"评估结果已写入：{args.output}")
     if args.compare_query_decomposition:
         print_comparison_summary(evaluation_result)
+    elif args.evaluate_hybrid:
+        print_hybrid_summary(evaluation_result)
     elif args.evaluate_structure:
         print_structure_summary(evaluation_result)
     else:

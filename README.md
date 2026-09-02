@@ -6,6 +6,10 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 
 ## 当前 Web 功能
 
+当前字段化 Sparse 评估使用 `content=1.0`、`heading=2.0`、`code=2.5`、`java_identifier=3.0`；固定题中的代表性问题还记录期望 Chunk 与 Hard Negative Chunk。检索评估报告额外返回 Precision@5、nDCG@5、Chunk Recall@5、Hard Negative 避免率、上下文噪声率和检索延迟 P95。使用 `evaluation/run_retrieval_baseline.py --evaluate-hybrid --allow-embedding-calls` 可执行 Dense-only、BM25-only、Hybrid-RRF 三策略对照。
+
+最新字段化复核结果见 `evaluation/results/2026-09-02-fielded-sparse-hybrid-baseline.json`：Hybrid nDCG@5 为 `0.9772`，Sparse 检索 P95 约 `18.81ms`；来源级指标与旧基线基本持平，Sparse 拒答准确率仍为 `0`，当前结论是保留实现并继续扩充 Hard Negative，而不是宣称全面质量提升。
+
 - `POST /api/knowledge/documents/import` 接收 Markdown 文件与显式逻辑来源。
 - `POST /api/knowledge/documents/rebuild` 重传当前登记版本的来源与 Markdown 文件，修复缺失或残留向量；历史版本不能直接重建为检索版本。
 - `DELETE /api/knowledge/documents?source=...` 清理逻辑来源下的全部向量与版本登记。

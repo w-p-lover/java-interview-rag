@@ -421,18 +421,29 @@ public class RagRetrievalEvaluationService {
             return 0.0;
         }
         double dcg = 0.0;
+        Set<String> countedRelevant = new LinkedHashSet<>();
         for (int index = 0; index < retrievedCount; index++) {
-            if (isRelevant(evaluationCase, actualSources.get(index))) {
+            RagRetrievalSource source = actualSources.get(index);
+            if (isRelevant(evaluationCase, source)
+                    && countedRelevant.add(relevanceIdentity(evaluationCase, source))) {
                 dcg += 1.0 / (Math.log(index + 2) / Math.log(2));
             }
         }
-        int idealRelevantCount = Math.min(retrievedCount, evaluationCase.expectedChunks().isEmpty()
-                ? evaluationCase.expectedSources().size() : evaluationCase.expectedChunks().size());
+        int idealRelevantCount = (int) Math.min(retrievedCount, evaluationCase.expectedChunks().isEmpty()
+                ? evaluationCase.expectedSources().stream().distinct().count() : evaluationCase.expectedChunks().stream()
+                .distinct().count());
         double idcg = 0.0;
         for (int index = 0; index < idealRelevantCount; index++) {
             idcg += 1.0 / (Math.log(index + 2) / Math.log(2));
         }
         return idcg == 0.0 ? 0.0 : dcg / idcg;
+    }
+
+    private String relevanceIdentity(RagEvaluationCase evaluationCase, RagRetrievalSource source) {
+        if (!evaluationCase.expectedChunks().isEmpty()) {
+            return source.source() + "\u0000" + source.chunkOrder();
+        }
+        return source.source();
     }
 
     private double percentile95(List<Double> values) {

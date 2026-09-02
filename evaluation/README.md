@@ -55,7 +55,9 @@ curl.exe "http://127.0.0.1:18080/api/knowledge/evaluations/retrieval/hybrid"
 
 接口在同一 20 题固定集上分别运行 Dense-only、BM25-only 和 Hybrid-RRF，不调用 Chat；Dense 与 Hybrid 会产生 Embedding 检索请求。2026-09-02 的一次真实结果保存在 `results/2026-09-02-hybrid-retrieval-baseline.json`：8 份语料、18 个 Chunk，最多 48 次 Embedding 请求、0 次 Chat。三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense `0.9130`。
 
-本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。文件中的 BM25-only 拒答准确率 `0` 使用了旧的余弦阈值口径，不能与 Dense 的 `1.0000` 直接比较；当前代码已改为按通道隔离策略，字段化 BM25 和高级指标已经接入，但需要重新执行真实 storage 对照才能建立新基线。该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
+本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。文件中的 BM25-only 拒答准确率 `0` 使用了旧的余弦阈值口径，不能与 Dense 的 `1.0000` 直接比较；该旧结果只作为历史证据。字段化 BM25 和高级指标已经接入，新的真实复核见下一段；该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
+
+2026-09-02 使用字段化 BM25 完成一次真实三策略复核，结果见 `results/2026-09-02-fielded-sparse-hybrid-baseline.json`。Dense/Sparse/Hybrid 的 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid nDCG@5 `0.9772`、Precision@5 `0.4471`，Sparse nDCG@5 `0.9725`、Precision@5 `0.4353`，Sparse 检索 P95 `18.81ms`，Dense/Hybrid 约 `244.8ms`。Sparse 拒答准确率仍为 `0`，说明候选存在性策略会保留非空低相关候选；该结果支持继续扩充 Hard Negative 和无答案题，不支持宣称字段权重已全面提升质量。
 
 ## PDF 结构检索
 
