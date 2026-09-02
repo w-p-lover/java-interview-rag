@@ -36,3 +36,7 @@
 - 当前 RRF 只证明可解释的多路召回编排，不代表 Hybrid 已经改善固定题集质量。
 - BM25 原始分数和 Dense Cosine 分数不在同一尺度，回答可靠性不能使用 RRF 分数或 BM25 分数直接套用 `0.60` 余弦阈值。
 - 下一步必须执行一次同题集 Dense-only、BM25-only、Hybrid 对照，并同时观察回答要点、拒答、延迟和上下文噪声，再决定是否保留默认 Hybrid 或进入 Rerank POC。
+
+## 后续勘误：2026-09-02 真实三策略基线已完成
+
+上述“下一步”是本阶段实现完成时的待办记录。2026-09-02 已在独立 `storage` 实例完成一次真实对照，结果保存于 `evaluation/results/2026-09-02-hybrid-retrieval-baseline.json`：三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense-only `0.9130`。因此 Hybrid 保留为 storage RAG 默认主链路，但尚未证明来源排序或回答质量全面提升；BM25-only 拒答指标因复用 Dense 余弦阈值而不可直接比较。后续改为先完善 Sparse 阈值、字段化 BM25、Chunk 级困难样本、噪声与延迟。

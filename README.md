@@ -153,7 +153,7 @@ docker compose up -d mysql qdrant
 
 固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 20 个困难检索问题，每题包含稳定标识、问题、期望逻辑来源、完整标题路径和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 统计 Hit@1、Recall@5、MRR、标题路径召回和拒答准确率。独立的 3 道 PDF 结构题通过 `/api/knowledge/evaluation-cases/structure` 与 `/api/knowledge/evaluations/retrieval/structure` 验证页码、代码/表格/正文块类型和完整结构匹配，不扩大回答评估的 Chat 调用范围。`POST /api/knowledge/evaluations/answers` 仍只复用原 20 题在线回答服务，以 `normalized-literal-containment-v1` 比较完整要点；该指标不等同于语义正确率，接口会产生真实模型费用并写召回日志。仓库提供相应 Markdown 与合成 PDF 语料，真实检索仍必须在费用授权后运行。
 
-仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 5 份基线 Markdown，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 使用 `text-embedding-v3` 和现有 Qdrant collection 运行真实基线，6 道题均在第 1 位命中期望来源，首位相似度为 `0.6755` 至 `0.8585`；原始报告保存在 `evaluation/results/2026-07-25-retrieval-baseline.json`。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接重复执行对照。
+仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 8 份固定 Markdown 语料，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 的 6 题/5 份语料结果保留在 `evaluation/results/2026-07-25-retrieval-baseline.json`，作为历史首轮基线；当前 20 题困难集和 Dense/BM25/Hybrid-RRF 真实对照见 `evaluation/README.md` 及对应结果文件。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接执行同口径对照。
 
 ## 面试准备画像与首轮出题
 

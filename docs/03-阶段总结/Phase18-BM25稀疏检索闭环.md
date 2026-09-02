@@ -35,3 +35,7 @@
 - 本轮只完成 BM25-only 独立检索，不宣称已经完成 Hybrid Search 或 RAG 质量提升。
 - `StandardAnalyzer` 的中文分词、复杂符号和查询拆分效果尚未用固定 20 题做量化对照。
 - 下一轮应生成 BM25-only 与 dense-only 的固定题集对照报告，再决定是否实现受控融合。
+
+## 后续勘误：2026-09-02 对照与融合已完成
+
+上述“下一轮”是 BM25 独立检索完成时的历史待办。随后已完成 Hybrid-RRF v1 和一次真实 Dense-only、BM25-only、Hybrid-RRF 固定题集对照；当前结论与实现状态以 `docs/09-后续开发路线.md` 和 `evaluation/results/2026-09-02-hybrid-retrieval-baseline.json` 为准。
