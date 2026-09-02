@@ -32,11 +32,12 @@ public final class HybridRetrievalEvaluationService {
                 denseSearchService);
         RagRetrievalEvaluationReport dense = evaluator.evaluate();
         RagRetrievalEvaluationReport sparse = evaluator.evaluateWith(query ->
-                sparseSearchService.search(query, EVALUATION_TOP_K), ANSWER_SIMILARITY_THRESHOLD);
+                sparseSearchService.search(query, EVALUATION_TOP_K),
+                RagRetrievalRejectionPolicy.CANDIDATE_PRESENCE);
         RagRetrievalEvaluationReport hybrid = evaluator.evaluateWith(query ->
                 hybridSearchService.search(query, EVALUATION_TOP_K, DENSE_CANDIDATE_THRESHOLD),
-                ANSWER_SIMILARITY_THRESHOLD);
+                RagRetrievalRejectionPolicy.COSINE_THRESHOLD);
         return new HybridRetrievalEvaluationReport(dense, sparse, hybrid,
-                "Dense 使用余弦阈值；BM25 分数与余弦不在同一尺度，Sparse/Hybrid 的拒答指标只表示候选为空，不能直接与 Dense 阈值作数值比较。");
+                "Dense/Hybrid 使用余弦阈值；Sparse 使用候选存在性。BM25 分数与余弦不在同一尺度，三策略拒答指标不能直接按分数数值比较。");
     }
 }

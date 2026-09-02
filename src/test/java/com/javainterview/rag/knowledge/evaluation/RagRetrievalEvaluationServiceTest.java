@@ -90,6 +90,30 @@ class RagRetrievalEvaluationServiceTest {
     }
 
     @Test
+    void appliesCandidatePresencePolicyWithoutComparingBm25ScoreToCosineThreshold() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagEvaluationCase rejected = evaluationCase(
+                "empty", "没有候选的问题", RagEvaluationCaseType.NO_ANSWER, List.of(), List.of());
+        RagEvaluationCase candidatePresent = evaluationCase(
+                "candidate", "只有低分候选的问题", RagEvaluationCaseType.NO_ANSWER, List.of(), List.of());
+        when(dataset.findAll()).thenReturn(List.of(rejected, candidatePresent));
+
+        RagRetrievalEvaluationReport report = new RagRetrievalEvaluationService(dataset,
+                mock(MarkdownSimilaritySearchService.class)).evaluateWith(question ->
+                        question.equals("没有候选的问题")
+                                ? List.of()
+                                : List.of(result("低分 BM25 候选", "java/other.md",
+                                List.of("Java"), 0.01)),
+                RagRetrievalRejectionPolicy.CANDIDATE_PRESENCE);
+
+        assertEquals(0.0, report.answerSimilarityThreshold());
+        assertEquals(1, report.correctRejectionCount());
+        assertEquals(0.5, report.rejectionAccuracy());
+        assertTrue(report.cases().get(0).rejectedAtAnswerThreshold());
+        assertFalse(report.cases().get(1).rejectedAtAnswerThreshold());
+    }
+
+    @Test
     void comparesQueryDecompositionWithoutRepeatingOriginalSearch() {
         FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
         MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
