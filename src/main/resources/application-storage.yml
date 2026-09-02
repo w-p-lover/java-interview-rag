@@ -60,3 +60,7 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+
+java-interview-rag:
+  sparse:
+    index-path: ${JAVA_INTERVIEW_RAG_SPARSE_INDEX_PATH:.tmp/sparse-index}

@@ -12,6 +12,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/documents` 返回每个逻辑来源当前登记的版本、内容字符数和登记时间；不返回历史版本或 Markdown 正文，也不调用模型与向量库。
 - `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本、无正文章节目录和按新到旧排列的历史登记；只读取版本登记，不返回正文或查询向量库。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
+  - `GET /api/knowledge/search/sparse?query=...&topK=5` 在 `local` 与 `storage` profile 下执行 Lucene BM25 稀疏检索，返回关键词匹配的真实 chunk、来源、版本、顺序、标题路径和 BM25 分数；不与向量分数混合。
   - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
   - `POST /api/knowledge/answer/stream` 在 `storage` profile 下以 SSE 增量返回同一套 RAG 回答；最后一个 `complete` 事件携带最终回答、可靠资料状态和来源列表。
   - `GET /api/knowledge/retrieval-logs?limit=20` 在 `storage` profile 下查询独立数据库中最近 RAG 召回记录，最多返回 100 条。
