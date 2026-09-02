@@ -43,6 +43,18 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 
 2026-08-13 的首轮真实困难基线使用 `text-embedding-v3`、8 份语料和 18 个 chunk，结果见 `evaluation/results/2026-08-13-rag-hard-retrieval-baseline.json`：Hit@1 为 `1.0000`、Mean Recall@5 为 `0.9706`、MRR 为 `1.0000`、标题路径召回率为 `0.9130`、无答案拒答准确率为 `1.0000`。主要缺口集中在跨主题 Map 问题漏掉普通 HashMap 来源，以及一个歧义 Map 问题漏掉“扩容与负载因子”标题；当前没有证据支持直接引入 rerank。
 
+## Dense、BM25 与 Hybrid-RRF 对照
+
+在 `storage` profile 启动后，直接调用三策略对照接口：
+
+```shell
+curl.exe "http://127.0.0.1:18080/api/knowledge/evaluations/retrieval/hybrid"
+```
+
+接口在同一 20 题固定集上分别运行 Dense-only、BM25-only 和 Hybrid-RRF，不调用 Chat；Dense 与 Hybrid 会产生 Embedding 检索请求。2026-09-02 的一次真实结果保存在 `results/2026-09-02-hybrid-retrieval-baseline.json`：8 份语料、18 个 Chunk，最多 48 次 Embedding 请求、0 次 Chat。三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense `0.9130`。
+
+本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。BM25-only 拒答准确率为 `0` 不能与 Dense 的 `1.0000` 直接比较，因为评估器复用了 Dense 的余弦 `0.60` 阈值，而 BM25 原始分数不在同一尺度；后续应单独定义 Sparse 阈值或“候选为空”拒答判定。该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
+
 ## PDF 结构检索
 
 合成两页 PDF 使用标准字体构造真实标题、跨页小节、代码和两列表格，不包含真实资料或个人信息。结构题与原 20 题分离，避免把 3 道结构题加入回答评估并额外产生 Chat 调用。明确允许 Embedding 费用后执行：
