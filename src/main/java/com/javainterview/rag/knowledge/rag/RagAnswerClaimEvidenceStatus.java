@@ -1,6 +1,6 @@
 package com.javainterview.rag.knowledge.rag;
 
-enum RagAnswerClaimEvidenceStatus {
+public enum RagAnswerClaimEvidenceStatus {
     SUPPORTED,
     EVIDENCE_INSUFFICIENT,
     EVIDENCE_CONFLICTING,

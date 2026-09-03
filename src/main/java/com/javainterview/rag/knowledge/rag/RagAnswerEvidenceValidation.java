@@ -1,14 +1,16 @@
 package com.javainterview.rag.knowledge.rag;
 
 import java.util.List;
+import java.util.Objects;
 
-record RagAnswerEvidenceValidation(
+public record RagAnswerEvidenceValidation(
         boolean valid,
         List<RagAnswerClaimEvidence> claims
 ) {
 
-    RagAnswerEvidenceValidation {
-        claims = List.copyOf(claims);
+    public RagAnswerEvidenceValidation(boolean valid, List<RagAnswerClaimEvidence> claims) {
+        this.valid = valid;
+        this.claims = List.copyOf(Objects.requireNonNull(claims, "回答证据判断不能为空"));
     }
 
     boolean hasCitationInvalid() {

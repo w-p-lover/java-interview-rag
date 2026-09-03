@@ -53,4 +53,14 @@ class RagAnswerCitationValidatorTest {
         assertTrue(result.valid());
         assertEquals(1, result.claims().size());
     }
+
+    @Test
+    void ignoresMarkdownHeadingsAndAnswerLeadInsWithoutIgnoringFacts() {
+        RagAnswerCitationValidation result = validator.validate(
+                "根据给定资料，回答如下：\n\n**HashMap 特点：**\nHashMap 使用数组和链表 [资料 1]。", 1);
+
+        assertTrue(result.valid());
+        assertEquals(1, result.claims().size());
+        assertEquals("HashMap 使用数组和链表 [资料 1]。", result.claims().get(0).claim());
+    }
 }

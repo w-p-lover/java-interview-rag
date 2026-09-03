@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class RagAnswerEvidenceValidator {
+public final class RagAnswerEvidenceValidator {
 
     private static final double MIN_ANCHOR_COVERAGE = 0.5;
     private static final Pattern SOURCE_SENTENCE = Pattern.compile("[^。！？!?；;\\r\\n]+");
@@ -23,7 +23,7 @@ final class RagAnswerEvidenceValidator {
 
     private final RagAnswerCitationValidator citationValidator = new RagAnswerCitationValidator();
 
-    RagAnswerEvidenceValidation validate(String answer, List<MarkdownSearchResult> sources) {
+    public RagAnswerEvidenceValidation validate(String answer, List<MarkdownSearchResult> sources) {
         RagAnswerCitationValidation citationValidation = citationValidator.validate(answer, sources.size());
         List<RagAnswerClaimEvidence> claims = citationValidation.claims().stream()
                 .map(claim -> evaluateClaim(claim, sources))

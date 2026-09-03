@@ -1,0 +1,2733 @@
+{
+  "matchingMethod": "normalized-literal-containment-v1",
+  "totalCaseCount": 23,
+  "groundedCaseCount": 6,
+  "expectedSourceHitCount": 23,
+  "totalAnswerPointCount": 63,
+  "matchedAnswerPointCount": 10,
+  "answerPointCoverageRate": 0.15873015873015872,
+  "metrics": {
+    "claimCount": 73,
+    "citedClaimCount": 71,
+    "supportedClaimCount": 58,
+    "insufficientClaimCount": 9,
+    "conflictingClaimCount": 4,
+    "citedExpectedAnswerPointCount": 4,
+    "citationPrecision": 0.8169014084507042,
+    "citationRecall": 0.06349206349206349,
+    "unsupportedStatementRate": 0.2054794520547945,
+    "evidenceConflictRate": 0.0547945205479452
+  },
+  "cases": [
+    {
+      "evaluationCaseId": "java-collections-hashmap",
+      "question": "HashMap 在什么条件下树化，平均查询复杂度是多少？",
+      "answer": "HashMap 的树化条件是：当桶内节点数量达到树化阈值 8，并且当前数组容量至少为 64 时，该桶可以转换为红黑树 [资料 2]。如果数组容量还小于 64，HashMap 会优先扩容，而不是立即树化 [资料 2]。\n\nHashMap 常见的平均查询复杂度是 O(1) [资料 1]。红黑树用于限制严重冲突下的查找退化，但不改变通常所说的平均 O(1) 查询复杂度 [资料 2]。",
+      "grounded": true,
+      "expectedSources": [
+        "java/collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 0.7493449449539185,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 0.6354540586471558,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 4.489277362823486,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 1,
+          "headingPath": [
+            "JVM 内存管理",
+            "回收判定边界"
+          ],
+          "similarity": 3.1298766136169434,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 3.1103272438049316,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 0.6411597728729248,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.5532267093658447,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "Java 8 的桶可由链表树化为红黑树",
+        "链表长度达到 8",
+        "数组容量至少为 64",
+        "常见平均查询复杂度为 O(1)"
+      ],
+      "matchedAnswerPoints": [
+        "数组容量至少为 64"
+      ],
+      "unmatchedAnswerPoints": [
+        "Java 8 的桶可由链表树化为红黑树",
+        "链表长度达到 8",
+        "常见平均查询复杂度为 O(1)"
+      ],
+      "answerPointCoverageRate": 0.25,
+      "claimEvidence": [
+        {
+          "claim": "HashMap 的树化条件是：当桶内节点数量达到树化阈值 8，并且当前数组容量至少为 64 时，该桶可以转换为红黑树 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.868421052631579
+        },
+        {
+          "claim": "如果数组容量还小于 64，HashMap 会优先扩容，而不是立即树化 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9473684210526315
+        },
+        {
+          "claim": "HashMap 常见的平均查询复杂度是 O(1) [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9230769230769231
+        },
+        {
+          "claim": "红黑树用于限制严重冲突下的查找退化，但不改变通常所说的平均 O(1) 查询复杂度 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        }
+      ],
+      "metrics": {
+        "claimCount": 4,
+        "citedClaimCount": 4,
+        "supportedClaimCount": 4,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 1,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.25,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-concurrency-thread-pool",
+      "question": "ThreadPoolExecutor 接收到新任务后如何决定创建线程、入队和拒绝？",
+      "answer": "当 `ThreadPoolExecutor` 调用 `execute` 提交新任务时，线程池会先检查当前工作线程数 [资料 1]。具体的决定流程如下：\n\n1. **创建核心线程**：如果当前工作线程数少于 `corePoolSize`，线程池会优先创建核心线程执行任务，即使已有核心线程处于空闲状态 [资料 1]。\n2. **任务入队**：当核心线程数已满后，线程池会尝试把任务放入工作队列 [资料 1]。任务成功入队后还会重新检查线程池运行状态，避免关闭过程留下无法处理的任务 [资料 1]。\n3. **创建非核心线程**：如果队列已满，线程池会在工作线程数小于 `maximumPoolSize` 时创建非核心线程处理任务 [资料 1]。\n4. **拒绝任务**：当工作线程数达到最大线程数后，线程池会执行配置的 `RejectedExecutionHandler` 拒绝策略 [资料 1]。常见策略包括抛出异常、由提交线程执行、丢弃当前任务或丢弃队列中最旧任务 [资料 1]。",
+      "grounded": true,
+      "expectedSources": [
+        "java/concurrency.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.7859439849853516,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 5.491756439208984,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 4.305896759033203,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发",
+            "volatile 的可见性与有序性"
+          ],
+          "similarity": 4.233083248138428,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 4.193800926208496,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 0.5943026542663574,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 1,
+          "headingPath": [
+            "JVM 内存管理",
+            "回收判定边界"
+          ],
+          "similarity": 0.7773197889328003,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "先创建核心线程",
+        "核心线程满后任务进入工作队列",
+        "队列满后在最大线程数内创建非核心线程",
+        "超过最大线程数后执行拒绝策略"
+      ],
+      "matchedAnswerPoints": [
+        "先创建核心线程"
+      ],
+      "unmatchedAnswerPoints": [
+        "核心线程满后任务进入工作队列",
+        "队列满后在最大线程数内创建非核心线程",
+        "超过最大线程数后执行拒绝策略"
+      ],
+      "answerPointCoverageRate": 0.25,
+      "claimEvidence": [
+        {
+          "claim": "当 `ThreadPoolExecutor` 调用 `execute` 提交新任务时，线程池会先检查当前工作线程数 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8095238095238095
+        },
+        {
+          "claim": "1. **创建核心线程**：如果当前工作线程数少于 `corePoolSize`，线程池会优先创建核心线程执行任务，即使已有核心线程处于空闲状态 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6764705882352942
+        },
+        {
+          "claim": "2. **任务入队**：当核心线程数已满后，线程池会尝试把任务放入工作队列 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.75
+        },
+        {
+          "claim": "任务成功入队后还会重新检查线程池运行状态，避免关闭过程留下无法处理的任务 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        },
+        {
+          "claim": "3. **创建非核心线程**：如果队列已满，线程池会在工作线程数小于 `maximumPoolSize` 时创建非核心线程处理任务 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9615384615384616
+        },
+        {
+          "claim": "4. **拒绝任务**：当工作线程数达到最大线程数后，线程池会执行配置的 `RejectedExecutionHandler` 拒绝策略 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6
+        },
+        {
+          "claim": "常见策略包括抛出异常、由提交线程执行、丢弃当前任务或丢弃队列中最旧任务 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        }
+      ],
+      "metrics": {
+        "claimCount": 7,
+        "citedClaimCount": 7,
+        "supportedClaimCount": 7,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 1,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.25,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-concurrency-volatile",
+      "question": "volatile 能保证什么，为什么不能保证自增操作的原子性？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "java/concurrency.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发",
+            "volatile 的可见性与有序性"
+          ],
+          "similarity": 0.6754879355430603,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 4.630163669586182,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 4.561469554901123,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 3.7528936862945557,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 3.489157199859619,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 0.7078193426132202,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "保证可见性",
+        "禁止特定指令重排序",
+        "自增包含读取、计算和写回多个步骤",
+        "多线程自增需要原子类或锁"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "保证可见性",
+        "禁止特定指令重排序",
+        "自增包含读取、计算和写回多个步骤",
+        "多线程自增需要原子类或锁"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "`volatile` 能保证可见性和有序性 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.4
+        },
+        {
+          "claim": "具体而言，对 `volatile` 变量的写入对随后读取该变量的线程可见，并且 Java 内存模型会在相关读写处建立有序性约束，禁止破坏该语义的特定指令重排序 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9433962264150944
+        },
+        {
+          "claim": "`volatile` 不能保证自增操作原子性的原因是，自增操作（如 `count++`）不是一次不可分割的操作，而是包含读取旧值、计算新值、写回结果等多个步骤 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5909090909090909
+        },
+        {
+          "claim": "多个线程即使读写的是 `volatile` 变量，也可能读取到相同旧值并发生覆盖，因此 `volatile` 不能保证自增的原子性 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9714285714285714
+        },
+        {
+          "claim": "对于并发计数，应使用 `AtomicInteger` 等原子类，或使用锁保护复合操作 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8888888888888888
+        }
+      ],
+      "metrics": {
+        "claimCount": 5,
+        "citedClaimCount": 5,
+        "supportedClaimCount": 4,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.8,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.2,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-jvm-gc-roots",
+      "question": "JVM 如何通过 GC Roots 判断对象是否可回收？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "java/jvm.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 0.8584913611412048,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 1,
+          "headingPath": [
+            "JVM 内存管理",
+            "回收判定边界"
+          ],
+          "similarity": 0.709475040435791,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 4.859801769256592,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 3.7609915733337402,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 2.8665764331817627,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "从 GC Roots 开始进行可达性分析",
+        "可达对象不会被回收",
+        "不可达对象会进入回收判定",
+        "栈帧局部变量和静态字段可以作为 GC Roots"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "从 GC Roots 开始进行可达性分析",
+        "可达对象不会被回收",
+        "不可达对象会进入回收判定",
+        "栈帧局部变量和静态字段可以作为 GC Roots"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "JVM 在判断对象是否仍然存活时，会从一组称为 GC Roots 的根节点开始遍历对象引用图 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9666666666666667
+        },
+        {
+          "claim": "常见的 GC Roots 包括虚拟机栈中栈帧局部变量表引用的对象、类静态字段引用的对象、运行时常量池引用的对象、JNI 本地引用以及 JVM 内部持有的必要对象 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9777777777777777
+        },
+        {
+          "claim": "如果对象能够从任意 GC Root 沿引用链到达，则该对象被认为可达，本轮垃圾回收不会把它当作普通垃圾直接回收 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8947368421052632
+        },
+        {
+          "claim": "如果对象无法从根节点到达，则会进入后续回收判定 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8421052631578947
+        },
+        {
+          "claim": "“不可达”表示对象具备被回收的条件，但不等于它一定会在发现后立即释放，具体收集时机、引用类型处理和终结机制由垃圾收集器与 JVM 规则共同决定 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.4909090909090909
+        },
+        {
+          "claim": "这种可达性分析关注当前引用关系，而不是简单统计对象被引用的次数，因此能够识别相互引用但整体已经不可达的对象环 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9555555555555556
+        }
+      ],
+      "metrics": {
+        "claimCount": 6,
+        "citedClaimCount": 6,
+        "supportedClaimCount": 5,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.8333333333333334,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.16666666666666666,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-collections-resize-or-treeify",
+      "question": "哈希桶冲突变多时，什么情况下优先扩容而不是转换成树？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "java/collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 0.7108694911003113,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.6351529359817505,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 8.464150428771973,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 5.625807762145996,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 3.644749164581299,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "桶内节点数量达到 8",
+        "数组容量小于 64 时优先扩容",
+        "重新分布可以减少冲突"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "桶内节点数量达到 8",
+        "数组容量小于 64 时优先扩容",
+        "重新分布可以减少冲突"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "当哈希桶内节点数量达到树化阈值 8 时，如果当前数组容量还小于 64，`HashMap` 会优先扩容而不是立即转换成红黑树 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_CONFLICTING",
+          "anchorCoverage": 0.5238095238095238
+        },
+        {
+          "claim": "优先扩容的目的是通过重新分布节点来减少冲突 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_CONFLICTING",
+          "anchorCoverage": 0.5263157894736842
+        }
+      ],
+      "metrics": {
+        "claimCount": 2,
+        "citedClaimCount": 2,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 2,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 1.0,
+        "evidenceConflictRate": 1.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-concurrent-map-read",
+      "question": "高并发读写映射时，为什么不应直接用普通 HashMap，常见替代结构如何降低竞争？",
+      "answer": "在高并发读写映射时，不应直接使用普通 `HashMap`，因为它不提供并发安全，多线程同时修改可能产生覆盖、状态不一致或不可预期的读取结果 [资料 1]。\n\n常见的替代结构是 `ConcurrentHashMap`，它通过以下方式降低竞争：\n1. 并发读写映射通常优先考虑 `ConcurrentHashMap`，而不是在整个普通 Map 外统一加一把粗粒度锁 [资料 1]。\n2. Java 8 的 `ConcurrentHashMap` 结合 CAS、桶级同步和可见性保证处理并发更新，避免所有操作竞争同一把全局锁 [资料 1]。\n3. 它的读取通常不需要锁住整个容器，更新冲突也尽量限制在相关桶上，从而在保证线程安全的同时降低竞争 [资料 1]。",
+      "grounded": true,
+      "expectedSources": [
+        "java/concurrent-collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 0.8068503141403198,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 0.6506304144859314,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发",
+            "volatile 的可见性与有序性"
+          ],
+          "similarity": 7.099311828613281,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 5.6258745193481445,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 4.901994228363037,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 0.69667649269104,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 0.6189370155334473,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "普通 HashMap 不提供并发安全",
+        "ConcurrentHashMap 使用更细粒度的并发控制",
+        "读取通常不需要锁住整个容器"
+      ],
+      "matchedAnswerPoints": [
+        "读取通常不需要锁住整个容器"
+      ],
+      "unmatchedAnswerPoints": [
+        "普通 HashMap 不提供并发安全",
+        "ConcurrentHashMap 使用更细粒度的并发控制"
+      ],
+      "answerPointCoverageRate": 0.3333333333333333,
+      "claimEvidence": [
+        {
+          "claim": "在高并发读写映射时，不应直接使用普通 `HashMap`，因为它不提供并发安全，多线程同时修改可能产生覆盖、状态不一致或不可预期的读取结果 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.7083333333333334
+        },
+        {
+          "claim": "1. 并发读写映射通常优先考虑 `ConcurrentHashMap`，而不是在整个普通 Map 外统一加一把粗粒度锁 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9655172413793104
+        },
+        {
+          "claim": "2. Java 8 的 `ConcurrentHashMap` 结合 CAS、桶级同步和可见性保证处理并发更新，避免所有操作竞争同一把全局锁 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9714285714285714
+        },
+        {
+          "claim": "3. 它的读取通常不需要锁住整个容器，更新冲突也尽量限制在相关桶上，从而在保证线程安全的同时降低竞争 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.926829268292683
+        }
+      ],
+      "metrics": {
+        "claimCount": 4,
+        "citedClaimCount": 4,
+        "supportedClaimCount": 4,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 1,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.3333333333333333,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "mysql-snapshot-or-current-read",
+      "question": "为什么同一事务里的普通查询和带 FOR UPDATE 的查询可能采用不同的版本读取方式？",
+      "answer": "在同一事务中，普通查询和带 `FOR UPDATE` 的查询采用不同的版本读取方式，是因为它们属于不同的读取类型：\n\n1. **普通查询属于快照读**：InnoDB 的普通 `SELECT` 通常属于快照读 [资料 1]。事务会通过 Read View 来判断某个行版本对当前查询是否可见，按照可见性规则在 undo log 形成的版本链上找到当前事务能够看到的版本，而不是每次都读取其他事务刚刚提交的最新值 [资料 1]。\n2. **带 FOR UPDATE 的查询属于当前读**：`SELECT ... FOR UPDATE` 等需要操作当前记录的语句属于当前读 [资料 2]。这类查询会读取最新可用版本，并配合锁来保证并发修改的安全 [资料 2]。",
+      "grounded": true,
+      "expectedSources": [
+        "mysql/transactions.md"
+      ],
+      "actualSources": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 0.7344613075256348,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.659016489982605,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 6.286786079406738,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 5.337005138397217,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 4.669802665710449,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "普通查询通常是快照读",
+        "FOR UPDATE 属于当前读",
+        "当前读读取最新可用版本并配合锁"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "普通查询通常是快照读",
+        "FOR UPDATE 属于当前读",
+        "当前读读取最新可用版本并配合锁"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "1. **普通查询属于快照读**：InnoDB 的普通 `SELECT` 通常属于快照读 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6666666666666666
+        },
+        {
+          "claim": "事务会通过 Read View 来判断某个行版本对当前查询是否可见，按照可见性规则在 undo log 形成的版本链上找到当前事务能够看到的版本，而不是每次都读取其他事务刚刚提交的最新值 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5901639344262295
+        },
+        {
+          "claim": "2. **带 FOR UPDATE 的查询属于当前读**：`SELECT ... FOR UPDATE` 等需要操作当前记录的语句属于当前读 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.7619047619047619
+        },
+        {
+          "claim": "这类查询会读取最新可用版本，并配合锁来保证并发修改的安全 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.68
+        }
+      ],
+      "metrics": {
+        "claimCount": 4,
+        "citedClaimCount": 4,
+        "supportedClaimCount": 4,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "rag-filter-noisy-context",
+      "question": "检索候选太多导致上下文混入不相关内容，应由哪两个参数先控制数量和可靠性？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "rag/rag-basics.md"
+      ],
+      "actualSources": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.7679678797721863,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 0.6401746273040771,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 0.6045050621032715,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 0.6163151264190674,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 8.320368766784668,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 0,
+          "headingPath": [
+            "RAG 检索基础",
+            "来源引用"
+          ],
+          "similarity": 0.5452271699905396,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "topK 控制候选片段数量",
+        "相似度阈值过滤相关性不足的资料",
+        "候选过多会引入噪声"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "topK 控制候选片段数量",
+        "相似度阈值过滤相关性不足的资料",
+        "候选过多会引入噪声"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "检索候选太多导致上下文混入不相关内容时，应由 `topK` 和 `相似度阈值` 这两个参数来控制数量和可靠性 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.18421052631578946
+        },
+        {
+          "claim": "1. **`topK`**：用于控制一次检索最多返回的候选片段数量，间接控制进入上下文的资料数量，防止因数值过大而引入噪声并增加上下文成本 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5208333333333334
+        },
+        {
+          "claim": "2. **`相似度阈值`**：用于过滤相关性不足的候选资料，避免仅为了凑够数量就把低质量片段交给模型，从而保障召回内容的可靠性 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6875
+        }
+      ],
+      "metrics": {
+        "claimCount": 3,
+        "citedClaimCount": 3,
+        "supportedClaimCount": 2,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.6666666666666666,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.3333333333333333,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-heading-expansion-load-factor",
+      "question": "请定位讲解默认负载因子、触发扩容和节点重新分布的章节。",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "java/collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.7301103472709656,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 6.218194484710693,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 5.567710876464844,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 4.061924934387207,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 3.824268341064453,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "默认负载因子为 0.75",
+        "元素数量超过容量与负载因子的乘积时触发扩容",
+        "节点会重新分布"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "默认负载因子为 0.75",
+        "元素数量超过容量与负载因子的乘积时触发扩容",
+        "节点会重新分布"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "讲解默认负载因子、触发扩容和节点重新分布的章节是“Java 集合 / 扩容与负载因子” [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.44
+        },
+        {
+          "claim": "该章节指出默认负载因子为 0.75，当元素数量超过容量与负载因子的乘积时会触发扩容，并且节点会根据原哈希位置重新分布到新数组 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.72
+        }
+      ],
+      "metrics": {
+        "claimCount": 2,
+        "citedClaimCount": 2,
+        "supportedClaimCount": 1,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.5,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.5,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "mysql-heading-composite-index",
+      "question": "请找到说明联合索引最左前缀以及跳过前导列影响的章节。",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "mysql/indexes.md"
+      ],
+      "actualSources": [
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 0.621433436870575,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 5.272842884063721,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 5.18055534362793,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 5.022446155548096,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 4.250107765197754,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 0.6188467741012573,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.5532267093658447,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "联合索引按列顺序组织",
+        "查询应从最左列开始匹配",
+        "跳过前导列通常不能充分利用索引"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "联合索引按列顺序组织",
+        "查询应从最左列开始匹配",
+        "跳过前导列通常不能充分利用索引"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "说明联合索引最左前缀以及跳过前导列影响的章节是“MySQL 索引 / 联合索引与最左前缀” [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.16666666666666666
+        },
+        {
+          "claim": "1. 联合索引按照定义时的列顺序组织索引键 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9411764705882353
+        },
+        {
+          "claim": "2. 查询条件从联合索引的最左列开始连续匹配时，通常更容易利用该索引缩小扫描范围 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9696969696969697
+        },
+        {
+          "claim": "3. 跳过前导列或在中间列使用无法继续确定范围的条件，往往不能充分利用后续列完成定位 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9722222222222222
+        }
+      ],
+      "metrics": {
+        "claimCount": 4,
+        "citedClaimCount": 4,
+        "supportedClaimCount": 3,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.75,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.25,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "rag-heading-tool-boundary",
+      "question": "请定位讲解工具参数校验、权限边界和人工确认的章节。",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "rag/agent-basics.md"
+      ],
+      "actualSources": [
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 0.7238777875900269,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "Java后端转AI应用与RAG方向规划报告.md",
+          "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+          "chunkOrder": 10,
+          "headingPath": [
+            "Java 后端转 AI 应用与 RAG 方向规划报告",
+            "5. 学习内容划分",
+            "5.5 Agent：后续扩展，不是当前第一主线"
+          ],
+          "similarity": 0.603705883026123,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 6.991844177246094,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 1,
+          "headingPath": [
+            "JVM 内存管理",
+            "回收判定边界"
+          ],
+          "similarity": 3.9366073608398438,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 3.3101725578308105,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "Java后端转AI应用与RAG方向规划报告.md",
+          "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+          "chunkOrder": 9,
+          "headingPath": [
+            "Java 后端转 AI 应用与 RAG 方向规划报告",
+            "5. 学习内容划分",
+            "5.4 AI 工程治理：你的差异化重点"
+          ],
+          "similarity": 0.6207801103591919,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "Java后端转AI应用与RAG方向规划报告.md",
+          "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+          "chunkOrder": 11,
+          "headingPath": [
+            "Java 后端转 AI 应用与 RAG 方向规划报告",
+            "6. 现有项目完善建议"
+          ],
+          "similarity": 0.522891104221344,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "服务端校验工具参数",
+        "限制工具权限",
+        "高风险写操作需要人工确认"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "服务端校验工具参数",
+        "限制工具权限",
+        "高风险写操作需要人工确认"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "讲解工具参数校验、权限边界和人工确认的章节主要位于“Agent 与工具调用 / 工具治理边界” [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.1724137931034483
+        },
+        {
+          "claim": "该章节具体讲解了工具参数必须由服务端按业务规则校验，工具权限应限制在当前用户、会话和请求允许的资源范围内，并且高风险写操作需要在执行前获得与真实参数一致的人工确认 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5352112676056338
+        },
+        {
+          "claim": "此外，在“Java 后端转 AI 应用与 RAG 方向规划报告 / 5. 学习内容划分 / 5.5 Agent：后续扩展，不是当前第一主线”章节中，也将“工具参数校验”、“工具权限控制”和“人机确认”列入了 Agent 后续扩展的学习顺序规划中 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.08928571428571429
+        }
+      ],
+      "metrics": {
+        "claimCount": 3,
+        "citedClaimCount": 3,
+        "supportedClaimCount": 1,
+        "insufficientClaimCount": 2,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.3333333333333333,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.6666666666666666,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-ambiguous-map-performance",
+      "question": "Map 查询慢一定是时间复杂度变了吗？应检查哪些与冲突和容量有关的因素？",
+      "answer": "Map 查询慢不一定是因为时间复杂度变了，因为红黑树用于限制严重冲突下的查找退化，但不改变通常所说的平均 `O(1)` 查询复杂度 [资料 2]。查询变慢可能是因为大量哈希冲突增加了桶内查找成本 [资料 1]。\n\n在冲突和容量方面，应检查合理的 `hashCode` 实现，因为大量哈希冲突会增加桶内查找成本 [资料 1]。应检查树化阈值与数组容量，当桶内节点数量达到树化阈值 8，并且当前数组容量至少为 64 时，该桶可以转换为红黑树 [资料 2]。若数组容量还小于 64，`HashMap` 会优先扩容，而不是立即树化，以便通过重新分布减少冲突 [资料 2]。应检查负载因子与扩容触发条件，默认负载因子为 0.75，元素数量超过容量与负载因子的乘积时会触发扩容，节点根据原哈希位置重新分布到新数组 [资料 3]。还应检查初始化容量，初始化容量应结合预估数据量选择，但不应仅为了避免一次扩容而设置极大的数组，因为扩容本身有成本 [资料 3]。",
+      "grounded": true,
+      "expectedSources": [
+        "java/collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 0.6204734444618225,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 8.470792770385742,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 6.137137413024902,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 5.90673828125,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 5.691391468048096,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "哈希冲突会增加桶内查找成本",
+        "合理实现 hashCode",
+        "扩容会重新分布节点",
+        "初始化容量应结合数据量"
+      ],
+      "matchedAnswerPoints": [
+        "哈希冲突会增加桶内查找成本"
+      ],
+      "unmatchedAnswerPoints": [
+        "合理实现 hashCode",
+        "扩容会重新分布节点",
+        "初始化容量应结合数据量"
+      ],
+      "answerPointCoverageRate": 0.25,
+      "claimEvidence": [
+        {
+          "claim": "Map 查询慢不一定是因为时间复杂度变了，因为红黑树用于限制严重冲突下的查找退化，但不改变通常所说的平均 `O(1)` 查询复杂度 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.7045454545454546
+        },
+        {
+          "claim": "查询变慢可能是因为大量哈希冲突增加了桶内查找成本 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5
+        },
+        {
+          "claim": "在冲突和容量方面，应检查合理的 `hashCode` 实现，因为大量哈希冲突会增加桶内查找成本 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6428571428571429
+        },
+        {
+          "claim": "应检查树化阈值与数组容量，当桶内节点数量达到树化阈值 8，并且当前数组容量至少为 64 时，该桶可以转换为红黑树 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.868421052631579
+        },
+        {
+          "claim": "若数组容量还小于 64，`HashMap` 会优先扩容，而不是立即树化，以便通过重新分布减少冲突 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        },
+        {
+          "claim": "应检查负载因子与扩容触发条件，默认负载因子为 0.75，元素数量超过容量与负载因子的乘积时会触发扩容，节点根据原哈希位置重新分布到新数组 [资料 3]。",
+          "sourceNumbers": [
+            3
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.7551020408163265
+        },
+        {
+          "claim": "还应检查初始化容量，初始化容量应结合预估数据量选择，但不应仅为了避免一次扩容而设置极大的数组，因为扩容本身有成本 [资料 3]。",
+          "sourceNumbers": [
+            3
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8837209302325582
+        }
+      ],
+      "metrics": {
+        "claimCount": 7,
+        "citedClaimCount": 7,
+        "supportedClaimCount": 7,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 1,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.25,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "mysql-ambiguous-query-consistency",
+      "question": "查询看到旧数据是索引失效还是事务可见性造成的，应该依据什么判断？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "mysql/transactions.md"
+      ],
+      "actualSources": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 0.6891849040985107,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 7.224504470825195,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发",
+            "volatile 的可见性与有序性"
+          ],
+          "similarity": 6.275291919708252,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 5.730756759643555,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 5.006248950958252,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "通过 Read View 判断版本可见性",
+        "undo log 支持读取历史版本",
+        "隔离级别影响 Read View 的创建与复用"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "通过 Read View 判断版本可见性",
+        "undo log 支持读取历史版本",
+        "隔离级别影响 Read View 的创建与复用"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "1. **判断是否由事务可见性造成**：依据是事务通过 Read View 判断某个行版本对当前查询是否可见，查询会按照 Read View 的可见性规则在 undo log 形成的版本链上找到当前事务能够看到的版本 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.4716981132075472
+        },
+        {
+          "claim": "2. **判断是否由索引失效造成**：依据是排查时应查看执行计划中的访问类型、实际使用索引和扫描行数 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6486486486486487
+        },
+        {
+          "claim": "因为是否使用索引最终由优化器结合选择性、统计信息和成本决定，不能只根据 SQL 中出现了索引列就断言一定命中 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.975609756097561
+        }
+      ],
+      "metrics": {
+        "claimCount": 3,
+        "citedClaimCount": 3,
+        "supportedClaimCount": 2,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.6666666666666666,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.3333333333333333,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "rag-ambiguous-grounded-answer",
+      "question": "系统已经召回了片段但回答仍不可信，如何区分检索问题和生成问题？",
+      "answer": "根据给定资料，可以通过保留实际召回资料的逻辑来源、片段位置和相似度（即来源引用）来区分这两类问题 [资料 1]。来源引用能够让开发者在答案错误时，明确区分出是“没有召回正确资料”（检索问题）还是“模型没有正确使用资料”（生成问题）[资料 1]。",
+      "grounded": true,
+      "expectedSources": [
+        "rag/rag-basics.md"
+      ],
+      "actualSources": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 0,
+          "headingPath": [
+            "RAG 检索基础",
+            "来源引用"
+          ],
+          "similarity": 0.6916964054107666,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 0.6121093034744263,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 7.958436012268066,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 6.001039028167725,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 5.990871429443359,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.5452039241790771,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 0.5943026542663574,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "保留实际召回来源",
+        "核验回答依据",
+        "区分没有召回正确资料和模型没有正确使用资料"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "保留实际召回来源",
+        "核验回答依据",
+        "区分没有召回正确资料和模型没有正确使用资料"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "根据给定资料，可以通过保留实际召回资料的逻辑来源、片段位置和相似度（即来源引用）来区分这两类问题 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5428571428571428
+        },
+        {
+          "claim": "来源引用能够让开发者在答案错误时，明确区分出是“没有召回正确资料”（检索问题）还是“模型没有正确使用资料”（生成问题）[资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6578947368421053
+        }
+      ],
+      "metrics": {
+        "claimCount": 2,
+        "citedClaimCount": 2,
+        "supportedClaimCount": 2,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 1.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-redis-persistence",
+      "question": "Redis 的 RDB 和 AOF 重写流程分别是什么？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-spring-transaction",
+      "question": "Spring 事务传播行为 REQUIRES_NEW 和 NESTED 有什么区别？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-kafka-rebalance",
+      "question": "Kafka 消费组再均衡有哪些触发条件，如何减少停顿？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-completable-future-timeout",
+      "question": "CompletableFuture 的 orTimeout 和 completeOnTimeout 有什么区别？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-innodb-gap-lock",
+      "question": "InnoDB 的 next-key lock 和 gap lock 在什么情况下生效？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "no-answer-g1-remembered-set",
+      "question": "G1 的 Remembered Set 与写屏障如何配合？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [],
+      "actualSources": [],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "matchedAnswerPoints": [
+        "知识库中没有足够可靠的资料"
+      ],
+      "unmatchedAnswerPoints": [],
+      "answerPointCoverageRate": 1.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "java-cross-map-choice",
+      "question": "单线程映射与高并发映射应如何选择，并分别关注哪些查询和竞争成本？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "java/collections.md",
+        "java/concurrent-collections.md"
+      ],
+      "actualSources": [
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 0.6150697469711304,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发集合",
+            "ConcurrentHashMap 的并发控制"
+          ],
+          "similarity": 0.6128474473953247,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 5.030272006988525,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 5.02841854095459,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发",
+            "volatile 的可见性与有序性"
+          ],
+          "similarity": 4.429747104644775,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.6454309821128845,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "HashMap 常见平均查询复杂度为 O(1)",
+        "HashMap 不提供并发安全",
+        "ConcurrentHashMap 降低并发竞争"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "HashMap 常见平均查询复杂度为 O(1)",
+        "HashMap 不提供并发安全",
+        "ConcurrentHashMap 降低并发竞争"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [],
+      "metrics": {
+        "claimCount": 0,
+        "citedClaimCount": 0,
+        "supportedClaimCount": 0,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 0,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.0,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.0,
+        "evidenceConflictRate": 0.0
+      }
+    },
+    {
+      "evaluationCaseId": "mysql-cross-read-and-index",
+      "question": "排查一条事务内查询既慢又看到历史版本时，需要分别从索引和 MVCC 哪些机制分析？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "mysql/transactions.md",
+        "mysql/indexes.md"
+      ],
+      "actualSources": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 0.6674994230270386,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7165178060531616,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 索引",
+            "联合索引与最左前缀"
+          ],
+          "similarity": 8.53041934967041,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 7.634663105010986,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 0,
+          "headingPath": [
+            "JVM 内存管理",
+            "GC Roots 与可达性分析"
+          ],
+          "similarity": 7.113592624664307,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "Read View 决定版本可见性",
+        "undo log 提供历史版本",
+        "联合索引遵循最左前缀"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "Read View 决定版本可见性",
+        "undo log 提供历史版本",
+        "联合索引遵循最左前缀"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "一、 索引机制分析（针对查询慢）",
+          "sourceNumbers": [],
+          "status": "CITATION_INVALID",
+          "anchorCoverage": 0.0
+        },
+        {
+          "claim": "排查查询条件是否从联合索引的最左列开始连续匹配，因为跳过前导列或在中间列使用无法继续确定范围的条件，往往不能充分利用后续列完成定位 [资料 3]。",
+          "sourceNumbers": [
+            3
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6140350877192983
+        },
+        {
+          "claim": "不能只根据 SQL 中出现了索引列就断言一定命中，是否使用索引最终由优化器结合选择性、统计信息和成本决定，排查时应查看执行计划中的访问类型、实际使用索引和扫描行数 [资料 3]。",
+          "sourceNumbers": [
+            3
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6451612903225806
+        },
+        {
+          "claim": "排查查询所需列是否都能从二级索引中取得以形成覆盖索引，从而减少根据主键回到聚簇索引读取完整记录的次数并降低部分随机 IO [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6415094339622641
+        },
+        {
+          "claim": "二、 MVCC 机制分析（针对看到历史版本）",
+          "sourceNumbers": [],
+          "status": "CITATION_INVALID",
+          "anchorCoverage": 0.0
+        },
+        {
+          "claim": "InnoDB 的普通 SELECT 通常属于快照读，事务通过 Read View 判断某个行版本对当前查询是否可见，而不是每次都读取其他事务刚刚提交的最新值 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8222222222222222
+        },
+        {
+          "claim": "需要分析隔离级别对 Read View 创建与复用时机的影响，例如可重复读事务通常复用首次快照读建立的一致性视图 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_CONFLICTING",
+          "anchorCoverage": 0.85
+        },
+        {
+          "claim": "数据被更新时，旧版本可以通过 undo log 形成的版本链读取，查询会按照 Read View 的可见性规则在版本链上找到当前事务能够看到的版本 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6190476190476191
+        },
+        {
+          "claim": "此外，需要确认查询是否属于当前读（如 SELECT ... FOR UPDATE 等），因为当前读会读取最新可用版本，而 MVCC 主要解决一致性快照读取，且不能脱离隔离级别讨论可见性 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.46
+        }
+      ],
+      "metrics": {
+        "claimCount": 9,
+        "citedClaimCount": 7,
+        "supportedClaimCount": 5,
+        "insufficientClaimCount": 1,
+        "conflictingClaimCount": 1,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.7142857142857143,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.4444444444444444,
+        "evidenceConflictRate": 0.1111111111111111
+      }
+    },
+    {
+      "evaluationCaseId": "rag-cross-retrieval-and-tools",
+      "question": "知识库回答与可执行 Agent 的可信边界分别依赖哪些检索证据和工具治理？",
+      "answer": "知识库中没有足够可靠的资料回答这个问题。",
+      "grounded": false,
+      "expectedSources": [
+        "rag/rag-basics.md",
+        "rag/agent-basics.md"
+      ],
+      "actualSources": [
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Agent 与工具调用",
+            "RAG 与 Agent 的职责"
+          ],
+          "similarity": 0.6961936950683594,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 0,
+          "headingPath": [
+            "RAG 检索基础",
+            "来源引用"
+          ],
+          "similarity": 0.6480518579483032,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 2,
+          "headingPath": [
+            "RAG 检索基础",
+            "评估与排查"
+          ],
+          "similarity": 0.6192308664321899,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 9.449721336364746,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 4.435091495513916,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.5452039241790771,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "expectedSourceMatched": true,
+      "expectedAnswerPoints": [
+        "RAG 回答保留来源用于核验",
+        "知识不足时明确拒答",
+        "服务端校验工具参数",
+        "高风险写操作需要人工确认"
+      ],
+      "matchedAnswerPoints": [],
+      "unmatchedAnswerPoints": [
+        "RAG 回答保留来源用于核验",
+        "知识不足时明确拒答",
+        "服务端校验工具参数",
+        "高风险写操作需要人工确认"
+      ],
+      "answerPointCoverageRate": 0.0,
+      "claimEvidence": [
+        {
+          "claim": "RAG 回答应保留实际召回资料的逻辑来源、片段位置和相似度，以便用户核验依据并帮助开发者区分问题类型 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5476190476190477
+        },
+        {
+          "claim": "没有可靠来源时应明确返回知识不足，不让模型补充未经知识库支持的事实 [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9655172413793104
+        },
+        {
+          "claim": "在评估排查时，需记录期望来源和回答要点，并保存每次实验使用的 topK、相似度阈值、实际命中来源和分数，确保参数和来源可追踪以比较检索质量 [资料 3]。",
+          "sourceNumbers": [
+            3
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6
+        },
+        {
+          "claim": "此外，通过 topK 控制返回的候选片段数量，并利用相似度阈值过滤相关性不足的资料，避免将低质量片段交给模型 [资料 6]。",
+          "sourceNumbers": [
+            6
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.6153846153846154
+        },
+        {
+          "claim": "同时，不能把检索到的文本等同于已经完成工具执行，也不能让模型自然语言直接成为写操作参数 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9459459459459459
+        },
+        {
+          "claim": "工具参数必须由服务端按业务规则校验，工具权限应限制在当前用户、会话和请求允许的资源范围内 [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        },
+        {
+          "claim": "模型生成的标识、日期或状态不能绕过既有领域校验，且高风险写操作需要在执行前获得与真实参数一致的人工确认 [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.9777777777777777
+        },
+        {
+          "claim": "工具执行应记录工具名、成功状态、耗时和受控错误类型，用于排查选择错误、参数错误和外部依赖失败，同时日志不应默认保存简历、回答、知识正文或密钥等敏感内容 [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "EVIDENCE_CONFLICTING",
+          "anchorCoverage": 0.5964912280701754
+        }
+      ],
+      "metrics": {
+        "claimCount": 8,
+        "citedClaimCount": 8,
+        "supportedClaimCount": 7,
+        "insufficientClaimCount": 0,
+        "conflictingClaimCount": 1,
+        "citedExpectedAnswerPointCount": 0,
+        "citationPrecision": 0.875,
+        "citationRecall": 0.0,
+        "unsupportedStatementRate": 0.125,
+        "evidenceConflictRate": 0.125
+      }
+    }
+  ]
+}

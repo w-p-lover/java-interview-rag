@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.evaluation;
 
 import com.javainterview.rag.knowledge.rag.RagAnswerResult;
 import com.javainterview.rag.knowledge.rag.RagAnswerService;
+import com.javainterview.rag.knowledge.rag.RagAnswerClaimEvidenceStatus;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.Test;
 
@@ -75,6 +76,33 @@ class RagAnswerEvaluationServiceTest {
         assertEquals(1, report.expectedSourceHitCount());
         assertTrue(report.cases().get(0).expectedSourceMatched());
         assertEquals(1.0, report.cases().get(0).answerPointCoverageRate());
+    }
+
+    @Test
+    void aggregatesCitationPrecisionRecallAndUnsupportedRate() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "hashmap-evidence", "HashMap 问题", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "HashMap")),
+                List.of("HashMap 使用数组和链表"));
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组和链表。", "java/collections.md", "version-1", 0,
+                List.of("Java 集合", "HashMap"), 0.91);
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(answerService.answer("HashMap 问题")).thenReturn(new RagAnswerResult(
+                "HashMap 使用数组和链表 [资料 1]。", true, List.of(source)));
+
+        RagAnswerEvaluationReport report = new RagAnswerEvaluationService(dataset, answerService).evaluate();
+
+        assertEquals(1, report.metrics().claimCount());
+        assertEquals(1, report.metrics().supportedClaimCount());
+        assertEquals(1.0, report.metrics().citationPrecision());
+        assertEquals(1.0, report.metrics().citationRecall());
+        assertEquals(0.0, report.metrics().unsupportedStatementRate());
+        assertEquals(0.0, report.metrics().evidenceConflictRate());
+        assertEquals(RagAnswerClaimEvidenceStatus.SUPPORTED,
+                report.cases().get(0).claimEvidence().get(0).status());
     }
 
     private MarkdownSearchResult source(String source) {

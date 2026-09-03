@@ -59,6 +59,14 @@ final class RagAnswerCitationValidator {
 
     private boolean hasClaimText(String claim) {
         String withoutCitations = CITATION.matcher(claim).replaceAll("");
-        return withoutCitations.codePoints().anyMatch(Character::isLetterOrDigit);
+        String structuralText = withoutCitations.strip().replaceAll("^[#>*\\-\\s]+", "")
+                .replaceAll("[*_`]+", "");
+        if (structuralText.isBlank() || structuralText.endsWith(":" ) || structuralText.endsWith("：")) {
+            return false;
+        }
+        if (structuralText.matches("^(?:根据|按照).{0,20}(?:资料|信息).*(?:回答如下|说明如下)[：:]$")) {
+            return false;
+        }
+        return structuralText.codePoints().anyMatch(Character::isLetterOrDigit);
     }
 }

@@ -84,7 +84,7 @@ public class RagAnswerService {
                 return recordEvidenceInvalidAndReturn(question, sources, evidence, startedAt);
             }
             return recordAndReturn(question, sources,
-                    new RagAnswerResult(answer, true, sources), startedAt);
+                    new RagAnswerResult(answer, true, sources, evidence.claims()), startedAt);
         } catch (RuntimeException exception) {
             record(question, sources, RagRetrievalLogStatus.FAILED, false, startedAt,
                     exception.getClass().getSimpleName());
@@ -121,8 +121,9 @@ public class RagAnswerService {
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())
                                 && evidence.valid();
                         RagAnswerResult result = grounded
-                                ? new RagAnswerResult(completedAnswer, true, finalSources)
-                                : new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources);
+                                ? new RagAnswerResult(completedAnswer, true, finalSources, evidence.claims())
+                                : new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
+                                        evidence == null ? List.of() : evidence.claims());
                         if (!grounded && !completedAnswer.isBlank()
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())) {
                             recordEvidenceInvalidAndReturn(question, finalSources, evidence, startedAt);
@@ -150,7 +151,8 @@ public class RagAnswerService {
                                                             List<MarkdownSearchResult> sources,
                                                             RagAnswerEvidenceValidation evidence,
                                                             long startedAt) {
-        RagAnswerResult result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources);
+        RagAnswerResult result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources,
+                evidence == null ? List.of() : evidence.claims());
         RagRetrievalLogStatus status = evidence != null && evidence.hasCitationInvalid()
                 ? RagRetrievalLogStatus.CITATION_INVALID
                 : evidence != null && evidence.hasConflict()
