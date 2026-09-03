@@ -88,6 +88,12 @@ public class RagAnswerService {
             }
             RagAnswerEvidenceValidation evidence = evidenceValidator.validate(answer, sources);
             if (!evidence.valid()) {
+                RagAnswerResult partial = partialAnswer(answer, sources, evidence);
+                if (partial != null) {
+                    record(question, sources, RagRetrievalLogStatus.PARTIAL_ANSWER,
+                            true, startedAt, null);
+                    return partial;
+                }
                 return recordEvidenceInvalidAndReturn(question, sources, evidence, startedAt);
             }
             return recordAndReturn(question, sources,
@@ -156,11 +162,19 @@ public class RagAnswerService {
                                 && !streamBlocked.get();
                         RagAnswerResult result = grounded
                                 ? new RagAnswerResult(completedAnswer, true, finalSources, evidence.claims())
-                                : new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
-                                        evidence == null ? List.of() : evidence.claims());
+                                : partialAnswer(completedAnswer, finalSources, evidence);
+                        if (result == null) {
+                            result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
+                                    evidence == null ? List.of() : evidence.claims());
+                        }
                         if (!grounded && !completedAnswer.isBlank()
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())) {
-                            recordEvidenceInvalidAndReturn(question, finalSources, evidence, startedAt);
+                            if (result.grounded() && !INSUFFICIENT_ANSWER.equals(result.answer())) {
+                                record(question, finalSources, RagRetrievalLogStatus.PARTIAL_ANSWER,
+                                        true, startedAt, null);
+                            } else {
+                                recordEvidenceInvalidAndReturn(question, finalSources, evidence, startedAt);
+                            }
                         } else {
                             recordAndReturn(question, finalSources, result, startedAt);
                         }
@@ -194,6 +208,22 @@ public class RagAnswerService {
                         : RagRetrievalLogStatus.EVIDENCE_INSUFFICIENT;
         record(question, sources, status, false, startedAt, null);
         return result;
+    }
+
+    private RagAnswerResult partialAnswer(String answer, List<MarkdownSearchResult> sources,
+                                          RagAnswerEvidenceValidation evidence) {
+        if (evidence == null) {
+            return null;
+        }
+        List<String> supportedClaims = evidence.claims().stream()
+                .filter(claim -> claim.status() == RagAnswerClaimEvidenceStatus.SUPPORTED)
+                .map(RagAnswerClaimEvidence::claim)
+                .toList();
+        if (supportedClaims.isEmpty() || supportedClaims.size() == evidence.claims().size()) {
+            return null;
+        }
+        return new RagAnswerResult(String.join("\n", supportedClaims), true, sources,
+                evidence.claims());
     }
 
     private List<MarkdownSearchResult> retrieve(String question) {

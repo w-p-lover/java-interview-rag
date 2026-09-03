@@ -155,7 +155,7 @@ class RagAnswerServiceTest {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
         MarkdownSearchResult source = new MarkdownSearchResult(
-                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                "HashMap 会树化，使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
                 List.of("Java", "集合", "HashMap"), 0.91);
         when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
         when(chatClient.prompt(anyString()).call().content()).thenReturn("HashMap 会树化 [资料 2]。");
@@ -177,7 +177,7 @@ class RagAnswerServiceTest {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
         MarkdownSearchResult source = new MarkdownSearchResult(
-                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                "HashMap 会树化，使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
                 List.of("Java", "集合", "HashMap"), 0.91);
         when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
         when(chatClient.prompt(anyString()).call().content())
@@ -186,11 +186,11 @@ class RagAnswerServiceTest {
 
         RagAnswerResult result = service.answer("HashMap");
 
-        assertEquals(false, result.grounded());
-        assertEquals("知识库中没有足够可靠的资料回答这个问题。", result.answer());
+        assertEquals(true, result.grounded());
+        assertEquals("HashMap 会树化 [资料 1]。", result.answer());
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
-        assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());
+        assertEquals(RagRetrievalLogStatus.PARTIAL_ANSWER, logCaptor.getValue().status());
     }
 
     @Test
