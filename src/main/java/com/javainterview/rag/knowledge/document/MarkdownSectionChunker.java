@@ -23,6 +23,11 @@ public final class MarkdownSectionChunker {
                 continue;
             }
 
+            if (section.blockType() != KnowledgeBlockType.TEXT) {
+                addBoundedChunks(chunks, section, normalizedContent, maxLength);
+                continue;
+            }
+
             StringBuilder currentContent = new StringBuilder();
             for (String paragraph : PARAGRAPH_SEPARATOR.split(normalizedContent)) {
                 if (paragraph.isBlank()) {
@@ -30,10 +35,7 @@ public final class MarkdownSectionChunker {
                 }
                 if (paragraph.length() > maxLength) {
                     addPendingChunk(chunks, section, currentContent);
-                    for (int start = 0; start < paragraph.length(); start += maxLength) {
-                        int end = Math.min(start + maxLength, paragraph.length());
-                        addChunk(chunks, section, paragraph.substring(start, end));
-                    }
+                    addBoundedChunks(chunks, section, paragraph, maxLength);
                     continue;
                 }
 
@@ -50,6 +52,63 @@ public final class MarkdownSectionChunker {
             addPendingChunk(chunks, section, currentContent);
         }
         return List.copyOf(chunks);
+    }
+
+    private void addBoundedChunks(List<MarkdownChunk> chunks, MarkdownSection section,
+                                  String content, int maxLength) {
+        int start = 0;
+        while (start < content.length()) {
+            int remaining = content.length() - start;
+            if (remaining <= maxLength) {
+                addChunk(chunks, section, content.substring(start));
+                return;
+            }
+
+            int limit = start + maxLength;
+            int boundary = findBoundary(content, start, limit, section.blockType());
+            if (boundary <= start) {
+                boundary = limit;
+            }
+            addChunk(chunks, section, content.substring(start, boundary));
+            start = boundary;
+        }
+    }
+
+    private int findBoundary(String content, int start, int limit, KnowledgeBlockType blockType) {
+        int lineBoundary = -1;
+        int whitespaceBoundary = -1;
+        int sentenceBoundary = -1;
+        for (int index = start + 1; index <= limit; index++) {
+            char current = content.charAt(index - 1);
+            if (current == '\n') {
+                lineBoundary = index;
+                continue;
+            }
+            if (Character.isWhitespace(current)) {
+                whitespaceBoundary = index;
+                continue;
+            }
+            if (blockType == KnowledgeBlockType.TEXT && isSentenceEnd(content, index - 1)) {
+                sentenceBoundary = index;
+            }
+        }
+        if (blockType != KnowledgeBlockType.TEXT) {
+            return lineBoundary >= 0 ? lineBoundary : whitespaceBoundary;
+        }
+        return sentenceBoundary >= 0 ? sentenceBoundary : whitespaceBoundary;
+    }
+
+    private boolean isSentenceEnd(String content, int index) {
+        char current = content.charAt(index);
+        if ("。！？!?；;".indexOf(current) >= 0) {
+            return true;
+        }
+        if (current != '.') {
+            return false;
+        }
+        boolean previousDigit = index > 0 && Character.isDigit(content.charAt(index - 1));
+        boolean nextDigit = index + 1 < content.length() && Character.isDigit(content.charAt(index + 1));
+        return !(previousDigit && nextDigit);
     }
 
     private void addPendingChunk(List<MarkdownChunk> chunks, MarkdownSection section,

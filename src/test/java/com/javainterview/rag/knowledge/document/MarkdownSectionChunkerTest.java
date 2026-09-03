@@ -53,6 +53,33 @@ class MarkdownSectionChunkerTest {
     }
 
     @Test
+    void prefersSentenceBoundaryForLongText() {
+        MarkdownSection section = new MarkdownSection(
+                "java/basic.md", 0, 1, List.of("Java"), "第一句说明。第二句说明！第三句");
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), 8);
+
+        assertEquals(List.of("第一句说明。", "第二句说明！", "第三句"),
+                chunks.stream().map(MarkdownChunk::content).toList());
+    }
+
+    @Test
+    void keepsCodeAndTableRowsTogetherWhenSplittingStructuredBlocks() {
+        MarkdownSection code = new MarkdownSection("java/code.pdf", 0, 1, List.of("Java"),
+                "int a = 1;\nint b = 2;\nint c = 3;", 1, KnowledgeBlockType.CODE);
+        MarkdownSection table = new MarkdownSection("java/table.pdf", 0, 1, List.of("Java"),
+                "名称 | 值\nHashMap | 16\nTreeMap | 32", 1, KnowledgeBlockType.TABLE);
+
+        List<MarkdownChunk> codeChunks = chunker.chunk(List.of(code), 18);
+        List<MarkdownChunk> tableChunks = chunker.chunk(List.of(table), 14);
+
+        assertEquals(List.of("int a = 1;\n", "int b = 2;\n", "int c = 3;"),
+                codeChunks.stream().map(MarkdownChunk::content).toList());
+        assertEquals(List.of("名称 | 值\n", "HashMap | 16\n", "TreeMap | 32"),
+                tableChunks.stream().map(MarkdownChunk::content).toList());
+    }
+
+    @Test
     void rejectsInvalidArguments() {
         assertThrows(NullPointerException.class, () -> chunker.chunk(null, 100));
         assertThrows(IllegalArgumentException.class, () -> chunker.chunk(List.of(), 0));
