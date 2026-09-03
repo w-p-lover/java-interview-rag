@@ -70,10 +70,13 @@ class RagAnswerServiceTest {
         assertEquals(true, promptCaptor.getValue().contains("来源：java/collections.pdf"));
         assertEquals(true, promptCaptor.getValue().contains("页码：第 3 页"));
         assertEquals(true, promptCaptor.getValue().contains("内容类型：代码"));
+        assertEquals(true, promptCaptor.getValue().contains("把问题拆成需要回答的事实要点"));
+        assertEquals(true, promptCaptor.getValue().contains("每个事实陈述只表达一个原子结论"));
+        assertEquals(true, promptCaptor.getValue().contains("不要输出未引用的开场白"));
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
-        assertEquals("rag-answer-v3", logCaptor.getValue().promptVersion());
+        assertEquals("rag-answer-v4", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
         assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
         assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());
@@ -213,6 +216,7 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());
+        assertEquals(0, events.stream().filter(event -> event.type().equals("delta")).count());
     }
 
     @Test
