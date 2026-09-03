@@ -18,7 +18,7 @@ public class RagAnswerService {
 
     private static final int ANSWER_TOP_K = 5;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "rag-answer-v2";
+    private static final String PROMPT_VERSION = "rag-answer-v3";
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final String ANSWER_INSTRUCTIONS = """
             你是 Java 面试知识库问答助手。
@@ -34,7 +34,7 @@ public class RagAnswerService {
     private final MarkdownAdjacentChunkExpander contextExpander;
     private final ChatClient chatClient;
     private final RagRetrievalLogStore logStore;
-    private final RagAnswerCitationValidator citationValidator = new RagAnswerCitationValidator();
+    private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
@@ -79,8 +79,9 @@ public class RagAnswerService {
                 return recordAndReturn(question, sources,
                         new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources), startedAt);
             }
-            if (!citationValidator.validate(answer, sources.size()).valid()) {
-                return recordCitationInvalidAndReturn(question, sources, startedAt);
+            RagAnswerEvidenceValidation evidence = evidenceValidator.validate(answer, sources);
+            if (!evidence.valid()) {
+                return recordEvidenceInvalidAndReturn(question, sources, evidence, startedAt);
             }
             return recordAndReturn(question, sources,
                     new RagAnswerResult(answer, true, sources), startedAt);
@@ -114,15 +115,17 @@ public class RagAnswerService {
                     .map(RagAnswerStreamEvent::delta)
                     .concatWith(Flux.defer(() -> {
                         String completedAnswer = answer.toString();
-                        boolean grounded = !completedAnswer.isBlank()
+                        RagAnswerEvidenceValidation evidence = completedAnswer.isBlank()
+                                ? null : evidenceValidator.validate(completedAnswer, finalSources);
+                        boolean grounded = evidence != null
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())
-                                && citationValidator.validate(completedAnswer, finalSources.size()).valid();
+                                && evidence.valid();
                         RagAnswerResult result = grounded
                                 ? new RagAnswerResult(completedAnswer, true, finalSources)
                                 : new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources);
                         if (!grounded && !completedAnswer.isBlank()
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())) {
-                            recordCitationInvalidAndReturn(question, finalSources, startedAt);
+                            recordEvidenceInvalidAndReturn(question, finalSources, evidence, startedAt);
                         } else {
                             recordAndReturn(question, finalSources, result, startedAt);
                         }
@@ -143,11 +146,17 @@ public class RagAnswerService {
         return result;
     }
 
-    private RagAnswerResult recordCitationInvalidAndReturn(String question,
+    private RagAnswerResult recordEvidenceInvalidAndReturn(String question,
                                                             List<MarkdownSearchResult> sources,
+                                                            RagAnswerEvidenceValidation evidence,
                                                             long startedAt) {
         RagAnswerResult result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources);
-        record(question, sources, RagRetrievalLogStatus.CITATION_INVALID, false, startedAt, null);
+        RagRetrievalLogStatus status = evidence != null && evidence.hasCitationInvalid()
+                ? RagRetrievalLogStatus.CITATION_INVALID
+                : evidence != null && evidence.hasConflict()
+                        ? RagRetrievalLogStatus.EVIDENCE_CONFLICTING
+                        : RagRetrievalLogStatus.EVIDENCE_INSUFFICIENT;
+        record(question, sources, status, false, startedAt, null);
         return result;
     }
 

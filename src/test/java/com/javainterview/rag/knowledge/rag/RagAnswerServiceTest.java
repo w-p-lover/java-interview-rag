@@ -73,7 +73,7 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
-        assertEquals("rag-answer-v2", logCaptor.getValue().promptVersion());
+        assertEquals("rag-answer-v3", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
         assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
         assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());
@@ -216,6 +216,47 @@ class RagAnswerServiceTest {
     }
 
     @Test
+    void recordsEvidenceInsufficientWhenCitationDoesNotSupportTheClaim() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组和链表。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("Redis", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("Redis 支持持久化 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("Redis");
+
+        assertEquals(false, result.grounded());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.EVIDENCE_INSUFFICIENT, logCaptor.getValue().status());
+    }
+
+    @Test
+    void recordsEvidenceConflictWhenCitationHasOppositeNegation() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "普通 HashMap 不提供并发安全。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap 并发", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("普通 HashMap 提供并发安全 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("HashMap 并发");
+
+        assertEquals(false, result.grounded());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.EVIDENCE_CONFLICTING, logCaptor.getValue().status());
+    }
+
+    @Test
     void recordsFailureAndRethrowsWhenTheModelCallFails() {
         MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
@@ -247,7 +288,9 @@ class RagAnswerServiceTest {
                 "treeifyBin 在冲突链达到阈值后参与树化。", "java/collections.md", "version-1", 0,
                 List.of("Java", "集合"), 0.02);
         when(hybridSearchService.search("treeifyBin", 5, 0.60)).thenReturn(List.of(source));
-        when(chatClient.prompt(anyString()).call().content()).thenReturn("资料说明了 treeifyBin [资料 1]。");
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("treeifyBin 在冲突链达到阈值后参与树化 [资料 1]。");
+        clearInvocations(chatClient);
         RagAnswerService service = new RagAnswerService(denseSearchService, hybridSearchService,
                 null, chatClient, logStore);
 
