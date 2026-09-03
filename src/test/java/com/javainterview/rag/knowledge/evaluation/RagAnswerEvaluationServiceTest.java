@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.evaluation;
 
 import com.javainterview.rag.knowledge.rag.RagAnswerResult;
 import com.javainterview.rag.knowledge.rag.RagAnswerService;
+import com.javainterview.rag.knowledge.rag.RagAnswerClaimEvidence;
 import com.javainterview.rag.knowledge.rag.RagAnswerClaimEvidenceStatus;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.Test;
@@ -103,6 +104,52 @@ class RagAnswerEvaluationServiceTest {
         assertEquals(0.0, report.metrics().evidenceConflictRate());
         assertEquals(RagAnswerClaimEvidenceStatus.SUPPORTED,
                 report.cases().get(0).claimEvidence().get(0).status());
+    }
+
+    @Test
+    void diagnosesParaphraseWhenExpectedPointExistsInCitedEvidence() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "treeify", "HashMap 树化", RagEvaluationCaseType.SIMILAR_SECTION,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "链表树化条件")),
+                List.of("链表长度达到 8"));
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "链表长度达到 8 且数组容量至少为 64 时可以树化。",
+                "java/collections.md", "version-1", 0,
+                List.of("Java 集合", "链表树化条件"), 0.91);
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(answerService.answer("HashMap 树化")).thenReturn(new RagAnswerResult(
+                "桶内节点数量达到树化阈值 8 [资料 1]。", true, List.of(source),
+                List.of(new RagAnswerClaimEvidence(
+                        "桶内节点数量达到树化阈值 8 [资料 1]。", List.of(1),
+                        RagAnswerClaimEvidenceStatus.SUPPORTED, 0.8))));
+
+        RagAnswerEvaluationCaseResult result = new RagAnswerEvaluationService(dataset, answerService)
+                .evaluate().cases().get(0);
+
+        assertEquals(List.of(), result.matchedAnswerPoints());
+        assertEquals(RagAnswerPointDiagnosisStatus.PARAPHRASE_CANDIDATE,
+                result.answerPointDiagnostics().get(0).status());
+    }
+
+    @Test
+    void diagnosesLiteralPointWithoutSupportedCitation() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "uncited", "HashMap 并发", RagEvaluationCaseType.SIMILAR_SECTION,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "HashMap")),
+                List.of("HashMap 不提供并发安全"));
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(answerService.answer("HashMap 并发")).thenReturn(new RagAnswerResult(
+                "HashMap 不提供并发安全。", false, List.of()));
+
+        RagAnswerEvaluationCaseResult result = new RagAnswerEvaluationService(dataset, answerService)
+                .evaluate().cases().get(0);
+
+        assertEquals(RagAnswerPointDiagnosisStatus.PRESENT_UNCITED,
+                result.answerPointDiagnostics().get(0).status());
     }
 
     private MarkdownSearchResult source(String source) {

@@ -19,6 +19,7 @@ public record RagAnswerEvaluationCaseResult(
         List<String> unmatchedAnswerPoints,
         double answerPointCoverageRate,
         List<RagAnswerClaimEvidence> claimEvidence,
+        List<RagAnswerPointDiagnosis> answerPointDiagnostics,
         RagAnswerEvaluationMetrics metrics
 ) {
 
@@ -29,8 +30,20 @@ public record RagAnswerEvaluationCaseResult(
                                          List<String> unmatchedAnswerPoints, double answerPointCoverageRate) {
         this(evaluationCaseId, question, answer, grounded, expectedSources, actualSources,
                 expectedSourceMatched, expectedAnswerPoints, matchedAnswerPoints, unmatchedAnswerPoints,
-                answerPointCoverageRate, List.of(), new RagAnswerEvaluationMetrics(
+                answerPointCoverageRate, List.of(), List.of(), new RagAnswerEvaluationMetrics(
                         0, 0, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0));
+    }
+
+    public RagAnswerEvaluationCaseResult(String evaluationCaseId, String question, String answer,
+                                         boolean grounded, List<String> expectedSources,
+                                         List<RagRetrievalSource> actualSources, boolean expectedSourceMatched,
+                                         List<String> expectedAnswerPoints, List<String> matchedAnswerPoints,
+                                         List<String> unmatchedAnswerPoints, double answerPointCoverageRate,
+                                         List<RagAnswerClaimEvidence> claimEvidence,
+                                         RagAnswerEvaluationMetrics metrics) {
+        this(evaluationCaseId, question, answer, grounded, expectedSources, actualSources,
+                expectedSourceMatched, expectedAnswerPoints, matchedAnswerPoints, unmatchedAnswerPoints,
+                answerPointCoverageRate, claimEvidence, List.of(), metrics);
     }
 
     public RagAnswerEvaluationCaseResult {
@@ -43,6 +56,7 @@ public record RagAnswerEvaluationCaseResult(
         matchedAnswerPoints = List.copyOf(Objects.requireNonNull(matchedAnswerPoints, "命中回答要点不能为空"));
         unmatchedAnswerPoints = List.copyOf(Objects.requireNonNull(unmatchedAnswerPoints, "未命中回答要点不能为空"));
         claimEvidence = List.copyOf(Objects.requireNonNull(claimEvidence, "回答证据判断不能为空"));
+        answerPointDiagnostics = List.copyOf(Objects.requireNonNull(answerPointDiagnostics, "回答要点诊断不能为空"));
         Objects.requireNonNull(metrics, "回答评估指标不能为空");
     }
 }

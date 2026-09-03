@@ -77,10 +77,12 @@ public class RagAnswerEvaluationService {
                 .count();
         RagAnswerEvaluationMetrics metrics = metrics(evidence, citedExpectedAnswerPointCount,
                 evaluationCase.expectedAnswerPoints().size());
+        List<RagAnswerPointDiagnosis> answerPointDiagnostics = diagnoseAnswerPoints(
+                evaluationCase, answerResult, evidence);
         return new RagAnswerEvaluationCaseResult(evaluationCase.id(), evaluationCase.question(),
                 answerResult.answer(), answerResult.grounded(), evaluationCase.expectedSources(), actualSources,
                 expectedSourceMatched, evaluationCase.expectedAnswerPoints(), matchedAnswerPoints,
-                unmatchedAnswerPoints, coverageRate, evidence.claims(), metrics);
+                unmatchedAnswerPoints, coverageRate, evidence.claims(), answerPointDiagnostics, metrics);
     }
 
     private RagAnswerEvaluationMetrics metrics(RagAnswerEvidenceValidation evidence,
@@ -128,6 +130,47 @@ public class RagAnswerEvaluationService {
     private boolean containsNormalized(String normalizedAnswer, String answerPoint) {
         String normalizedPoint = normalize(answerPoint);
         return !normalizedPoint.isEmpty() && normalizedAnswer.contains(normalizedPoint);
+    }
+
+    private List<RagAnswerPointDiagnosis> diagnoseAnswerPoints(RagEvaluationCase evaluationCase,
+                                                                RagAnswerResult answerResult,
+                                                                RagAnswerEvidenceValidation evidence) {
+        boolean refusal = evaluationCase.type() == RagEvaluationCaseType.NO_ANSWER
+                && answerResult.sources().isEmpty()
+                && evidence.claims().isEmpty();
+        String normalizedAnswer = normalize(answerResult.answer());
+        return evaluationCase.expectedAnswerPoints().stream()
+                .map(point -> diagnoseAnswerPoint(point, normalizedAnswer, answerResult, evidence, refusal))
+                .toList();
+    }
+
+    private RagAnswerPointDiagnosis diagnoseAnswerPoint(String point, String normalizedAnswer,
+                                                        RagAnswerResult answerResult,
+                                                        RagAnswerEvidenceValidation evidence,
+                                                        boolean refusal) {
+        if (refusal) {
+            return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.NO_ANSWER_REFUSAL);
+        }
+        boolean literalPresent = containsNormalized(normalizedAnswer, point);
+        boolean supportedCitation = evidence.claims().stream()
+                .filter(claim -> claim.status() == RagAnswerClaimEvidenceStatus.SUPPORTED
+                        && !claim.sourceNumbers().isEmpty())
+                .anyMatch(claim -> containsNormalized(normalize(claim.claim()), point));
+        if (literalPresent && supportedCitation) {
+            return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.SUPPORTED_CITED_LITERAL);
+        }
+        if (literalPresent) {
+            return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.PRESENT_UNCITED);
+        }
+        boolean evidenceContainsPoint = evidence.claims().stream()
+                .filter(claim -> claim.status() == RagAnswerClaimEvidenceStatus.SUPPORTED)
+                .flatMap(claim -> claim.sourceNumbers().stream())
+                .anyMatch(sourceNumber -> sourceNumber >= 1 && sourceNumber <= answerResult.sources().size()
+                        && containsNormalized(normalize(answerResult.sources().get(sourceNumber - 1).content()), point));
+        if (evidenceContainsPoint) {
+            return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.PARAPHRASE_CANDIDATE);
+        }
+        return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.NOT_RECOGNIZED);
     }
 
     private String normalize(String value) {
