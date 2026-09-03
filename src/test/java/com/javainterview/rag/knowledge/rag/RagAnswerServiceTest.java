@@ -8,6 +8,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -72,7 +73,7 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
-        assertEquals("rag-answer-v1", logCaptor.getValue().promptVersion());
+        assertEquals("rag-answer-v2", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
         assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
         assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());
@@ -143,6 +144,75 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.INSUFFICIENT, logCaptor.getValue().status());
+    }
+
+    @Test
+    void rejectsAnAnswerThatReferencesANonexistentSource() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合", "HashMap"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("HashMap 会树化 [资料 2]。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals("知识库中没有足够可靠的资料回答这个问题。", result.answer());
+        assertEquals(false, result.grounded());
+        assertEquals(List.of(source), result.sources());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());
+    }
+
+    @Test
+    void rejectsAnAnswerWithAnUncitedClaim() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合", "HashMap"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 会树化 [资料 1]。并发写入也绝对安全。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals(false, result.grounded());
+        assertEquals("知识库中没有足够可靠的资料回答这个问题。", result.answer());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());
+    }
+
+    @Test
+    void marksTheStreamCompletionAsInsufficientWhenCitationValidationFails() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合", "HashMap"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).stream().content())
+                .thenReturn(Flux.just("HashMap 会树化 ", "[资料 2]。"));
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        List<RagAnswerStreamEvent> events = service.streamAnswer("HashMap").collectList().block();
+
+        RagAnswerStreamEvent complete = events.get(events.size() - 1);
+        assertEquals("complete", complete.type());
+        assertEquals("知识库中没有足够可靠的资料回答这个问题。", complete.content());
+        assertEquals(false, complete.grounded());
+        assertEquals(List.of(source), complete.sources());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());
     }
 
     @Test
