@@ -1,5 +1,7 @@
 package com.javainterview.rag.knowledge.evaluation;
 
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.rag.RagRetrievalSource;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
@@ -23,30 +25,41 @@ public class RagRetrievalEvaluationService {
     private final FixedRagEvaluationDataset dataset;
     private final FixedRagStructureEvaluationDataset structureDataset;
     private final MarkdownSimilaritySearchService searchService;
+    private final MarkdownImportRegistry importRegistry;
     private final RagEvaluationQueryPlanner queryPlanner;
     private final RagEvaluationResultFusion resultFusion;
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          MarkdownSimilaritySearchService searchService) {
         this(dataset, new FixedRagStructureEvaluationDataset(), searchService,
-                new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+                null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          FixedRagStructureEvaluationDataset structureDataset,
                                          MarkdownSimilaritySearchService searchService) {
         this(dataset, structureDataset, searchService,
+                null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+    }
+
+    public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                         FixedRagStructureEvaluationDataset structureDataset,
+                                         MarkdownSimilaritySearchService searchService,
+                                         MarkdownImportRegistry importRegistry) {
+        this(dataset, structureDataset, searchService, importRegistry,
                 new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
     RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                   FixedRagStructureEvaluationDataset structureDataset,
                                   MarkdownSimilaritySearchService searchService,
+                                  MarkdownImportRegistry importRegistry,
                                   RagEvaluationQueryPlanner queryPlanner,
                                   RagEvaluationResultFusion resultFusion) {
         this.dataset = Objects.requireNonNull(dataset, "固定评估题集不能为空");
         this.structureDataset = Objects.requireNonNull(structureDataset, "固定结构评估题集不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
+        this.importRegistry = importRegistry;
         this.queryPlanner = Objects.requireNonNull(queryPlanner, "评估查询规划器不能为空");
         this.resultFusion = Objects.requireNonNull(resultFusion, "评估结果融合器不能为空");
     }
@@ -82,6 +95,7 @@ public class RagRetrievalEvaluationService {
         }
         List<RagRetrievalEvaluationCaseResult> results = new ArrayList<>();
         List<Double> retrievalLatencies = new ArrayList<>();
+        Map<String, KnowledgeDocumentSummary> currentDocuments = currentDocuments();
         for (RagEvaluationCase evaluationCase : dataset.findAll()) {
             long startedAt = System.nanoTime();
             List<RagRetrievalSource> sources = retriever.apply(evaluationCase.question()).stream()
@@ -90,18 +104,20 @@ public class RagRetrievalEvaluationService {
             double latencyMs = (System.nanoTime() - startedAt) / 1_000_000.0;
             retrievalLatencies.add(latencyMs);
             results.add(evaluateCase(evaluationCase, sources, rejectionPolicy,
-                    answerSimilarityThreshold, latencyMs));
+                    answerSimilarityThreshold, latencyMs, currentDocuments));
         }
         return buildReport(results, answerSimilarityThreshold, retrievalLatencies);
     }
 
     public RagRetrievalEvaluationReport evaluateStructure() {
+        Map<String, KnowledgeDocumentSummary> currentDocuments = currentDocuments();
         List<RagRetrievalEvaluationCaseResult> results = structureDataset.findAll().stream()
                 .map(evaluationCase -> evaluateCase(evaluationCase,
                         searchService.search(evaluationCase.question(),
                                         EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD).stream()
                                 .map(RagRetrievalSource::from)
-                                .toList()))
+                                .toList(), RagRetrievalRejectionPolicy.COSINE_THRESHOLD,
+                        ANSWER_SIMILARITY_THRESHOLD, 0.0, currentDocuments))
                 .toList();
         return buildReport(results, ANSWER_SIMILARITY_THRESHOLD);
     }
@@ -113,6 +129,7 @@ public class RagRetrievalEvaluationService {
         List<RagRetrievalEvaluationCaseResult> candidateResults = new ArrayList<>();
         int decomposedCaseCount = 0;
         int additionalQueryCount = 0;
+        Map<String, KnowledgeDocumentSummary> currentDocuments = currentDocuments();
 
         for (RagEvaluationCase evaluationCase : evaluationCases) {
             List<String> queries = queryPlanner.plan(evaluationCase.question());
@@ -121,7 +138,8 @@ public class RagRetrievalEvaluationService {
                     queries.get(0), EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD);
             baselineResults.add(evaluateCase(evaluationCase, baselineSearchResults.stream()
                     .map(RagRetrievalSource::from)
-                    .toList()));
+                    .toList(), RagRetrievalRejectionPolicy.COSINE_THRESHOLD,
+                    ANSWER_SIMILARITY_THRESHOLD, 0.0, currentDocuments));
 
             List<List<MarkdownSearchResult>> rankedResults = new ArrayList<>();
             rankedResults.add(baselineSearchResults);
@@ -136,7 +154,8 @@ public class RagRetrievalEvaluationService {
             candidateResults.add(evaluateCase(evaluationCase,
                     resultFusion.fuse(rankedResults, EVALUATION_TOP_K).stream()
                             .map(RagRetrievalSource::from)
-                            .toList()));
+                            .toList(), RagRetrievalRejectionPolicy.COSINE_THRESHOLD,
+                    ANSWER_SIMILARITY_THRESHOLD, 0.0, currentDocuments));
         }
 
         return new RagRetrievalEvaluationComparisonReport(
@@ -229,29 +248,11 @@ public class RagRetrievalEvaluationService {
     }
 
     private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
-                                                          List<RagRetrievalSource> actualSources) {
-        return evaluateCase(evaluationCase, actualSources, ANSWER_SIMILARITY_THRESHOLD);
-    }
-
-    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
-                                                          List<RagRetrievalSource> actualSources,
-                                                          double answerSimilarityThreshold) {
-        return evaluateCase(evaluationCase, actualSources,
-                RagRetrievalRejectionPolicy.COSINE_THRESHOLD, answerSimilarityThreshold);
-    }
-
-    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
-                                                          List<RagRetrievalSource> actualSources,
-                                                          RagRetrievalRejectionPolicy rejectionPolicy,
-                                                          double answerSimilarityThreshold) {
-        return evaluateCase(evaluationCase, actualSources, rejectionPolicy, answerSimilarityThreshold, 0.0);
-    }
-
-    private RagRetrievalEvaluationCaseResult evaluateCase(RagEvaluationCase evaluationCase,
                                                           List<RagRetrievalSource> actualSources,
                                                           RagRetrievalRejectionPolicy rejectionPolicy,
                                                           double answerSimilarityThreshold,
-                                                          double retrievalLatencyMs) {
+                                                          double retrievalLatencyMs,
+                                                          Map<String, KnowledgeDocumentSummary> currentDocuments) {
         Set<String> actualLogicalSources = actualSources.stream()
                 .map(RagRetrievalSource::source)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -305,7 +306,7 @@ public class RagRetrievalEvaluationService {
                 firstRelevantRank, headingPathHitCount, pageNumberHitCount,
                 blockTypeHitCount, structureHitCount, expectedStructureCount,
                 rejectedByPolicy, expectedChunkHitCount, hardNegativeHitCount,
-                relevantCount, retrievalLatencyMs);
+                relevantCount, retrievalLatencyMs, currentDocuments);
     }
 
     private RagRetrievalEvaluationCaseResult buildCaseResult(RagEvaluationCase evaluationCase,
@@ -321,7 +322,8 @@ public class RagRetrievalEvaluationService {
                                                               int expectedChunkHitCount,
                                                               int hardNegativeHitCount,
                                                               int relevantCount,
-                                                              double retrievalLatencyMs) {
+                                                              double retrievalLatencyMs,
+                                                              Map<String, KnowledgeDocumentSummary> currentDocuments) {
         boolean rejectionExpected = evaluationCase.type() == RagEvaluationCaseType.NO_ANSWER;
         List<RagEvaluationChunkExpectation> expectedChunks = evaluationCase.expectedChunks().stream()
                 .distinct().toList();
@@ -358,8 +360,8 @@ public class RagRetrievalEvaluationService {
                 rejectionExpected,
                 rejectedByPolicy,
                 rejectionExpected && rejectedByPolicy,
-                classifyFailureLayer(evaluationCase, actualSources, firstRelevantRank,
-                        rejectedByPolicy, rejectionExpected),
+                classifyFailureLayer(evaluationCase, actualSources, expectedSourceHitCount,
+                        firstRelevantRank, rejectedByPolicy, rejectionExpected, currentDocuments),
                 expectedChunks,
                 hardNegativeChunks,
                 chunkRecallAt5,
@@ -373,13 +375,22 @@ public class RagRetrievalEvaluationService {
 
     private RagRetrievalFailureLayer classifyFailureLayer(RagEvaluationCase evaluationCase,
                                                            List<RagRetrievalSource> actualSources,
+                                                           int expectedSourceHitCount,
                                                            Integer firstRelevantRank,
                                                            boolean rejectedByPolicy,
-                                                           boolean rejectionExpected) {
+                                                           boolean rejectionExpected,
+                                                           Map<String, KnowledgeDocumentSummary> currentDocuments) {
         if (rejectionExpected) {
             return rejectedByPolicy ? RagRetrievalFailureLayer.NONE
                     : actualSources.isEmpty() ? RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED
                     : RagRetrievalFailureLayer.UNCLASSIFIED;
+        }
+        RagRetrievalFailureLayer corpusFailure = classifyCorpusFailure(evaluationCase,
+                expectedSourceHitCount, currentDocuments);
+        if (corpusFailure != RagRetrievalFailureLayer.NONE
+                && (corpusFailure != RagRetrievalFailureLayer.UNCLASSIFIED
+                || firstRelevantRank == null)) {
+            return corpusFailure;
         }
         if (rejectedByPolicy) {
             return RagRetrievalFailureLayer.REJECTION_FILTERED;
@@ -390,6 +401,47 @@ public class RagRetrievalEvaluationService {
         }
         return firstRelevantRank > 1 ? RagRetrievalFailureLayer.RANKING_TOO_LOW
                 : RagRetrievalFailureLayer.NONE;
+    }
+
+    private RagRetrievalFailureLayer classifyCorpusFailure(RagEvaluationCase evaluationCase,
+                                                            int expectedSourceHitCount,
+                                                            Map<String, KnowledgeDocumentSummary> currentDocuments) {
+        int expectedSourceCount = (int) evaluationCase.expectedSources().stream().distinct().count();
+        if (expectedSourceHitCount == expectedSourceCount) {
+            return RagRetrievalFailureLayer.NONE;
+        }
+        if (currentDocuments == null) {
+            return RagRetrievalFailureLayer.UNCLASSIFIED;
+        }
+        List<KnowledgeDocumentSummary> expectedDocuments = evaluationCase.expectedSources().stream()
+                .distinct()
+                .map(currentDocuments::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (expectedDocuments.size() < expectedSourceCount) {
+            return RagRetrievalFailureLayer.CORPUS_ABSENT;
+        }
+        if (expectedDocuments.stream().anyMatch(document -> document.outline() != null
+                && document.outline().chunkCount() == 0)) {
+            return RagRetrievalFailureLayer.PARSING_OR_CHUNK_LOSS;
+        }
+        if (expectedDocuments.stream().allMatch(document -> document.outline() != null
+                && document.outline().chunkCount() > 0)) {
+            return RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED;
+        }
+        return RagRetrievalFailureLayer.UNCLASSIFIED;
+    }
+
+    private Map<String, KnowledgeDocumentSummary> currentDocuments() {
+        if (importRegistry == null) {
+            return null;
+        }
+        return importRegistry.findCurrentDocuments().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        KnowledgeDocumentSummary::source,
+                        Function.identity(),
+                        (first, ignored) -> first,
+                        LinkedHashMap::new));
     }
 
     private RagRetrievalEvaluationMetrics buildAdvancedMetrics(

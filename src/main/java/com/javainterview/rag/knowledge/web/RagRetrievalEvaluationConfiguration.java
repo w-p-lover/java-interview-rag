@@ -4,6 +4,7 @@ import com.javainterview.rag.knowledge.evaluation.FixedRagEvaluationDataset;
 import com.javainterview.rag.knowledge.evaluation.FixedRagStructureEvaluationDataset;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
 import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationService;
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSparseSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
@@ -18,8 +19,9 @@ public class RagRetrievalEvaluationConfiguration {
     @Bean
     RagRetrievalEvaluationService ragRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                                                  FixedRagStructureEvaluationDataset structureDataset,
-                                                                 MarkdownSimilaritySearchService searchService) {
-        return new RagRetrievalEvaluationService(dataset, structureDataset, searchService);
+                                                                 MarkdownSimilaritySearchService searchService,
+                                                                 MarkdownImportRegistry importRegistry) {
+        return new RagRetrievalEvaluationService(dataset, structureDataset, searchService, importRegistry);
     }
 
     @Bean
@@ -27,8 +29,9 @@ public class RagRetrievalEvaluationConfiguration {
             FixedRagEvaluationDataset dataset,
             MarkdownSimilaritySearchService denseSearchService,
             MarkdownSparseSearchService sparseSearchService,
-            MarkdownHybridSearchService hybridSearchService) {
+            MarkdownHybridSearchService hybridSearchService,
+            MarkdownImportRegistry importRegistry) {
         return new HybridRetrievalEvaluationService(dataset, denseSearchService,
-                sparseSearchService, hybridSearchService);
+                sparseSearchService, hybridSearchService, importRegistry);
     }
 }

@@ -1,10 +1,14 @@
 package com.javainterview.rag.knowledge.evaluation;
 
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline;
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,6 +21,37 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class RagRetrievalEvaluationServiceTest {
+
+    @Test
+    void classifiesCorpusParsingAndCandidateRecallFailuresFromImportState() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        RagEvaluationCase corpusAbsent = evaluationCase(
+                "corpus-absent", "语料缺失", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/missing.md"), List.of(List.of("Java")));
+        RagEvaluationCase chunkLost = evaluationCase(
+                "chunk-lost", "切分丢失", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/empty.md"), List.of(List.of("Java")));
+        RagEvaluationCase notRecalled = evaluationCase(
+                "not-recalled", "候选未召回", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/indexed.md"), List.of(List.of("Java")));
+        when(dataset.findAll()).thenReturn(List.of(corpusAbsent, chunkLost, notRecalled));
+        when(registry.findCurrentDocuments()).thenReturn(List.of(
+                document("java/empty.md", 0), document("java/indexed.md", 2)));
+        RagRetrievalEvaluationService service = new RagRetrievalEvaluationService(
+                dataset, mock(FixedRagStructureEvaluationDataset.class),
+                mock(MarkdownSimilaritySearchService.class), registry);
+
+        RagRetrievalEvaluationReport report = service.evaluateWith(question -> List.of());
+
+        assertEquals(RagRetrievalFailureLayer.CORPUS_ABSENT,
+                report.cases().get(0).failureLayer());
+        assertEquals(RagRetrievalFailureLayer.PARSING_OR_CHUNK_LOSS,
+                report.cases().get(1).failureLayer());
+        assertEquals(RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED,
+                report.cases().get(2).failureLayer());
+        verify(registry, times(1)).findCurrentDocuments();
+    }
 
     @Test
     void calculatesRankingHeadingPathAndRejectionMetrics() {
@@ -248,5 +283,10 @@ class RagRetrievalEvaluationServiceTest {
         return new RagEvaluationCase(id, question, RagEvaluationCaseType.DOCUMENT_STRUCTURE,
                 List.of(FixedRagStructureEvaluationDataset.STRUCTURED_PDF), List.of(headingPath),
                 List.of(expectation), List.of("回答要点"));
+    }
+
+    private KnowledgeDocumentSummary document(String source, int chunkCount) {
+        return new KnowledgeDocumentSummary(source, "version-1", 100, LocalDateTime.now(),
+                new KnowledgeDocumentOutline(1, chunkCount, List.of()));
     }
 }

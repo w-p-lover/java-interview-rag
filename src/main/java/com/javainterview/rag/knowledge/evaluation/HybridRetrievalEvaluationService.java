@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.evaluation;
 
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSparseSearchService;
@@ -16,20 +17,30 @@ public final class HybridRetrievalEvaluationService {
     private final MarkdownSimilaritySearchService denseSearchService;
     private final MarkdownSparseSearchService sparseSearchService;
     private final MarkdownHybridSearchService hybridSearchService;
+    private final MarkdownImportRegistry importRegistry;
 
     public HybridRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                             MarkdownSimilaritySearchService denseSearchService,
                                             MarkdownSparseSearchService sparseSearchService,
                                             MarkdownHybridSearchService hybridSearchService) {
+        this(dataset, denseSearchService, sparseSearchService, hybridSearchService, null);
+    }
+
+    public HybridRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                            MarkdownSimilaritySearchService denseSearchService,
+                                            MarkdownSparseSearchService sparseSearchService,
+                                            MarkdownHybridSearchService hybridSearchService,
+                                            MarkdownImportRegistry importRegistry) {
         this.dataset = Objects.requireNonNull(dataset, "固定评估题集不能为空");
         this.denseSearchService = Objects.requireNonNull(denseSearchService, "向量检索服务不能为空");
         this.sparseSearchService = Objects.requireNonNull(sparseSearchService, "BM25 检索服务不能为空");
         this.hybridSearchService = Objects.requireNonNull(hybridSearchService, "混合检索服务不能为空");
+        this.importRegistry = importRegistry;
     }
 
     public HybridRetrievalEvaluationReport evaluate() {
         RagRetrievalEvaluationService evaluator = new RagRetrievalEvaluationService(dataset,
-                denseSearchService);
+                new FixedRagStructureEvaluationDataset(), denseSearchService, importRegistry);
         RagRetrievalEvaluationReport dense = evaluator.evaluate();
         RagRetrievalEvaluationReport sparse = evaluator.evaluateWith(query ->
                 sparseSearchService.search(query, EVALUATION_TOP_K),
