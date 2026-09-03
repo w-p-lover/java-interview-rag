@@ -76,17 +76,20 @@ class RagRetrievalEvaluationServiceTest {
         assertEquals(0.5, first.headingPathRecall());
         assertFalse(first.rejectionExpected());
         assertFalse(first.rejectedAtAnswerThreshold());
+        assertEquals(RagRetrievalFailureLayer.RANKING_TOO_LOW, first.failureLayer());
 
         RagRetrievalEvaluationCaseResult third = report.cases().get(2);
         assertNull(third.firstRelevantRank());
         assertTrue(third.rejectionExpected());
         assertTrue(third.rejectedAtAnswerThreshold());
         assertTrue(third.rejectionCorrect());
+        assertEquals(RagRetrievalFailureLayer.NONE, third.failureLayer());
 
         RagRetrievalEvaluationCaseResult fourth = report.cases().get(3);
         assertTrue(fourth.rejectionExpected());
         assertFalse(fourth.rejectedAtAnswerThreshold());
         assertFalse(fourth.rejectionCorrect());
+        assertEquals(RagRetrievalFailureLayer.UNCLASSIFIED, fourth.failureLayer());
     }
 
     @Test

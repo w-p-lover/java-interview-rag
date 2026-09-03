@@ -29,6 +29,7 @@ public record RagRetrievalEvaluationCaseResult(
         boolean rejectionExpected,
         boolean rejectedAtAnswerThreshold,
         boolean rejectionCorrect,
+        RagRetrievalFailureLayer failureLayer,
         List<RagEvaluationChunkExpectation> expectedChunks,
         List<RagEvaluationChunkExpectation> hardNegativeChunks,
         double chunkRecallAt5,
@@ -68,6 +69,7 @@ public record RagRetrievalEvaluationCaseResult(
                 expectedHeadingPathHitCount, headingPathRecall, expectedPageNumberHitCount, pageNumberRecall,
                 expectedBlockTypeHitCount, blockTypeRecall, expectedStructureHitCount, structureRecall,
                 rejectionExpected, rejectedAtAnswerThreshold, rejectionCorrect,
+                RagRetrievalFailureLayer.UNCLASSIFIED,
                 List.of(), List.of(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 
@@ -83,5 +85,6 @@ public record RagRetrievalEvaluationCaseResult(
         actualSources = List.copyOf(Objects.requireNonNull(actualSources, "实际来源不能为空"));
         expectedChunks = List.copyOf(Objects.requireNonNull(expectedChunks, "期望 Chunk 不能为空"));
         hardNegativeChunks = List.copyOf(Objects.requireNonNull(hardNegativeChunks, "Hard Negative Chunk 不能为空"));
+        Objects.requireNonNull(failureLayer, "召回失败层级不能为空");
     }
 }

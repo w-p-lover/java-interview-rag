@@ -358,6 +358,8 @@ public class RagRetrievalEvaluationService {
                 rejectionExpected,
                 rejectedByPolicy,
                 rejectionExpected && rejectedByPolicy,
+                classifyFailureLayer(evaluationCase, actualSources, firstRelevantRank,
+                        rejectedByPolicy, rejectionExpected),
                 expectedChunks,
                 hardNegativeChunks,
                 chunkRecallAt5,
@@ -367,6 +369,27 @@ public class RagRetrievalEvaluationService {
                 retrievalLatencyMs,
                 hardNegativeAvoidanceRate
         );
+    }
+
+    private RagRetrievalFailureLayer classifyFailureLayer(RagEvaluationCase evaluationCase,
+                                                           List<RagRetrievalSource> actualSources,
+                                                           Integer firstRelevantRank,
+                                                           boolean rejectedByPolicy,
+                                                           boolean rejectionExpected) {
+        if (rejectionExpected) {
+            return rejectedByPolicy ? RagRetrievalFailureLayer.NONE
+                    : actualSources.isEmpty() ? RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED
+                    : RagRetrievalFailureLayer.UNCLASSIFIED;
+        }
+        if (rejectedByPolicy) {
+            return RagRetrievalFailureLayer.REJECTION_FILTERED;
+        }
+        if (firstRelevantRank == null) {
+            return actualSources.isEmpty() ? RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED
+                    : RagRetrievalFailureLayer.UNCLASSIFIED;
+        }
+        return firstRelevantRank > 1 ? RagRetrievalFailureLayer.RANKING_TOO_LOW
+                : RagRetrievalFailureLayer.NONE;
     }
 
     private RagRetrievalEvaluationMetrics buildAdvancedMetrics(
