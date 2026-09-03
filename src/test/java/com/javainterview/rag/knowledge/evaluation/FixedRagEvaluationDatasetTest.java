@@ -17,7 +17,7 @@ class FixedRagEvaluationDatasetTest {
 
         List<RagEvaluationCase> cases = dataset.findAll();
 
-        assertEquals(20, cases.size());
+        assertEquals(23, cases.size());
         RagEvaluationCase hashMap = cases.get(0);
         assertEquals("java-collections-hashmap", hashMap.id());
         assertEquals("HashMap 在什么条件下树化，平均查询复杂度是多少？", hashMap.question());
@@ -28,7 +28,7 @@ class FixedRagEvaluationDatasetTest {
                 List.of("Java 集合", "链表树化条件")
         ), hashMap.expectedHeadingPaths());
         assertFalse(hashMap.expectedAnswerPoints().isEmpty());
-        assertEquals(20, cases.stream().map(RagEvaluationCase::id).distinct().count());
+        assertEquals(23, cases.stream().map(RagEvaluationCase::id).distinct().count());
 
         Map<RagEvaluationCaseType, Long> counts = cases.stream()
                 .collect(Collectors.groupingBy(RagEvaluationCase::type, Collectors.counting()));
@@ -37,7 +37,7 @@ class FixedRagEvaluationDatasetTest {
                 RagEvaluationCaseType.SIMILAR_SECTION, 4L,
                 RagEvaluationCaseType.HEADING_PATH, 3L,
                 RagEvaluationCaseType.AMBIGUOUS, 3L,
-                RagEvaluationCaseType.NO_ANSWER, 3L,
+                RagEvaluationCaseType.NO_ANSWER, 6L,
                 RagEvaluationCaseType.CROSS_SECTION, 3L
         ), counts);
         assertEquals(true, cases.stream()

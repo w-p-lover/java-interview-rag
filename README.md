@@ -8,7 +8,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 
 当前字段化 Sparse 评估使用 `content=1.0`、`heading=2.0`、`code=2.5`、`java_identifier=3.0`；固定题中的代表性问题还记录期望 Chunk 与 Hard Negative Chunk。检索评估报告额外返回 Precision@5、nDCG@5、Chunk Recall@5、Hard Negative 避免率、上下文噪声率和检索延迟 P95。使用 `evaluation/run_retrieval_baseline.py --evaluate-hybrid --allow-embedding-calls` 可执行 Dense-only、BM25-only、Hybrid-RRF 三策略对照。
 
-最新字段化复核结果见 `evaluation/results/2026-09-02-fielded-sparse-hybrid-baseline.json`：Hybrid nDCG@5 为 `0.9772`，Sparse 检索 P95 约 `18.81ms`；来源级指标与旧基线基本持平，Sparse 拒答准确率仍为 `0`，当前结论是保留实现并继续扩充 Hard Negative，而不是宣称全面质量提升。
+最新字段化真实复核结果见 `evaluation/results/2026-09-02-fielded-sparse-hybrid-baseline.json`：Hybrid nDCG@5 为 `0.9772`，Sparse 检索 P95 约 `18.81ms`；来源级指标与旧基线基本持平。此后固定集已扩为 23 题，Sparse 增加 `technical_anchor_coverage_v1` 最小证据门控；零费用本地验收中 17 道可回答题全部保留候选、6 道无答案题全部拒答。该结果只证明当前固定语料边界，不宣称任意知识库都具备相同拒答质量。
 
 - `POST /api/knowledge/documents/import` 接收 Markdown 文件与显式逻辑来源。
 - `POST /api/knowledge/documents/rebuild` 重传当前登记版本的来源与 Markdown 文件，修复缺失或残留向量；历史版本不能直接重建为检索版本。
@@ -16,7 +16,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/documents` 返回每个逻辑来源当前登记的版本、内容字符数和登记时间；不返回历史版本或 Markdown 正文，也不调用模型与向量库。
 - `GET /api/knowledge/documents/detail?source=...` 返回指定逻辑来源的当前版本、无正文章节目录和按新到旧排列的历史登记；只读取版本登记，不返回正文或查询向量库。
 - `GET /api/knowledge/search?query=...&topK=5&similarityThreshold=0.0` 在 `storage` profile 下执行相似度检索，返回真实 chunk 正文、来源、版本、顺序、标题路径和相似度。
-  - `GET /api/knowledge/search/sparse?query=...&topK=5` 在 `local` 与 `storage` profile 下执行 Lucene BM25 稀疏检索，返回关键词匹配的真实 chunk、来源、版本、顺序、标题路径和 BM25 分数；不与向量分数混合。
+  - `GET /api/knowledge/search/sparse?query=...&topK=5` 在 `local` 与 `storage` profile 下执行 Lucene BM25 稀疏检索；问题包含英文技术锚点时，TopK 候选整体至少覆盖一半锚点才返回结果，否则返回空候选。接口返回真实 chunk、来源、版本、顺序、标题路径和 BM25 分数，不与向量分数混合。
   - `GET /api/knowledge/search/hybrid?query=...&topK=5&denseSimilarityThreshold=0.0` 在 `storage` profile 下执行 Dense + BM25 双路候选召回，使用 RRF 按排名融合，并返回每条结果的 Dense/Sparse 排名、原始分数和融合分数。
   - `POST /api/knowledge/answer` 在 `storage` profile 下根据 `{"question":"..."}` 检索并生成回答，返回回答是否由可靠资料支撑及实际使用的来源列表。
   - `POST /api/knowledge/answer/stream` 在 `storage` profile 下以 SSE 增量返回同一套 RAG 回答；最后一个 `complete` 事件携带最终回答、可靠资料状态和来源列表。
@@ -155,9 +155,9 @@ docker compose up -d mysql qdrant
 
 阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`，已执行到独立数据库 `java_interview_rag`；日志查询接口具备表结构前提，日志存储故障仍只会告警且不影响回答。
 
-固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 20 个困难检索问题，每题包含稳定标识、问题、期望逻辑来源、完整标题路径和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 统计 Hit@1、Recall@5、MRR、标题路径召回和拒答准确率。独立的 3 道 PDF 结构题通过 `/api/knowledge/evaluation-cases/structure` 与 `/api/knowledge/evaluations/retrieval/structure` 验证页码、代码/表格/正文块类型和完整结构匹配，不扩大回答评估的 Chat 调用范围。`POST /api/knowledge/evaluations/answers` 仍只复用原 20 题在线回答服务，以 `normalized-literal-containment-v1` 比较完整要点；该指标不等同于语义正确率，接口会产生真实模型费用并写召回日志。仓库提供相应 Markdown 与合成 PDF 语料，真实检索仍必须在费用授权后运行。
+固定评估题集通过 `GET /api/knowledge/evaluation-cases` 暴露 23 个困难检索问题，其中 17 题可回答、6 题应拒答；每题包含稳定标识、问题、期望逻辑来源、完整标题路径和预期回答要点。`GET /api/knowledge/evaluations/retrieval` 固定以 `topK=5`、相似度阈值 `0.0` 统计 Hit@1、Recall@5、MRR、标题路径召回和拒答准确率。独立的 3 道 PDF 结构题通过 `/api/knowledge/evaluation-cases/structure` 与 `/api/knowledge/evaluations/retrieval/structure` 验证页码、代码/表格/正文块类型和完整结构匹配，不扩大回答评估的 Chat 调用范围。`POST /api/knowledge/evaluations/answers` 会复用当前 23 题在线回答服务，以 `normalized-literal-containment-v1` 比较完整要点；该指标不等同于语义正确率，接口会产生真实模型费用并写召回日志。仓库提供相应 Markdown 与合成 PDF 语料，付费检索或回答评估必须在费用授权后运行。
 
-仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 8 份固定 Markdown 语料，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 的 6 题/5 份语料结果保留在 `evaluation/results/2026-07-25-retrieval-baseline.json`，作为历史首轮基线；当前 20 题困难集和 Dense/BM25/Hybrid-RRF 真实对照见 `evaluation/README.md` 及对应结果文件。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接执行同口径对照。
+仓库在 `evaluation/corpus/` 保存与题集精确来源对应的 8 份固定 Markdown 语料，并提供无第三方依赖的 `evaluation/run_retrieval_baseline.py` 编排导入与批量检索。2026-07-25 的 6 题/5 份语料结果保留在 `evaluation/results/2026-07-25-retrieval-baseline.json`，2026-09-02 的结果仍代表当时 20 题口径；当前固定集为 23 题，最新口径见 `evaluation/README.md`。语料会保留在项目独立知识库中，后续参数或检索策略变更可以直接执行同口径对照。
 
 ## 面试准备画像与首轮出题
 

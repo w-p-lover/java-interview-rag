@@ -103,9 +103,9 @@ def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool,
 
 def validate_report(report: dict, structure: bool = False) -> list[str]:
     errors = []
-    expected_total = 3 if structure else 20
+    expected_total = 3 if structure else 23
     expected_answerable = 3 if structure else 17
-    expected_no_answer = 0 if structure else 3
+    expected_no_answer = 0 if structure else 6
     if report.get("totalCaseCount") != expected_total:
         errors.append(f"固定评估题数量不是 {expected_total}")
     if report.get("answerableCaseCount") != expected_answerable:
@@ -155,8 +155,8 @@ def validate_comparison(comparison: dict) -> list[str]:
     if not isinstance(comparison.get("additionalQueryCount"), int):
         errors.append("额外查询数量缺失")
     queries = comparison.get("retrievalQueries")
-    if not isinstance(queries, dict) or len(queries) != 20:
-        errors.append("逐题查询计划不是 20 题")
+    if not isinstance(queries, dict) or len(queries) != 23:
+        errors.append("逐题查询计划不是 23 题")
     for name in ("baseline", "candidate"):
         report = comparison.get(name)
         if not isinstance(report, dict):
