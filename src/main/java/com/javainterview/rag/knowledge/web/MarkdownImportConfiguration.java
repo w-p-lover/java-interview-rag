@@ -5,7 +5,10 @@ import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.CompositeMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.InMemoryMarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.TrackingMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownImportRegistry;
@@ -23,6 +26,11 @@ public class MarkdownImportConfiguration {
     private static final int MAX_CHUNK_LENGTH = 800;
 
     @Bean
+    MarkdownIndexingStateStore markdownIndexingStateStore() {
+        return new InMemoryMarkdownIndexingStateStore();
+    }
+
+    @Bean
     @Profile("!storage")
     MarkdownImportRegistry markdownImportRegistry() {
         return new InMemoryMarkdownImportRegistry();
@@ -38,17 +46,21 @@ public class MarkdownImportConfiguration {
     @Bean
     @Primary
     @Profile("!storage")
-    MarkdownChunkIndexer markdownChunkIndexer(LuceneMarkdownChunkIndex sparseIndex) {
-        return new CompositeMarkdownChunkIndexer(java.util.List.of(sparseIndex));
+    MarkdownChunkIndexer markdownChunkIndexer(LuceneMarkdownChunkIndex sparseIndex,
+                                              MarkdownIndexingStateStore stateStore) {
+        return new TrackingMarkdownChunkIndexer(
+                new CompositeMarkdownChunkIndexer(java.util.List.of(sparseIndex)), stateStore);
     }
 
     @Bean
     @Primary
     @Profile("storage")
     MarkdownChunkIndexer qdrantMarkdownChunkIndexer(VectorStore vectorStore,
-                                                    LuceneMarkdownChunkIndex sparseIndex) {
-        return new CompositeMarkdownChunkIndexer(java.util.List.of(
-                new QdrantMarkdownChunkIndexer(vectorStore), sparseIndex));
+                                                    LuceneMarkdownChunkIndex sparseIndex,
+                                                    MarkdownIndexingStateStore stateStore) {
+        return new TrackingMarkdownChunkIndexer(
+                new CompositeMarkdownChunkIndexer(java.util.List.of(
+                        new QdrantMarkdownChunkIndexer(vectorStore), sparseIndex)), stateStore);
     }
 
     @Bean

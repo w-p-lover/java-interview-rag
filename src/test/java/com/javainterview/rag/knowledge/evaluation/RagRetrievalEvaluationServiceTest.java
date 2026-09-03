@@ -4,6 +4,9 @@ import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.InMemoryMarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.junit.jupiter.api.Test;
@@ -51,6 +54,32 @@ class RagRetrievalEvaluationServiceTest {
         assertEquals(RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED,
                 report.cases().get(2).failureLayer());
         verify(registry, times(1)).findCurrentDocuments();
+    }
+
+    @Test
+    void classifiesIndexFailureBeforeCandidateRecallFailure() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        RagEvaluationCase evaluationCase = evaluationCase(
+                "index-failed", "索引失败", RagEvaluationCaseType.EXACT_TERM,
+                List.of("java/index-failed.md"), List.of(List.of("Java")));
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        MarkdownDocument indexedDocument = MarkdownDocument.create("java/index-failed.md", "内容");
+        KnowledgeDocumentSummary document = new KnowledgeDocumentSummary(
+                indexedDocument.source(), indexedDocument.version(), 100, LocalDateTime.now(),
+                new KnowledgeDocumentOutline(1, 2, List.of()));
+        when(registry.findCurrentDocuments()).thenReturn(List.of(document));
+        stateStore.markFailed(indexedDocument, document.outline().chunkCount(),
+                new IllegalStateException("索引不可用"));
+
+        RagRetrievalEvaluationReport report = new RagRetrievalEvaluationService(
+                dataset, mock(FixedRagStructureEvaluationDataset.class),
+                mock(MarkdownSimilaritySearchService.class), registry, stateStore)
+                .evaluateWith(question -> List.of());
+
+        assertEquals(RagRetrievalFailureLayer.INDEX_NOT_READY,
+                report.cases().get(0).failureLayer());
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.javainterview.rag.knowledge.evaluation;
 
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStatus;
 import com.javainterview.rag.knowledge.rag.RagRetrievalSource;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
@@ -26,20 +28,21 @@ public class RagRetrievalEvaluationService {
     private final FixedRagStructureEvaluationDataset structureDataset;
     private final MarkdownSimilaritySearchService searchService;
     private final MarkdownImportRegistry importRegistry;
+    private final MarkdownIndexingStateStore indexingStateStore;
     private final RagEvaluationQueryPlanner queryPlanner;
     private final RagEvaluationResultFusion resultFusion;
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          MarkdownSimilaritySearchService searchService) {
         this(dataset, new FixedRagStructureEvaluationDataset(), searchService,
-                null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+                null, null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                          FixedRagStructureEvaluationDataset structureDataset,
                                          MarkdownSimilaritySearchService searchService) {
         this(dataset, structureDataset, searchService,
-                null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+                null, null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
     public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
@@ -47,6 +50,15 @@ public class RagRetrievalEvaluationService {
                                          MarkdownSimilaritySearchService searchService,
                                          MarkdownImportRegistry importRegistry) {
         this(dataset, structureDataset, searchService, importRegistry,
+                null, new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
+    }
+
+    public RagRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
+                                         FixedRagStructureEvaluationDataset structureDataset,
+                                         MarkdownSimilaritySearchService searchService,
+                                         MarkdownImportRegistry importRegistry,
+                                         MarkdownIndexingStateStore indexingStateStore) {
+        this(dataset, structureDataset, searchService, importRegistry, indexingStateStore,
                 new RagEvaluationQueryPlanner(), new RagEvaluationResultFusion());
     }
 
@@ -54,12 +66,14 @@ public class RagRetrievalEvaluationService {
                                   FixedRagStructureEvaluationDataset structureDataset,
                                   MarkdownSimilaritySearchService searchService,
                                   MarkdownImportRegistry importRegistry,
+                                  MarkdownIndexingStateStore indexingStateStore,
                                   RagEvaluationQueryPlanner queryPlanner,
                                   RagEvaluationResultFusion resultFusion) {
         this.dataset = Objects.requireNonNull(dataset, "固定评估题集不能为空");
         this.structureDataset = Objects.requireNonNull(structureDataset, "固定结构评估题集不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.importRegistry = importRegistry;
+        this.indexingStateStore = indexingStateStore;
         this.queryPlanner = Objects.requireNonNull(queryPlanner, "评估查询规划器不能为空");
         this.resultFusion = Objects.requireNonNull(resultFusion, "评估结果融合器不能为空");
     }
@@ -427,6 +441,12 @@ public class RagRetrievalEvaluationService {
         }
         if (expectedDocuments.stream().allMatch(document -> document.outline() != null
                 && document.outline().chunkCount() > 0)) {
+            if (indexingStateStore != null && expectedDocuments.stream().anyMatch(document ->
+                    indexingStateStore.find(document.source(), document.version())
+                            .map(state -> state.status() != MarkdownIndexingStatus.READY)
+                            .orElse(false))) {
+                return RagRetrievalFailureLayer.INDEX_NOT_READY;
+            }
             return RagRetrievalFailureLayer.CANDIDATE_NOT_RECALLED;
         }
         return RagRetrievalFailureLayer.UNCLASSIFIED;

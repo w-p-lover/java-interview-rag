@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.evaluation.FixedRagStructureEvaluationDat
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
 import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationService;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSparseSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
@@ -20,8 +21,10 @@ public class RagRetrievalEvaluationConfiguration {
     RagRetrievalEvaluationService ragRetrievalEvaluationService(FixedRagEvaluationDataset dataset,
                                                                  FixedRagStructureEvaluationDataset structureDataset,
                                                                  MarkdownSimilaritySearchService searchService,
-                                                                 MarkdownImportRegistry importRegistry) {
-        return new RagRetrievalEvaluationService(dataset, structureDataset, searchService, importRegistry);
+                                                                 MarkdownImportRegistry importRegistry,
+                                                                 MarkdownIndexingStateStore indexingStateStore) {
+        return new RagRetrievalEvaluationService(dataset, structureDataset, searchService,
+                importRegistry, indexingStateStore);
     }
 
     @Bean
@@ -30,8 +33,9 @@ public class RagRetrievalEvaluationConfiguration {
             MarkdownSimilaritySearchService denseSearchService,
             MarkdownSparseSearchService sparseSearchService,
             MarkdownHybridSearchService hybridSearchService,
-            MarkdownImportRegistry importRegistry) {
+            MarkdownImportRegistry importRegistry,
+            MarkdownIndexingStateStore indexingStateStore) {
         return new HybridRetrievalEvaluationService(dataset, denseSearchService,
-                sparseSearchService, hybridSearchService, importRegistry);
+                sparseSearchService, hybridSearchService, importRegistry, indexingStateStore);
     }
 }
