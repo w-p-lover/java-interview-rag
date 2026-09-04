@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,7 +18,8 @@ public final class RagAnswerEvidenceValidator {
     private static final Pattern LATIN_OR_NUMBER = Pattern.compile(
             "[A-Za-z][A-Za-z0-9_+#.-]*|\\d+(?:\\.\\d+)?");
     private static final Pattern HAN = Pattern.compile("[\\p{IsHan}]+");
-    private static final Pattern NEGATION = Pattern.compile("不|不能|无法|禁止|没有|不会|并非|不是|不支持|不允许");
+    private static final Pattern NEGATED_PHRASE = Pattern.compile(
+            "(?:不允许|不支持|不能|无法|禁止|没有|不会|并非|不是|不)([^，,。！？!?；;\\r\\n]{1,24})");
     private static final Set<String> STOP_WORDS = Set.of(
             "使用", "可以", "通常", "属于", "如果", "因为", "所以", "以及", "然后", "需要", "通过", "进行");
 
@@ -45,11 +47,12 @@ public final class RagAnswerEvidenceValidator {
         Candidate best = null;
         for (Integer sourceNumber : claim.sourceNumbers()) {
             String content = sources.get(sourceNumber - 1).content();
-            Matcher matcher = SOURCE_SENTENCE.matcher(content);
-            while (matcher.find()) {
-                Candidate candidate = candidate(claimAnchors, claimText, matcher.group());
-                if (best == null || candidate.coverage() > best.coverage()) {
-                    best = candidate;
+            List<String> sentences = sourceSentences(content);
+            for (int index = 0; index < sentences.size(); index++) {
+                best = betterCandidate(best, candidate(claimAnchors, claimText, sentences.get(index)));
+                if (index + 1 < sentences.size()) {
+                    best = betterCandidate(best, candidate(claimAnchors, claimText,
+                            sentences.get(index) + "。" + sentences.get(index + 1)));
                 }
             }
         }
@@ -58,18 +61,54 @@ public final class RagAnswerEvidenceValidator {
                     RagAnswerClaimEvidenceStatus.EVIDENCE_INSUFFICIENT,
                     best == null ? 0.0 : best.coverage());
         }
-        RagAnswerClaimEvidenceStatus status = best.negated() == best.claimNegated()
-                ? RagAnswerClaimEvidenceStatus.SUPPORTED
-                : RagAnswerClaimEvidenceStatus.EVIDENCE_CONFLICTING;
+        RagAnswerClaimEvidenceStatus status = best.conflictingPolarity()
+                ? RagAnswerClaimEvidenceStatus.EVIDENCE_CONFLICTING
+                : RagAnswerClaimEvidenceStatus.SUPPORTED;
         return new RagAnswerClaimEvidence(claim.claim(), claim.sourceNumbers(), status, best.coverage());
     }
 
     private Candidate candidate(Set<String> claimAnchors, String claimText, String sourceText) {
         Set<String> sourceAnchors = anchors(sourceText);
-        Set<String> matched = new HashSet<>(claimAnchors);
-        matched.retainAll(sourceAnchors);
-        double coverage = claimAnchors.isEmpty() ? 0.0 : (double) matched.size() / claimAnchors.size();
-        return new Candidate(coverage, negated(sourceText), negated(claimText));
+        Set<String> sharedAnchors = new HashSet<>(claimAnchors);
+        sharedAnchors.retainAll(sourceAnchors);
+        double coverage = claimAnchors.isEmpty() ? 0.0 : (double) sharedAnchors.size() / claimAnchors.size();
+        return new Candidate(coverage, conflictingPolarity(claimText, sourceText, sharedAnchors));
+    }
+
+    private Candidate betterCandidate(Candidate current, Candidate candidate) {
+        return current == null || candidate.coverage() > current.coverage() ? candidate : current;
+    }
+
+    private List<String> sourceSentences(String content) {
+        List<String> sentences = new ArrayList<>();
+        Matcher matcher = SOURCE_SENTENCE.matcher(content);
+        while (matcher.find()) {
+            String sentence = matcher.group().strip();
+            if (!sentence.isEmpty()) {
+                sentences.add(sentence);
+            }
+        }
+        return sentences;
+    }
+
+    private boolean conflictingPolarity(String claimText, String sourceText, Set<String> sharedAnchors) {
+        Set<String> claimNegatedAnchors = negatedAnchors(claimText, sharedAnchors);
+        Set<String> sourceNegatedAnchors = negatedAnchors(sourceText, sharedAnchors);
+        if (claimNegatedAnchors.isEmpty() || sourceNegatedAnchors.isEmpty()) {
+            return claimNegatedAnchors.isEmpty() != sourceNegatedAnchors.isEmpty();
+        }
+        return claimNegatedAnchors.stream().noneMatch(sourceNegatedAnchors::contains);
+    }
+
+    private Set<String> negatedAnchors(String text, Set<String> sharedAnchors) {
+        Set<String> negatedAnchors = new HashSet<>();
+        Matcher matcher = NEGATED_PHRASE.matcher(text);
+        while (matcher.find()) {
+            Set<String> phraseAnchors = anchors(matcher.group(1));
+            phraseAnchors.retainAll(sharedAnchors);
+            negatedAnchors.addAll(phraseAnchors);
+        }
+        return negatedAnchors;
     }
 
     private Set<String> anchors(String text) {
@@ -95,14 +134,10 @@ public final class RagAnswerEvidenceValidator {
         return anchors;
     }
 
-    private boolean negated(String text) {
-        return NEGATION.matcher(text).find();
-    }
-
     private String removeCitations(String claim) {
         return claim.replaceAll("\\[资料\\s*\\d+]", "").strip();
     }
 
-    private record Candidate(double coverage, boolean negated, boolean claimNegated) {
+    private record Candidate(double coverage, boolean conflictingPolarity) {
     }
 }
