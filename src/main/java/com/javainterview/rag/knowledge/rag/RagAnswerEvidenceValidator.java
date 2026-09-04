@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 public final class RagAnswerEvidenceValidator {
 
     private static final double MIN_ANCHOR_COVERAGE = 0.5;
+    private static final double MIN_NEGATED_PHRASE_OVERLAP = 1.0 / 3.0;
     private static final Pattern SOURCE_SENTENCE = Pattern.compile("[^。！？!?；;\\r\\n]+");
     private static final Pattern LATIN_OR_NUMBER = Pattern.compile(
             "[A-Za-z][A-Za-z0-9_+#.-]*|\\d+(?:\\.\\d+)?");
@@ -72,7 +73,8 @@ public final class RagAnswerEvidenceValidator {
         Set<String> sharedAnchors = new HashSet<>(claimAnchors);
         sharedAnchors.retainAll(sourceAnchors);
         double coverage = claimAnchors.isEmpty() ? 0.0 : (double) sharedAnchors.size() / claimAnchors.size();
-        return new Candidate(coverage, conflictingPolarity(claimText, sourceText, sharedAnchors));
+        return new Candidate(coverage, conflictingPolarity(
+                claimText, sourceText, claimAnchors, sourceAnchors));
     }
 
     private Candidate betterCandidate(Candidate current, Candidate candidate) {
@@ -91,24 +93,40 @@ public final class RagAnswerEvidenceValidator {
         return sentences;
     }
 
-    private boolean conflictingPolarity(String claimText, String sourceText, Set<String> sharedAnchors) {
-        Set<String> claimNegatedAnchors = negatedAnchors(claimText, sharedAnchors);
-        Set<String> sourceNegatedAnchors = negatedAnchors(sourceText, sharedAnchors);
-        if (claimNegatedAnchors.isEmpty() || sourceNegatedAnchors.isEmpty()) {
-            return claimNegatedAnchors.isEmpty() != sourceNegatedAnchors.isEmpty();
+    private boolean conflictingPolarity(String claimText, String sourceText,
+                                        Set<String> claimAnchors, Set<String> sourceAnchors) {
+        List<Set<String>> claimNegatedPhrases = negatedPhraseAnchors(claimText);
+        List<Set<String>> sourceNegatedPhrases = negatedPhraseAnchors(sourceText);
+        boolean alignedNegation = claimNegatedPhrases.stream().anyMatch(claimPhrase ->
+                sourceNegatedPhrases.stream().anyMatch(sourcePhrase ->
+                        overlapRatio(claimPhrase, sourcePhrase, true) >= MIN_NEGATED_PHRASE_OVERLAP));
+        if (alignedNegation) {
+            return false;
         }
-        return claimNegatedAnchors.stream().noneMatch(sourceNegatedAnchors::contains);
+        boolean claimNegatesSource = claimNegatedPhrases.stream().anyMatch(
+                phrase -> overlapRatio(phrase, sourceAnchors, false) >= MIN_NEGATED_PHRASE_OVERLAP);
+        boolean sourceNegatesClaim = sourceNegatedPhrases.stream().anyMatch(
+                phrase -> overlapRatio(phrase, claimAnchors, false) >= MIN_NEGATED_PHRASE_OVERLAP);
+        return claimNegatesSource || sourceNegatesClaim;
     }
 
-    private Set<String> negatedAnchors(String text, Set<String> sharedAnchors) {
-        Set<String> negatedAnchors = new HashSet<>();
+    private List<Set<String>> negatedPhraseAnchors(String text) {
+        List<Set<String>> phrases = new ArrayList<>();
         Matcher matcher = NEGATED_PHRASE.matcher(text);
         while (matcher.find()) {
             Set<String> phraseAnchors = anchors(matcher.group(1));
-            phraseAnchors.retainAll(sharedAnchors);
-            negatedAnchors.addAll(phraseAnchors);
+            if (!phraseAnchors.isEmpty()) {
+                phrases.add(phraseAnchors);
+            }
         }
-        return negatedAnchors;
+        return phrases;
+    }
+
+    private double overlapRatio(Set<String> left, Set<String> right, boolean useShorterSide) {
+        Set<String> overlap = new HashSet<>(left);
+        overlap.retainAll(right);
+        int denominator = useShorterSide ? Math.min(left.size(), right.size()) : left.size();
+        return denominator == 0 ? 0.0 : (double) overlap.size() / denominator;
     }
 
     private Set<String> anchors(String text) {

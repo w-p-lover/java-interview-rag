@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 final class RagAnswerCitationValidator {
 
+    private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final Pattern CITATION = Pattern.compile("\\[资料\\s*(\\d+)]");
     private static final Pattern CLAIM_SEPARATOR = Pattern.compile("(?<=[。！？!?；;])|\\R+");
 
@@ -61,7 +62,8 @@ final class RagAnswerCitationValidator {
         String withoutCitations = CITATION.matcher(claim).replaceAll("");
         String structuralText = withoutCitations.strip().replaceAll("^[#>*\\-\\s]+", "")
                 .replaceAll("[*_`]+", "");
-        if (structuralText.isBlank() || structuralText.endsWith(":" ) || structuralText.endsWith("：")) {
+        if (structuralText.isBlank() || INSUFFICIENT_ANSWER.equals(structuralText)
+                || structuralText.endsWith(":" ) || structuralText.endsWith("：")) {
             return false;
         }
         if (structuralText.matches("^(?:根据|按照).{0,20}(?:资料|信息).*(?:回答如下|说明如下)[：:]$")) {

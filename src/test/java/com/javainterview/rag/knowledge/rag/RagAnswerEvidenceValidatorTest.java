@@ -58,10 +58,26 @@ class RagAnswerEvidenceValidatorTest {
                         + "该桶可以转换为红黑树。若数组容量还小于 64，HashMap 会优先扩容，"
                         + "而不是立即树化，以便通过重新分布减少冲突。")));
 
-        assertTrue(result.valid());
         assertEquals(2, result.claims().size());
-        assertTrue(result.claims().stream()
-                .allMatch(claim -> claim.status() == RagAnswerClaimEvidenceStatus.SUPPORTED));
+        assertEquals(List.of(RagAnswerClaimEvidenceStatus.SUPPORTED,
+                        RagAnswerClaimEvidenceStatus.SUPPORTED),
+                result.claims().stream().map(RagAnswerClaimEvidence::status).toList());
+        assertTrue(result.valid());
+    }
+
+    @Test
+    void ignoresNegationThatTargetsAnotherPropositionInTheEvidence() {
+        RagAnswerEvidenceValidation threadPool = validator.validate(
+                "任务成功入队后会重新检查线程池运行状态 [资料 1]。",
+                List.of(source("任务成功入队后还会重新检查线程池运行状态，"
+                        + "避免关闭过程留下无法处理的任务。")));
+        RagAnswerEvidenceValidation concurrentMap = validator.validate(
+                "并发读写映射通常优先考虑 ConcurrentHashMap [资料 1]。",
+                List.of(source("普通 HashMap 不提供并发安全，多线程修改可能产生状态不一致。"
+                        + "并发读写映射通常优先考虑 ConcurrentHashMap，而不是统一加一把粗粒度锁。")));
+
+        assertTrue(threadPool.valid());
+        assertTrue(concurrentMap.valid());
     }
 
     private MarkdownSearchResult source(String content) {

@@ -21,7 +21,7 @@ public class RagAnswerService {
 
     private static final int ANSWER_TOP_K = 5;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "rag-answer-v4";
+    private static final String PROMPT_VERSION = "rag-answer-v5";
     private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final String ANSWER_INSTRUCTIONS = """
@@ -33,6 +33,7 @@ public class RagAnswerService {
             每个事实陈述只表达一个原子结论，并在对应句子末尾标注实际使用的全部资料编号，例如 [资料 1] 或 [资料 1][资料 2]。
             不要把多个事实合并成一个没有清晰证据边界的长句；定义、条件、例外和结论应分别陈述并分别引用。
             只能引用本次提供的资料编号，不得省略引用、引用标题代替正文证据或编造资料编号。
+            直接输出最终事实结论，不要输出问题拆解过程、回答计划、资料覆盖情况、章节定位步骤或未引用的编号清单。
             不要输出未引用的开场白、总结性判断或资料外的延伸建议；无法由资料支持的要点直接说明资料不足。
             """;
 

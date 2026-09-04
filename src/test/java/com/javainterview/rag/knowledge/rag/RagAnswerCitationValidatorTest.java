@@ -63,4 +63,13 @@ class RagAnswerCitationValidatorTest {
         assertEquals(1, result.claims().size());
         assertEquals("HashMap 使用数组和链表 [资料 1]。", result.claims().get(0).claim());
     }
+
+    @Test
+    void allowsTheStandardInsufficientRemainderAfterASupportedClaim() {
+        RagAnswerCitationValidation result = validator.validate(
+                "HashMap 使用数组和链表 [资料 1]。知识库中没有足够可靠的资料回答这个问题。", 1);
+
+        assertTrue(result.valid());
+        assertEquals(1, result.claims().size());
+    }
 }
