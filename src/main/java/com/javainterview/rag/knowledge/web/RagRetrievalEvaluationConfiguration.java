@@ -7,6 +7,7 @@ import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationServi
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownSparseSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import org.springframework.context.annotation.Bean;
@@ -34,8 +35,10 @@ public class RagRetrievalEvaluationConfiguration {
             MarkdownSparseSearchService sparseSearchService,
             MarkdownHybridSearchService hybridSearchService,
             MarkdownImportRegistry importRegistry,
-            MarkdownIndexingStateStore indexingStateStore) {
+            MarkdownIndexingStateStore indexingStateStore,
+            MarkdownAdjacentChunkExpander contextExpander) {
         return new HybridRetrievalEvaluationService(dataset, denseSearchService,
-                sparseSearchService, hybridSearchService, importRegistry, indexingStateStore);
+                sparseSearchService, hybridSearchService, importRegistry, indexingStateStore,
+                contextExpander);
     }
 }

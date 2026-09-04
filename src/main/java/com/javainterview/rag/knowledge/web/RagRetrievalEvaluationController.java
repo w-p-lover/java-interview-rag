@@ -7,6 +7,7 @@ import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationReport;
 import com.javainterview.rag.knowledge.evaluation.RagRetrievalEvaluationService;
 import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationService;
 import com.javainterview.rag.knowledge.evaluation.HybridRetrievalEvaluationReport;
+import com.javainterview.rag.knowledge.evaluation.RagAdjacentContextEvaluationReport;
 import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,5 +59,14 @@ public class RagRetrievalEvaluationController {
             throw new IllegalStateException("Hybrid 检索评估服务未配置");
         }
         return hybridEvaluationService.evaluate();
+    }
+
+    @GetMapping("/adjacent-context")
+    @Operation(summary = "运行相邻 Chunk 上下文开启/关闭对照评估")
+    public RagAdjacentContextEvaluationReport compareAdjacentContext() {
+        if (hybridEvaluationService == null) {
+            throw new IllegalStateException("Hybrid 检索评估服务未配置");
+        }
+        return hybridEvaluationService.compareAdjacentContext();
     }
 }

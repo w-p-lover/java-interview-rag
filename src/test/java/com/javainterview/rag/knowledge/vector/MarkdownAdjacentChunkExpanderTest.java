@@ -31,12 +31,13 @@ class MarkdownAdjacentChunkExpanderTest {
         });
 
         MarkdownSearchResult seed = result("java/collections.md", "version-1", 1, "当前段");
-        List<MarkdownSearchResult> expanded = new MarkdownAdjacentChunkExpander(vectorStore)
-                .expand(List.of(seed, seed));
+        MarkdownAdjacentChunkExpander.ExpansionResult expansion =
+                new MarkdownAdjacentChunkExpander(vectorStore).expandDetailed(List.of(seed, seed));
 
         assertEquals(List.of(seed, new MarkdownSearchResult(
                 "前一段", "java/collections.md", "version-1", 0,
-                List.of("Java", "集合"), 0.55, 2, KnowledgeBlockType.LIST)), expanded);
+                List.of("Java", "集合"), 0.55, 2, KnowledgeBlockType.LIST)), expansion.results());
+        assertEquals(1, expansion.vectorQueryCount());
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
     }
 
@@ -44,9 +45,11 @@ class MarkdownAdjacentChunkExpanderTest {
     void doesNotQueryVectorStoreWhenThereIsNoReliableInitialHit() {
         VectorStore vectorStore = mock(VectorStore.class);
 
-        List<MarkdownSearchResult> expanded = new MarkdownAdjacentChunkExpander(vectorStore).expand(List.of());
+        MarkdownAdjacentChunkExpander.ExpansionResult expansion =
+                new MarkdownAdjacentChunkExpander(vectorStore).expandDetailed(List.of());
 
-        assertEquals(List.of(), expanded);
+        assertEquals(List.of(), expansion.results());
+        assertEquals(0, expansion.vectorQueryCount());
         org.mockito.Mockito.verifyNoInteractions(vectorStore);
     }
 

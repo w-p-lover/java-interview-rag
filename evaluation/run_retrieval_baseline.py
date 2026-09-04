@@ -22,6 +22,12 @@ CORPUS_SOURCES = (
     "rag/rag-basics.md",
 )
 STRUCTURED_CORPUS_SOURCE = "java/structured-java-notes.pdf"
+ADJACENT_CONTEXT_CASE_COUNT = 23
+ADJACENT_CONTEXT_MAX_SEEDS = 3
+ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS = (
+    len(CORPUS_SOURCES)
+    + ADJACENT_CONTEXT_CASE_COUNT * (1 + ADJACENT_CONTEXT_MAX_SEEDS)
+)
 
 RATE_FIELDS = (
     "expectedSourceHitRate",
@@ -86,7 +92,8 @@ def import_corpus(base_url: str, timeout: float, include_structured_pdf: bool) -
 
 
 def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool,
-             evaluate_structure: bool, evaluate_hybrid: bool) -> dict:
+             evaluate_structure: bool, evaluate_hybrid: bool,
+             compare_adjacent_context: bool) -> dict:
     path = "/api/knowledge/evaluations/retrieval"
     if compare_query_decomposition:
         path += "/query-decomposition"
@@ -94,6 +101,8 @@ def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool,
         path += "/structure"
     elif evaluate_hybrid:
         path += "/hybrid"
+    elif compare_adjacent_context:
+        path += "/adjacent-context"
     request = urllib.request.Request(
         f"{base_url}{path}",
         method="GET",
@@ -166,6 +175,58 @@ def validate_comparison(comparison: dict) -> list[str]:
     return errors
 
 
+def validate_adjacent_context(comparison: dict) -> list[str]:
+    errors = []
+    if comparison.get("candidateStrategy") != "same-source-version-neighbor-window-1-v1":
+        errors.append("相邻上下文策略标识不正确")
+    for field in ("expandedCaseCount", "additionalVectorQueryCount", "addedContextCount"):
+        value = comparison.get(field)
+        if not isinstance(value, int) or value < 0:
+            errors.append(f"指标 {field} 缺失或小于 0")
+    added_contexts = comparison.get("addedContexts")
+    if not isinstance(added_contexts, dict) or len(added_contexts) != ADJACENT_CONTEXT_CASE_COUNT:
+        errors.append("逐题新增上下文不是 23 题")
+    for name in ("baselineContext", "candidateContext"):
+        metrics = comparison.get(name)
+        if not isinstance(metrics, dict):
+            errors.append(f"{name} 指标缺失")
+            continue
+        for field in ("contextNoiseRate", "sourceRecallRate", "chunkRecallRate",
+                      "answerPointEvidenceRecallRate"):
+            value = metrics.get(field)
+            if not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0:
+                errors.append(f"{name}.{field} 缺失或超出 0 到 1")
+    for name in ("baseline", "candidate"):
+        report = comparison.get(name)
+        if not isinstance(report, dict):
+            errors.append(f"{name} 报告缺失")
+        else:
+            errors.extend(f"{name}: {error}" for error in validate_report(report))
+    return errors
+
+
+def adjacent_context_decision(comparison: dict) -> str:
+    baseline_context = comparison["baselineContext"]
+    candidate_context = comparison["candidateContext"]
+    improved = any(
+        candidate_context[field] > baseline_context[field]
+        for field in ("sourceRecallRate", "chunkRecallRate", "answerPointEvidenceRecallRate")
+    )
+    no_top5_regression = (
+        comparison["candidate"]["advancedMetrics"]["precisionAt5"]
+        >= comparison["baseline"]["advancedMetrics"]["precisionAt5"]
+    )
+    no_rejection_regression = (
+        comparison["candidate"]["rejectionAccuracy"]
+        >= comparison["baseline"]["rejectionAccuracy"]
+    )
+    bounded_noise = (
+        candidate_context["contextNoiseRate"]
+        <= baseline_context["contextNoiseRate"] + 0.15
+    )
+    return "KEEP" if improved and no_top5_regression and no_rejection_regression and bounded_noise else "DISABLE"
+
+
 def print_summary(report: dict) -> None:
     print("\n检索基线摘要")
     print(f"- Hit@1: {report['hitAt1Rate']:.4f}")
@@ -209,6 +270,21 @@ def print_hybrid_summary(comparison: dict) -> None:
         print(f"- 检索延迟 P95: {advanced['retrievalLatencyP95Ms']:.2f} ms")
 
 
+def print_adjacent_context_summary(comparison: dict) -> None:
+    print(f"\n相邻上下文策略: {comparison['candidateStrategy']}")
+    print(f"- 产生新增上下文的题数: {comparison['expandedCaseCount']}")
+    print(f"- 新增上下文数: {comparison['addedContextCount']}")
+    print(f"- 额外向量查询数: {comparison['additionalVectorQueryCount']}")
+    for name in ("baselineContext", "candidateContext"):
+        metrics = comparison[name]
+        print(f"\n{name}")
+        print(f"- 来源召回: {metrics['sourceRecallRate']:.4f}")
+        print(f"- Chunk 召回: {metrics['chunkRecallRate']:.4f}")
+        print(f"- 回答要点证据召回: {metrics['answerPointEvidenceRecallRate']:.4f}")
+        print(f"- 上下文噪声率: {metrics['contextNoiseRate']:.4f}")
+    print(f"- 决策: {adjacent_context_decision(comparison)}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="导入固定语料并运行真实 RAG 检索基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
@@ -218,6 +294,12 @@ def parse_args() -> argparse.Namespace:
         "--allow-embedding-calls",
         action="store_true",
         help="确认允许语料导入和检索评估产生真实 Embedding 调用",
+    )
+    parser.add_argument(
+        "--max-embedding-calls",
+        type=int,
+        default=0,
+        help="本轮允许的逻辑 Embedding 调用硬上限",
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -235,6 +317,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="运行 Dense-only、BM25-only 和 Hybrid-RRF 三策略对照评估",
     )
+    mode.add_argument(
+        "--compare-adjacent-context",
+        action="store_true",
+        help="比较生产 Hybrid 结果在相邻 Chunk 扩展开启/关闭时的上下文质量",
+    )
     return parser.parse_args()
 
 
@@ -247,17 +334,28 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+    if (args.compare_adjacent_context
+            and args.max_embedding_calls < ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS):
+        print(
+            "未执行相邻上下文评估：当前 23 题和 8 份语料的最坏情况需要 "
+            f"{ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS} 次逻辑 Embedding 调用，"
+            "请显式设置足够的 --max-embedding-calls。",
+            file=sys.stderr,
+        )
+        return 2
     base_url = args.base_url.rstrip("/")
     try:
         corpus = import_corpus(base_url, args.timeout, args.evaluate_structure)
         evaluation_result = evaluate(
             base_url, args.timeout, args.compare_query_decomposition, args.evaluate_structure,
-            args.evaluate_hybrid)
+            args.evaluate_hybrid, args.compare_adjacent_context)
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exception:
         print(f"评估执行失败：{exception}", file=sys.stderr)
         return 1
 
-    errors = (validate_hybrid(evaluation_result)
+    errors = (validate_adjacent_context(evaluation_result)
+              if args.compare_adjacent_context else
+              validate_hybrid(evaluation_result)
               if args.evaluate_hybrid else
               validate_comparison(evaluation_result)
               if args.compare_query_decomposition
@@ -267,6 +365,16 @@ def main() -> int:
             print(f"评估报告无效：{error}", file=sys.stderr)
         return 1
     if args.output:
+        estimated_index_calls = sum(
+            (document["chunkCount"] + 9) // 10
+            for document in corpus if document["imported"]
+        )
+        estimated_embedding_calls = estimated_index_calls
+        if args.compare_adjacent_context:
+            estimated_embedding_calls += (
+                ADJACENT_CONTEXT_CASE_COUNT
+                + evaluation_result["additionalVectorQueryCount"]
+            )
         output = {
             "runAt": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
             "embeddingModel": "text-embedding-v3",
@@ -274,8 +382,18 @@ def main() -> int:
             "collection": "java-interview-rag-chunks",
             "corpusDocumentCount": len(corpus),
             "importedDocumentCount": sum(1 for document in corpus if document["imported"]),
-            "embeddedChunkCountThisRun": sum(document["chunkCount"] for document in corpus),
+            "embeddedChunkCountThisRun": sum(
+                document["chunkCount"] for document in corpus if document["imported"]
+            ),
+            "estimatedLogicalEmbeddingCallCount": estimated_embedding_calls,
+            "embeddingCallLimit": args.max_embedding_calls if args.compare_adjacent_context else None,
+            "acceptanceDecision": (
+                adjacent_context_decision(evaluation_result)
+                if args.compare_adjacent_context else None
+            ),
             "note": (
+                "本次比较生产 Hybrid 候选在相邻 Chunk 扩展开启/关闭时的上下文质量，只执行 Embedding，不调用 Chat。"
+                if args.compare_adjacent_context else
                 "独立知识库中同时存在规划报告；本次比较原查询与确定性查询拆分，只执行 Embedding 检索，不调用 Chat。"
                 if args.compare_query_decomposition else
                 "独立知识库中同时存在规划报告；本次比较 Dense-only、BM25-only 和 Hybrid-RRF，只执行 Embedding 检索，不调用 Chat。"
@@ -291,6 +409,8 @@ def main() -> int:
         print(f"评估结果已写入：{args.output}")
     if args.compare_query_decomposition:
         print_comparison_summary(evaluation_result)
+    elif args.compare_adjacent_context:
+        print_adjacent_context_summary(evaluation_result)
     elif args.evaluate_hybrid:
         print_hybrid_summary(evaluation_result)
     elif args.evaluate_structure:

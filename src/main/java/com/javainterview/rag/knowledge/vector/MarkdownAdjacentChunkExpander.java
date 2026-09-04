@@ -29,9 +29,13 @@ public final class MarkdownAdjacentChunkExpander {
     }
 
     public List<MarkdownSearchResult> expand(List<MarkdownSearchResult> initialResults) {
+        return expandDetailed(initialResults).results();
+    }
+
+    public ExpansionResult expandDetailed(List<MarkdownSearchResult> initialResults) {
         Objects.requireNonNull(initialResults, "初始检索结果不能为空");
         if (initialResults.isEmpty()) {
-            return List.of();
+            return new ExpansionResult(List.of(), 0);
         }
 
         Map<ChunkIdentity, MarkdownSearchResult> expanded = new LinkedHashMap<>();
@@ -40,7 +44,10 @@ public final class MarkdownAdjacentChunkExpander {
                 .forEach(result -> expanded.putIfAbsent(ChunkIdentity.from(result), result));
 
         List<NeighborCandidate> candidates = new ArrayList<>();
-        for (MarkdownSearchResult seed : expanded.values().stream().limit(MAX_EXPANSION_SEEDS).toList()) {
+        List<MarkdownSearchResult> seeds = expanded.values().stream()
+                .limit(MAX_EXPANSION_SEEDS)
+                .toList();
+        for (MarkdownSearchResult seed : seeds) {
             candidates.addAll(findNeighbors(seed));
         }
         candidates.stream()
@@ -50,9 +57,9 @@ public final class MarkdownAdjacentChunkExpander {
                 .forEach(candidate -> expanded.putIfAbsent(
                         ChunkIdentity.from(candidate.result()), candidate.result()));
 
-        return expanded.values().stream()
+        return new ExpansionResult(expanded.values().stream()
                 .limit(MAX_EXPANDED_RESULTS)
-                .toList();
+                .toList(), seeds.size());
     }
 
     private List<NeighborCandidate> findNeighbors(MarkdownSearchResult seed) {
@@ -155,5 +162,15 @@ public final class MarkdownAdjacentChunkExpander {
     }
 
     private record NeighborCandidate(MarkdownSearchResult result, int distance, int seedOrder) {
+    }
+
+    public record ExpansionResult(List<MarkdownSearchResult> results, int vectorQueryCount) {
+
+        public ExpansionResult {
+            results = List.copyOf(Objects.requireNonNull(results, "扩展结果不能为空"));
+            if (vectorQueryCount < 0) {
+                throw new IllegalArgumentException("向量查询次数不能小于 0");
+            }
+        }
     }
 }
