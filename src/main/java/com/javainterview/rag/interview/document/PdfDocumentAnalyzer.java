@@ -153,7 +153,9 @@ public final class PdfDocumentAnalyzer {
             if (previous != null) {
                 float gap = position.getXDirAdj() - (previous.getXDirAdj() + previous.getWidthDirAdj());
                 float spaceWidth = Math.max(previous.getWidthOfSpace(), position.getWidthOfSpace());
-                if (gap > Math.max(1.5f, spaceWidth * 0.45f)) {
+                if (gap > Math.max(1.5f, spaceWidth * 0.45f)
+                        || isInlineStyledWordBoundary(previous, position, gap)
+                        || isPunctuationWordBoundary(previous, position, gap)) {
                     text.append(' ');
                 }
             }
@@ -177,6 +179,40 @@ public final class PdfDocumentAnalyzer {
         });
         return new TextLine(text.toString().trim(), xStart, xEnd, averageY(ordered),
                 fontSize, bold, monospaced, 0, 1);
+    }
+
+    private boolean isInlineStyledWordBoundary(TextPosition previous, TextPosition current, float gap) {
+        if (gap < -0.2f || previous.getUnicode().isBlank() || current.getUnicode().isBlank()
+                || !isWordCharacter(previous.getUnicode()) || !isWordCharacter(current.getUnicode())) {
+            return false;
+        }
+        String previousFont = fontFamily(previous);
+        String currentFont = fontFamily(current);
+        return !previousFont.equals(currentFont)
+                && (isMonospacedFont(previousFont) || isMonospacedFont(currentFont));
+    }
+
+    private boolean isPunctuationWordBoundary(TextPosition previous, TextPosition current, float gap) {
+        return gap >= -0.2f
+                && ",;:".contains(previous.getUnicode())
+                && isWordCharacter(current.getUnicode())
+                && (!isMonospacedFont(fontFamily(previous)) || !isMonospacedFont(fontFamily(current)));
+    }
+
+    private boolean isWordCharacter(String value) {
+        int codePoint = value.codePointAt(0);
+        return Character.isLetterOrDigit(codePoint);
+    }
+
+    private String fontFamily(TextPosition position) {
+        String name = fontName(position);
+        int subsetSeparator = name.indexOf('+');
+        return subsetSeparator >= 0 ? name.substring(subsetSeparator + 1) : name;
+    }
+
+    private boolean isMonospacedFont(String fontFamily) {
+        return fontFamily.contains("courier") || fontFamily.contains("mono")
+                || fontFamily.contains("consolas") || fontFamily.contains("code");
     }
 
     private String fontName(TextPosition position) {

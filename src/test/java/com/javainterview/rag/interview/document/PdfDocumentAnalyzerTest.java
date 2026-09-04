@@ -99,6 +99,28 @@ class PdfDocumentAnalyzerTest {
     }
 
     @Test
+    void restoresSpaceAcrossAdjacentInlineMonospaceText() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addPage(document);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                stream.beginText();
+                stream.newLineAtOffset(72, 740);
+                stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                stream.showText("before");
+                stream.setFont(new PDType1Font(Standard14Fonts.FontName.COURIER), 12);
+                stream.showText("code,");
+                stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                stream.showText("after");
+                stream.endText();
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals("before code, after", result.content());
+        }
+    }
+
+    @Test
     void classifiesTextImageAndEmptyPagesIndependently() throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDPage textWithImage = addPage(document);
