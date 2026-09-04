@@ -152,6 +152,52 @@ class RagAnswerEvaluationServiceTest {
                 result.answerPointDiagnostics().get(0).status());
     }
 
+    @Test
+    void diagnosesRetrievedPointNotUsedBySupportedAnswer() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "unused-evidence", "HashMap 树化", RagEvaluationCaseType.SIMILAR_SECTION,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "链表树化条件")),
+                List.of("数组容量小于 64 时优先扩容"));
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "数组容量小于 64 时优先扩容，重新分布节点可以减少冲突。",
+                "java/collections.md", "version-1", 1,
+                List.of("Java 集合", "链表树化条件"), 0.91);
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(answerService.answer("HashMap 树化")).thenReturn(new RagAnswerResult(
+                "知识库中没有足够可靠的资料回答这个问题。", false, List.of(source),
+                List.of(new RagAnswerClaimEvidence(
+                        "数组容量不足时直接树化 [资料 1]。", List.of(1),
+                        RagAnswerClaimEvidenceStatus.EVIDENCE_CONFLICTING, 0.8))));
+
+        RagAnswerEvaluationCaseResult result = new RagAnswerEvaluationService(dataset, answerService)
+                .evaluate().cases().get(0);
+
+        assertEquals(RagAnswerPointDiagnosisStatus.RETRIEVED_NOT_USED,
+                result.answerPointDiagnostics().get(0).status());
+    }
+
+    @Test
+    void diagnosesExpectedPointMissingFromRetrievedEvidence() {
+        FixedRagEvaluationDataset dataset = mock(FixedRagEvaluationDataset.class);
+        RagAnswerService answerService = mock(RagAnswerService.class);
+        RagEvaluationCase evaluationCase = new RagEvaluationCase(
+                "missing-evidence", "HashMap 树化", RagEvaluationCaseType.SIMILAR_SECTION,
+                List.of("java/collections.md"), List.of(List.of("Java 集合", "链表树化条件")),
+                List.of("数组容量小于 64 时优先扩容"));
+        when(dataset.findAll()).thenReturn(List.of(evaluationCase));
+        when(answerService.answer("HashMap 树化")).thenReturn(new RagAnswerResult(
+                "知识库中没有足够可靠的资料回答这个问题。", false,
+                List.of(source("java/collections.md"))));
+
+        RagAnswerEvaluationCaseResult result = new RagAnswerEvaluationService(dataset, answerService)
+                .evaluate().cases().get(0);
+
+        assertEquals(RagAnswerPointDiagnosisStatus.RETRIEVAL_EVIDENCE_MISSING,
+                result.answerPointDiagnostics().get(0).status());
+    }
+
     private MarkdownSearchResult source(String source) {
         return new MarkdownSearchResult("内容", source, "version-1", 0,
                 List.of("标题"), 0.91);

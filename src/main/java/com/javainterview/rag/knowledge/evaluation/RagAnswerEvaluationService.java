@@ -170,7 +170,11 @@ public class RagAnswerEvaluationService {
         if (evidenceContainsPoint) {
             return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.PARAPHRASE_CANDIDATE);
         }
-        return new RagAnswerPointDiagnosis(point, RagAnswerPointDiagnosisStatus.NOT_RECOGNIZED);
+        boolean retrievedContainsPoint = answerResult.sources().stream()
+                .anyMatch(source -> containsNormalized(normalize(source.content()), point));
+        return new RagAnswerPointDiagnosis(point, retrievedContainsPoint
+                ? RagAnswerPointDiagnosisStatus.RETRIEVED_NOT_USED
+                : RagAnswerPointDiagnosisStatus.RETRIEVAL_EVIDENCE_MISSING);
     }
 
     private String normalize(String value) {
