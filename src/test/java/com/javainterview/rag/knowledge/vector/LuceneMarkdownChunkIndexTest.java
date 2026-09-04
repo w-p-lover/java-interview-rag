@@ -81,6 +81,21 @@ class LuceneMarkdownChunkIndexTest {
         assertTrue(results.get(0).content().contains("new marker"));
     }
 
+    @Test
+    void deletesOnlyTheFailedDocumentVersion() {
+        MarkdownDocument failedDocument = MarkdownDocument.create("java/versioned.md", "失败版本");
+        MarkdownDocument currentDocument = MarkdownDocument.create("java/versioned.md", "当前版本");
+        index.index(failedDocument, List.of(chunk(failedDocument, 0, "failed marker")));
+        index.index(currentDocument, List.of(chunk(currentDocument, 0, "current marker")));
+
+        index.deleteVersion(failedDocument);
+
+        assertTrue(index.search("failed", 5).isEmpty());
+        List<MarkdownSearchResult> current = index.search("current", 5);
+        assertEquals(1, current.size());
+        assertEquals(currentDocument.version(), current.get(0).documentVersion());
+    }
+
     private MarkdownChunk chunk(MarkdownDocument document, int order, String content) {
         return new MarkdownChunk(document.source(), order, order, 2,
                 List.of("Java", "集合"), content);

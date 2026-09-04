@@ -76,6 +76,16 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
     }
 
     @Override
+    public void deleteVersion(MarkdownDocument document) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        vectorStore.delete(builder.and(
+                builder.eq("source", document.source()),
+                builder.eq("document_version", document.version())
+        ).build());
+    }
+
+    @Override
     public void deleteBySource(String source) {
         Objects.requireNonNull(source, "文档来源不能为空");
         FilterExpressionBuilder builder = new FilterExpressionBuilder();

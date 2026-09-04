@@ -118,6 +118,23 @@ class QdrantMarkdownChunkIndexerTest {
     }
 
     @Test
+    void deletesOnlyTheFailedDocumentVersionWithAStructuredFilter() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/basic.md", "# Java\n集合");
+
+        indexer.deleteVersion(document);
+
+        ArgumentCaptor<Filter.Expression> captor = ArgumentCaptor.forClass(Filter.Expression.class);
+        verify(vectorStore).delete(captor.capture());
+        FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        assertEquals(builder.and(
+                builder.eq("source", document.source()),
+                builder.eq("document_version", document.version())
+        ).build(), captor.getValue());
+    }
+
+    @Test
     void deletesAllVectorsForTheSameSourceWithAStructuredFilter() {
         VectorStore vectorStore = mock(VectorStore.class);
         QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);

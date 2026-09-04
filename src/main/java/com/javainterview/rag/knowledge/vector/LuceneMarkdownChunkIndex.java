@@ -120,6 +120,17 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     }
 
     @Override
+    public synchronized void deleteVersion(MarkdownDocument document) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        try {
+            writer.deleteDocuments(sourceVersionQuery(document, false));
+            writer.commit();
+        } catch (IOException exception) {
+            throw new IllegalStateException("删除 BM25 文档版本失败", exception);
+        }
+    }
+
+    @Override
     public synchronized void deleteBySource(String source) {
         Objects.requireNonNull(source, "文档来源不能为空");
         try {
@@ -177,12 +188,18 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     }
 
     private void deleteOtherVersionsInternal(MarkdownDocument document) throws IOException {
-        writer.deleteDocuments(new org.apache.lucene.search.BooleanQuery.Builder()
+        writer.deleteDocuments(sourceVersionQuery(document, true));
+    }
+
+    private org.apache.lucene.search.Query sourceVersionQuery(MarkdownDocument document,
+                                                               boolean excludeVersion) {
+        return new org.apache.lucene.search.BooleanQuery.Builder()
                 .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, document.source())),
                         org.apache.lucene.search.BooleanClause.Occur.MUST)
                 .add(new org.apache.lucene.search.TermQuery(new Term(VERSION_FIELD, document.version())),
-                        org.apache.lucene.search.BooleanClause.Occur.MUST_NOT)
-                .build());
+                        excludeVersion ? org.apache.lucene.search.BooleanClause.Occur.MUST_NOT
+                                : org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .build();
     }
 
     private Document toLuceneDocument(MarkdownDocument document, MarkdownChunk chunk) {

@@ -65,8 +65,9 @@ public class MarkdownImportConfiguration {
 
     @Bean
     MarkdownContentImporter markdownContentImporter(MarkdownImportRegistry registry,
-                                                     MarkdownChunkIndexer chunkIndexer) {
-        return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH, chunkIndexer);
+                                                     MarkdownChunkIndexer chunkIndexer,
+                                                     MarkdownIndexingStateStore stateStore) {
+        return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH, chunkIndexer, stateStore);
     }
 
     @Bean

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -66,6 +67,40 @@ class MarkdownContentImporterVectorTest {
 
         assertTrue(retried.imported());
         verify(chunkIndexer, times(2)).index(any(MarkdownDocument.class), any());
+        verify(chunkIndexer).deleteVersion(any(MarkdownDocument.class));
+    }
+
+    @Test
+    void compensatesEveryStoreWhenALaterIndexerFails() {
+        MarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        MarkdownChunkIndexer denseIndexer = mock(MarkdownChunkIndexer.class);
+        MarkdownChunkIndexer sparseIndexer = mock(MarkdownChunkIndexer.class);
+        doThrow(new IllegalStateException("BM25 unavailable"))
+                .doNothing()
+                .when(sparseIndexer).index(any(MarkdownDocument.class), any());
+        MarkdownChunkIndexer indexer = new TrackingMarkdownChunkIndexer(
+                new CompositeMarkdownChunkIndexer(List.of(denseIndexer, sparseIndexer)), stateStore);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, indexer, stateStore);
+
+        assertThrows(IllegalStateException.class,
+                () -> sourceImporter.importContent("java/partial.md", "# Java\n部分成功"));
+
+        MarkdownDocument document = MarkdownDocument.create("java/partial.md", "# Java\n部分成功");
+        assertFalse(registry.isRegistered(document));
+        verify(denseIndexer).deleteVersion(argThat(candidate ->
+                candidate.source().equals(document.source())
+                        && candidate.version().equals(document.version())));
+        verify(sparseIndexer).deleteVersion(argThat(candidate ->
+                candidate.source().equals(document.source())
+                        && candidate.version().equals(document.version())));
+
+        MarkdownImportResult retried = sourceImporter.importContent(
+                "java/partial.md", "# Java\n部分成功");
+        assertTrue(retried.imported());
+        assertEquals(MarkdownIndexingStatus.READY,
+                stateStore.find(document.source(), document.version()).orElseThrow().status());
     }
 
     @Test
@@ -81,20 +116,34 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
-    void removesRegistrationWhenOldVectorCleanupFailsSoTheVersionCanRetry() {
+    void retainsIndexedVersionAndRetriesOnlyCleanupWhenOldVersionCleanupFails() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        MarkdownChunkIndexer delegate = mock(MarkdownChunkIndexer.class);
+        MarkdownChunkIndexer trackingIndexer = new TrackingMarkdownChunkIndexer(delegate, stateStore);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, trackingIndexer, stateStore);
         doThrow(new IllegalStateException("Qdrant unavailable"))
                 .doNothing()
-                .when(chunkIndexer).deleteOtherVersions(any(MarkdownDocument.class));
+                .when(delegate).deleteOtherVersions(any(MarkdownDocument.class));
 
         assertThrows(IllegalStateException.class,
-                () -> importer.importContent("java/retry-cleanup.md", "# Java\n重试"));
+                () -> sourceImporter.importContent("java/retry-cleanup.md", "# Java\n重试"));
 
-        MarkdownImportResult retried = importer.importContent(
+        MarkdownDocument document = MarkdownDocument.create(
+                "java/retry-cleanup.md", "# Java\n重试");
+        assertTrue(registry.isRegistered(document));
+        assertEquals(MarkdownIndexingStatus.FAILED,
+                stateStore.find(document.source(), document.version()).orElseThrow().status());
+
+        MarkdownImportResult retried = sourceImporter.importContent(
                 "java/retry-cleanup.md", "# Java\n重试");
 
-        assertTrue(retried.imported());
-        verify(chunkIndexer, times(2)).index(any(MarkdownDocument.class), any());
-        verify(chunkIndexer, times(2)).deleteOtherVersions(any(MarkdownDocument.class));
+        assertFalse(retried.imported());
+        verify(delegate, times(1)).index(any(MarkdownDocument.class), any());
+        verify(delegate, times(2)).deleteOtherVersions(any(MarkdownDocument.class));
+        assertEquals(MarkdownIndexingStatus.READY,
+                stateStore.find(document.source(), document.version()).orElseThrow().status());
     }
 
     @Test

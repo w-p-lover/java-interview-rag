@@ -10,6 +10,7 @@ public final class MarkdownContentImporter {
     private final MarkdownSectionChunker sectionChunker = new MarkdownSectionChunker();
     private final KnowledgeDocumentOutlineBuilder outlineBuilder = new KnowledgeDocumentOutlineBuilder();
     private final MarkdownChunkIndexer chunkIndexer;
+    private final MarkdownIndexingStateStore indexingStateStore;
     private final int maxChunkLength;
 
     public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength) {
@@ -18,11 +19,18 @@ public final class MarkdownContentImporter {
 
     public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength,
                                    MarkdownChunkIndexer chunkIndexer) {
+        this(registry, maxChunkLength, chunkIndexer, null);
+    }
+
+    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength,
+                                   MarkdownChunkIndexer chunkIndexer,
+                                   MarkdownIndexingStateStore indexingStateStore) {
         this.registry = Objects.requireNonNull(registry, "Markdown 导入登记器不能为空");
         if (maxChunkLength <= 0) {
             throw new IllegalArgumentException("Chunk 最大长度必须大于 0");
         }
         this.chunkIndexer = Objects.requireNonNull(chunkIndexer, "Markdown Chunk 索引器不能为空");
+        this.indexingStateStore = indexingStateStore;
         this.maxChunkLength = maxChunkLength;
     }
 
@@ -43,12 +51,13 @@ public final class MarkdownContentImporter {
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
         if (!registry.register(document, outline)) {
+            retryFailedCleanup(document);
             return new MarkdownImportResult(document, false, List.of());
         }
         try {
             chunkIndexer.index(document, chunks);
-            chunkIndexer.deleteOtherVersions(document);
         } catch (RuntimeException exception) {
+            compensateFailedIndex(document, exception);
             try {
                 registry.unregister(document);
             } catch (RuntimeException unregisterException) {
@@ -56,7 +65,32 @@ public final class MarkdownContentImporter {
             }
             throw exception;
         }
+        chunkIndexer.deleteOtherVersions(document);
         return new MarkdownImportResult(document, true, chunks);
+    }
+
+    private void compensateFailedIndex(MarkdownDocument document, RuntimeException failure) {
+        try {
+            chunkIndexer.deleteVersion(document);
+        } catch (RuntimeException compensationException) {
+            failure.addSuppressed(compensationException);
+        }
+    }
+
+    private void retryFailedCleanup(MarkdownDocument document) {
+        if (indexingStateStore == null) {
+            return;
+        }
+        boolean currentVersion = registry.findVersionsBySource(document.source()).stream()
+                .findFirst()
+                .map(version -> version.version().equals(document.version()))
+                .orElse(false);
+        boolean cleanupFailed = indexingStateStore.find(document.source(), document.version())
+                .map(state -> state.status() == MarkdownIndexingStatus.FAILED)
+                .orElse(false);
+        if (currentVersion && cleanupFailed) {
+            chunkIndexer.deleteOtherVersions(document);
+        }
     }
 
     public MarkdownRebuildResult rebuildContent(String source, String content) {

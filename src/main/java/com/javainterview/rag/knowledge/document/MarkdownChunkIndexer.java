@@ -15,6 +15,9 @@ public interface MarkdownChunkIndexer {
     default void deleteOtherVersions(MarkdownDocument document) {
     }
 
+    default void deleteVersion(MarkdownDocument document) {
+    }
+
     default void deleteBySource(String source) {
     }
 

@@ -27,7 +27,15 @@ public final class TrackingMarkdownChunkIndexer implements MarkdownChunkIndexer 
 
     @Override
     public void deleteOtherVersions(MarkdownDocument document) {
-        delegate.deleteOtherVersions(document);
+        int chunkCount = stateStore.find(document.source(), document.version())
+                .map(MarkdownIndexingState::chunkCount)
+                .orElse(0);
+        track(document, chunkCount, () -> delegate.deleteOtherVersions(document));
+    }
+
+    @Override
+    public void deleteVersion(MarkdownDocument document) {
+        delegate.deleteVersion(document);
     }
 
     @Override
@@ -42,12 +50,17 @@ public final class TrackingMarkdownChunkIndexer implements MarkdownChunkIndexer 
     private void track(MarkdownDocument document, List<MarkdownChunk> chunks, Runnable operation) {
         Objects.requireNonNull(document, "Markdown 文档不能为空");
         Objects.requireNonNull(chunks, "Markdown Chunk 列表不能为空");
-        stateStore.markIndexing(document, chunks.size());
+        track(document, chunks.size(), operation);
+    }
+
+    private void track(MarkdownDocument document, int chunkCount, Runnable operation) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        stateStore.markIndexing(document, chunkCount);
         try {
             operation.run();
-            stateStore.markReady(document, chunks.size());
+            stateStore.markReady(document, chunkCount);
         } catch (RuntimeException exception) {
-            stateStore.markFailed(document, chunks.size(), exception);
+            stateStore.markFailed(document, chunkCount, exception);
             throw exception;
         }
     }
