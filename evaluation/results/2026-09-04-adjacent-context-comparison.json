@@ -1,0 +1,4429 @@
+{
+  "runAt": "2026-09-04T11:42:34+08:00",
+  "embeddingModel": "text-embedding-v3",
+  "sparseFieldWeightPolicy": "content=1.0, heading=2.0, code=2.5, java_identifier=3.0",
+  "collection": "java-interview-rag-chunks",
+  "corpusDocumentCount": 8,
+  "importedDocumentCount": 0,
+  "embeddedChunkCountThisRun": 0,
+  "estimatedLogicalEmbeddingCallCount": 74,
+  "embeddingCallLimit": 100,
+  "acceptanceDecision": "DISABLE",
+  "note": "本次比较生产 Hybrid 候选在相邻 Chunk 扩展开启/关闭时的上下文质量，只执行 Embedding，不调用 Chat。",
+  "report": {
+    "candidateStrategy": "same-source-version-neighbor-window-1-v1",
+    "expandedCaseCount": 12,
+    "additionalVectorQueryCount": 51,
+    "addedContextCount": 22,
+    "addedContexts": {
+      "java-collections-hashmap": [
+        {
+          "source": "mysql/indexes.md",
+          "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 索引",
+            "覆盖索引与回表"
+          ],
+          "similarity": 0.6411597728729248,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.5532267093658447,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-concurrency-thread-pool": [
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 0.5943026542663574,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/jvm.md",
+          "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+          "chunkOrder": 1,
+          "headingPath": [
+            "JVM 内存管理",
+            "回收判定边界"
+          ],
+          "similarity": 0.7773197889328003,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-concurrency-volatile": [
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 0,
+          "headingPath": [
+            "MySQL 事务",
+            "MVCC 一致性读取"
+          ],
+          "similarity": 0.7078193426132202,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-jvm-gc-roots": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-collections-resize-or-treeify": [],
+      "java-concurrent-map-read": [
+        {
+          "source": "java/concurrent-collections.md",
+          "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 并发集合",
+            "复合操作边界"
+          ],
+          "similarity": 0.69667649269104,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Java 集合",
+            "链表树化条件"
+          ],
+          "similarity": 0.6189370155334473,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "mysql-snapshot-or-current-read": [],
+      "rag-filter-noisy-context": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 0,
+          "headingPath": [
+            "RAG 检索基础",
+            "来源引用"
+          ],
+          "similarity": 0.5452271699905396,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-heading-expansion-load-factor": [],
+      "mysql-heading-composite-index": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 集合",
+            "HashMap 的查询过程"
+          ],
+          "similarity": 0.6188467741012573,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/collections.md",
+          "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+          "chunkOrder": 2,
+          "headingPath": [
+            "Java 集合",
+            "扩容与负载因子"
+          ],
+          "similarity": 0.5532267093658447,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "rag-heading-tool-boundary": [
+        {
+          "source": "Java后端转AI应用与RAG方向规划报告.md",
+          "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+          "chunkOrder": 9,
+          "headingPath": [
+            "Java 后端转 AI 应用与 RAG 方向规划报告",
+            "5. 学习内容划分",
+            "5.4 AI 工程治理：你的差异化重点"
+          ],
+          "similarity": 0.6207801103591919,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "Java后端转AI应用与RAG方向规划报告.md",
+          "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+          "chunkOrder": 11,
+          "headingPath": [
+            "Java 后端转 AI 应用与 RAG 方向规划报告",
+            "6. 现有项目完善建议"
+          ],
+          "similarity": 0.522891104221344,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "java-ambiguous-map-performance": [],
+      "mysql-ambiguous-query-consistency": [
+        {
+          "source": "mysql/transactions.md",
+          "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+          "chunkOrder": 1,
+          "headingPath": [
+            "MySQL 事务",
+            "快照读与当前读"
+          ],
+          "similarity": 0.7079581618309021,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "java/concurrency.md",
+          "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+          "chunkOrder": 0,
+          "headingPath": [
+            "Java 并发",
+            "ThreadPoolExecutor 接收任务"
+          ],
+          "similarity": 0.5115745663642883,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "rag-ambiguous-grounded-answer": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.5452039241790771,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        },
+        {
+          "source": "rag/agent-basics.md",
+          "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+          "chunkOrder": 1,
+          "headingPath": [
+            "Agent 与工具调用",
+            "工具治理边界"
+          ],
+          "similarity": 0.5943026542663574,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "no-answer-redis-persistence": [],
+      "no-answer-spring-transaction": [],
+      "no-answer-kafka-rebalance": [],
+      "no-answer-completable-future-timeout": [],
+      "no-answer-innodb-gap-lock": [],
+      "no-answer-g1-remembered-set": [],
+      "java-cross-map-choice": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.6454309821128845,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ],
+      "mysql-cross-read-and-index": [],
+      "rag-cross-retrieval-and-tools": [
+        {
+          "source": "rag/rag-basics.md",
+          "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+          "chunkOrder": 1,
+          "headingPath": [
+            "RAG 检索基础",
+            "topK 与相似度阈值"
+          ],
+          "similarity": 0.5452039241790771,
+          "pageNumber": null,
+          "blockType": "TEXT"
+        }
+      ]
+    },
+    "baselineContext": {
+      "contextCount": 85,
+      "averageContextCount": 5.0,
+      "relevantContextCount": 37,
+      "contextNoiseRate": 0.5647058823529412,
+      "expectedSourceCount": 20,
+      "expectedSourceHitCount": 19,
+      "sourceRecallRate": 0.95,
+      "expectedChunkCount": 4,
+      "expectedChunkHitCount": 4,
+      "chunkRecallRate": 1.0,
+      "expectedAnswerPointCount": 57,
+      "expectedAnswerPointHitCount": 9,
+      "answerPointEvidenceRecallRate": 0.15789473684210525
+    },
+    "candidateContext": {
+      "contextCount": 107,
+      "averageContextCount": 6.294117647058823,
+      "relevantContextCount": 42,
+      "contextNoiseRate": 0.6074766355140186,
+      "expectedSourceCount": 20,
+      "expectedSourceHitCount": 19,
+      "sourceRecallRate": 0.95,
+      "expectedChunkCount": 4,
+      "expectedChunkHitCount": 4,
+      "chunkRecallRate": 1.0,
+      "expectedAnswerPointCount": 57,
+      "expectedAnswerPointHitCount": 9,
+      "answerPointEvidenceRecallRate": 0.15789473684210525
+    },
+    "baseline": {
+      "topK": 5,
+      "similarityThreshold": 0.0,
+      "answerSimilarityThreshold": 0.0,
+      "totalCaseCount": 23,
+      "answerableCaseCount": 17,
+      "noAnswerCaseCount": 6,
+      "expectedSourceHitCount": 17,
+      "expectedSourceHitRate": 1.0,
+      "hitAt1Count": 17,
+      "hitAt1Rate": 1.0,
+      "meanRecallAt5": 0.9705882352941176,
+      "meanReciprocalRank": 1.0,
+      "expectedHeadingPathCount": 23,
+      "expectedHeadingPathHitCount": 22,
+      "headingPathRecallRate": 0.9565217391304348,
+      "structureCaseCount": 0,
+      "expectedPageNumberCount": 0,
+      "expectedPageNumberHitCount": 0,
+      "pageNumberRecallRate": 0.0,
+      "expectedBlockTypeCount": 0,
+      "expectedBlockTypeHitCount": 0,
+      "blockTypeRecallRate": 0.0,
+      "expectedStructureCount": 0,
+      "expectedStructureHitCount": 0,
+      "structureRecallRate": 0.0,
+      "correctRejectionCount": 6,
+      "rejectionAccuracy": 1.0,
+      "cases": [
+        {
+          "evaluationCaseId": "java-collections-hashmap",
+          "question": "HashMap 在什么条件下树化，平均查询复杂度是多少？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 集合",
+              "链表树化条件"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.7493449449539185,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 0.6354540586471558,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 4.489277362823486,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 3.1298766136169434,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 1,
+              "headingPath": [
+                "RAG 检索基础",
+                "topK 与相似度阈值"
+              ],
+              "similarity": 3.1103272438049316,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/collections.md",
+              "chunkOrder": 0
+            },
+            {
+              "source": "java/collections.md",
+              "chunkOrder": 1
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.1244,
+          "hardNegativeAvoidanceRate": 1.0
+        },
+        {
+          "evaluationCaseId": "java-concurrency-thread-pool",
+          "question": "ThreadPoolExecutor 接收到新任务后如何决定创建线程、入队和拒绝？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/concurrency.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发",
+              "ThreadPoolExecutor 接收任务"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发",
+                "ThreadPoolExecutor 接收任务"
+              ],
+              "similarity": 0.7859439849853516,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.491756439208984,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.305896759033203,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 4.233083248138428,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.193800926208496,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 1
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0081,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-concurrency-volatile",
+          "question": "volatile 能保证什么，为什么不能保证自增操作的原子性？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/concurrency.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发",
+              "volatile 的可见性与有序性"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 0.6754879355430603,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 4.630163669586182,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 4.561469554901123,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.7528936862945557,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 3.489157199859619,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 1
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0053,
+          "hardNegativeAvoidanceRate": 1.0
+        },
+        {
+          "evaluationCaseId": "java-jvm-gc-roots",
+          "question": "JVM 如何通过 GC Roots 判断对象是否可回收？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/jvm.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "JVM 内存管理",
+              "GC Roots 与可达性分析"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 0.8584913611412048,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 0.709475040435791,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.859801769256592,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 3.7609915733337402,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 2.8665764331817627,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0053,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-collections-resize-or-treeify",
+          "question": "哈希桶冲突变多时，什么情况下优先扩容而不是转换成树？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "链表树化条件"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 0.7108694911003113,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 0.6351529359817505,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 8.464150428771973,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 5.625807762145996,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.644749164581299,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0048,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-concurrent-map-read",
+          "question": "高并发读写映射时，为什么不应直接用普通 HashMap，常见替代结构如何降低竞争？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "java/concurrent-collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发集合",
+              "ConcurrentHashMap 的并发控制"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 0.8068503141403198,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.6506304144859314,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 7.099311828613281,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.6258745193481445,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.901994228363037,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0048,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-snapshot-or-current-read",
+          "question": "为什么同一事务里的普通查询和带 FOR UPDATE 的查询可能采用不同的版本读取方式？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "mysql/transactions.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "快照读与当前读"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.7344613075256348,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 0.659016489982605,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 6.286786079406738,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.337005138397217,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 4.669802665710449,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0055,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-filter-noisy-context",
+          "question": "检索候选太多导致上下文混入不相关内容，应由哪两个参数先控制数量和可靠性？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "rag/rag-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "topK 与相似度阈值"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 1,
+              "headingPath": [
+                "RAG 检索基础",
+                "topK 与相似度阈值"
+              ],
+              "similarity": 0.7679678797721863,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 0.6401746273040771,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6045050621032715,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 0.6163151264190674,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 8.320368766784668,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0055,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-heading-expansion-load-factor",
+          "question": "请定位讲解默认负载因子、触发扩容和节点重新分布的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "扩容与负载因子"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 0.7301103472709656,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 6.218194484710693,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 5.567710876464844,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.061924934387207,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 3.824268341064453,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0057,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-heading-composite-index",
+          "question": "请找到说明联合索引最左前缀以及跳过前导列影响的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "mysql/indexes.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 索引",
+              "联合索引与最左前缀"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 0.621433436870575,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 5.272842884063721,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 5.18055534362793,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.022446155548096,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.250107765197754,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0056,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-heading-tool-boundary",
+          "question": "请定位讲解工具参数校验、权限边界和人工确认的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "rag/agent-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Agent 与工具调用",
+              "工具治理边界"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 0.7238777875900269,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "Java后端转AI应用与RAG方向规划报告.md",
+              "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+              "chunkOrder": 10,
+              "headingPath": [
+                "Java 后端转 AI 应用与 RAG 方向规划报告",
+                "5. 学习内容划分",
+                "5.5 Agent：后续扩展，不是当前第一主线"
+              ],
+              "similarity": 0.603705883026123,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 6.991844177246094,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 3.9366073608398438,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.3101725578308105,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0056,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-ambiguous-map-performance",
+          "question": "Map 查询慢一定是时间复杂度变了吗？应检查哪些与冲突和容量有关的因素？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 集合",
+              "扩容与负载因子"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.6204734444618225,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 8.470792770385742,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 6.137137413024902,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 5.90673828125,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 5.691391468048096,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0056,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-ambiguous-query-consistency",
+          "question": "查询看到旧数据是索引失效还是事务可见性造成的，应该依据什么判断？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "mysql/transactions.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "MVCC 一致性读取"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.6891849040985107,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 7.224504470825195,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 6.275291919708252,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.730756759643555,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.006248950958252,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0052,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-ambiguous-grounded-answer",
+          "question": "系统已经召回了片段但回答仍不可信，如何区分检索问题和生成问题？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "rag/rag-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "来源引用"
+            ],
+            [
+              "RAG 检索基础",
+              "评估与排查"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 0,
+              "headingPath": [
+                "RAG 检索基础",
+                "来源引用"
+              ],
+              "similarity": 0.6916964054107666,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6121093034744263,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 7.958436012268066,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 6.001039028167725,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 5.990871429443359,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0053,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-redis-persistence",
+          "question": "Redis 的 RDB 和 AOF 重写流程分别是什么？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0015,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-spring-transaction",
+          "question": "Spring 事务传播行为 REQUIRES_NEW 和 NESTED 有什么区别？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0013,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-kafka-rebalance",
+          "question": "Kafka 消费组再均衡有哪些触发条件，如何减少停顿？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0015,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-completable-future-timeout",
+          "question": "CompletableFuture 的 orTimeout 和 completeOnTimeout 有什么区别？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0013,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-innodb-gap-lock",
+          "question": "InnoDB 的 next-key lock 和 gap lock 在什么情况下生效？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0013,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-g1-remembered-set",
+          "question": "G1 的 Remembered Set 与写屏障如何配合？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0013,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-cross-map-choice",
+          "question": "单线程映射与高并发映射应如何选择，并分别关注哪些查询和竞争成本？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "java/collections.md",
+            "java/concurrent-collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 并发集合",
+              "ConcurrentHashMap 的并发控制"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 0.6150697469711304,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 0.6128474473953247,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 5.030272006988525,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.02841854095459,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 4.429747104644775,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 0.5,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 0.5,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "CANDIDATE_NOT_RECALLED",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 0.6131471927654585,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0064,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-cross-read-and-index",
+          "question": "排查一条事务内查询既慢又看到历史版本时，需要分别从索引和 MVCC 哪些机制分析？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "mysql/transactions.md",
+            "mysql/indexes.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "MVCC 一致性读取"
+            ],
+            [
+              "MySQL 索引",
+              "联合索引与最左前缀"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.6674994230270386,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 0.7165178060531616,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 8.53041934967041,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 7.634663105010986,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 7.113592624664307,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.8,
+          "ndcgAt5": 0.9197207891481877,
+          "contextNoiseRate": 0.19999999999999996,
+          "retrievalLatencyMs": 0.0079,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-cross-retrieval-and-tools",
+          "question": "知识库回答与可执行 Agent 的可信边界分别依赖哪些检索证据和工具治理？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "rag/rag-basics.md",
+            "rag/agent-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "来源引用"
+            ],
+            [
+              "Agent 与工具调用",
+              "工具治理边界"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 0.6961936950683594,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 0,
+              "headingPath": [
+                "RAG 检索基础",
+                "来源引用"
+              ],
+              "similarity": 0.6480518579483032,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6192308664321899,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 9.449721336364746,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发",
+                "ThreadPoolExecutor 接收任务"
+              ],
+              "similarity": 4.435091495513916,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.8,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.19999999999999996,
+          "retrievalLatencyMs": 0.0056,
+          "hardNegativeAvoidanceRate": 0.0
+        }
+      ],
+      "advancedMetrics": {
+        "precisionAt5": 0.43529411764705883,
+        "ndcgAt5": 0.9725216459949204,
+        "chunkRecallAt5": 1.0,
+        "hardNegativeAvoidanceRate": 0.6666666666666666,
+        "contextNoiseRate": 0.5647058823529412,
+        "retrievalLatencyP95Ms": 0.0081
+      }
+    },
+    "candidate": {
+      "topK": 5,
+      "similarityThreshold": 0.0,
+      "answerSimilarityThreshold": 0.0,
+      "totalCaseCount": 23,
+      "answerableCaseCount": 17,
+      "noAnswerCaseCount": 6,
+      "expectedSourceHitCount": 17,
+      "expectedSourceHitRate": 1.0,
+      "hitAt1Count": 17,
+      "hitAt1Rate": 1.0,
+      "meanRecallAt5": 0.9705882352941176,
+      "meanReciprocalRank": 1.0,
+      "expectedHeadingPathCount": 23,
+      "expectedHeadingPathHitCount": 22,
+      "headingPathRecallRate": 0.9565217391304348,
+      "structureCaseCount": 0,
+      "expectedPageNumberCount": 0,
+      "expectedPageNumberHitCount": 0,
+      "pageNumberRecallRate": 0.0,
+      "expectedBlockTypeCount": 0,
+      "expectedBlockTypeHitCount": 0,
+      "blockTypeRecallRate": 0.0,
+      "expectedStructureCount": 0,
+      "expectedStructureHitCount": 0,
+      "structureRecallRate": 0.0,
+      "correctRejectionCount": 6,
+      "rejectionAccuracy": 1.0,
+      "cases": [
+        {
+          "evaluationCaseId": "java-collections-hashmap",
+          "question": "HashMap 在什么条件下树化，平均查询复杂度是多少？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 集合",
+              "链表树化条件"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.7493449449539185,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 0.6354540586471558,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 4.489277362823486,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 3.1298766136169434,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 1,
+              "headingPath": [
+                "RAG 检索基础",
+                "topK 与相似度阈值"
+              ],
+              "similarity": 3.1103272438049316,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/collections.md",
+              "chunkOrder": 0
+            },
+            {
+              "source": "java/collections.md",
+              "chunkOrder": 1
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0496,
+          "hardNegativeAvoidanceRate": 1.0
+        },
+        {
+          "evaluationCaseId": "java-concurrency-thread-pool",
+          "question": "ThreadPoolExecutor 接收到新任务后如何决定创建线程、入队和拒绝？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/concurrency.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发",
+              "ThreadPoolExecutor 接收任务"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发",
+                "ThreadPoolExecutor 接收任务"
+              ],
+              "similarity": 0.7859439849853516,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.491756439208984,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.305896759033203,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 4.233083248138428,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.193800926208496,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 1
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0095,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-concurrency-volatile",
+          "question": "volatile 能保证什么，为什么不能保证自增操作的原子性？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/concurrency.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发",
+              "volatile 的可见性与有序性"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 0.6754879355430603,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 4.630163669586182,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 4.561469554901123,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.7528936862945557,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 3.489157199859619,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 1
+            }
+          ],
+          "hardNegativeChunks": [
+            {
+              "source": "java/concurrency.md",
+              "chunkOrder": 0
+            }
+          ],
+          "chunkRecallAt5": 1.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0087,
+          "hardNegativeAvoidanceRate": 1.0
+        },
+        {
+          "evaluationCaseId": "java-jvm-gc-roots",
+          "question": "JVM 如何通过 GC Roots 判断对象是否可回收？",
+          "type": "EXACT_TERM",
+          "expectedSources": [
+            "java/jvm.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "JVM 内存管理",
+              "GC Roots 与可达性分析"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 0.8584913611412048,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 0.709475040435791,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.859801769256592,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 3.7609915733337402,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 2.8665764331817627,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0083,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-collections-resize-or-treeify",
+          "question": "哈希桶冲突变多时，什么情况下优先扩容而不是转换成树？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "链表树化条件"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 0.7108694911003113,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 0.6351529359817505,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 8.464150428771973,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 5.625807762145996,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.644749164581299,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0193,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-concurrent-map-read",
+          "question": "高并发读写映射时，为什么不应直接用普通 HashMap，常见替代结构如何降低竞争？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "java/concurrent-collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 并发集合",
+              "ConcurrentHashMap 的并发控制"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 0.8068503141403198,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.6506304144859314,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 7.099311828613281,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.6258745193481445,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 4.901994228363037,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0088,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-snapshot-or-current-read",
+          "question": "为什么同一事务里的普通查询和带 FOR UPDATE 的查询可能采用不同的版本读取方式？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "mysql/transactions.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "快照读与当前读"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.7344613075256348,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 0.659016489982605,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 6.286786079406738,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.337005138397217,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 4.669802665710449,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0103,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-filter-noisy-context",
+          "question": "检索候选太多导致上下文混入不相关内容，应由哪两个参数先控制数量和可靠性？",
+          "type": "SIMILAR_SECTION",
+          "expectedSources": [
+            "rag/rag-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "topK 与相似度阈值"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 1,
+              "headingPath": [
+                "RAG 检索基础",
+                "topK 与相似度阈值"
+              ],
+              "similarity": 0.7679678797721863,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 0.6401746273040771,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6045050621032715,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 0.6163151264190674,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 8.320368766784668,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.009,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-heading-expansion-load-factor",
+          "question": "请定位讲解默认负载因子、触发扩容和节点重新分布的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "扩容与负载因子"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 0.7301103472709656,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 6.218194484710693,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 5.567710876464844,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.061924934387207,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 3.824268341064453,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0088,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-heading-composite-index",
+          "question": "请找到说明联合索引最左前缀以及跳过前导列影响的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "mysql/indexes.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 索引",
+              "联合索引与最左前缀"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 0.621433436870575,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 5.272842884063721,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 5.18055534362793,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.022446155548096,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 4.250107765197754,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0084,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-heading-tool-boundary",
+          "question": "请定位讲解工具参数校验、权限边界和人工确认的章节。",
+          "type": "HEADING_PATH",
+          "expectedSources": [
+            "rag/agent-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Agent 与工具调用",
+              "工具治理边界"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 0.7238777875900269,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "Java后端转AI应用与RAG方向规划报告.md",
+              "documentVersion": "313fdbcce3ec6d62d37af41fb967399b8ff8e2dd0367ad4f5a4db9d61875200c",
+              "chunkOrder": 10,
+              "headingPath": [
+                "Java 后端转 AI 应用与 RAG 方向规划报告",
+                "5. 学习内容划分",
+                "5.5 Agent：后续扩展，不是当前第一主线"
+              ],
+              "similarity": 0.603705883026123,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 6.991844177246094,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 1,
+              "headingPath": [
+                "JVM 内存管理",
+                "回收判定边界"
+              ],
+              "similarity": 3.9366073608398438,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 3.3101725578308105,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0088,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-ambiguous-map-performance",
+          "question": "Map 查询慢一定是时间复杂度变了吗？应检查哪些与冲突和容量有关的因素？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "java/collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 集合",
+              "扩容与负载因子"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 集合",
+                "HashMap 的查询过程"
+              ],
+              "similarity": 0.6204734444618225,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 集合",
+                "链表树化条件"
+              ],
+              "similarity": 8.470792770385742,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/collections.md",
+              "documentVersion": "5aadf1a8692c0176e8b0966f70bb22f9b6c396e5cd7dff751da8845e9d069730",
+              "chunkOrder": 2,
+              "headingPath": [
+                "Java 集合",
+                "扩容与负载因子"
+              ],
+              "similarity": 6.137137413024902,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 5.90673828125,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 5.691391468048096,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.6,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.4,
+          "retrievalLatencyMs": 0.0101,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-ambiguous-query-consistency",
+          "question": "查询看到旧数据是索引失效还是事务可见性造成的，应该依据什么判断？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "mysql/transactions.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "MVCC 一致性读取"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.6891849040985107,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 7.224504470825195,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 6.275291919708252,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 5.730756759643555,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.006248950958252,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.2,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.8,
+          "retrievalLatencyMs": 0.0086,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-ambiguous-grounded-answer",
+          "question": "系统已经召回了片段但回答仍不可信，如何区分检索问题和生成问题？",
+          "type": "AMBIGUOUS",
+          "expectedSources": [
+            "rag/rag-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "来源引用"
+            ],
+            [
+              "RAG 检索基础",
+              "评估与排查"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 0,
+              "headingPath": [
+                "RAG 检索基础",
+                "来源引用"
+              ],
+              "similarity": 0.6916964054107666,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6121093034744263,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 7.958436012268066,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 6.001039028167725,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 5.990871429443359,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0083,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-redis-persistence",
+          "question": "Redis 的 RDB 和 AOF 重写流程分别是什么？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0061,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-spring-transaction",
+          "question": "Spring 事务传播行为 REQUIRES_NEW 和 NESTED 有什么区别？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0038,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-kafka-rebalance",
+          "question": "Kafka 消费组再均衡有哪些触发条件，如何减少停顿？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0037,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-completable-future-timeout",
+          "question": "CompletableFuture 的 orTimeout 和 completeOnTimeout 有什么区别？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0037,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-innodb-gap-lock",
+          "question": "InnoDB 的 next-key lock 和 gap lock 在什么情况下生效？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0034,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "no-answer-g1-remembered-set",
+          "question": "G1 的 Remembered Set 与写屏障如何配合？",
+          "type": "NO_ANSWER",
+          "expectedSources": [],
+          "expectedHeadingPaths": [],
+          "expectedStructures": [],
+          "actualSources": [],
+          "expectedSourceMatched": false,
+          "firstRelevantRank": null,
+          "hitAt1": false,
+          "recallAt5": 0.0,
+          "reciprocalRank": 0.0,
+          "expectedHeadingPathHitCount": 0,
+          "headingPathRecall": 0.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": true,
+          "rejectedAtAnswerThreshold": true,
+          "rejectionCorrect": true,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.0,
+          "ndcgAt5": 0.0,
+          "contextNoiseRate": 0.0,
+          "retrievalLatencyMs": 0.0036,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "java-cross-map-choice",
+          "question": "单线程映射与高并发映射应如何选择，并分别关注哪些查询和竞争成本？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "java/collections.md",
+            "java/concurrent-collections.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "Java 集合",
+              "HashMap 的查询过程"
+            ],
+            [
+              "Java 并发集合",
+              "ConcurrentHashMap 的并发控制"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发集合",
+                "复合操作边界"
+              ],
+              "similarity": 0.6150697469711304,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrent-collections.md",
+              "documentVersion": "3ec5a101968b790ea16f4329f45eccd5e37ec806d5fc801537b54e6efae7a0e1",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发集合",
+                "ConcurrentHashMap 的并发控制"
+              ],
+              "similarity": 0.6128474473953247,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 5.030272006988525,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 5.02841854095459,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Java 并发",
+                "volatile 的可见性与有序性"
+              ],
+              "similarity": 4.429747104644775,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 0.5,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 1,
+          "headingPathRecall": 0.5,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "CANDIDATE_NOT_RECALLED",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.4,
+          "ndcgAt5": 0.6131471927654585,
+          "contextNoiseRate": 0.6,
+          "retrievalLatencyMs": 0.0089,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "mysql-cross-read-and-index",
+          "question": "排查一条事务内查询既慢又看到历史版本时，需要分别从索引和 MVCC 哪些机制分析？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "mysql/transactions.md",
+            "mysql/indexes.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "MySQL 事务",
+              "MVCC 一致性读取"
+            ],
+            [
+              "MySQL 索引",
+              "联合索引与最左前缀"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 事务",
+                "MVCC 一致性读取"
+              ],
+              "similarity": 0.6674994230270386,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/transactions.md",
+              "documentVersion": "2347aa201d8ed6146ee1b542f5458a9090b0a63685ce9ace50639cf3b2334898",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 事务",
+                "快照读与当前读"
+              ],
+              "similarity": 0.7165178060531616,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 0,
+              "headingPath": [
+                "MySQL 索引",
+                "联合索引与最左前缀"
+              ],
+              "similarity": 8.53041934967041,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "mysql/indexes.md",
+              "documentVersion": "4569d5951b5a2b8ec2d40f35321a6af4a5c6142c33696670d5b9b3d9d556bc82",
+              "chunkOrder": 1,
+              "headingPath": [
+                "MySQL 索引",
+                "覆盖索引与回表"
+              ],
+              "similarity": 7.634663105010986,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/jvm.md",
+              "documentVersion": "1da0ada317bca3b75268f448d437f06fb34d3fdc2ede6fffc1e69c42f5b93111",
+              "chunkOrder": 0,
+              "headingPath": [
+                "JVM 内存管理",
+                "GC Roots 与可达性分析"
+              ],
+              "similarity": 7.113592624664307,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.8,
+          "ndcgAt5": 0.9197207891481877,
+          "contextNoiseRate": 0.19999999999999996,
+          "retrievalLatencyMs": 0.0086,
+          "hardNegativeAvoidanceRate": 0.0
+        },
+        {
+          "evaluationCaseId": "rag-cross-retrieval-and-tools",
+          "question": "知识库回答与可执行 Agent 的可信边界分别依赖哪些检索证据和工具治理？",
+          "type": "CROSS_SECTION",
+          "expectedSources": [
+            "rag/rag-basics.md",
+            "rag/agent-basics.md"
+          ],
+          "expectedHeadingPaths": [
+            [
+              "RAG 检索基础",
+              "来源引用"
+            ],
+            [
+              "Agent 与工具调用",
+              "工具治理边界"
+            ]
+          ],
+          "expectedStructures": [],
+          "actualSources": [
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Agent 与工具调用",
+                "RAG 与 Agent 的职责"
+              ],
+              "similarity": 0.6961936950683594,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 0,
+              "headingPath": [
+                "RAG 检索基础",
+                "来源引用"
+              ],
+              "similarity": 0.6480518579483032,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/rag-basics.md",
+              "documentVersion": "290e13a5c5af57de2980b3290c942b908ae9f99426b8956fb59f3a1ce4c4dad9",
+              "chunkOrder": 2,
+              "headingPath": [
+                "RAG 检索基础",
+                "评估与排查"
+              ],
+              "similarity": 0.6192308664321899,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "rag/agent-basics.md",
+              "documentVersion": "bbb3f085c74a34081991daa6e0ef3a5ca74206e73742fdfe605e2d10671c0994",
+              "chunkOrder": 1,
+              "headingPath": [
+                "Agent 与工具调用",
+                "工具治理边界"
+              ],
+              "similarity": 9.449721336364746,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            },
+            {
+              "source": "java/concurrency.md",
+              "documentVersion": "2918a8122af659a4a40772c18cc9f0e7b5b6bc6ee584a78112819c0ec123ca53",
+              "chunkOrder": 0,
+              "headingPath": [
+                "Java 并发",
+                "ThreadPoolExecutor 接收任务"
+              ],
+              "similarity": 4.435091495513916,
+              "pageNumber": null,
+              "blockType": "TEXT"
+            }
+          ],
+          "expectedSourceMatched": true,
+          "firstRelevantRank": 1,
+          "hitAt1": true,
+          "recallAt5": 1.0,
+          "reciprocalRank": 1.0,
+          "expectedHeadingPathHitCount": 2,
+          "headingPathRecall": 1.0,
+          "expectedPageNumberHitCount": 0,
+          "pageNumberRecall": 0.0,
+          "expectedBlockTypeHitCount": 0,
+          "blockTypeRecall": 0.0,
+          "expectedStructureHitCount": 0,
+          "structureRecall": 0.0,
+          "rejectionExpected": false,
+          "rejectedAtAnswerThreshold": false,
+          "rejectionCorrect": false,
+          "failureLayer": "NONE",
+          "expectedChunks": [],
+          "hardNegativeChunks": [],
+          "chunkRecallAt5": 0.0,
+          "precisionAt5": 0.8,
+          "ndcgAt5": 1.0,
+          "contextNoiseRate": 0.19999999999999996,
+          "retrievalLatencyMs": 0.0093,
+          "hardNegativeAvoidanceRate": 0.0
+        }
+      ],
+      "advancedMetrics": {
+        "precisionAt5": 0.43529411764705883,
+        "ndcgAt5": 0.9725216459949204,
+        "chunkRecallAt5": 1.0,
+        "hardNegativeAvoidanceRate": 0.6666666666666666,
+        "contextNoiseRate": 0.5647058823529412,
+        "retrievalLatencyP95Ms": 0.0193
+      }
+    }
+  }
+}

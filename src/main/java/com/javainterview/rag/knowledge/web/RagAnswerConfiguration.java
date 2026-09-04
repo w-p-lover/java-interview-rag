@@ -3,7 +3,6 @@ package com.javainterview.rag.knowledge.web;
 import com.javainterview.rag.knowledge.rag.RagAnswerService;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
-import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.persistence.MySqlRagRetrievalLogStore;
 import com.javainterview.rag.knowledge.persistence.RagRetrievalLogMapper;
@@ -31,9 +30,9 @@ public class RagAnswerConfiguration {
     @Bean
     RagAnswerService ragAnswerService(MarkdownSimilaritySearchService searchService,
                                       MarkdownHybridSearchService hybridSearchService,
-                                      MarkdownAdjacentChunkExpander contextExpander,
                                       ChatClient ragAnswerChatClient, RagRetrievalLogStore logStore) {
-        return new RagAnswerService(searchService, hybridSearchService, contextExpander,
+        // 固定集对照显示相邻扩展增加噪声且无证据收益，生产回答暂时关闭扩展。
+        return new RagAnswerService(searchService, hybridSearchService, null,
                 ragAnswerChatClient, logStore);
     }
 }

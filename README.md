@@ -28,6 +28,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `GET /api/knowledge/evaluations/retrieval` 在 `storage` profile 下逐题执行固定题集的相似度检索，返回实际来源、期望来源命中情况和整体命中率，不调用 Chat 模型。
   - `GET /api/knowledge/evaluations/retrieval/structure` 在 `storage` profile 下执行结构检索题，除来源与排序外统计标题路径、页码、块类型及四项联合匹配召回率；会产生 Embedding 检索，不调用 Chat。
   - `GET /api/knowledge/evaluations/retrieval/hybrid` 在 `storage` profile 下使用同一固定题集分别执行 Dense-only、BM25-only 和 Hybrid-RRF，返回三份可对照报告；该接口会产生 Dense Embedding 检索，不调用 Chat。
+  - `GET /api/knowledge/evaluations/retrieval/adjacent-context` 在 `storage` profile 下对 Hybrid 初始候选执行相邻 Chunk 扩展开启/关闭对照，返回完整上下文的来源、Chunk、回答要点证据召回、噪声和额外向量查询数；不调用 Chat。
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点、逐题 claim 证据状态及聚合引用精确率/召回率、无依据陈述率和冲突率；当前 23 题固定集最多产生 23 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
 - `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。
