@@ -36,6 +36,24 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
+    void sendsMarkdownCodeAndTableChunksToTheExistingIndexer() {
+        MarkdownImportResult result = importer.importContent("java/structured.md", """
+                # Java
+                ```java
+                HashMap<String, Integer> counts = new HashMap<>();
+                ```
+
+                | 类型 | 用途 |
+                | --- | --- |
+                | HashMap | 映射 |
+                """);
+
+        assertEquals(List.of(KnowledgeBlockType.CODE, KnowledgeBlockType.TABLE),
+                result.chunks().stream().map(MarkdownChunk::blockType).toList());
+        verify(chunkIndexer).index(result.document(), result.chunks());
+    }
+
+    @Test
     void removesRegistrationWhenVectorIndexingFailsSoTheDocumentCanRetry() {
         doThrow(new IllegalStateException("Qdrant unavailable"))
                 .doNothing()

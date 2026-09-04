@@ -6,6 +6,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MarkdownSectionChunkerTest {
 
@@ -77,6 +78,37 @@ class MarkdownSectionChunkerTest {
                 codeChunks.stream().map(MarkdownChunk::content).toList());
         assertEquals(List.of("名称 | 值\n", "HashMap | 16\n", "TreeMap | 32"),
                 tableChunks.stream().map(MarkdownChunk::content).toList());
+    }
+
+    @Test
+    void classifiesMarkdownCodeFencesAndTablesWithoutChangingHeadingMetadata() {
+        MarkdownSection section = new MarkdownSection("java/mixed.md", 0, 2,
+                List.of("Java", "集合"), """
+                普通说明，表达式 a | b 仍属于正文。
+
+                ```java
+                Map<String, Integer> counts = new HashMap<>();
+                ```
+
+                | 实现 | 场景 |
+                | --- | --- |
+                | HashMap | 单线程 |
+
+                表格后的结论。
+                """);
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), 200);
+
+        assertEquals(List.of(KnowledgeBlockType.TEXT, KnowledgeBlockType.CODE,
+                        KnowledgeBlockType.TABLE, KnowledgeBlockType.TEXT),
+                chunks.stream().map(MarkdownChunk::blockType).toList());
+        assertEquals(List.of("普通说明，表达式 a | b 仍属于正文。",
+                        "```java\nMap<String, Integer> counts = new HashMap<>();\n```",
+                        "| 实现 | 场景 |\n| --- | --- |\n| HashMap | 单线程 |",
+                        "表格后的结论。"),
+                chunks.stream().map(MarkdownChunk::content).toList());
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.sectionOrder() == 0
+                && chunk.headingPath().equals(List.of("Java", "集合"))));
     }
 
     @Test
