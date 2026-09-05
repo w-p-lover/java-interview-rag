@@ -45,7 +45,8 @@ public final class PdfKnowledgeStructureParser {
             if (lines.isEmpty()) {
                 continue;
             }
-            Set<Integer> tableRows = tableRows(page, lines);
+            boolean continuingTable = continuesTable(blocks, page.pageNumber(), headingStack);
+            Set<Integer> tableRows = tableRows(page, lines, continuingTable);
             List<StructuredLine> structuredLines = combineTableRows(lines, tableRows);
             boolean pageHasHeading = structuredLines.stream()
                     .anyMatch(line -> headingLevel(line, bodyFontSize, headingFontSizes) > 0);
@@ -211,7 +212,8 @@ public final class PdfKnowledgeStructureParser {
         return sizes.get(sizes.size() / 2);
     }
 
-    private Set<Integer> tableRows(PdfPageAnalysis page, List<PdfTextLineAnalysis> lines) {
+    private Set<Integer> tableRows(PdfPageAnalysis page, List<PdfTextLineAnalysis> lines,
+                                   boolean continuingTable) {
         if (page.layout() == PdfPageLayout.TWO_COLUMN) {
             return Set.of();
         }
@@ -222,7 +224,28 @@ public final class PdfKnowledgeStructureParser {
                 .filter(entry -> entry.getValue().size() >= 2)
                 .map(Map.Entry::getKey)
                 .toList();
-        return candidates.size() >= MIN_TABLE_ROWS ? Set.copyOf(candidates) : Set.of();
+        if (candidates.size() >= MIN_TABLE_ROWS) {
+            return Set.copyOf(candidates);
+        }
+        if (!continuingTable || candidates.size() < 2) {
+            return Set.of();
+        }
+        int firstCandidate = candidates.stream().mapToInt(Integer::intValue).min().orElse(Integer.MAX_VALUE);
+        int lastCandidate = candidates.stream().mapToInt(Integer::intValue).max().orElse(Integer.MIN_VALUE);
+        boolean startsNearPageTop = firstCandidate <= lines.get(0).visualRow() + 1;
+        boolean contiguous = lastCandidate - firstCandidate + 1 == candidates.size();
+        return startsNearPageTop && contiguous ? Set.copyOf(candidates) : Set.of();
+    }
+
+    private boolean continuesTable(List<PdfKnowledgeBlock> blocks, int pageNumber,
+                                   List<Heading> headingStack) {
+        if (blocks.isEmpty()) {
+            return false;
+        }
+        PdfKnowledgeBlock previous = blocks.get(blocks.size() - 1);
+        return previous.type() == KnowledgeBlockType.TABLE
+                && previous.pageNumber() == pageNumber - 1
+                && previous.headingPath().equals(headingStack.stream().map(Heading::title).toList());
     }
 
     private List<StructuredLine> combineTableRows(List<PdfTextLineAnalysis> lines, Set<Integer> tableRows) {

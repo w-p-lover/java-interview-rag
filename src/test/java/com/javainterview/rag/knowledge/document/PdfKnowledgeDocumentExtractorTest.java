@@ -68,6 +68,21 @@ class PdfKnowledgeDocumentExtractorTest {
     }
 
     @Test
+    void keepsAContinuationTableAsTableWhenTheLastPageHasOnlyTwoRows() throws IOException {
+        PdfKnowledgeDocumentExtraction extraction = new PdfKnowledgeDocumentExtractor()
+                .extract(new MockMultipartFile("file", "continued-table.pdf", "application/pdf",
+                        continuedTablePdf()));
+
+        List<PdfKnowledgeBlock> tableBlocks = extraction.blocks().stream()
+                .filter(block -> block.type() == KnowledgeBlockType.TABLE)
+                .toList();
+        assertEquals(2, tableBlocks.size());
+        assertEquals(1, tableBlocks.get(0).pageNumber());
+        assertEquals(2, tableBlocks.get(1).pageNumber());
+        assertTrue(tableBlocks.get(1).content().contains("timeout | 30"));
+    }
+
+    @Test
     void rejectsPdfWithoutTextInsteadOfIndexingAnEmptyDocument() throws IOException {
         assertEquals("PDF 未提取到可用文字，可能是扫描件；当前暂不支持 OCR",
                 assertThrows(IllegalArgumentException.class, () -> new PdfKnowledgeDocumentExtractor()
@@ -140,6 +155,28 @@ class PdfKnowledgeDocumentExtractorTest {
                 drawText(stream, regular, 11, 40, 680,
                         "A long collision chain can become a red black tree after the threshold.");
                 drawText(stream, regular, 9, 290, 25, "2");
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private byte[] continuedTablePdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDPage firstPage = new PDPage(PDRectangle.A4);
+            document.addPage(firstPage);
+            try (PDPageContentStream stream = new PDPageContentStream(document, firstPage)) {
+                drawText(stream, regular, 18, 40, 750, "1. Configuration");
+                drawTableRow(stream, regular, 11, 700, "Key", "Value");
+                drawTableRow(stream, regular, 11, 680, "capacity", "16");
+                drawTableRow(stream, regular, 11, 660, "threshold", "12");
+            }
+            PDPage secondPage = new PDPage(PDRectangle.A4);
+            document.addPage(secondPage);
+            try (PDPageContentStream stream = new PDPageContentStream(document, secondPage)) {
+                drawTableRow(stream, regular, 11, 760, "Key", "Value");
+                drawTableRow(stream, regular, 11, 740, "timeout", "30");
             }
             document.save(output);
             return output.toByteArray();
