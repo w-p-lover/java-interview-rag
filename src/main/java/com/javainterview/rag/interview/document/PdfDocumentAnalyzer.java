@@ -22,6 +22,7 @@ public final class PdfDocumentAnalyzer {
     private static final float LEFT_COLUMN_LIMIT = 0.48f;
     private static final float RIGHT_COLUMN_LIMIT = 0.52f;
     private static final float MINIMUM_GUTTER_RATIO = 0.06f;
+    private static final float EXTREME_SAME_COLUMN_GAP_RATIO = 0.20f;
     private static final float MINIMUM_COLUMN_TEXT_WIDTH_RATIO = 0.16f;
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
 
@@ -143,7 +144,15 @@ public final class PdfDocumentAnalyzer {
         float gap = current.getXDirAdj() - (previous.getXDirAdj() + previous.getWidthDirAdj());
         float pageWidth = Math.max(previous.getPageWidth(), current.getPageWidth());
         float spaceWidth = Math.max(previous.getWidthOfSpace(), current.getWidthOfSpace());
-        return gap > Math.max(pageWidth * MINIMUM_GUTTER_RATIO, spaceWidth * 4.0f);
+        if (gap <= Math.max(pageWidth * MINIMUM_GUTTER_RATIO, spaceWidth * 4.0f)) {
+            return false;
+        }
+        // 只有前后文字分别落在页面中缝两侧时，才把大间距视为双栏分隔；
+        // 同一栏内的两列对齐文本或异常字距仍应保留在同一视觉行。
+        boolean crossesPageGutter = previous.getXDirAdj() + previous.getWidthDirAdj() <= pageWidth * LEFT_COLUMN_LIMIT
+                && current.getXDirAdj() >= pageWidth * RIGHT_COLUMN_LIMIT;
+        // 表格列可能都位于页面左半区，极端大间距仍需保留为独立列。
+        return crossesPageGutter || gap >= pageWidth * EXTREME_SAME_COLUMN_GAP_RATIO;
     }
 
     private TextLine toLine(List<TextPosition> ordered) {

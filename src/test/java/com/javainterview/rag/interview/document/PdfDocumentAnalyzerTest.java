@@ -121,6 +121,22 @@ class PdfDocumentAnalyzerTest {
     }
 
     @Test
+    void keepsLargeWordGapInsideOneColumnAsOneVisualLine() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addPage(document);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeLine(stream, 72, 740, "left");
+                writeLine(stream, 180, 740, "content");
+                writeLine(stream, 72, 700, "right content");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals("left content\nright content", result.content());
+        }
+    }
+
+    @Test
     void classifiesTextImageAndEmptyPagesIndependently() throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDPage textWithImage = addPage(document);
