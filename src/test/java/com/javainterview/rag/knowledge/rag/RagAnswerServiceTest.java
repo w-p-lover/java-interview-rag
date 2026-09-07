@@ -214,6 +214,9 @@ class RagAnswerServiceTest {
         assertEquals("知识库中没有足够可靠的资料回答这个问题。", complete.content());
         assertEquals(false, complete.grounded());
         assertEquals(List.of(source), complete.sources());
+        assertEquals(1, complete.claimEvidence().size());
+        assertEquals(RagAnswerClaimEvidenceStatus.CITATION_INVALID,
+                complete.claimEvidence().get(0).status());
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.CITATION_INVALID, logCaptor.getValue().status());

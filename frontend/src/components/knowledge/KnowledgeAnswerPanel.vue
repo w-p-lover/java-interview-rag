@@ -2,6 +2,7 @@
 import { BookOpenCheck, CircleAlert, LibraryBig } from "@lucide/vue";
 
 import type { KnowledgeAnswerResponse } from "@/api/knowledge";
+import KnowledgeClaimEvidence from "@/components/knowledge/KnowledgeClaimEvidence.vue";
 import KnowledgeSourceList from "@/components/knowledge/KnowledgeSourceList.vue";
 
 defineProps<{
@@ -46,6 +47,7 @@ defineProps<{
       </header>
 
       <p class="answer-content">{{ result.answer }}</p>
+      <KnowledgeClaimEvidence :claims="result.claimEvidence" />
       <KnowledgeSourceList :sources="result.sources" />
     </template>
 

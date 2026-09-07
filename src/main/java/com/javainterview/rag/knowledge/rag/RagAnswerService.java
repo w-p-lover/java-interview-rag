@@ -180,7 +180,7 @@ public class RagAnswerService {
                             recordAndReturn(question, finalSources, result, startedAt);
                         }
                         return Flux.just(RagAnswerStreamEvent.complete(
-                                result.answer(), result.grounded(), result.sources()));
+                                result.answer(), result.grounded(), result.sources(), result.claimEvidence()));
                     }))
                     .doOnError(exception -> record(question, finalSources,
                             RagRetrievalLogStatus.FAILED, false, startedAt,

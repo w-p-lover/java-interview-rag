@@ -30,7 +30,7 @@ export function useKnowledgeAnswer() {
     loading.value = true;
     streaming.value = true;
     error.value = "";
-    result.value = { answer: "", grounded: false, sources: [] };
+    result.value = { answer: "", grounded: false, sources: [], claimEvidence: [] };
     submittedQuestion.value = normalizedQuestion;
     try {
       await streamKnowledgeQuestion(normalizedQuestion, (event) => {
@@ -39,6 +39,7 @@ export function useKnowledgeAnswer() {
             answer: `${result.value?.answer ?? ""}${event.content}`,
             grounded: false,
             sources: [],
+            claimEvidence: [],
           };
           return;
         }
@@ -46,6 +47,7 @@ export function useKnowledgeAnswer() {
           answer: event.content,
           grounded: event.grounded,
           sources: event.sources,
+          claimEvidence: event.claimEvidence,
         };
       });
     } catch (requestError) {

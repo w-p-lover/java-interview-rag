@@ -35,10 +35,24 @@ export interface KnowledgeAnswerSource {
   blockType: KnowledgeBlockType;
 }
 
+export type KnowledgeAnswerClaimStatus =
+  | "SUPPORTED"
+  | "EVIDENCE_INSUFFICIENT"
+  | "EVIDENCE_CONFLICTING"
+  | "CITATION_INVALID";
+
+export interface KnowledgeAnswerClaimEvidence {
+  claim: string;
+  sourceNumbers: number[];
+  status: KnowledgeAnswerClaimStatus;
+  anchorCoverage: number;
+}
+
 export interface KnowledgeAnswerResponse {
   answer: string;
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
+  claimEvidence: KnowledgeAnswerClaimEvidence[];
 }
 
 export interface KnowledgeAnswerStreamEvent {
@@ -46,6 +60,7 @@ export interface KnowledgeAnswerStreamEvent {
   content: string;
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
+  claimEvidence: KnowledgeAnswerClaimEvidence[];
 }
 
 export interface KnowledgeSearchResponse {
