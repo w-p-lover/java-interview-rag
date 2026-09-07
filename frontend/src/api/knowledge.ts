@@ -58,6 +58,11 @@ export interface KnowledgeAnswerResponse {
   degradationReason: string | null;
 }
 
+export interface KnowledgeConversationTurn {
+  question: string;
+  answer: string;
+}
+
 export interface KnowledgeAnswerStreamEvent {
   type: "delta" | "complete";
   content: string;
@@ -163,10 +168,10 @@ export async function rebuildMarkdown(
   return response.data;
 }
 
-export async function answerKnowledgeQuestion(question: string): Promise<KnowledgeAnswerResponse> {
+export async function answerKnowledgeQuestion(question: string, history: KnowledgeConversationTurn[] = []): Promise<KnowledgeAnswerResponse> {
   const response = await request.post<KnowledgeAnswerResponse>(
     "/knowledge/answer",
-    { question },
+    { question, history },
     { timeout: 60_000 },
   );
   return response.data;
@@ -175,11 +180,12 @@ export async function answerKnowledgeQuestion(question: string): Promise<Knowled
 export async function streamKnowledgeQuestion(
   question: string,
   onEvent: (event: KnowledgeAnswerStreamEvent) => void,
+  history: KnowledgeConversationTurn[] = [],
 ): Promise<void> {
   const response = await fetch("/api/knowledge/answer/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, history }),
   });
   if (!response.ok) {
     let message = "知识问答失败";

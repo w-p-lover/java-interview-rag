@@ -20,6 +20,9 @@ import java.util.stream.Collectors;
 public class RagAnswerService {
 
     private static final int ANSWER_TOP_K = 5;
+    private static final int MAX_HISTORY_TURNS = 4;
+    private static final int MAX_HISTORY_TOKENS = 800;
+    private static final int ESTIMATED_CHARS_PER_TOKEN = 2;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
     private static final String PROMPT_VERSION = "rag-answer-v5";
     private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
@@ -67,13 +70,19 @@ public class RagAnswerService {
     }
 
     public RagAnswerResult answer(String question) {
+        return answer(question, List.of());
+    }
+
+    public RagAnswerResult answer(String question, List<RagConversationTurn> history) {
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("检索问题不能为空");
         }
         long startedAt = System.nanoTime();
         List<MarkdownSearchResult> sources = List.of();
         try {
-            RetrievalOutcome retrieval = retrieve(question);
+            List<RagConversationTurn> boundedHistory = boundHistory(history);
+            String retrievalQuestion = rewriteQuestion(question, boundedHistory);
+            RetrievalOutcome retrieval = retrieve(retrievalQuestion);
             sources = retrieval.sources();
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
@@ -83,7 +92,7 @@ public class RagAnswerService {
                         toAnswerResult(INSUFFICIENT_ANSWER, false, List.of(), List.of(), retrieval), startedAt);
             }
 
-            String answer = chatClient.prompt(buildPrompt(question, sources)).call().content();
+            String answer = chatClient.prompt(buildPrompt(question, sources, boundedHistory)).call().content();
             if (answer == null || answer.isBlank() || INSUFFICIENT_ANSWER.equals(answer.strip())) {
                 return recordAndReturn(question, sources,
                         toAnswerResult(INSUFFICIENT_ANSWER, false, sources, List.of(), retrieval), startedAt);
@@ -108,12 +117,18 @@ public class RagAnswerService {
     }
 
     public Flux<RagAnswerStreamEvent> streamAnswer(String question) {
+        return streamAnswer(question, List.of());
+    }
+
+    public Flux<RagAnswerStreamEvent> streamAnswer(String question, List<RagConversationTurn> history) {
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("检索问题不能为空");
         }
         return Flux.defer(() -> {
             long startedAt = System.nanoTime();
-            RetrievalOutcome retrieval = retrieve(question);
+            List<RagConversationTurn> boundedHistory = boundHistory(history);
+            String retrievalQuestion = rewriteQuestion(question, boundedHistory);
+            RetrievalOutcome retrieval = retrieve(retrievalQuestion);
             List<MarkdownSearchResult> sources = retrieval.sources();
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
@@ -129,7 +144,7 @@ public class RagAnswerService {
             List<MarkdownSearchResult> finalSources = sources;
             AtomicReference<String> pending = new AtomicReference<>("");
             AtomicBoolean streamBlocked = new AtomicBoolean();
-            return chatClient.prompt(buildPrompt(question, sources)).stream().content()
+            return chatClient.prompt(buildPrompt(question, sources, boundedHistory)).stream().content()
                     .doOnNext(answer::append)
                     .<RagAnswerStreamEvent>handle((chunk, sink) -> {
                         if (streamBlocked.get()) {
@@ -268,11 +283,55 @@ public class RagAnswerService {
                 retrievalSources, elapsedMillis, errorType, LocalDateTime.now()));
     }
 
-    private String buildPrompt(String question, List<MarkdownSearchResult> sources) {
-        return ANSWER_INSTRUCTIONS + "\n问题：" + question + "\n\n资料：\n"
+    private String buildPrompt(String question, List<MarkdownSearchResult> sources,
+                               List<RagConversationTurn> history) {
+        String historyText = history.isEmpty() ? "" : "\n\n最近问答上下文（仅用于理解指代，不作为资料证据）：\n"
+                + history.stream().map(turn -> "问题：" + turn.question() + "\n回答：" + turn.answer())
+                .collect(Collectors.joining("\n\n"));
+        return ANSWER_INSTRUCTIONS + historyText + "\n问题：" + question + "\n\n资料：\n"
                 + IntStream.range(0, sources.size())
                 .mapToObj(index -> formatSource(index + 1, sources.get(index)))
                 .collect(Collectors.joining("\n\n"));
+    }
+
+    private List<RagConversationTurn> boundHistory(List<RagConversationTurn> history) {
+        if (history == null || history.isEmpty()) {
+            return List.of();
+        }
+        List<RagConversationTurn> recent = history.stream()
+                .filter(Objects::nonNull)
+                .skip(Math.max(0, history.size() - MAX_HISTORY_TURNS))
+                .toList();
+        int remaining = MAX_HISTORY_TOKENS * ESTIMATED_CHARS_PER_TOKEN;
+        List<RagConversationTurn> bounded = new java.util.ArrayList<>();
+        for (int index = recent.size() - 1; index >= 0 && remaining > 0; index--) {
+            RagConversationTurn turn = recent.get(index);
+            if (remaining < 2) {
+                break;
+            }
+            int questionLength = Math.min(turn.question().length(), Math.max(1, remaining / 3));
+            int answerLength = Math.min(turn.answer().length(), remaining - questionLength);
+            if (answerLength < 1) {
+                continue;
+            }
+            bounded.add(0, new RagConversationTurn(
+                    turn.question().substring(0, questionLength),
+                    turn.answer().substring(0, answerLength)));
+            remaining -= questionLength + answerLength;
+        }
+        return List.copyOf(bounded);
+    }
+
+    private String rewriteQuestion(String question, List<RagConversationTurn> history) {
+        if (history.isEmpty() || !containsReference(question)) {
+            return question;
+        }
+        return history.get(history.size() - 1).question() + "；追问：" + question;
+    }
+
+    private boolean containsReference(String question) {
+        return question.contains("它") || question.contains("这个") || question.contains("上述")
+                || question.contains("前面") || question.contains("该机制") || question.contains("为什么");
     }
 
     private String formatSource(int sourceNumber, MarkdownSearchResult source) {

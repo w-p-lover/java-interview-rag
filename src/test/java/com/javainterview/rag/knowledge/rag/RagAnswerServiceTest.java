@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.clearInvocations;
@@ -342,5 +343,53 @@ class RagAnswerServiceTest {
         assertEquals("SPARSE_ONLY", result.retrievalStrategy());
         assertEquals(true, result.degraded());
         assertEquals("IllegalStateException", result.degradationReason());
+    }
+
+    @Test
+    void rewritesReferenceQuestionWithTheLatestHistoryTopicBeforeRetrieval() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap 底层结构；追问：它为什么会树化", 5, 0.60))
+                .thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 会树化 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("它为什么会树化",
+                List.of(new RagConversationTurn("HashMap 底层结构", "HashMap 使用数组、链表和红黑树。")));
+
+        verify(searchService).search("HashMap 底层结构；追问：它为什么会树化", 5, 0.60);
+    }
+
+    @Test
+    void boundsHistoryBeforeAddingItToThePrompt() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 使用数组 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+        String longAnswer = "回答".repeat(2_000);
+
+        service.answer("HashMap", List.of(
+                new RagConversationTurn("旧问题 1", longAnswer),
+                new RagConversationTurn("旧问题 2", longAnswer),
+                new RagConversationTurn("旧问题 3", longAnswer),
+                new RagConversationTurn("旧问题 4", longAnswer),
+                new RagConversationTurn("旧问题 5", longAnswer)));
+
+        var promptCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(chatClient, org.mockito.Mockito.times(2)).prompt(promptCaptor.capture());
+        String prompt = promptCaptor.getAllValues().get(1);
+        assertTrue(prompt.contains("最近问答上下文"));
+        assertTrue(prompt.length() < 12_000);
     }
 }

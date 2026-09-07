@@ -17,6 +17,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @Profile("storage")
@@ -33,16 +34,20 @@ public class RagAnswerController {
     @PostMapping
     @Operation(summary = "生成知识库回答", description = "检索知识片段后生成回答，并返回可追溯来源")
     public RagAnswerResponse answer(@RequestBody RagAnswerRequest request) {
-        return RagAnswerResponse.from(answerService.answer(request.question()));
+        return RagAnswerResponse.from(answerService.answer(request.question(), history(request)));
     }
 
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式生成知识库回答", description = "检索知识片段后以 SSE 增量返回回答，结束事件携带可追溯来源")
     public Flux<ServerSentEvent<RagAnswerStreamEvent>> stream(@RequestBody RagAnswerRequest request) {
-        return answerService.streamAnswer(request.question())
+        return answerService.streamAnswer(request.question(), history(request))
                 .map(event -> ServerSentEvent.<RagAnswerStreamEvent>builder(event)
                         .event(event.type())
                         .build());
+    }
+
+    private List<com.javainterview.rag.knowledge.rag.RagConversationTurn> history(RagAnswerRequest request) {
+        return request.history() == null ? List.of() : request.history();
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

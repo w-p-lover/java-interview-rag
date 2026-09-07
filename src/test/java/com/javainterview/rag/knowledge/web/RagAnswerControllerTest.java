@@ -21,7 +21,7 @@ class RagAnswerControllerTest {
     @Test
     void returnsAnswerAndTheSourcesActuallyUsedForIt() throws Exception {
         RagAnswerService service = mock(RagAnswerService.class);
-        when(service.answer("HashMap 底层结构")).thenReturn(new RagAnswerResult(
+        when(service.answer("HashMap 底层结构", List.of())).thenReturn(new RagAnswerResult(
                 "HashMap 使用数组、链表和红黑树 [资料 1]。", true,
                 List.of(new MarkdownSearchResult(
                         "HashMap 在 Java 8 中使用数组、链表和红黑树。",

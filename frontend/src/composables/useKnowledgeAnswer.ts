@@ -2,6 +2,7 @@ import { shallowRef } from "vue";
 
 import {
   streamKnowledgeQuestion,
+  type KnowledgeConversationTurn,
   type KnowledgeAnswerResponse,
 } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
@@ -15,6 +16,7 @@ export function useKnowledgeAnswer() {
   const loading = shallowRef(false);
   const streaming = shallowRef(false);
   const error = shallowRef("");
+  const history = shallowRef<KnowledgeConversationTurn[]>([]);
 
   async function submit(): Promise<void> {
     const normalizedQuestion = question.value.trim();
@@ -63,7 +65,10 @@ export function useKnowledgeAnswer() {
           degraded: event.degraded,
           degradationReason: event.degradationReason,
         };
-      });
+      }, history.value);
+      if (result.value?.answer && result.value.grounded) {
+        history.value = [...history.value, { question: normalizedQuestion, answer: result.value.answer }].slice(-4);
+      }
     } catch (requestError) {
       error.value = requestError instanceof Error
         ? requestError.message
@@ -78,6 +83,7 @@ export function useKnowledgeAnswer() {
     question.value = "";
     submittedQuestion.value = "";
     result.value = null;
+    history.value = [];
     error.value = "";
     streaming.value = false;
   }
@@ -89,6 +95,7 @@ export function useKnowledgeAnswer() {
     loading,
     streaming,
     error,
+    history,
     submit,
     clear,
   };
