@@ -241,6 +241,23 @@ export interface ResumeEvidenceAuditResult {
   suggestions: readonly string[];
 }
 
+export interface ResumeExpressionCandidate {
+  id: string;
+  text: string;
+  rationale: string;
+  supportingFactNumbers: readonly number[];
+  supportingFacts: readonly ResumeEvidenceConfirmedFact[];
+  reviewPoints: readonly string[];
+}
+
+export interface ResumeExpressionCoachResult {
+  requestId: string;
+  role: "RESUME_EXPRESSION_COACH";
+  promptVersion: string;
+  targetRole: string;
+  candidates: readonly ResumeExpressionCandidate[];
+}
+
 export type ResumeJobMatchStatus = "MATCHED" | "PARTIAL" | "MISSING" | "NEEDS_VERIFICATION";
 
 export interface ResumeJobMatchAssessment {
@@ -331,6 +348,18 @@ export async function analyzeResumeJobMatch(
   const response = await request.post<ResumeJobMatchResult>(
     "/interviews/job-matches",
     { targetRole, jobDescription, confirmedFacts },
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function generateResumeExpression(
+  targetRole: string,
+  confirmedFacts: readonly ResumeEvidenceConfirmedFact[],
+): Promise<ResumeExpressionCoachResult> {
+  const response = await request.post<ResumeExpressionCoachResult>(
+    "/interviews/resume-expression",
+    { targetRole, confirmedFacts },
     { timeout: 120_000 },
   );
   return response.data;

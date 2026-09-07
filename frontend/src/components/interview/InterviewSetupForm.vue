@@ -17,6 +17,7 @@ import InterviewTextFileField from "@/components/interview/InterviewTextFileFiel
 import ProjectDeepDivePanel from "@/components/interview/ProjectDeepDivePanel.vue";
 import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue";
 import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
+import ResumeExpressionCoachPanel from "@/components/interview/ResumeExpressionCoachPanel.vue";
 import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
 
 const props = defineProps<{
@@ -138,6 +139,11 @@ function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload)
           :can-audit="canAudit"
           :stale="auditStale"
           @audit="runResumeAudit"
+        />
+
+        <ResumeExpressionCoachPanel
+          :target-role="form.targetRole"
+          :audit-result="auditStale ? null : auditResult"
         />
 
         <InterviewTextFileField
