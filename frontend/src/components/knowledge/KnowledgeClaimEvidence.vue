@@ -31,6 +31,10 @@ function statusTone(status: KnowledgeAnswerClaimStatus): string {
 function coverageLabel(coverage: number): string {
   return `${Math.round(coverage * 100)}% 锚点覆盖`;
 }
+
+function sourceTarget(sourceNumber: number): string {
+  return `#knowledge-source-${sourceNumber}`;
+}
 </script>
 
 <template>
@@ -46,8 +50,13 @@ function coverageLabel(coverage: number): string {
           <span>{{ coverageLabel(claim.anchorCoverage) }}</span>
         </div>
         <p>{{ claim.claim }}</p>
-        <small v-if="claim.sourceNumbers.length">
-          引用资料：{{ claim.sourceNumbers.map((number) => `[资料 ${number}]`).join(" ") }}
+        <small v-if="claim.sourceNumbers.length" class="claim-sources">
+          <span>引用资料：</span>
+          <a
+            v-for="sourceNumber in claim.sourceNumbers"
+            :key="sourceNumber"
+            :href="sourceTarget(sourceNumber)"
+          >[资料 {{ sourceNumber }}]</a>
         </small>
       </li>
     </ul>
@@ -78,6 +87,25 @@ function coverageLabel(coverage: number): string {
   color: var(--color-muted);
   font-size: var(--text-xs);
   font-weight: 400;
+}
+
+.claim-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.claim-sources a {
+  color: var(--color-accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.claim-sources a:focus-visible {
+  border-radius: var(--radius-control);
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
 }
 
 .claim-evidence ul {

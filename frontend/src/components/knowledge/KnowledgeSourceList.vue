@@ -27,7 +27,12 @@ function formatSimilarity(similarity: number | null): string {
     </header>
 
     <ol>
-      <li v-for="(source, index) in sources" :key="`${source.source}-${source.documentVersion}-${source.chunkOrder}`">
+      <li
+        v-for="(source, index) in sources"
+        :id="`knowledge-source-${index + 1}`"
+        :key="`${source.source}-${source.documentVersion}-${source.chunkOrder}`"
+        class="source-item"
+      >
         <details>
           <summary>
             <span class="source-number">{{ index + 1 }}</span>
@@ -103,6 +108,14 @@ ol {
 
 li + li {
   border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.source-item {
+  scroll-margin-top: 6rem;
+}
+
+.source-item:target {
+  background: var(--color-accent-soft);
 }
 
 details {
