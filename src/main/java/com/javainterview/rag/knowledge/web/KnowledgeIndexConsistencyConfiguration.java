@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.consistency.KnowledgeVectorIndexInspector
 import com.javainterview.rag.knowledge.consistency.QdrantKnowledgeVectorIndexInspector;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
 import io.qdrant.client.QdrantClient;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,8 +20,9 @@ public class KnowledgeIndexConsistencyConfiguration {
     @Bean
     KnowledgeVectorIndexInspector knowledgeVectorIndexInspector(
             QdrantClient client,
-            @Value("${spring.ai.vectorstore.qdrant.collection-name}") String collectionName) {
-        return new QdrantKnowledgeVectorIndexInspector(client, collectionName);
+            @Value("${spring.ai.vectorstore.qdrant.collection-name}") String collectionName,
+            KnowledgeIndexVersionMetadata indexVersion) {
+        return new QdrantKnowledgeVectorIndexInspector(client, collectionName, indexVersion);
     }
 
     @Bean

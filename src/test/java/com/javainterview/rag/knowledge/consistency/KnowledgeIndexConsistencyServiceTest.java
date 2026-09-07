@@ -46,6 +46,8 @@ class KnowledgeIndexConsistencyServiceTest {
                 report.dense().status());
         assertEquals(KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT,
                 report.sparse().status());
+        assertTrue(report.dense().indexVersionMatched());
+        assertTrue(report.sparse().indexVersionMatched());
     }
 
     @Test

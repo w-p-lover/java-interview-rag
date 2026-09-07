@@ -41,11 +41,15 @@ public final class KnowledgeIndexConsistencyService {
         KnowledgeIndexConsistencyReport.StoreCheck sparse = inspectStore(expectedChunkCount,
                 () -> new KnowledgeIndexCounts(
                         sparseIndex.countBySourceAndVersion(document.source(), document.version()),
-                        sparseIndex.countBySource(document.source())));
+                        sparseIndex.countBySource(document.source()),
+                        sparseIndex.countBySourceAndVersionAndMetadata(
+                                document.source(), document.version())));
         KnowledgeIndexConsistencyReport.IndexingStateCheck indexingState =
                 indexingState(document, expectedChunkCount);
         boolean consistent = dense.status() == KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT
                 && sparse.status() == KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT
+                && !Boolean.FALSE.equals(dense.indexVersionMatched())
+                && !Boolean.FALSE.equals(sparse.indexVersionMatched())
                 && (!indexingState.tracked()
                 || (indexingState.status() == MarkdownIndexingStatus.READY
                 && !Boolean.FALSE.equals(indexingState.expectedChunkCountMatched())));
@@ -78,15 +82,17 @@ public final class KnowledgeIndexConsistencyService {
             return new KnowledgeIndexConsistencyReport.StoreCheck(
                     status,
                     counts.currentVersionChunkCount(),
+                    counts.currentVersionMetadataMatchCount(),
                     counts.staleVersionChunkCount(),
                     counts.sourceChunkCount(),
                     expectedChunkCount == null ? null
                             : counts.currentVersionChunkCount() == expectedChunkCount,
+                    counts.currentVersionMetadataMatchCount() == counts.currentVersionChunkCount(),
                     null);
         } catch (RuntimeException exception) {
             return new KnowledgeIndexConsistencyReport.StoreCheck(
                     KnowledgeIndexConsistencyReport.StoreStatus.UNAVAILABLE,
-                    null, null, null, null, exception.getClass().getSimpleName());
+                    null, null, null, null, null, null, exception.getClass().getSimpleName());
         }
     }
 

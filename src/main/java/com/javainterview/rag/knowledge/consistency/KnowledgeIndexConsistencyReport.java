@@ -33,10 +33,19 @@ public record KnowledgeIndexConsistencyReport(
     public record StoreCheck(
             StoreStatus status,
             Long currentVersionChunkCount,
+            Long currentVersionMetadataMatchCount,
             Long staleVersionChunkCount,
             Long sourceChunkCount,
             Boolean expectedChunkCountMatched,
+            Boolean indexVersionMatched,
             String errorType
     ) {
+        public StoreCheck(StoreStatus status, Long currentVersionChunkCount,
+                          Long staleVersionChunkCount, Long sourceChunkCount,
+                          Boolean expectedChunkCountMatched, String errorType) {
+            this(status, currentVersionChunkCount, currentVersionChunkCount,
+                    staleVersionChunkCount, sourceChunkCount,
+                    expectedChunkCountMatched, true, errorType);
+        }
     }
 }

@@ -56,6 +56,6 @@ class KnowledgeIndexConsistencyControllerTest {
     private KnowledgeIndexConsistencyReport.StoreCheck consistentStore() {
         return new KnowledgeIndexConsistencyReport.StoreCheck(
                 KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT,
-                2L, 0L, 2L, true, null);
+                2L, 2L, 0L, 2L, true, true, null);
     }
 }

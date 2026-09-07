@@ -204,6 +204,27 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
                 .build());
     }
 
+    public synchronized long countBySourceAndVersionAndMetadata(String source, String documentVersion) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        Objects.requireNonNull(documentVersion, "文档版本不能为空");
+        return count(new org.apache.lucene.search.BooleanQuery.Builder()
+                .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, source)),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(VERSION_FIELD, documentVersion)),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(EMBEDDING_MODEL_FIELD,
+                                indexVersion.embeddingModel())), org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(IntField.newExactQuery(EMBEDDING_DIMENSIONS_FIELD,
+                                indexVersion.embeddingDimensions()), org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(CHUNK_POLICY_VERSION_FIELD,
+                                indexVersion.chunkPolicyVersion())), org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(PARSER_VERSION_FIELD,
+                                indexVersion.parserVersion())), org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(INDEX_SCHEMA_VERSION_FIELD,
+                                indexVersion.indexSchemaVersion())), org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .build());
+    }
+
     @Override
     public synchronized void close() {
         try {
@@ -261,11 +282,11 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
             result.add(new StoredField(PAGE_NUMBER_FIELD, chunk.pageNumber()));
         }
         result.add(new StoredField(BLOCK_TYPE_FIELD, chunk.blockType().name()));
-        result.add(new StoredField(EMBEDDING_MODEL_FIELD, indexVersion.embeddingModel()));
+        result.add(new StringField(EMBEDDING_MODEL_FIELD, indexVersion.embeddingModel(), Field.Store.YES));
         result.add(new IntField(EMBEDDING_DIMENSIONS_FIELD, indexVersion.embeddingDimensions()));
-        result.add(new StoredField(CHUNK_POLICY_VERSION_FIELD, indexVersion.chunkPolicyVersion()));
-        result.add(new StoredField(PARSER_VERSION_FIELD, indexVersion.parserVersion()));
-        result.add(new StoredField(INDEX_SCHEMA_VERSION_FIELD, indexVersion.indexSchemaVersion()));
+        result.add(new StringField(CHUNK_POLICY_VERSION_FIELD, indexVersion.chunkPolicyVersion(), Field.Store.YES));
+        result.add(new StringField(PARSER_VERSION_FIELD, indexVersion.parserVersion(), Field.Store.YES));
+        result.add(new StringField(INDEX_SCHEMA_VERSION_FIELD, indexVersion.indexSchemaVersion(), Field.Store.YES));
         return result;
     }
 

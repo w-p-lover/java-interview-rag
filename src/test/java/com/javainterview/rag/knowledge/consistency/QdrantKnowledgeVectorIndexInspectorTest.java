@@ -21,7 +21,8 @@ class QdrantKnowledgeVectorIndexInspectorTest {
     void countsCurrentVersionAndWholeSourceWithExactFilters() {
         QdrantClient client = mock(QdrantClient.class);
         when(client.countAsync(eq("chunks"), org.mockito.ArgumentMatchers.any(), eq(true)))
-                .thenReturn(Futures.immediateFuture(2L), Futures.immediateFuture(3L));
+                .thenReturn(Futures.immediateFuture(2L), Futures.immediateFuture(3L),
+                        Futures.immediateFuture(2L));
         QdrantKnowledgeVectorIndexInspector inspector =
                 new QdrantKnowledgeVectorIndexInspector(client, "chunks");
 
@@ -30,7 +31,7 @@ class QdrantKnowledgeVectorIndexInspectorTest {
         assertEquals(2L, counts.currentVersionChunkCount());
         assertEquals(1L, counts.staleVersionChunkCount());
         ArgumentCaptor<Points.Filter> filters = ArgumentCaptor.forClass(Points.Filter.class);
-        verify(client, times(2)).countAsync(eq("chunks"), filters.capture(), eq(true));
+        verify(client, times(3)).countAsync(eq("chunks"), filters.capture(), eq(true));
         assertEquals(Points.Filter.newBuilder()
                 .addMust(ConditionFactory.matchKeyword("source", "java/basic.md"))
                 .addMust(ConditionFactory.matchKeyword("document_version", "version-1"))
