@@ -96,6 +96,20 @@ class LuceneMarkdownChunkIndexTest {
         assertEquals(currentDocument.version(), current.get(0).documentVersion());
     }
 
+    @Test
+    void countsCurrentAndStaleChunksWithoutRunningAKeywordSearch() {
+        MarkdownDocument oldDocument = MarkdownDocument.create("java/versioned.md", "旧版本");
+        MarkdownDocument currentDocument = MarkdownDocument.create("java/versioned.md", "当前版本");
+        index.index(oldDocument, List.of(chunk(oldDocument, 0, "old")));
+        index.index(currentDocument, List.of(
+                chunk(currentDocument, 0, "current 0"),
+                chunk(currentDocument, 1, "current 1")));
+
+        assertEquals(2, index.countBySourceAndVersion(
+                currentDocument.source(), currentDocument.version()));
+        assertEquals(3, index.countBySource(currentDocument.source()));
+    }
+
     private MarkdownChunk chunk(MarkdownDocument document, int order, String content) {
         return new MarkdownChunk(document.source(), order, order, 2,
                 List.of("Java", "集合"), content);

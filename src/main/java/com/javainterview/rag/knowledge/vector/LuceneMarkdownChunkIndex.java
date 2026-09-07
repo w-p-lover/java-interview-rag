@@ -171,6 +171,22 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         }
     }
 
+    public synchronized long countBySource(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        return count(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, source)));
+    }
+
+    public synchronized long countBySourceAndVersion(String source, String documentVersion) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        Objects.requireNonNull(documentVersion, "文档版本不能为空");
+        return count(new org.apache.lucene.search.BooleanQuery.Builder()
+                .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, source)),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(VERSION_FIELD, documentVersion)),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .build());
+    }
+
     @Override
     public synchronized void close() {
         try {
@@ -189,6 +205,14 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
 
     private void deleteOtherVersionsInternal(MarkdownDocument document) throws IOException {
         writer.deleteDocuments(sourceVersionQuery(document, true));
+    }
+
+    private long count(org.apache.lucene.search.Query query) {
+        try (DirectoryReader reader = DirectoryReader.open(writer)) {
+            return new IndexSearcher(reader).count(query);
+        } catch (IOException exception) {
+            throw new IllegalStateException("统计 BM25 索引失败", exception);
+        }
     }
 
     private org.apache.lucene.search.Query sourceVersionQuery(MarkdownDocument document,
