@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.CompositeMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
@@ -19,11 +20,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 public class MarkdownImportConfiguration {
 
     private static final int MAX_CHUNK_LENGTH = 800;
+
+    @Bean
+    KnowledgeIndexVersionMetadata knowledgeIndexVersionMetadata(
+            @Value("${java-interview-rag.index.embedding-model:text-embedding-v3}") String embeddingModel,
+            @Value("${java-interview-rag.index.embedding-dimensions:1024}") int embeddingDimensions,
+            @Value("${java-interview-rag.index.chunk-policy-version:markdown-section-chunker-v3}") String chunkPolicyVersion,
+            @Value("${java-interview-rag.index.parser-version:pdf-knowledge-parser-v3}") String parserVersion,
+            @Value("${java-interview-rag.index.schema-version:knowledge-index-v2}") String indexSchemaVersion) {
+        return new KnowledgeIndexVersionMetadata(embeddingModel, embeddingDimensions,
+                chunkPolicyVersion, parserVersion, indexSchemaVersion);
+    }
 
     @Bean
     MarkdownIndexingStateStore markdownIndexingStateStore() {
@@ -57,10 +70,11 @@ public class MarkdownImportConfiguration {
     @Profile("storage")
     MarkdownChunkIndexer qdrantMarkdownChunkIndexer(VectorStore vectorStore,
                                                     LuceneMarkdownChunkIndex sparseIndex,
-                                                    MarkdownIndexingStateStore stateStore) {
+                                                    MarkdownIndexingStateStore stateStore,
+                                                    KnowledgeIndexVersionMetadata indexVersion) {
         return new TrackingMarkdownChunkIndexer(
                 new CompositeMarkdownChunkIndexer(java.util.List.of(
-                        new QdrantMarkdownChunkIndexer(vectorStore), sparseIndex)), stateStore);
+                        new QdrantMarkdownChunkIndexer(vectorStore, indexVersion), sparseIndex)), stateStore);
     }
 
     @Bean

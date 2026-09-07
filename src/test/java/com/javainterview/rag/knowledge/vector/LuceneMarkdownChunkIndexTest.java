@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.vector;
 
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -108,6 +109,19 @@ class LuceneMarkdownChunkIndexTest {
         assertEquals(2, index.countBySourceAndVersion(
                 currentDocument.source(), currentDocument.version()));
         assertEquals(3, index.countBySource(currentDocument.source()));
+    }
+
+    @Test
+    void keepsConfiguredIndexVersionMetadata() {
+        KnowledgeIndexVersionMetadata configuredVersion = new KnowledgeIndexVersionMetadata(
+                "test-embedding", 768, "chunk-v9", "parser-v4", "schema-v7");
+        LuceneMarkdownChunkIndex configured = new LuceneMarkdownChunkIndex(
+                new ByteBuffersDirectory(), configuredVersion);
+        try {
+            assertEquals(configuredVersion, configured.indexVersionMetadata());
+        } finally {
+            configured.close();
+        }
     }
 
     private MarkdownChunk chunk(MarkdownDocument document, int order, String content) {

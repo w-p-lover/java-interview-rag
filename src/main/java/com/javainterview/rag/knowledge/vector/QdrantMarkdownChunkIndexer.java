@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.vector;
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
@@ -22,9 +23,16 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
     private static final Pattern PDF_PAGE_TITLE = Pattern.compile("^第 (\\d+) 页$");
 
     private final VectorStore vectorStore;
+    private final KnowledgeIndexVersionMetadata indexVersion;
 
     public QdrantMarkdownChunkIndexer(VectorStore vectorStore) {
+        this(vectorStore, KnowledgeIndexVersionMetadata.current());
+    }
+
+    public QdrantMarkdownChunkIndexer(VectorStore vectorStore,
+                                      KnowledgeIndexVersionMetadata indexVersion) {
         this.vectorStore = Objects.requireNonNull(vectorStore, "向量存储不能为空");
+        this.indexVersion = Objects.requireNonNull(indexVersion, "索引版本元数据不能为空");
     }
 
     @Override
@@ -104,6 +112,11 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
                 ? chunk.pageNumber() : pageNumber(chunk.headingPath());
         metadata.put("document_format", pageNumber == null ? "MARKDOWN" : "PDF");
         metadata.put("block_type", chunk.blockType().name());
+        metadata.put("embedding_model", indexVersion.embeddingModel());
+        metadata.put("embedding_dimensions", indexVersion.embeddingDimensions());
+        metadata.put("chunk_policy_version", indexVersion.chunkPolicyVersion());
+        metadata.put("parser_version", indexVersion.parserVersion());
+        metadata.put("index_schema_version", indexVersion.indexSchemaVersion());
         if (pageNumber != null) {
             metadata.put("page_number", pageNumber);
         }

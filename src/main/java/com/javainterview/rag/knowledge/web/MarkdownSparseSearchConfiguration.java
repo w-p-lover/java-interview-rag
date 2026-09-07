@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import com.javainterview.rag.knowledge.vector.MarkdownSparseSearchService;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
@@ -34,8 +35,9 @@ public class MarkdownSparseSearchConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    LuceneMarkdownChunkIndex luceneMarkdownChunkIndex(Directory directory) {
-        return new LuceneMarkdownChunkIndex(directory);
+    LuceneMarkdownChunkIndex luceneMarkdownChunkIndex(Directory directory,
+                                                     KnowledgeIndexVersionMetadata indexVersion) {
+        return new LuceneMarkdownChunkIndex(directory, indexVersion);
     }
 
     @Bean

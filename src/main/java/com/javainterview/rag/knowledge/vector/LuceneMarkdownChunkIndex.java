@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.vector;
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -48,6 +49,11 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     private static final String JAVA_IDENTIFIER_FIELD = "java_identifier";
     private static final String PAGE_NUMBER_FIELD = "page_number";
     private static final String BLOCK_TYPE_FIELD = "block_type";
+    private static final String EMBEDDING_MODEL_FIELD = "embedding_model";
+    private static final String EMBEDDING_DIMENSIONS_FIELD = "embedding_dimensions";
+    private static final String CHUNK_POLICY_VERSION_FIELD = "chunk_policy_version";
+    private static final String PARSER_VERSION_FIELD = "parser_version";
+    private static final String INDEX_SCHEMA_VERSION_FIELD = "index_schema_version";
     private static final String HEADING_SEPARATOR = "\u001f";
     private static final Pattern JAVA_IDENTIFIER_PATTERN = Pattern.compile(
             "(?<![A-Za-z0-9_$])[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*(?![A-Za-z0-9_$])");
@@ -62,9 +68,16 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     private final Directory directory;
     private final Analyzer analyzer;
     private final IndexWriter writer;
+    private final KnowledgeIndexVersionMetadata indexVersion;
 
     public LuceneMarkdownChunkIndex(Directory directory) {
+        this(directory, KnowledgeIndexVersionMetadata.current());
+    }
+
+    public LuceneMarkdownChunkIndex(Directory directory,
+                                    KnowledgeIndexVersionMetadata indexVersion) {
         this.directory = Objects.requireNonNull(directory, "Lucene 索引目录不能为空");
+        this.indexVersion = Objects.requireNonNull(indexVersion, "索引版本元数据不能为空");
         this.analyzer = new StandardAnalyzer();
         try {
             IndexWriterConfig config = new IndexWriterConfig(analyzer)
@@ -176,6 +189,10 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         return count(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, source)));
     }
 
+    public KnowledgeIndexVersionMetadata indexVersionMetadata() {
+        return indexVersion;
+    }
+
     public synchronized long countBySourceAndVersion(String source, String documentVersion) {
         Objects.requireNonNull(source, "文档来源不能为空");
         Objects.requireNonNull(documentVersion, "文档版本不能为空");
@@ -244,6 +261,11 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
             result.add(new StoredField(PAGE_NUMBER_FIELD, chunk.pageNumber()));
         }
         result.add(new StoredField(BLOCK_TYPE_FIELD, chunk.blockType().name()));
+        result.add(new StoredField(EMBEDDING_MODEL_FIELD, indexVersion.embeddingModel()));
+        result.add(new IntField(EMBEDDING_DIMENSIONS_FIELD, indexVersion.embeddingDimensions()));
+        result.add(new StoredField(CHUNK_POLICY_VERSION_FIELD, indexVersion.chunkPolicyVersion()));
+        result.add(new StoredField(PARSER_VERSION_FIELD, indexVersion.parserVersion()));
+        result.add(new StoredField(INDEX_SCHEMA_VERSION_FIELD, indexVersion.indexSchemaVersion()));
         return result;
     }
 

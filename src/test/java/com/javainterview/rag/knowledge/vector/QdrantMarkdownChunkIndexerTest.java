@@ -57,6 +57,14 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(List.of("Java"), firstWrite.get(0).getMetadata().get("heading_path"));
         assertEquals("MARKDOWN", firstWrite.get(0).getMetadata().get("document_format"));
         assertEquals("TEXT", firstWrite.get(0).getMetadata().get("block_type"));
+        assertEquals("text-embedding-v3", firstWrite.get(0).getMetadata().get("embedding_model"));
+        assertEquals(1024, firstWrite.get(0).getMetadata().get("embedding_dimensions"));
+        assertEquals("markdown-section-chunker-v3",
+                firstWrite.get(0).getMetadata().get("chunk_policy_version"));
+        assertEquals("pdf-knowledge-parser-v3",
+                firstWrite.get(0).getMetadata().get("parser_version"));
+        assertEquals("knowledge-index-v2",
+                firstWrite.get(0).getMetadata().get("index_schema_version"));
     }
 
     @Test
