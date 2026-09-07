@@ -40,6 +40,15 @@ public interface InterviewReviewTaskMapper extends BaseMapper<InterviewReviewTas
             @Param("plannedDateFrom") LocalDate plannedDateFrom,
             @Param("plannedDateTo") LocalDate plannedDateTo);
 
+    @Select("<script>SELECT id, session_id, question_index, question, objective, gaps_json, "
+            + "improvement_suggestion, knowledge_grounded, knowledge_sources_json, status, created_at, "
+            + "completed_at, planned_review_date FROM t_interview_review_task "
+            + "WHERE session_id IN "
+            + "<foreach collection='sessionIds' item='sessionId' open='(' separator=',' close=')'>"
+            + "#{sessionId}</foreach> ORDER BY planned_review_date IS NULL, planned_review_date, created_at"
+            + "</script>")
+    List<InterviewReviewTaskEntity> findBySessionIds(@Param("sessionIds") List<String> sessionIds);
+
     @Update("UPDATE t_interview_review_task SET status = 'COMPLETED', "
             + "completed_at = COALESCE(completed_at, #{completedAt}) "
             + "WHERE session_id = #{sessionId} AND id = #{taskId}")

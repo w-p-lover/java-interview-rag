@@ -18,6 +18,12 @@ public interface InterviewReviewTaskStore {
                                               LocalDate plannedDateFrom,
                                               LocalDate plannedDateTo);
 
+    default List<InterviewReviewTask> findBySessionIds(List<String> sessionIds) {
+        return sessionIds.stream()
+                .flatMap(sessionId -> findBySessionId(sessionId).stream())
+                .toList();
+    }
+
     Optional<InterviewReviewTask> findBySessionAndId(String sessionId, String taskId);
 
     Optional<InterviewReviewTask> complete(String sessionId, String taskId,

@@ -12,6 +12,7 @@ import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPane
 import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
 import InterviewReviewAssistantPanel from "@/components/interview/InterviewReviewAssistantPanel.vue";
+import InterviewReviewPathPanel from "@/components/interview/InterviewReviewPathPanel.vue";
 import InterviewReviewTaskPanel from "@/components/interview/InterviewReviewTaskPanel.vue";
 import InterviewSessionBar from "@/components/interview/InterviewSessionBar.vue";
 import InterviewSetupForm from "@/components/interview/InterviewSetupForm.vue";
@@ -63,6 +64,8 @@ const progress = computed(() => {
   }
   return Math.round((session.value.currentQuestionIndex / session.value.questions.length) * 100);
 });
+
+const recentSessionIds = computed(() => recentSessions.value.map((item) => item.id));
 
 onMounted(initialize);
 
@@ -131,6 +134,7 @@ function handleAssistantScheduled(): void {
         :restoring-session-id="restoringSessionId"
         @restore="handleRestore"
       />
+      <InterviewReviewPathPanel :session-ids="recentSessionIds" />
     </template>
 
     <template v-else>
@@ -185,6 +189,7 @@ function handleAssistantScheduled(): void {
           @schedule="handleReviewSchedule"
           @submit-attempt="handleReviewAttempt"
         />
+        <InterviewReviewPathPanel :session-ids="recentSessionIds" />
       </div>
 
       <section v-else-if="currentQuestion" class="interview-grid">

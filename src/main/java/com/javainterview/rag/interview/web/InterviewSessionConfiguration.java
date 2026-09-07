@@ -14,6 +14,7 @@ import com.javainterview.rag.interview.persistence.MySqlInterviewAnswerEvaluatio
 import com.javainterview.rag.interview.persistence.MySqlInterviewToolExecutionLogStore;
 import com.javainterview.rag.interview.persistence.MySqlInterviewAssistantRequestLogStore;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
+import com.javainterview.rag.interview.review.InterviewReviewPathService;
 import com.javainterview.rag.interview.review.InterviewReviewTaskStore;
 import com.javainterview.rag.interview.review.InterviewReviewAttemptStore;
 import com.javainterview.rag.interview.deepdive.ProjectDeepDiveService;
@@ -109,6 +110,14 @@ public class InterviewSessionConfiguration {
             InterviewReviewAttemptStore attemptStore,
             InterviewAnswerEvaluator answerEvaluator) {
         return new InterviewReviewTaskService(sessionStore, taskStore, attemptStore, answerEvaluator);
+    }
+
+    @Bean
+    InterviewReviewPathService interviewReviewPathService(
+            InterviewSessionStore sessionStore,
+            InterviewReviewTaskStore taskStore,
+            InterviewReviewAttemptStore attemptStore) {
+        return new InterviewReviewPathService(sessionStore, taskStore, attemptStore);
     }
 
     @Bean

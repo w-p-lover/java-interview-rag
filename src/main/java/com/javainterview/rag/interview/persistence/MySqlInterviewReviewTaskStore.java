@@ -58,6 +58,11 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
     }
 
     @Override
+    public List<InterviewReviewTask> findBySessionIds(List<String> sessionIds) {
+        return mapper.findBySessionIds(sessionIds).stream().map(this::toTask).toList();
+    }
+
+    @Override
     public Optional<InterviewReviewTask> findBySessionAndId(String sessionId, String taskId) {
         return Optional.ofNullable(mapper.findBySessionAndId(sessionId, taskId))
                 .map(this::toTask);

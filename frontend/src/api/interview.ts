@@ -189,6 +189,32 @@ export interface InterviewReviewAssistantResponse {
   answer: string;
 }
 
+export interface InterviewReviewPathRecommendation {
+  sessionId: string;
+  taskId: string;
+  questionIndex: number;
+  question: string;
+  objective: string;
+  gaps: string[];
+  improvementSuggestion: string;
+  status: "PENDING" | "COMPLETED";
+  plannedReviewDate: string | null;
+  attemptCount: number;
+  originalOverallScore: number | null;
+  latestOverallScore: number | null;
+  bestOverallScore: number | null;
+  recommendedReviewDate: string;
+  intervalDays: number;
+  reason: string;
+}
+
+export interface InterviewReviewPathResult {
+  generatedFor: string;
+  sessionCount: number;
+  taskCount: number;
+  recommendations: InterviewReviewPathRecommendation[];
+}
+
 export interface InterviewSessionStartPayload {
   targetRole: string;
   resumeText: string;
@@ -481,6 +507,16 @@ export async function getInterviewReviewTasks(
   const response = await request.get<InterviewReviewTask[]>(
     `/interviews/sessions/${sessionId}/review-tasks`,
     { params: query },
+  );
+  return response.data;
+}
+
+export async function getInterviewReviewPath(
+  sessionIds: readonly string[],
+): Promise<InterviewReviewPathResult> {
+  const response = await request.get<InterviewReviewPathResult>(
+    "/interviews/review-path",
+    { params: { sessionIds } },
   );
   return response.data;
 }
