@@ -14,6 +14,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   submit: [];
   clear: [];
+  cancel: [];
 }>();
 
 const question = defineModel<string>({ required: true });
@@ -55,10 +56,9 @@ function handleKeydown(event: KeyboardEvent): void {
         v-if="question || hasResult"
         class="clear-button"
         type="button"
-        :aria-label="copy.clearLabel"
-        :title="copy.clearLabel"
-        :disabled="busy"
-        @click="emit('clear')"
+        :aria-label="busy ? '取消本次问答' : copy.clearLabel"
+        :title="busy ? '取消本次问答' : copy.clearLabel"
+        @click="busy ? emit('cancel') : emit('clear')"
       >
         <X :size="17" aria-hidden="true" />
       </button>

@@ -181,11 +181,13 @@ export async function streamKnowledgeQuestion(
   question: string,
   onEvent: (event: KnowledgeAnswerStreamEvent) => void,
   history: KnowledgeConversationTurn[] = [],
+  signal?: AbortSignal,
 ): Promise<void> {
   const response = await fetch("/api/knowledge/answer/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify({ question, history }),
+    signal,
   });
   if (!response.ok) {
     let message = "知识问答失败";

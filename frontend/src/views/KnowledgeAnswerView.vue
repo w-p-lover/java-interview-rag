@@ -36,6 +36,7 @@ const {
   error,
   submit,
   clear,
+  cancel,
 } = useKnowledgeAnswer();
 const {
   query,
@@ -176,6 +177,7 @@ async function handleSearchFromOutline(searchQuery: string): Promise<void> {
         :max-length="KNOWLEDGE_QUESTION_MAX_LENGTH"
         @submit="handleSubmit"
         @clear="clear"
+        @cancel="cancel"
       />
       <KnowledgeAnswerPanel
         :loading="loading"

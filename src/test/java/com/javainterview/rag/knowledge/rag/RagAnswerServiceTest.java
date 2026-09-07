@@ -392,4 +392,25 @@ class RagAnswerServiceTest {
         assertTrue(prompt.contains("最近问答上下文"));
         assertTrue(prompt.length() < 12_000);
     }
+
+    @Test
+    void recordsClientCancellationWithoutMarkingItAsModelFailure() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).stream().content()).thenReturn(Flux.never());
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        reactor.core.Disposable subscription = service.streamAnswer("HashMap").subscribe();
+        subscription.dispose();
+
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.CANCELLED, logCaptor.getValue().status());
+        assertEquals("CLIENT_DISCONNECT", logCaptor.getValue().errorType());
+    }
 }

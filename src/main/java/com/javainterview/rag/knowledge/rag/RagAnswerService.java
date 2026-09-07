@@ -202,7 +202,10 @@ public class RagAnswerService {
                     }))
                     .doOnError(exception -> record(question, finalSources,
                             RagRetrievalLogStatus.FAILED, false, startedAt,
-                            exception.getClass().getSimpleName()));
+                            exception.getClass().getSimpleName()))
+                    .doOnCancel(() -> record(question, finalSources,
+                            RagRetrievalLogStatus.CANCELLED, false, startedAt,
+                            "CLIENT_DISCONNECT"));
         });
     }
 

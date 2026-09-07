@@ -8,6 +8,7 @@ import {
 import { resolveApiError } from "@/api/request";
 
 export const KNOWLEDGE_QUESTION_MAX_LENGTH = 2_000;
+export const KNOWLEDGE_ANSWER_TIMEOUT_MS = 60_000;
 
 export function useKnowledgeAnswer() {
   const question = shallowRef("");
@@ -17,6 +18,8 @@ export function useKnowledgeAnswer() {
   const streaming = shallowRef(false);
   const error = shallowRef("");
   const history = shallowRef<KnowledgeConversationTurn[]>([]);
+  let activeController: AbortController | null = null;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   async function submit(): Promise<void> {
     const normalizedQuestion = question.value.trim();
@@ -31,6 +34,8 @@ export function useKnowledgeAnswer() {
 
     loading.value = true;
     streaming.value = true;
+    activeController = new AbortController();
+    timeoutHandle = setTimeout(() => activeController?.abort(), KNOWLEDGE_ANSWER_TIMEOUT_MS);
     error.value = "";
     result.value = {
       answer: "",
@@ -65,27 +70,37 @@ export function useKnowledgeAnswer() {
           degraded: event.degraded,
           degradationReason: event.degradationReason,
         };
-      }, history.value);
+      }, history.value, activeController.signal);
       if (result.value?.answer && result.value.grounded) {
         history.value = [...history.value, { question: normalizedQuestion, answer: result.value.answer }].slice(-4);
       }
     } catch (requestError) {
-      error.value = requestError instanceof Error
-        ? requestError.message
-        : resolveApiError(requestError, "知识问答失败");
+      error.value = requestError instanceof DOMException && requestError.name === "AbortError"
+        ? "本次问答已取消。"
+        : requestError instanceof Error
+          ? requestError.message
+          : resolveApiError(requestError, "知识问答失败");
     } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      timeoutHandle = null;
+      activeController = null;
       loading.value = false;
       streaming.value = false;
     }
   }
 
   function clear(): void {
+    activeController?.abort();
     question.value = "";
     submittedQuestion.value = "";
     result.value = null;
     history.value = [];
     error.value = "";
     streaming.value = false;
+  }
+
+  function cancel(): void {
+    activeController?.abort();
   }
 
   return {
@@ -98,5 +113,6 @@ export function useKnowledgeAnswer() {
     history,
     submit,
     clear,
+    cancel,
   };
 }

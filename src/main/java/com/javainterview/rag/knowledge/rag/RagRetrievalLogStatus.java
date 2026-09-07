@@ -7,5 +7,6 @@ public enum RagRetrievalLogStatus {
     CITATION_INVALID,
     EVIDENCE_INSUFFICIENT,
     EVIDENCE_CONFLICTING,
-    FAILED
+    FAILED,
+    CANCELLED
 }
