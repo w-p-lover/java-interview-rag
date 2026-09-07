@@ -37,6 +37,8 @@ class RagAnswerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.answer").value("HashMap 使用数组、链表和红黑树 [资料 1]。"))
                 .andExpect(jsonPath("$.grounded").value(true))
+                .andExpect(jsonPath("$.retrievalStrategy").value("DENSE_ONLY"))
+                .andExpect(jsonPath("$.degraded").value(false))
                 .andExpect(jsonPath("$.sources[0].source").value("java/collections.md"))
                 .andExpect(jsonPath("$.sources[0].headingPath[2]").value("HashMap"));
     }

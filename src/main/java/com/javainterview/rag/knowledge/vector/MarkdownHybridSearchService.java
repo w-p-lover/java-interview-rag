@@ -31,9 +31,24 @@ public final class MarkdownHybridSearchService {
         validate(query, topK, denseSimilarityThreshold);
         int candidateTopK = Math.min(MAX_TOP_K, Math.max(topK, topK * CANDIDATE_MULTIPLIER));
         long startedAt = System.nanoTime();
-        List<MarkdownSearchResult> denseResults = denseSearchService.search(
-                query, candidateTopK, denseSimilarityThreshold);
-        List<MarkdownSearchResult> sparseResults = sparseSearchService.search(query, candidateTopK);
+        List<MarkdownSearchResult> denseResults;
+        RuntimeException denseFailure = null;
+        try {
+            denseResults = denseSearchService.search(
+                    query, candidateTopK, denseSimilarityThreshold);
+        } catch (RuntimeException exception) {
+            denseResults = List.of();
+            denseFailure = exception;
+        }
+        List<MarkdownSearchResult> sparseResults;
+        try {
+            sparseResults = sparseSearchService.search(query, candidateTopK);
+        } catch (RuntimeException exception) {
+            if (denseFailure != null) {
+                exception.addSuppressed(denseFailure);
+            }
+            throw exception;
+        }
 
         Map<ChunkIdentity, Candidate> candidates = new LinkedHashMap<>();
         for (int index = 0; index < denseResults.size(); index++) {
@@ -55,8 +70,11 @@ public final class MarkdownHybridSearchService {
         List<MarkdownHybridSearchHit> hits = ranked.stream()
                 .map(Candidate::toHit)
                 .toList();
+        RetrievalStrategy strategy = denseFailure == null
+                ? RetrievalStrategy.HYBRID : RetrievalStrategy.SPARSE_ONLY;
         return new MarkdownHybridSearchResult(query, topK, denseResults.size(), sparseResults.size(),
-                hits, (System.nanoTime() - startedAt) / 1_000_000);
+                hits, (System.nanoTime() - startedAt) / 1_000_000, strategy,
+                denseFailure != null, denseFailure == null ? null : denseFailure.getClass().getSimpleName());
     }
 
     private void validate(String query, int topK, double denseSimilarityThreshold) {
@@ -74,16 +92,40 @@ public final class MarkdownHybridSearchService {
 
     public record MarkdownHybridSearchResult(String query, int topK, int denseCandidateCount,
                                              int sparseCandidateCount, List<MarkdownHybridSearchHit> hits,
-                                             long elapsedMillis) {
+                                             long elapsedMillis, RetrievalStrategy strategy,
+                                             boolean degraded, String degradationReason) {
+
+        public MarkdownHybridSearchResult(String query, int topK, int denseCandidateCount,
+                                          int sparseCandidateCount,
+                                          List<MarkdownHybridSearchHit> hits,
+                                          long elapsedMillis) {
+            this(query, topK, denseCandidateCount, sparseCandidateCount, hits, elapsedMillis,
+                    RetrievalStrategy.HYBRID, false, null);
+        }
 
         public MarkdownHybridSearchResult {
             Objects.requireNonNull(query, "检索问题不能为空");
             hits = List.copyOf(Objects.requireNonNull(hits, "融合结果不能为空"));
+            strategy = Objects.requireNonNull(strategy, "检索策略不能为空");
+            if (degraded != (strategy == RetrievalStrategy.SPARSE_ONLY)) {
+                throw new IllegalArgumentException("检索降级状态与策略不一致");
+            }
+            if (degraded && (degradationReason == null || degradationReason.isBlank())) {
+                throw new IllegalArgumentException("检索降级原因不能为空");
+            }
+            if (!degraded) {
+                degradationReason = null;
+            }
         }
 
         public List<MarkdownSearchResult> results() {
             return hits.stream().map(MarkdownHybridSearchHit::result).toList();
         }
+    }
+
+    public enum RetrievalStrategy {
+        HYBRID,
+        SPARSE_ONLY
     }
 
     public record MarkdownHybridSearchHit(MarkdownSearchResult result, Integer denseRank,

@@ -295,7 +295,11 @@ class RagAnswerServiceTest {
         MarkdownSearchResult source = new MarkdownSearchResult(
                 "treeifyBin 在冲突链达到阈值后参与树化。", "java/collections.md", "version-1", 0,
                 List.of("Java", "集合"), 0.02);
-        when(hybridSearchService.search("treeifyBin", 5, 0.60)).thenReturn(List.of(source));
+        when(hybridSearchService.searchDetailed("treeifyBin", 5, 0.60)).thenReturn(
+                new MarkdownHybridSearchService.MarkdownHybridSearchResult(
+                        "treeifyBin", 5, 1, 1,
+                        List.of(new MarkdownHybridSearchService.MarkdownHybridSearchHit(
+                                source, 1, 1, 0.91, 2.0, 0.03)), 2));
         when(chatClient.prompt(anyString()).call().content())
                 .thenReturn("treeifyBin 在冲突链达到阈值后参与树化 [资料 1]。");
         clearInvocations(chatClient);
@@ -306,7 +310,37 @@ class RagAnswerServiceTest {
 
         assertEquals(true, result.grounded());
         assertEquals(List.of(source), result.sources());
-        verify(hybridSearchService).search("treeifyBin", 5, 0.60);
+        assertEquals("HYBRID", result.retrievalStrategy());
+        verify(hybridSearchService).searchDetailed("treeifyBin", 5, 0.60);
         verifyNoInteractions(denseSearchService);
+    }
+
+    @Test
+    void exposesSparseOnlyDegradationWithoutBypassingEvidenceValidation() {
+        MarkdownSimilaritySearchService denseSearchService = mock(MarkdownSimilaritySearchService.class);
+        MarkdownHybridSearchService hybridSearchService = mock(MarkdownHybridSearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组、链表和红黑树。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 2.4);
+        when(hybridSearchService.searchDetailed("HashMap", 5, 0.60)).thenReturn(
+                new MarkdownHybridSearchService.MarkdownHybridSearchResult(
+                        "HashMap", 5, 0, 1,
+                        List.of(new MarkdownHybridSearchService.MarkdownHybridSearchHit(
+                                source, null, 1, null, 2.4, 0.016)), 3,
+                        MarkdownHybridSearchService.RetrievalStrategy.SPARSE_ONLY,
+                        true, "IllegalStateException"));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 使用数组、链表和红黑树 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(denseSearchService, hybridSearchService,
+                null, chatClient, logStore);
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals(true, result.grounded());
+        assertEquals("SPARSE_ONLY", result.retrievalStrategy());
+        assertEquals(true, result.degraded());
+        assertEquals("IllegalStateException", result.degradationReason());
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpenCheck, CircleAlert, LibraryBig } from "@lucide/vue";
+import { BookOpenCheck, CircleAlert, LibraryBig, TriangleAlert } from "@lucide/vue";
 
 import type { KnowledgeAnswerResponse } from "@/api/knowledge";
 import KnowledgeClaimEvidence from "@/components/knowledge/KnowledgeClaimEvidence.vue";
@@ -45,6 +45,11 @@ defineProps<{
           {{ result.grounded ? "资料已支撑" : "资料不足" }}
         </strong>
       </header>
+
+      <p v-if="result.degraded && !streaming" class="degradation-notice" role="status">
+        <TriangleAlert :size="16" aria-hidden="true" />
+        <span>向量检索暂时不可用，本次已切换为关键词检索；回答仍经过资料引用校验。</span>
+      </p>
 
       <p class="answer-content">{{ result.answer }}</p>
       <KnowledgeClaimEvidence :claims="result.claimEvidence" />
@@ -128,6 +133,23 @@ header > strong {
 
 .is-streaming {
   color: var(--color-accent);
+}
+
+.degradation-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.degradation-notice svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
 }
 
 .answer-content {

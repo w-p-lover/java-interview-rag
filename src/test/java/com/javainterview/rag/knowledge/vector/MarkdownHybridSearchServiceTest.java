@@ -6,6 +6,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +33,44 @@ class MarkdownHybridSearchServiceTest {
         assertEquals(1, response.hits().get(0).sparseRank());
         assertEquals("dense-top", response.hits().get(1).result().content());
         assertEquals(null, response.hits().get(1).sparseRank());
+        assertEquals(MarkdownHybridSearchService.RetrievalStrategy.HYBRID, response.strategy());
+        assertEquals(false, response.degraded());
+    }
+
+    @Test
+    void fallsBackToSparseWhenDenseSearchFails() {
+        MarkdownSimilaritySearchService dense = mock(MarkdownSimilaritySearchService.class);
+        MarkdownSparseSearchService sparse = mock(MarkdownSparseSearchService.class);
+        MarkdownHybridSearchService service = new MarkdownHybridSearchService(dense, sparse);
+        when(dense.search("HashMap", 8, 0.6))
+                .thenThrow(new IllegalStateException("Qdrant unavailable"));
+        when(sparse.search("HashMap", 8)).thenReturn(List.of(result("sparse-top", 2, 4.2)));
+
+        MarkdownHybridSearchService.MarkdownHybridSearchResult response =
+                service.searchDetailed("HashMap", 2, 0.6);
+
+        assertEquals(MarkdownHybridSearchService.RetrievalStrategy.SPARSE_ONLY, response.strategy());
+        assertTrue(response.degraded());
+        assertEquals("IllegalStateException", response.degradationReason());
+        assertEquals(0, response.denseCandidateCount());
+        assertEquals(1, response.sparseCandidateCount());
+        assertEquals(null, response.hits().get(0).denseRank());
+        assertEquals(1, response.hits().get(0).sparseRank());
+    }
+
+    @Test
+    void keepsSparseEvidenceGateWhenDenseSearchFails() {
+        MarkdownSimilaritySearchService dense = mock(MarkdownSimilaritySearchService.class);
+        MarkdownSparseSearchService sparse = mock(MarkdownSparseSearchService.class);
+        MarkdownHybridSearchService service = new MarkdownHybridSearchService(dense, sparse);
+        when(dense.search("unknown", 20, 0.6)).thenThrow(new IllegalStateException("timeout"));
+        when(sparse.search("unknown", 20)).thenReturn(List.of());
+
+        MarkdownHybridSearchService.MarkdownHybridSearchResult response =
+                service.searchDetailed("unknown", 5, 0.6);
+
+        assertTrue(response.degraded());
+        assertTrue(response.results().isEmpty());
     }
 
     @Test

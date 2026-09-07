@@ -5,9 +5,12 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 
 import java.util.List;
 
-public record RagAnswerResponse(String answer, boolean grounded, List<MarkdownSearchResult> sources) {
+public record RagAnswerResponse(String answer, boolean grounded, List<MarkdownSearchResult> sources,
+                                String retrievalStrategy, boolean degraded,
+                                String degradationReason) {
 
     public static RagAnswerResponse from(RagAnswerResult result) {
-        return new RagAnswerResponse(result.answer(), result.grounded(), result.sources());
+        return new RagAnswerResponse(result.answer(), result.grounded(), result.sources(),
+                result.retrievalStrategy(), result.degraded(), result.degradationReason());
     }
 }

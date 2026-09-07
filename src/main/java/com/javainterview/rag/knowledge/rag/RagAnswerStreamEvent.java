@@ -7,11 +7,13 @@ import java.util.Objects;
 
 public record RagAnswerStreamEvent(String type, String content, boolean grounded,
                                    List<MarkdownSearchResult> sources,
-                                   List<RagAnswerClaimEvidence> claimEvidence) {
+                                   List<RagAnswerClaimEvidence> claimEvidence,
+                                   String retrievalStrategy, boolean degraded,
+                                   String degradationReason) {
 
     public RagAnswerStreamEvent(String type, String content, boolean grounded,
                                 List<MarkdownSearchResult> sources) {
-        this(type, content, grounded, sources, List.of());
+        this(type, content, grounded, sources, List.of(), "DENSE_ONLY", false, null);
     }
 
     public RagAnswerStreamEvent {
@@ -19,6 +21,13 @@ public record RagAnswerStreamEvent(String type, String content, boolean grounded
         content = content == null ? "" : content;
         sources = List.copyOf(Objects.requireNonNull(sources, "回答来源不能为空"));
         claimEvidence = List.copyOf(Objects.requireNonNull(claimEvidence, "回答证据判断不能为空"));
+        retrievalStrategy = Objects.requireNonNull(retrievalStrategy, "检索策略不能为空");
+        if (degraded && (degradationReason == null || degradationReason.isBlank())) {
+            throw new IllegalArgumentException("检索降级原因不能为空");
+        }
+        if (!degraded) {
+            degradationReason = null;
+        }
     }
 
     public static RagAnswerStreamEvent delta(String content) {
@@ -33,6 +42,13 @@ public record RagAnswerStreamEvent(String type, String content, boolean grounded
     public static RagAnswerStreamEvent complete(String answer, boolean grounded,
                                                 List<MarkdownSearchResult> sources,
                                                 List<RagAnswerClaimEvidence> claimEvidence) {
-        return new RagAnswerStreamEvent("complete", answer, grounded, sources, claimEvidence);
+        return new RagAnswerStreamEvent("complete", answer, grounded, sources, claimEvidence,
+                "DENSE_ONLY", false, null);
+    }
+
+    public static RagAnswerStreamEvent complete(RagAnswerResult result) {
+        return new RagAnswerStreamEvent("complete", result.answer(), result.grounded(),
+                result.sources(), result.claimEvidence(), result.retrievalStrategy(),
+                result.degraded(), result.degradationReason());
     }
 }

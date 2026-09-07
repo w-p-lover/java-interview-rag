@@ -53,6 +53,9 @@ export interface KnowledgeAnswerResponse {
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
   claimEvidence: KnowledgeAnswerClaimEvidence[];
+  retrievalStrategy: "HYBRID" | "DENSE_ONLY" | "SPARSE_ONLY";
+  degraded: boolean;
+  degradationReason: string | null;
 }
 
 export interface KnowledgeAnswerStreamEvent {
@@ -61,6 +64,9 @@ export interface KnowledgeAnswerStreamEvent {
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
   claimEvidence: KnowledgeAnswerClaimEvidence[];
+  retrievalStrategy: "HYBRID" | "DENSE_ONLY" | "SPARSE_ONLY";
+  degraded: boolean;
+  degradationReason: string | null;
 }
 
 export interface KnowledgeSearchResponse {

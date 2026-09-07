@@ -30,7 +30,15 @@ export function useKnowledgeAnswer() {
     loading.value = true;
     streaming.value = true;
     error.value = "";
-    result.value = { answer: "", grounded: false, sources: [], claimEvidence: [] };
+    result.value = {
+      answer: "",
+      grounded: false,
+      sources: [],
+      claimEvidence: [],
+      retrievalStrategy: "HYBRID",
+      degraded: false,
+      degradationReason: null,
+    };
     submittedQuestion.value = normalizedQuestion;
     try {
       await streamKnowledgeQuestion(normalizedQuestion, (event) => {
@@ -40,6 +48,9 @@ export function useKnowledgeAnswer() {
             grounded: false,
             sources: [],
             claimEvidence: [],
+            retrievalStrategy: result.value?.retrievalStrategy ?? "HYBRID",
+            degraded: false,
+            degradationReason: null,
           };
           return;
         }
@@ -48,6 +59,9 @@ export function useKnowledgeAnswer() {
           grounded: event.grounded,
           sources: event.sources,
           claimEvidence: event.claimEvidence,
+          retrievalStrategy: event.retrievalStrategy,
+          degraded: event.degraded,
+          degradationReason: event.degradationReason,
         };
       });
     } catch (requestError) {

@@ -73,32 +73,33 @@ public class RagAnswerService {
         long startedAt = System.nanoTime();
         List<MarkdownSearchResult> sources = List.of();
         try {
-            sources = retrieve(question);
+            RetrievalOutcome retrieval = retrieve(question);
+            sources = retrieval.sources();
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
             if (sources.isEmpty()) {
                 return recordAndReturn(question, sources,
-                        new RagAnswerResult(INSUFFICIENT_ANSWER, false, List.of()), startedAt);
+                        toAnswerResult(INSUFFICIENT_ANSWER, false, List.of(), List.of(), retrieval), startedAt);
             }
 
             String answer = chatClient.prompt(buildPrompt(question, sources)).call().content();
             if (answer == null || answer.isBlank() || INSUFFICIENT_ANSWER.equals(answer.strip())) {
                 return recordAndReturn(question, sources,
-                        new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources), startedAt);
+                        toAnswerResult(INSUFFICIENT_ANSWER, false, sources, List.of(), retrieval), startedAt);
             }
             RagAnswerEvidenceValidation evidence = evidenceValidator.validate(answer, sources);
             if (!evidence.valid()) {
-                RagAnswerResult partial = partialAnswer(answer, sources, evidence);
+                RagAnswerResult partial = partialAnswer(answer, sources, evidence, retrieval);
                 if (partial != null) {
                     record(question, sources, RagRetrievalLogStatus.PARTIAL_ANSWER,
                             true, startedAt, null);
                     return partial;
                 }
-                return recordEvidenceInvalidAndReturn(question, sources, evidence, startedAt);
+                return recordEvidenceInvalidAndReturn(question, sources, evidence, retrieval, startedAt);
             }
             return recordAndReturn(question, sources,
-                    new RagAnswerResult(answer, true, sources, evidence.claims()), startedAt);
+                    toAnswerResult(answer, true, sources, evidence.claims(), retrieval), startedAt);
         } catch (RuntimeException exception) {
             record(question, sources, RagRetrievalLogStatus.FAILED, false, startedAt,
                     exception.getClass().getSimpleName());
@@ -112,14 +113,16 @@ public class RagAnswerService {
         }
         return Flux.defer(() -> {
             long startedAt = System.nanoTime();
-            List<MarkdownSearchResult> sources = retrieve(question);
+            RetrievalOutcome retrieval = retrieve(question);
+            List<MarkdownSearchResult> sources = retrieval.sources();
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
             if (sources.isEmpty()) {
-                recordAndReturn(question, sources,
-                        new RagAnswerResult(INSUFFICIENT_ANSWER, false, List.of()), startedAt);
-                return Flux.just(RagAnswerStreamEvent.complete(INSUFFICIENT_ANSWER, false, List.of()));
+                RagAnswerResult result = toAnswerResult(
+                        INSUFFICIENT_ANSWER, false, List.of(), List.of(), retrieval);
+                recordAndReturn(question, sources, result, startedAt);
+                return Flux.just(RagAnswerStreamEvent.complete(result));
             }
 
             StringBuilder answer = new StringBuilder();
@@ -162,11 +165,11 @@ public class RagAnswerService {
                                 && evidence.valid()
                                 && !streamBlocked.get();
                         RagAnswerResult result = grounded
-                                ? new RagAnswerResult(completedAnswer, true, finalSources, evidence.claims())
-                                : partialAnswer(completedAnswer, finalSources, evidence);
+                                ? toAnswerResult(completedAnswer, true, finalSources, evidence.claims(), retrieval)
+                                : partialAnswer(completedAnswer, finalSources, evidence, retrieval);
                         if (result == null) {
-                            result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
-                                    evidence == null ? List.of() : evidence.claims());
+                            result = toAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
+                                    evidence == null ? List.of() : evidence.claims(), retrieval);
                         }
                         if (!grounded && !completedAnswer.isBlank()
                                 && !INSUFFICIENT_ANSWER.equals(completedAnswer.strip())) {
@@ -174,13 +177,13 @@ public class RagAnswerService {
                                 record(question, finalSources, RagRetrievalLogStatus.PARTIAL_ANSWER,
                                         true, startedAt, null);
                             } else {
-                                recordEvidenceInvalidAndReturn(question, finalSources, evidence, startedAt);
+                                recordEvidenceInvalidAndReturn(
+                                        question, finalSources, evidence, retrieval, startedAt);
                             }
                         } else {
                             recordAndReturn(question, finalSources, result, startedAt);
                         }
-                        return Flux.just(RagAnswerStreamEvent.complete(
-                                result.answer(), result.grounded(), result.sources(), result.claimEvidence()));
+                        return Flux.just(RagAnswerStreamEvent.complete(result));
                     }))
                     .doOnError(exception -> record(question, finalSources,
                             RagRetrievalLogStatus.FAILED, false, startedAt,
@@ -199,9 +202,10 @@ public class RagAnswerService {
     private RagAnswerResult recordEvidenceInvalidAndReturn(String question,
                                                             List<MarkdownSearchResult> sources,
                                                             RagAnswerEvidenceValidation evidence,
+                                                            RetrievalOutcome retrieval,
                                                             long startedAt) {
-        RagAnswerResult result = new RagAnswerResult(INSUFFICIENT_ANSWER, false, sources,
-                evidence == null ? List.of() : evidence.claims());
+        RagAnswerResult result = toAnswerResult(INSUFFICIENT_ANSWER, false, sources,
+                evidence == null ? List.of() : evidence.claims(), retrieval);
         RagRetrievalLogStatus status = evidence != null && evidence.hasCitationInvalid()
                 ? RagRetrievalLogStatus.CITATION_INVALID
                 : evidence != null && evidence.hasConflict()
@@ -212,7 +216,8 @@ public class RagAnswerService {
     }
 
     private RagAnswerResult partialAnswer(String answer, List<MarkdownSearchResult> sources,
-                                          RagAnswerEvidenceValidation evidence) {
+                                          RagAnswerEvidenceValidation evidence,
+                                          RetrievalOutcome retrieval) {
         if (evidence == null) {
             return null;
         }
@@ -223,15 +228,33 @@ public class RagAnswerService {
         if (supportedClaims.isEmpty() || supportedClaims.size() == evidence.claims().size()) {
             return null;
         }
-        return new RagAnswerResult(String.join("\n", supportedClaims), true, sources,
-                evidence.claims());
+        return toAnswerResult(String.join("\n", supportedClaims), true, sources,
+                evidence.claims(), retrieval);
     }
 
-    private List<MarkdownSearchResult> retrieve(String question) {
+    private RetrievalOutcome retrieve(String question) {
         if (hybridSearchService != null) {
-            return hybridSearchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            MarkdownHybridSearchService.MarkdownHybridSearchResult result =
+                    hybridSearchService.searchDetailed(
+                            question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+            return new RetrievalOutcome(result.results(), result.strategy().name(),
+                    result.degraded(), result.degradationReason());
         }
-        return searchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD);
+        return new RetrievalOutcome(
+                searchService.search(question, ANSWER_TOP_K, ANSWER_SIMILARITY_THRESHOLD),
+                "DENSE_ONLY", false, null);
+    }
+
+    private RagAnswerResult toAnswerResult(String answer, boolean grounded,
+                                           List<MarkdownSearchResult> sources,
+                                           List<RagAnswerClaimEvidence> claims,
+                                           RetrievalOutcome retrieval) {
+        return new RagAnswerResult(answer, grounded, sources, claims,
+                retrieval.strategy(), retrieval.degraded(), retrieval.degradationReason());
+    }
+
+    private record RetrievalOutcome(List<MarkdownSearchResult> sources, String strategy,
+                                    boolean degraded, String degradationReason) {
     }
 
     private void record(String question, List<MarkdownSearchResult> sources, RagRetrievalLogStatus status,
