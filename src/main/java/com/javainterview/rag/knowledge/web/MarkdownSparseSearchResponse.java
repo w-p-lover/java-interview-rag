@@ -11,7 +11,7 @@ public record MarkdownSparseSearchResponse(String query, int topK, String algori
 
     public static MarkdownSparseSearchResponse from(String query, int topK,
                                                     List<MarkdownSearchResult> results) {
-        return new MarkdownSparseSearchResponse(query, topK, "BM25-fielded-anchor-gate-v1",
+        return new MarkdownSparseSearchResponse(query, topK, "BM25-fielded-anchor-gate-v2",
                 LuceneMarkdownChunkIndex.FIELD_WEIGHT_POLICY, results.size(), results);
     }
 }

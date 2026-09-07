@@ -86,7 +86,7 @@ public final class HybridRetrievalEvaluationService {
                 hybridSearchService.search(query, EVALUATION_TOP_K, DENSE_CANDIDATE_THRESHOLD),
                 RagRetrievalRejectionPolicy.COSINE_THRESHOLD);
         return new HybridRetrievalEvaluationReport(dense, sparse, hybrid,
-                "Dense/Hybrid 使用余弦阈值；Sparse 先执行 technical_anchor_coverage_v1，再使用候选存在性。"
+                "Dense/Hybrid 使用余弦阈值；Sparse 先执行 technical_anchor_coverage_v2，再使用候选存在性。"
                         + "BM25 分数与余弦不在同一尺度，三策略拒答指标不能直接按分数数值比较。");
     }
 

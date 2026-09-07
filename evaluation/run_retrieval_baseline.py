@@ -22,7 +22,7 @@ CORPUS_SOURCES = (
     "rag/rag-basics.md",
 )
 STRUCTURED_CORPUS_SOURCE = "java/structured-java-notes.pdf"
-ADJACENT_CONTEXT_CASE_COUNT = 23
+ADJACENT_CONTEXT_CASE_COUNT = 26
 ADJACENT_CONTEXT_MAX_SEEDS = 3
 ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS = (
     len(CORPUS_SOURCES)
@@ -112,9 +112,9 @@ def evaluate(base_url: str, timeout: float, compare_query_decomposition: bool,
 
 def validate_report(report: dict, structure: bool = False) -> list[str]:
     errors = []
-    expected_total = 3 if structure else 23
+    expected_total = 3 if structure else 26
     expected_answerable = 3 if structure else 17
-    expected_no_answer = 0 if structure else 6
+    expected_no_answer = 0 if structure else 9
     if report.get("totalCaseCount") != expected_total:
         errors.append(f"固定评估题数量不是 {expected_total}")
     if report.get("answerableCaseCount") != expected_answerable:
@@ -164,8 +164,8 @@ def validate_comparison(comparison: dict) -> list[str]:
     if not isinstance(comparison.get("additionalQueryCount"), int):
         errors.append("额外查询数量缺失")
     queries = comparison.get("retrievalQueries")
-    if not isinstance(queries, dict) or len(queries) != 23:
-        errors.append("逐题查询计划不是 23 题")
+    if not isinstance(queries, dict) or len(queries) != 26:
+        errors.append("逐题查询计划不是 26 题")
     for name in ("baseline", "candidate"):
         report = comparison.get(name)
         if not isinstance(report, dict):
@@ -185,7 +185,7 @@ def validate_adjacent_context(comparison: dict) -> list[str]:
             errors.append(f"指标 {field} 缺失或小于 0")
     added_contexts = comparison.get("addedContexts")
     if not isinstance(added_contexts, dict) or len(added_contexts) != ADJACENT_CONTEXT_CASE_COUNT:
-        errors.append("逐题新增上下文不是 23 题")
+        errors.append("逐题新增上下文不是 26 题")
     for name in ("baselineContext", "candidateContext"):
         metrics = comparison.get(name)
         if not isinstance(metrics, dict):
@@ -337,7 +337,7 @@ def main() -> int:
     if (args.compare_adjacent_context
             and args.max_embedding_calls < ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS):
         print(
-            "未执行相邻上下文评估：当前 23 题和 8 份语料的最坏情况需要 "
+            "未执行相邻上下文评估：当前 26 题和 8 份语料的最坏情况需要 "
             f"{ADJACENT_CONTEXT_MAX_EMBEDDING_CALLS} 次逻辑 Embedding 调用，"
             "请显式设置足够的 --max-embedding-calls。",
             file=sys.stderr,

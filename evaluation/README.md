@@ -3,7 +3,7 @@
 PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线不依赖 RAG 语料、
 数据库或模型调用。
 
-本目录保存阶段 4 的可复现评估语料。固定题集共 23 题，其中 17 题可回答、6 题应拒答，覆盖精确术语、相似章节、标题路径、歧义问题、无答案拒答和跨章节检索。物理路径位于 `evaluation/corpus/`，导入时使用去掉 `evaluation/corpus/` 前缀后的路径作为逻辑来源：
+本目录保存阶段 4 的可复现评估语料。当前固定开发题集共 26 题，其中 17 题可回答、9 题应拒答，覆盖精确术语、相似章节、标题路径、歧义问题、无答案拒答和跨章节检索。物理路径位于 `evaluation/corpus/`，导入时使用去掉 `evaluation/corpus/` 前缀后的路径作为逻辑来源：
 
 | 物理文件 | 逻辑来源 | 覆盖题目 |
 | --- | --- | --- |
@@ -37,11 +37,11 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 - `Mean Recall@5`：每题 Top5 命中的不同期望逻辑来源比例，再对可回答题求平均。
 - `MRR`：首个期望来源排名倒数的平均值。
 - 标题路径召回率：实际结果完整标题路径精确命中的比例。
-- 无答案拒答准确率：按当前检索通道的拒答策略计算。Dense/Hybrid 使用余弦阈值 `0.60`；BM25/Sparse 先执行 `technical_anchor_coverage_v1`，问题包含英文技术锚点时要求 TopK 候选整体至少覆盖一半锚点，再由 `candidate_presence_v1` 对空候选拒答。纯中文问题仍只使用候选存在性，不把 BM25 原始分数与余弦阈值比较。
+- 无答案拒答准确率：按当前检索通道的拒答策略计算。Dense/Hybrid 使用余弦阈值 `0.60`；BM25/Sparse 先执行 `technical_anchor_coverage_v2`，英文技术锚点要求 TopK 候选整体至少覆盖一半锚点，已确认的纯中文 Hard Negative 短语（定时任务、全文索引、停顿时间）在候选未出现时直接过滤，再由 `candidate_presence_v1` 对空候选拒答。不把 BM25 原始分数与余弦阈值比较。
 - 字段化 Sparse：BM25 使用 `content=1.0`、`heading=2.0`、`code=2.5`、`java_identifier=3.0`；Chunk 级题记录期望 Chunk，Hard Negative 记录明确不应进入 Top5 的 Chunk。
 - 高级指标：报告的 `advancedMetrics` 包含 Precision@5、nDCG@5、Chunk Recall@5、Hard Negative 避免率、上下文噪声率和检索延迟 P95（毫秒）。Precision/nDCG 对未配置 Chunk 标注的题按期望逻辑来源计算；Chunk Recall 和 Hard Negative 避免率只对有对应标注的题聚合。
 
-脚本校验题量和指标结构，不预设未经真实运行验证的质量门槛。旧的 6 题和 20 题基线结果保留为历史证据，不能当作当前 23 题结果。
+脚本校验题量和指标结构，不预设未经真实运行验证的质量门槛。旧的 6 题、20 题和 23 题基线结果保留为历史证据，不能当作当前 26 题结果。
 
 2026-08-13 的首轮真实困难基线使用 `text-embedding-v3`、8 份语料和 18 个 chunk，结果见 `evaluation/results/2026-08-13-rag-hard-retrieval-baseline.json`：Hit@1 为 `1.0000`、Mean Recall@5 为 `0.9706`、MRR 为 `1.0000`、标题路径召回率为 `0.9130`、无答案拒答准确率为 `1.0000`。主要缺口集中在跨主题 Map 问题漏掉普通 HashMap 来源，以及一个歧义 Map 问题漏掉“扩容与负载因子”标题；当前没有证据支持直接引入 rerank。
 
@@ -53,13 +53,14 @@ python evaluation/run_retrieval_baseline.py --base-url http://127.0.0.1:18080 --
 curl.exe "http://127.0.0.1:18080/api/knowledge/evaluations/retrieval/hybrid"
 ```
 
-接口在当前 23 题固定集上分别运行 Dense-only、BM25-only 和 Hybrid-RRF，不调用 Chat；Dense 与 Hybrid 会产生 Embedding 检索请求。2026-09-02 的历史真实结果保存在 `results/2026-09-02-hybrid-retrieval-baseline.json`：当时使用 20 题、8 份语料、18 个 Chunk，最多 48 次 Embedding 请求、0 次 Chat。三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense `0.9130`。
+接口在当前 26 题固定开发集上分别运行 Dense-only、BM25-only 和 Hybrid-RRF，不调用 Chat；Dense 与 Hybrid 会产生 Embedding 检索请求。2026-09-02 的历史真实结果保存在 `results/2026-09-02-hybrid-retrieval-baseline.json`：当时使用 20 题、8 份语料、18 个 Chunk，最多 48 次 Embedding 请求、0 次 Chat。三策略 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid 标题路径召回 `0.9565`，Dense `0.9130`。
 
 本次 Hybrid 只补回一个歧义 Map 题的完整标题路径，没有提升来源 Hit@1、Recall@5 或 MRR。文件中的 BM25-only 拒答准确率 `0` 使用了旧的余弦阈值口径，不能与 Dense 的 `1.0000` 直接比较；该旧结果只作为历史证据。字段化 BM25 和高级指标已经接入，新的真实复核见下一段；该结果支持保留 Hybrid 主链路，但不支持宣称整体回答质量已经提升。
 
 2026-09-02 使用字段化 BM25 完成一次真实三策略复核，结果见 `results/2026-09-02-fielded-sparse-hybrid-baseline.json`。Dense/Sparse/Hybrid 的 Hit@1 均为 `1.0000`、Mean Recall@5 均为 `0.9706`、MRR 均为 `1.0000`；Hybrid nDCG@5 `0.9772`、Precision@5 `0.4471`，Sparse nDCG@5 `0.9725`、Precision@5 `0.4353`，Sparse 检索 P95 `18.81ms`，Dense/Hybrid 约 `244.8ms`。Sparse 拒答准确率仍为 `0`，说明候选存在性策略会保留非空低相关候选；该结果支持继续扩充 Hard Negative 和无答案题，不支持宣称字段权重已全面提升质量。
 
-2026-09-03 固定集增加 `CompletableFuture` 超时、InnoDB Gap Lock、G1 Remembered Set 三道近域无答案题，总量变为 23。Sparse 接入 `technical_anchor_coverage_v1` 后，在最新源码的 `local` profile、8 份固定语料和 18 个 Chunk 上逐题验收：17 道可回答题全部保留候选，6 道无答案题全部返回空候选。该运行不调用 Chat、Embedding、MySQL 或 Qdrant；结果只证明当前固定语料下的确定性门控，不替代 23 题 storage 三策略真实基线，也不覆盖纯中文未知概念。
+2026-09-03 固定集增加 `CompletableFuture` 超时、InnoDB Gap Lock、G1 Remembered Set 三道近域无答案题，总量变为 23。Sparse 接入 `technical_anchor_coverage_v1` 后，在最新源码的 `local` profile、8 份固定语料和 18 个 Chunk 上逐题验收：17 道可回答题全部保留候选，6 道无答案题全部返回空候选。该运行不调用 Chat、Embedding、MySQL 或 Qdrant；结果只证明历史 23 题固定语料下的确定性门控。
+2026-09-07 固定开发题集增加 3 道纯中文近域无答案题：线程池定时任务调度、联合索引替代全文索引、GC 停顿调优。原始 BM25 对三题均返回表面重词候选，`technical_anchor_coverage_v2` 均过滤为空；同一门控保留 RAG 参数控制等有效中文问题。针对性运行不调用 Chat、Embedding、MySQL 或 Qdrant，尚未形成新的 storage 三策略真实基线。
 
 ## PDF 结构检索
 
@@ -101,7 +102,7 @@ RAG 回答链路在初始检索返回可靠结果后，可使用 Qdrant metadata
 curl.exe -X POST http://127.0.0.1:18080/api/knowledge/evaluations/answers
 ```
 
-接口会依次调用当前 23 道固定题目的现有 RAG 回答链路，每题写入召回日志；无答案题在没有可靠来源时不调用 Chat，若错误命中可靠候选仍可能调用，因此整批最多产生 23 次 Chat 调用。报告同时返回 `normalized-literal-containment-v1` 的回答要点覆盖，以及逐题 claim 的 `SUPPORTED`、`EVIDENCE_INSUFFICIENT`、`EVIDENCE_CONFLICTING`、`CITATION_INVALID` 状态，并聚合引用精确率、引用召回率、无依据陈述率和证据冲突率。确定性锚点/极性规则只提供保守质量门槛，不能替代语义正确性或人工评审。该接口会产生真实模型费用，必须显式授权后再执行。
+接口会依次调用当前 26 道固定题目的现有 RAG 回答链路，每题写入召回日志；无答案题在没有可靠来源时不调用 Chat，若错误命中可靠候选仍可能调用，因此整批最多产生 26 次 Chat 调用。报告同时返回 `normalized-literal-containment-v1` 的回答要点覆盖，以及逐题 claim 的 `SUPPORTED`、`EVIDENCE_INSUFFICIENT`、`EVIDENCE_CONFLICTING`、`CITATION_INVALID` 状态，并聚合引用精确率、引用召回率、无依据陈述率和证据冲突率。确定性锚点/极性规则只提供保守质量门槛，不能替代语义正确性或人工评审。该接口会产生真实模型费用，必须显式授权后再执行。
 
 2026-09-03 在 `qwen3.7-max-2026-06-08` 上完成一次 23 题真实回答评估，结果见 `evaluation/results/2026-09-03-answer-evidence-baseline-v3.json`：73 个 claim 中 58 个支持、9 个证据不足、4 个冲突、2 个引用不合法；引用精确率 `0.8169`、引用召回率 `0.0635`、无依据陈述率 `0.2055`、冲突率 `0.0548`，6 题通过全部 claim 门槛。该结果用于定位生成漏引和证据不足，不代表完整语义正确率。
 
