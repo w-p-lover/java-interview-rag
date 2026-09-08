@@ -36,6 +36,8 @@ server:
   port: 18080
 
 java-interview-rag:
+  answer:
+    timeout: ${JAVA_INTERVIEW_RAG_ANSWER_TIMEOUT:60s}
   index:
     embedding-model: ${JAVA_INTERVIEW_RAG_EMBEDDING_MODEL:text-embedding-v3}
     embedding-dimensions: ${JAVA_INTERVIEW_RAG_EMBEDDING_DIMENSIONS:1024}

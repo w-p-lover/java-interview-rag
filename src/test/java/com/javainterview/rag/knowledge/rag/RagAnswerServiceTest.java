@@ -11,6 +11,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -412,5 +413,56 @@ class RagAnswerServiceTest {
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.CANCELLED, logCaptor.getValue().status());
         assertEquals("CLIENT_DISCONNECT", logCaptor.getValue().errorType());
+    }
+
+    @Test
+    void returnsTimeoutResultAndRecordsServerTimeoutForBlockingModelCall() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenAnswer(invocation -> {
+            Thread.sleep(200);
+            return "HashMap 使用数组 [资料 1]。";
+        });
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofMillis(20));
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals("知识库回答生成超时，请稍后重试。", result.answer());
+        assertEquals(false, result.grounded());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.TIMEOUT, logCaptor.getValue().status());
+        assertEquals("SERVER_TIMEOUT", logCaptor.getValue().errorType());
+    }
+
+    @Test
+    void completesStreamWithTimeoutResultAndRecordsServerTimeout() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).stream().content()).thenReturn(Flux.never());
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofMillis(20));
+
+        List<RagAnswerStreamEvent> events = service.streamAnswer("HashMap").collectList().block();
+
+        RagAnswerStreamEvent complete = events.get(events.size() - 1);
+        assertEquals("complete", complete.type());
+        assertEquals("知识库回答生成超时，请稍后重试。", complete.content());
+        assertEquals(false, complete.grounded());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore).record(logCaptor.capture());
+        assertEquals(RagRetrievalLogStatus.TIMEOUT, logCaptor.getValue().status());
+        assertEquals("SERVER_TIMEOUT", logCaptor.getValue().errorType());
     }
 }
