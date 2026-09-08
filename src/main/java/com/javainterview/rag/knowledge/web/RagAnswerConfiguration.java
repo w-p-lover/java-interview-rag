@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.Duration;
 
@@ -30,13 +31,25 @@ public class RagAnswerConfiguration {
         return new MySqlRagRetrievalLogStore(mapper, objectMapper);
     }
 
+    @Bean(destroyMethod = "shutdown")
+    ThreadPoolTaskExecutor ragAnswerExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(4);
+        executor.setQueueCapacity(32);
+        executor.setThreadNamePrefix("rag-answer-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean
     RagAnswerService ragAnswerService(MarkdownSimilaritySearchService searchService,
                                       MarkdownHybridSearchService hybridSearchService,
                                       ChatClient ragAnswerChatClient, RagRetrievalLogStore logStore,
-                                      @Value("${java-interview-rag.answer.timeout:60s}") Duration answerTimeout) {
+                                      @Value("${java-interview-rag.answer.timeout:60s}") Duration answerTimeout,
+                                      ThreadPoolTaskExecutor ragAnswerExecutor) {
         // 固定集对照显示相邻扩展增加噪声且无证据收益，生产回答暂时关闭扩展。
         return new RagAnswerService(searchService, hybridSearchService, null,
-                ragAnswerChatClient, logStore, answerTimeout);
+                ragAnswerChatClient, logStore, answerTimeout, ragAnswerExecutor);
     }
 }

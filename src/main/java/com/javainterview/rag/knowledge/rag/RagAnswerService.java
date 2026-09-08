@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeoutException;
 import java.time.Duration;
 import java.util.regex.Pattern;
@@ -51,11 +53,12 @@ public class RagAnswerService {
     private final ChatClient chatClient;
     private final RagRetrievalLogStore logStore;
     private final Duration answerTimeout;
+    private final Executor answerExecutor;
     private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
-        this(searchService, null, null, chatClient, logStore, Duration.ofSeconds(60));
+        this(searchService, null, null, chatClient, logStore, Duration.ofSeconds(60), ForkJoinPool.commonPool());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -69,7 +72,7 @@ public class RagAnswerService {
                             MarkdownAdjacentChunkExpander contextExpander,
                             ChatClient chatClient, RagRetrievalLogStore logStore) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
-                Duration.ofSeconds(60));
+                Duration.ofSeconds(60), ForkJoinPool.commonPool());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -77,12 +80,22 @@ public class RagAnswerService {
                             MarkdownAdjacentChunkExpander contextExpander,
                             ChatClient chatClient, RagRetrievalLogStore logStore,
                             Duration answerTimeout) {
+        this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
+                answerTimeout, ForkJoinPool.commonPool());
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore,
+                            Duration answerTimeout, Executor answerExecutor) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
         this.chatClient = Objects.requireNonNull(chatClient, "聊天客户端不能为空");
         this.logStore = Objects.requireNonNull(logStore, "RAG 召回日志存储不能为空");
         this.answerTimeout = Objects.requireNonNull(answerTimeout, "回答超时时间不能为空");
+        this.answerExecutor = Objects.requireNonNull(answerExecutor, "回答执行器不能为空");
         if (answerTimeout.isZero() || answerTimeout.isNegative()) {
             throw new IllegalArgumentException("回答超时时间必须大于 0");
         }
@@ -145,7 +158,7 @@ public class RagAnswerService {
 
     private String callWithTimeout(String prompt) {
         CompletableFuture<String> future = CompletableFuture.supplyAsync(
-                () -> chatClient.prompt(prompt).call().content());
+                () -> chatClient.prompt(prompt).call().content(), answerExecutor);
         try {
             return future.get(answerTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
         } catch (TimeoutException exception) {
