@@ -560,4 +560,43 @@ class RagAnswerServiceTest {
         verify(searchService).search("HashMap", 5, 0.60);
         verify(chatClient, org.mockito.Mockito.times(2)).prompt(anyString());
     }
+
+    @Test
+    void changesCacheKeyWhenKnowledgeVersionChanges() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 使用数组 [资料 1]。", "HashMap 使用数组 [资料 1]。");
+        java.util.Map<String, RagAnswerResult> values = new java.util.HashMap<>();
+        RagAnswerCache cache = new RagAnswerCache() {
+            @Override
+            public Optional<RagAnswerResult> get(String key) {
+                return Optional.ofNullable(values.get(key));
+            }
+
+            @Override
+            public void put(String key, RagAnswerResult result) {
+                values.put(key, result);
+            }
+        };
+        java.util.concurrent.atomic.AtomicReference<String> knowledgeVersion =
+                new java.util.concurrent.atomic.AtomicReference<>("java/collections.md\u0000version-1");
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 1,
+                cache, "test-index", knowledgeVersion::get);
+
+        RagAnswerResult first = service.answer("HashMap");
+        knowledgeVersion.set("java/collections.md\u0000version-2");
+        RagAnswerResult second = service.answer("HashMap");
+
+        assertEquals("HashMap 使用数组 [资料 1]。", first.answer());
+        assertEquals("HashMap 使用数组 [资料 1]。", second.answer());
+        verify(searchService, org.mockito.Mockito.times(2)).search("HashMap", 5, 0.60);
+        org.junit.jupiter.api.Assertions.assertEquals(2, values.size());
+    }
 }

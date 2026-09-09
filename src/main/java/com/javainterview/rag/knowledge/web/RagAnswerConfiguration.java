@@ -4,6 +4,7 @@ import com.javainterview.rag.knowledge.rag.RagAnswerService;
 import com.javainterview.rag.knowledge.rag.RagAnswerCache;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.persistence.MySqlRagRetrievalLogStore;
@@ -60,10 +61,18 @@ public class RagAnswerConfiguration {
                                       @Value("${java-interview-rag.answer.timeout:60s}") Duration answerTimeout,
                                       ThreadPoolTaskExecutor ragAnswerExecutor,
                                       RagAnswerCache answerCache,
-                                      KnowledgeIndexVersionMetadata indexVersion) {
+                                      KnowledgeIndexVersionMetadata indexVersion,
+                                      MarkdownImportRegistry importRegistry) {
         // 固定集对照显示相邻扩展增加噪声且无证据收益，生产回答暂时关闭扩展。
         return new RagAnswerService(searchService, hybridSearchService, null,
                 ragAnswerChatClient, logStore, answerTimeout, ragAnswerExecutor, 4,
-                answerCache, indexVersion.toString());
+                answerCache, indexVersion.toString(), () -> knowledgeVersionKey(importRegistry));
+    }
+
+    private String knowledgeVersionKey(MarkdownImportRegistry importRegistry) {
+        return importRegistry.findCurrentDocuments().stream()
+                .map(document -> document.source() + "\u0000" + document.version())
+                .sorted()
+                .collect(java.util.stream.Collectors.joining("\u0001"));
     }
 }

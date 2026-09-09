@@ -29,6 +29,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 public class RagAnswerService {
 
@@ -65,13 +66,14 @@ public class RagAnswerService {
     private final Semaphore answerBulkhead;
     private final RagAnswerCache answerCache;
     private final String indexVersionKey;
+    private final Supplier<String> knowledgeVersionKeySupplier;
     private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
         this(searchService, null, null, chatClient, logStore, Duration.ofSeconds(60),
                 ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
-                KnowledgeIndexVersionMetadata.current().toString());
+                KnowledgeIndexVersionMetadata.current().toString(), () -> "");
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -86,7 +88,7 @@ public class RagAnswerService {
                             ChatClient chatClient, RagRetrievalLogStore logStore) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
                 Duration.ofSeconds(60), ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
-                KnowledgeIndexVersionMetadata.current().toString());
+                KnowledgeIndexVersionMetadata.current().toString(), () -> "");
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -96,7 +98,7 @@ public class RagAnswerService {
                             Duration answerTimeout) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
                 answerTimeout, ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
-                KnowledgeIndexVersionMetadata.current().toString());
+                KnowledgeIndexVersionMetadata.current().toString(), () -> "");
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -106,7 +108,7 @@ public class RagAnswerService {
                             Duration answerTimeout, Executor answerExecutor) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
                 answerTimeout, answerExecutor, 4, new NoopRagAnswerCache(),
-                KnowledgeIndexVersionMetadata.current().toString());
+                KnowledgeIndexVersionMetadata.current().toString(), () -> "");
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -117,7 +119,7 @@ public class RagAnswerService {
                             int maxConcurrentAnswers) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
                 answerTimeout, answerExecutor, maxConcurrentAnswers, new NoopRagAnswerCache(),
-                KnowledgeIndexVersionMetadata.current().toString());
+                KnowledgeIndexVersionMetadata.current().toString(), () -> "");
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -127,6 +129,18 @@ public class RagAnswerService {
                             Duration answerTimeout, Executor answerExecutor,
                             int maxConcurrentAnswers, RagAnswerCache answerCache,
                             String indexVersionKey) {
+        this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
+                answerTimeout, answerExecutor, maxConcurrentAnswers, answerCache,
+                indexVersionKey, () -> "");
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore,
+                            Duration answerTimeout, Executor answerExecutor,
+                            int maxConcurrentAnswers, RagAnswerCache answerCache,
+                            String indexVersionKey, Supplier<String> knowledgeVersionKeySupplier) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
@@ -140,6 +154,8 @@ public class RagAnswerService {
         this.answerBulkhead = new Semaphore(maxConcurrentAnswers);
         this.answerCache = Objects.requireNonNull(answerCache, "回答缓存不能为空");
         this.indexVersionKey = Objects.requireNonNull(indexVersionKey, "索引版本不能为空");
+        this.knowledgeVersionKeySupplier = Objects.requireNonNull(
+                knowledgeVersionKeySupplier, "知识版本摘要提供器不能为空");
         if (answerTimeout.isZero() || answerTimeout.isNegative()) {
             throw new IllegalArgumentException("回答超时时间必须大于 0");
         }
@@ -453,7 +469,16 @@ public class RagAnswerService {
     }
 
     private String answerCacheKey(String question, List<RagConversationTurn> history) {
-        String raw = PROMPT_VERSION + "|" + indexVersionKey + "|" + question + "|"
+        String knowledgeVersionKey;
+        try {
+            knowledgeVersionKey = Objects.requireNonNull(knowledgeVersionKeySupplier.get(),
+                    "知识版本摘要不能为空");
+        } catch (RuntimeException exception) {
+            // 当前版本不可读时禁用缓存命中，避免用未知版本返回旧回答。
+            knowledgeVersionKey = "unavailable:" + System.nanoTime();
+        }
+        String raw = PROMPT_VERSION + "|" + indexVersionKey + "|" + knowledgeVersionKey + "|"
+                + question + "|"
                 + history.stream().map(turn -> turn.question() + "\u0000" + turn.answer())
                 .collect(Collectors.joining("\u0001"));
         try {
