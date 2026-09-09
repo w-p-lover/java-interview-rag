@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.time.Duration;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -493,5 +494,70 @@ class RagAnswerServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals("CONCURRENCY_LIMIT", overloaded.errorType());
+    }
+
+    @Test
+    void reusesGroundedAnswerFromCacheWithoutSearchingOrCallingModel() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        RagAnswerResult cachedResult = new RagAnswerResult(
+                "HashMap 使用数组 [资料 1]。", true, List.of(source));
+        RagAnswerCache cache = new RagAnswerCache() {
+            @Override
+            public Optional<RagAnswerResult> get(String key) {
+                return Optional.of(cachedResult);
+            }
+
+            @Override
+            public void put(String key, RagAnswerResult result) {
+                throw new AssertionError("命中缓存不应回写");
+            }
+        };
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 1,
+                cache, "test-index");
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals(cachedResult, result);
+        verifyNoInteractions(searchService, chatClient);
+        verify(logStore).record(org.mockito.ArgumentMatchers.any(RagRetrievalLog.class));
+    }
+
+    @Test
+    void bypassesCacheFailureAndStillReturnsFreshGroundedAnswer() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("HashMap 使用数组 [资料 1]。");
+        RagAnswerCache cache = new RagAnswerCache() {
+            @Override
+            public Optional<RagAnswerResult> get(String key) {
+                throw new IllegalStateException("Redis 不可用");
+            }
+
+            @Override
+            public void put(String key, RagAnswerResult result) {
+                throw new IllegalStateException("Redis 不可用");
+            }
+        };
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 1,
+                cache, "test-index");
+
+        RagAnswerResult result = service.answer("HashMap");
+
+        assertEquals(true, result.grounded());
+        assertEquals("HashMap 使用数组 [资料 1]。", result.answer());
+        verify(searchService).search("HashMap", 5, 0.60);
+        verify(chatClient, org.mockito.Mockito.times(2)).prompt(anyString());
     }
 }

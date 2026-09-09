@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
+import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Flux;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +23,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
@@ -58,12 +63,15 @@ public class RagAnswerService {
     private final Duration answerTimeout;
     private final Executor answerExecutor;
     private final Semaphore answerBulkhead;
+    private final RagAnswerCache answerCache;
+    private final String indexVersionKey;
     private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
                             RagRetrievalLogStore logStore) {
         this(searchService, null, null, chatClient, logStore, Duration.ofSeconds(60),
-                ForkJoinPool.commonPool(), 4);
+                ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
+                KnowledgeIndexVersionMetadata.current().toString());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -77,7 +85,8 @@ public class RagAnswerService {
                             MarkdownAdjacentChunkExpander contextExpander,
                             ChatClient chatClient, RagRetrievalLogStore logStore) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
-                Duration.ofSeconds(60), ForkJoinPool.commonPool(), 4);
+                Duration.ofSeconds(60), ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
+                KnowledgeIndexVersionMetadata.current().toString());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -86,7 +95,8 @@ public class RagAnswerService {
                             ChatClient chatClient, RagRetrievalLogStore logStore,
                             Duration answerTimeout) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
-                answerTimeout, ForkJoinPool.commonPool(), 4);
+                answerTimeout, ForkJoinPool.commonPool(), 4, new NoopRagAnswerCache(),
+                KnowledgeIndexVersionMetadata.current().toString());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -95,7 +105,8 @@ public class RagAnswerService {
                             ChatClient chatClient, RagRetrievalLogStore logStore,
                             Duration answerTimeout, Executor answerExecutor) {
         this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
-                answerTimeout, answerExecutor, 4);
+                answerTimeout, answerExecutor, 4, new NoopRagAnswerCache(),
+                KnowledgeIndexVersionMetadata.current().toString());
     }
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService,
@@ -104,6 +115,18 @@ public class RagAnswerService {
                             ChatClient chatClient, RagRetrievalLogStore logStore,
                             Duration answerTimeout, Executor answerExecutor,
                             int maxConcurrentAnswers) {
+        this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
+                answerTimeout, answerExecutor, maxConcurrentAnswers, new NoopRagAnswerCache(),
+                KnowledgeIndexVersionMetadata.current().toString());
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore,
+                            Duration answerTimeout, Executor answerExecutor,
+                            int maxConcurrentAnswers, RagAnswerCache answerCache,
+                            String indexVersionKey) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
@@ -115,6 +138,8 @@ public class RagAnswerService {
             throw new IllegalArgumentException("回答并发上限必须大于 0");
         }
         this.answerBulkhead = new Semaphore(maxConcurrentAnswers);
+        this.answerCache = Objects.requireNonNull(answerCache, "回答缓存不能为空");
+        this.indexVersionKey = Objects.requireNonNull(indexVersionKey, "索引版本不能为空");
         if (answerTimeout.isZero() || answerTimeout.isNegative()) {
             throw new IllegalArgumentException("回答超时时间必须大于 0");
         }
@@ -133,6 +158,13 @@ public class RagAnswerService {
         RetrievalOutcome retrieval = new RetrievalOutcome(List.of(), "DENSE_ONLY", false, null);
         try {
             List<RagConversationTurn> boundedHistory = boundHistory(history);
+            String cacheKey = answerCacheKey(question, boundedHistory);
+            Optional<RagAnswerResult> cached = readCache(cacheKey);
+            if (cached.isPresent()) {
+                RagAnswerResult cachedResult = cached.get();
+                recordAndReturn(question, cachedResult.sources(), cachedResult, startedAt);
+                return cachedResult;
+            }
             String retrievalQuestion = rewriteQuestion(question, boundedHistory);
             retrieval = retrieve(retrievalQuestion);
             sources = retrieval.sources();
@@ -160,7 +192,7 @@ public class RagAnswerService {
                 return recordEvidenceInvalidAndReturn(question, sources, evidence, retrieval, startedAt);
             }
             return recordAndReturn(question, sources,
-                    toAnswerResult(answer, true, sources, evidence.claims(), retrieval), startedAt);
+                    cacheAndReturn(cacheKey, toAnswerResult(answer, true, sources, evidence.claims(), retrieval)), startedAt);
         } catch (RuntimeException exception) {
             if (exception instanceof RagAnswerTimeoutException) {
                 RagAnswerResult timeoutResult = toAnswerResult(
@@ -223,6 +255,13 @@ public class RagAnswerService {
         return Flux.defer(() -> {
             long startedAt = System.nanoTime();
             List<RagConversationTurn> boundedHistory = boundHistory(history);
+            String cacheKey = answerCacheKey(question, boundedHistory);
+            Optional<RagAnswerResult> cached = readCache(cacheKey);
+            if (cached.isPresent()) {
+                RagAnswerResult cachedResult = cached.get();
+                recordAndReturn(question, cachedResult.sources(), cachedResult, startedAt);
+                return Flux.just(RagAnswerStreamEvent.complete(cachedResult));
+            }
             String retrievalQuestion = rewriteQuestion(question, boundedHistory);
             RetrievalOutcome retrieval = retrieve(retrievalQuestion);
             List<MarkdownSearchResult> sources = retrieval.sources();
@@ -284,7 +323,8 @@ public class RagAnswerService {
                                 && evidence.valid()
                                 && !streamBlocked.get();
                         RagAnswerResult result = grounded
-                                ? toAnswerResult(completedAnswer, true, finalSources, evidence.claims(), retrieval)
+                                ? cacheAndReturn(cacheKey,
+                                toAnswerResult(completedAnswer, true, finalSources, evidence.claims(), retrieval))
                                 : partialAnswer(completedAnswer, finalSources, evidence, retrieval);
                         if (result == null) {
                             result = toAnswerResult(INSUFFICIENT_ANSWER, false, finalSources,
@@ -391,6 +431,42 @@ public class RagAnswerService {
                                            RetrievalOutcome retrieval) {
         return new RagAnswerResult(answer, grounded, sources, claims,
                 retrieval.strategy(), retrieval.degraded(), retrieval.degradationReason());
+    }
+
+    private RagAnswerResult cacheAndReturn(String key, RagAnswerResult result) {
+        if (result.grounded() && !result.answer().isBlank()) {
+            try {
+                answerCache.put(key, result);
+            } catch (RuntimeException ignored) {
+                // 缓存写入失败不影响已经生成的可靠回答。
+            }
+        }
+        return result;
+    }
+
+    private Optional<RagAnswerResult> readCache(String key) {
+        try {
+            return answerCache.get(key);
+        } catch (RuntimeException ignored) {
+            return Optional.empty();
+        }
+    }
+
+    private String answerCacheKey(String question, List<RagConversationTurn> history) {
+        String raw = PROMPT_VERSION + "|" + indexVersionKey + "|" + question + "|"
+                + history.stream().map(turn -> turn.question() + "\u0000" + turn.answer())
+                .collect(Collectors.joining("\u0001"));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(raw.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte value : digest) {
+                hex.append(String.format("%02x", value));
+            }
+            return "java-interview-rag:answer:" + hex;
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("无法生成回答缓存键", exception);
+        }
     }
 
     private record RetrievalOutcome(List<MarkdownSearchResult> sources, String strategy,

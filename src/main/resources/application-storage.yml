@@ -35,6 +35,11 @@ spring:
       test-while-idle: true
       test-on-borrow: false
       test-on-return: false
+  data:
+    redis:
+      host: ${JAVA_INTERVIEW_RAG_REDIS_HOST:127.0.0.1}
+      port: ${JAVA_INTERVIEW_RAG_REDIS_PORT:6379}
+      timeout: ${JAVA_INTERVIEW_RAG_REDIS_TIMEOUT:500ms}
   ai:
     model:
       chat: openai
@@ -62,5 +67,8 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 java-interview-rag:
+  answer:
+    cache:
+      ttl: ${JAVA_INTERVIEW_RAG_ANSWER_CACHE_TTL:10m}
   sparse:
     index-path: ${JAVA_INTERVIEW_RAG_SPARSE_INDEX_PATH:.tmp/sparse-index}
