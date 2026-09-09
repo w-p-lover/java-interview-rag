@@ -21,6 +21,13 @@ public record KnowledgeIndexConsistencyReport(
         UNAVAILABLE
     }
 
+    public enum IndexVersionStatus {
+        MATCHED,
+        PARTIAL_MISMATCH,
+        ALL_MISMATCH,
+        UNVERIFIABLE
+    }
+
     public record IndexingStateCheck(
             boolean tracked,
             MarkdownIndexingStatus status,
@@ -38,14 +45,27 @@ public record KnowledgeIndexConsistencyReport(
             Long sourceChunkCount,
             Boolean expectedChunkCountMatched,
             Boolean indexVersionMatched,
+            IndexVersionStatus indexVersionStatus,
             String errorType
     ) {
+        public StoreCheck(StoreStatus status, Long currentVersionChunkCount,
+                          Long currentVersionMetadataMatchCount, Long staleVersionChunkCount,
+                          Long sourceChunkCount, Boolean expectedChunkCountMatched,
+                          Boolean indexVersionMatched, String errorType) {
+            this(status, currentVersionChunkCount, currentVersionMetadataMatchCount,
+                    staleVersionChunkCount, sourceChunkCount, expectedChunkCountMatched,
+                    indexVersionMatched,
+                    Boolean.TRUE.equals(indexVersionMatched) ? IndexVersionStatus.MATCHED
+                            : IndexVersionStatus.UNVERIFIABLE,
+                    errorType);
+        }
+
         public StoreCheck(StoreStatus status, Long currentVersionChunkCount,
                           Long staleVersionChunkCount, Long sourceChunkCount,
                           Boolean expectedChunkCountMatched, String errorType) {
             this(status, currentVersionChunkCount, currentVersionChunkCount,
                     staleVersionChunkCount, sourceChunkCount,
-                    expectedChunkCountMatched, true, errorType);
+                    expectedChunkCountMatched, true, IndexVersionStatus.MATCHED, errorType);
         }
     }
 }

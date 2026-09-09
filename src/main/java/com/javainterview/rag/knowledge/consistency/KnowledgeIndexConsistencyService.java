@@ -48,8 +48,8 @@ public final class KnowledgeIndexConsistencyService {
                 indexingState(document, expectedChunkCount);
         boolean consistent = dense.status() == KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT
                 && sparse.status() == KnowledgeIndexConsistencyReport.StoreStatus.CONSISTENT
-                && !Boolean.FALSE.equals(dense.indexVersionMatched())
-                && !Boolean.FALSE.equals(sparse.indexVersionMatched())
+                && dense.indexVersionStatus() == KnowledgeIndexConsistencyReport.IndexVersionStatus.MATCHED
+                && sparse.indexVersionStatus() == KnowledgeIndexConsistencyReport.IndexVersionStatus.MATCHED
                 && (!indexingState.tracked()
                 || (indexingState.status() == MarkdownIndexingStatus.READY
                 && !Boolean.FALSE.equals(indexingState.expectedChunkCountMatched())));
@@ -79,6 +79,8 @@ public final class KnowledgeIndexConsistencyService {
         try {
             KnowledgeIndexCounts counts = inspection.get();
             KnowledgeIndexConsistencyReport.StoreStatus status = status(expectedChunkCount, counts);
+            KnowledgeIndexConsistencyReport.IndexVersionStatus indexVersionStatus = indexVersionStatus(
+                    expectedChunkCount, counts);
             return new KnowledgeIndexConsistencyReport.StoreCheck(
                     status,
                     counts.currentVersionChunkCount(),
@@ -87,13 +89,36 @@ public final class KnowledgeIndexConsistencyService {
                     counts.sourceChunkCount(),
                     expectedChunkCount == null ? null
                             : counts.currentVersionChunkCount() == expectedChunkCount,
-                    counts.currentVersionMetadataMatchCount() == counts.currentVersionChunkCount(),
+                    indexVersionStatus == KnowledgeIndexConsistencyReport.IndexVersionStatus.MATCHED,
+                    indexVersionStatus,
                     null);
         } catch (RuntimeException exception) {
             return new KnowledgeIndexConsistencyReport.StoreCheck(
                     KnowledgeIndexConsistencyReport.StoreStatus.UNAVAILABLE,
-                    null, null, null, null, null, null, exception.getClass().getSimpleName());
+                    null, null, null, null, null, null,
+                    KnowledgeIndexConsistencyReport.IndexVersionStatus.UNVERIFIABLE,
+                    exception.getClass().getSimpleName());
         }
+    }
+
+    private KnowledgeIndexConsistencyReport.IndexVersionStatus indexVersionStatus(
+            Integer expectedChunkCount, KnowledgeIndexCounts counts) {
+        if (expectedChunkCount == null) {
+            return KnowledgeIndexConsistencyReport.IndexVersionStatus.UNVERIFIABLE;
+        }
+        long currentCount = counts.currentVersionChunkCount();
+        long matchedCount = counts.currentVersionMetadataMatchCount();
+        if (currentCount == 0) {
+            return expectedChunkCount == 0
+                    ? KnowledgeIndexConsistencyReport.IndexVersionStatus.MATCHED
+                    : KnowledgeIndexConsistencyReport.IndexVersionStatus.UNVERIFIABLE;
+        }
+        if (matchedCount == currentCount) {
+            return KnowledgeIndexConsistencyReport.IndexVersionStatus.MATCHED;
+        }
+        return matchedCount == 0
+                ? KnowledgeIndexConsistencyReport.IndexVersionStatus.ALL_MISMATCH
+                : KnowledgeIndexConsistencyReport.IndexVersionStatus.PARTIAL_MISMATCH;
     }
 
     private KnowledgeIndexConsistencyReport.StoreStatus status(

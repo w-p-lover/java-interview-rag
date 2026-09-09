@@ -91,6 +91,25 @@ class KnowledgeIndexConsistencyServiceTest {
     }
 
     @Test
+    void distinguishesAllAndPartialIndexVersionMismatch() {
+        MarkdownDocument document = registerCurrent("java/collections.md", "HashMap", 2);
+
+        KnowledgeIndexConsistencyReport allMismatch = service(
+                (source, version) -> new KnowledgeIndexCounts(2, 2, 0))
+                .inspect(document.source());
+        KnowledgeIndexConsistencyReport partialMismatch = service(
+                (source, version) -> new KnowledgeIndexCounts(2, 2, 1))
+                .inspect(document.source());
+
+        assertFalse(allMismatch.consistent());
+        assertEquals(KnowledgeIndexConsistencyReport.IndexVersionStatus.ALL_MISMATCH,
+                allMismatch.dense().indexVersionStatus());
+        assertFalse(partialMismatch.consistent());
+        assertEquals(KnowledgeIndexConsistencyReport.IndexVersionStatus.PARTIAL_MISMATCH,
+                partialMismatch.dense().indexVersionStatus());
+    }
+
+    @Test
     void rejectsBlankOrMissingSource() {
         KnowledgeIndexConsistencyService service = service(
                 (source, version) -> new KnowledgeIndexCounts(0, 0));
