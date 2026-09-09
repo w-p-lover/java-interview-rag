@@ -8,6 +8,7 @@ public enum RagRetrievalLogStatus {
     EVIDENCE_INSUFFICIENT,
     EVIDENCE_CONFLICTING,
     TIMEOUT,
+    OVERLOADED,
     FAILED,
     CANCELLED
 }

@@ -465,4 +465,33 @@ class RagAnswerServiceTest {
         assertEquals(RagRetrievalLogStatus.TIMEOUT, logCaptor.getValue().status());
         assertEquals("SERVER_TIMEOUT", logCaptor.getValue().errorType());
     }
+
+    @Test
+    void rejectsNewAnswerWhenSharedModelConcurrencyIsFull() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(searchService.search("ConcurrentHashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).stream().content()).thenReturn(Flux.never());
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 1);
+
+        reactor.core.Disposable runningStream = service.streamAnswer("HashMap").subscribe();
+        RagAnswerResult result = service.answer("ConcurrentHashMap");
+        runningStream.dispose();
+
+        assertEquals("当前知识问答较繁忙，请稍后重试。", result.answer());
+        assertEquals(false, result.grounded());
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore, org.mockito.Mockito.times(2)).record(logCaptor.capture());
+        RagRetrievalLog overloaded = logCaptor.getAllValues().stream()
+                .filter(log -> log.status() == RagRetrievalLogStatus.OVERLOADED)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("CONCURRENCY_LIMIT", overloaded.errorType());
+    }
 }
