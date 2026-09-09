@@ -361,7 +361,8 @@ export async function auditResumeEvidence(
   const response = await request.post<ResumeEvidenceAuditResult>(
     "/interviews/resume-audits",
     { resumeText },
-    { timeout: 120_000 },
+    // 后端简历审计默认允许 420 秒；客户端略放宽，避免先于服务端断开。
+    { timeout: 450_000 },
   );
   return response.data;
 }

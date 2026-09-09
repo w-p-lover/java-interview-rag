@@ -70,7 +70,7 @@ mybatis-plus:
 
 java-interview-rag:
   resume-audit:
-    timeout: ${JAVA_INTERVIEW_RAG_RESUME_AUDIT_TIMEOUT:60s}
+    timeout: ${JAVA_INTERVIEW_RAG_RESUME_AUDIT_TIMEOUT:420s}
   answer:
     cache:
       ttl: ${JAVA_INTERVIEW_RAG_ANSWER_CACHE_TTL:10m}

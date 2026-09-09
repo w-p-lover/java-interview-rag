@@ -57,7 +57,7 @@ public class ResumeEvidenceAuditService {
     public ResumeEvidenceAuditService(ChatClient chatClient,
                                       ResumeEvidenceAuditRequestLogStore logStore,
                                       String modelName) {
-        this(chatClient, logStore, modelName, java.time.Duration.ofSeconds(60), Runnable::run);
+        this(chatClient, logStore, modelName, java.time.Duration.ofSeconds(420), Runnable::run);
     }
 
     public ResumeEvidenceAuditService(ChatClient chatClient,

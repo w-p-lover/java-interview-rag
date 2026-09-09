@@ -31,7 +31,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
   - `GET /api/knowledge/evaluations/retrieval/adjacent-context` 在 `storage` profile 下对 Hybrid 初始候选执行相邻 Chunk 扩展开启/关闭对照，返回完整上下文的来源、Chunk、回答要点证据召回、噪声和额外向量查询数；不调用 Chat。
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点、逐题 claim 证据状态及聚合引用精确率/召回率、无依据陈述率和冲突率；当前 23 题固定集最多产生 23 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
-- `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。
+- `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。简历审计默认总超时 420 秒，可由 `JAVA_INTERVIEW_RAG_RESUME_AUDIT_TIMEOUT` 覆盖；超时、鉴权失败和模型不可用返回安全 HTTP 502。
 - `POST /api/interviews/job-matches` 只接收岗位描述和已确认简历事实，返回已有证据、部分覆盖、尚无证据和需要核对的岗位要求；岗位原文与简历证据均由 Java 服务端逐字验真，不接收或保存原始简历。
 - `GET /api/interviews/job-matches/requests?limit=20` 查询岗位匹配模型请求的脱敏元数据，包括模型、Prompt、token、耗时、状态和失败类型，不返回岗位描述、简历证据或匹配正文。
 - `POST /api/interviews/project-deep-dives` 只接收一条 `PROJECT` 类型的已确认事实，确定性生成基础、取舍、故障和扩展四类深挖题；默认不调用模型或向量检索，显式开启后只读检索知识库并把真实来源作为答题背景，不用资料补写项目经历。
@@ -152,7 +152,7 @@ docker compose up -d mysql qdrant
 
 最小检索接口允许 `topK` 取 1 到 20、相似度阈值取 0 到 1；默认阈值为 0.0，用于保留阶段 3 的原始召回基线。调用方可以提高阈值，Qdrant 没有满足条件的结果时返回空列表，不生成没有来源支撑的答案。
 
-回答接口使用 OpenAI 兼容端点手动创建 ChatModel，默认模型为 `qwen3.7-max-2026-06-08`、温度为 `0.2`；DashScope 原生客户端继续只承担 `text-embedding-v3`。Chat 的端点、密钥和模型可分别通过 `JAVA_INTERVIEW_RAG_OPENAI_BASE_URL`、`JAVA_INTERVIEW_RAG_OPENAI_API_KEY` 和 `JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL` 覆盖，未覆盖时回退到原 DashScope Chat 配置，避免 Chat 覆盖值污染 Embedding。它固定检索前 5 条且相似度不低于 `0.60` 的资料，将每条资料编号并要求模型只根据资料回答；没有可靠来源或模型返回空内容时，统一返回“知识库中没有足够可靠的资料回答这个问题。”。新默认模型已完成 1 次受控 HashMap 问答和 1 场 4 题项目深挖评价闭环；历史批量质量基线仍来自 `qwen3.7-plus`，两者不能直接混算。
+回答接口使用 OpenAI 兼容端点手动创建 ChatModel，默认模型为 `qwen3.8-max-0902`、温度为 `0.2`；DashScope 原生客户端继续只承担 `text-embedding-v3`。Chat 的端点、密钥和模型可分别通过 `JAVA_INTERVIEW_RAG_OPENAI_BASE_URL`、`JAVA_INTERVIEW_RAG_OPENAI_API_KEY` 和 `JAVA_INTERVIEW_RAG_OPENAI_CHAT_MODEL` 覆盖，未覆盖时回退到原 DashScope Chat 配置，避免 Chat 覆盖值污染 Embedding。它固定检索前 5 条且相似度不低于 `0.60` 的资料，将每条资料编号并要求模型只根据资料回答；没有可靠来源或模型返回空内容时，统一返回“知识库中没有足够可靠的资料回答这个问题。”。当前默认模型已完成失败超时与不可用安全返回验证，但尚未形成成功质量基线；历史批量质量基线来自旧模型，不能混算。
 
 阶段 4 的首个闭环记录每次回答的问题、`topK`、相似度阈值、Prompt 版本、命中来源元数据与相似度、耗时、回答状态和失败类型，不保存 chunk 正文或模型回答。迁移脚本为 `deploy/mysql/init/003_rag_retrieval_log.sql`，已执行到独立数据库 `java_interview_rag`；日志查询接口具备表结构前提，日志存储故障仍只会告警且不影响回答。
 

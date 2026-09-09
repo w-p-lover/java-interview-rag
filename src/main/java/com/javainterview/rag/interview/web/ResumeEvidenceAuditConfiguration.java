@@ -50,7 +50,7 @@ public class ResumeEvidenceAuditConfiguration {
             ChatClient ragAnswerChatClient,
             ResumeEvidenceAuditRequestLogStore logStore,
             @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName,
-            @Value("${java-interview-rag.resume-audit.timeout:60s}") Duration timeout,
+            @Value("${java-interview-rag.resume-audit.timeout:420s}") Duration timeout,
             @org.springframework.beans.factory.annotation.Qualifier("resumeEvidenceAuditExecutor") Executor executor) {
         return new ResumeEvidenceAuditService(ragAnswerChatClient, logStore, modelName, timeout, executor);
     }
