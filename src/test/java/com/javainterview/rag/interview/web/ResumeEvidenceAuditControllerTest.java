@@ -5,6 +5,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQuery
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
 import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.web.client.ResourceAccessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -96,6 +97,24 @@ class ResumeEvidenceAuditControllerTest {
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message")
                         .value("模型服务鉴权失败，请检查 API Key 和模型权限配置"));
+    }
+
+    @Test
+    void mapsModelUnavailableFailureToSafeBadGatewayMessage() throws Exception {
+        ResumeEvidenceAuditService service = mock(ResumeEvidenceAuditService.class);
+        ResumeEvidenceAuditRequestLogQueryService logQueryService =
+                mock(ResumeEvidenceAuditRequestLogQueryService.class);
+        when(service.audit("真实简历"))
+                .thenThrow(new ResourceAccessException("模型服务连接失败"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new ResumeEvidenceAuditController(service, logQueryService)).build();
+
+        mockMvc.perform(post("/api/interviews/resume-audits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resumeText\":\"真实简历\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message")
+                        .value("模型服务暂时不可用，请稍后重试"));
     }
 
     @Test
