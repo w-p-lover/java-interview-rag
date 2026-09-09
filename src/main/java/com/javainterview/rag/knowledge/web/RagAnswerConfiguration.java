@@ -12,6 +12,10 @@ import com.javainterview.rag.knowledge.persistence.RagRetrievalLogMapper;
 import com.javainterview.rag.knowledge.persistence.RedisRagAnswerCache;
 import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
 import com.javainterview.rag.knowledge.rag.RagAnswerCacheObserver;
+import com.javainterview.rag.knowledge.persistence.KnowledgeReviewTaskMapper;
+import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewTaskStore;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskService;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskStore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -28,6 +32,16 @@ import java.time.Duration;
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
 public class RagAnswerConfiguration {
+
+    @Bean
+    KnowledgeReviewTaskStore knowledgeReviewTaskStore(KnowledgeReviewTaskMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlKnowledgeReviewTaskStore(mapper, objectMapper);
+    }
+
+    @Bean
+    KnowledgeReviewTaskService knowledgeReviewTaskService(KnowledgeReviewTaskStore store) {
+        return new KnowledgeReviewTaskService(store);
+    }
 
     @Bean
     ChatClient ragAnswerChatClient(ChatModel chatModel) {

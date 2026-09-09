@@ -48,6 +48,18 @@ export interface KnowledgeAnswerClaimEvidence {
   anchorCoverage: number;
 }
 
+export interface KnowledgeReviewTask {
+  id: string;
+  question: string;
+  claim: string;
+  evidenceStatus: KnowledgeAnswerClaimStatus;
+  sourceNumbers: number[];
+  status: "PENDING" | "COMPLETED";
+  plannedReviewDate: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 export interface KnowledgeAnswerResponse {
   answer: string;
   grounded: boolean;
@@ -263,5 +275,27 @@ export async function deleteKnowledgeDocument(source: string): Promise<MarkdownD
     "/knowledge/documents",
     { params: { source } },
   );
+  return response.data;
+}
+
+export async function createKnowledgeReviewTask(question: string, claim: KnowledgeAnswerClaimEvidence): Promise<KnowledgeReviewTask> {
+  const response = await request.post<KnowledgeReviewTask>("/knowledge/review-tasks", {
+    question, claim: claim.claim, evidenceStatus: claim.status, sourceNumbers: claim.sourceNumbers,
+  });
+  return response.data;
+}
+
+export async function getKnowledgeReviewTasks(): Promise<KnowledgeReviewTask[]> {
+  const response = await request.get<KnowledgeReviewTask[]>("/knowledge/review-tasks");
+  return response.data;
+}
+
+export async function completeKnowledgeReviewTask(taskId: string): Promise<KnowledgeReviewTask> {
+  const response = await request.patch<KnowledgeReviewTask>(`/knowledge/review-tasks/${taskId}/complete`);
+  return response.data;
+}
+
+export async function scheduleKnowledgeReviewTask(taskId: string, plannedReviewDate: string | null): Promise<KnowledgeReviewTask> {
+  const response = await request.patch<KnowledgeReviewTask>(`/knowledge/review-tasks/${taskId}/schedule`, { plannedReviewDate });
   return response.data;
 }

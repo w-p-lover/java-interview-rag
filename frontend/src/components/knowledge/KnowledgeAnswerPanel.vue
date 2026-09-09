@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { BookOpenCheck, CircleAlert, LibraryBig, TriangleAlert } from "@lucide/vue";
 
-import type { KnowledgeAnswerResponse } from "@/api/knowledge";
+import type { KnowledgeAnswerClaimEvidence, KnowledgeAnswerResponse } from "@/api/knowledge";
 import KnowledgeClaimEvidence from "@/components/knowledge/KnowledgeClaimEvidence.vue";
 import KnowledgeSourceList from "@/components/knowledge/KnowledgeSourceList.vue";
 
@@ -10,7 +10,10 @@ defineProps<{
   streaming: boolean;
   question: string;
   result: KnowledgeAnswerResponse | null;
+  reviewTaskIds?: Readonly<Record<string, string>>;
 }>();
+
+const emit = defineEmits<{ addReview: [claim: KnowledgeAnswerClaimEvidence] }>();
 </script>
 
 <template>
@@ -52,7 +55,7 @@ defineProps<{
       </p>
 
       <p class="answer-content">{{ result.answer }}</p>
-      <KnowledgeClaimEvidence :claims="result.claimEvidence" />
+      <KnowledgeClaimEvidence :claims="result.claimEvidence" :review-task-ids="reviewTaskIds" @add-review="emit('addReview', $event)" />
       <KnowledgeSourceList :sources="result.sources" />
     </template>
 

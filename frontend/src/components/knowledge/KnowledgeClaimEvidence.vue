@@ -8,7 +8,10 @@ import type {
 
 const props = defineProps<{
   claims: readonly KnowledgeAnswerClaimEvidence[];
+  reviewTaskIds?: Readonly<Record<string, string>>;
 }>();
+
+const emit = defineEmits<{ addReview: [claim: KnowledgeAnswerClaimEvidence] }>();
 
 const statusMeta: Record<KnowledgeAnswerClaimStatus, { label: string; tone: string }> = {
   SUPPORTED: { label: "资料支持", tone: "supported" },
@@ -50,6 +53,18 @@ function sourceTarget(sourceNumber: number): string {
           <span>{{ coverageLabel(claim.anchorCoverage) }}</span>
         </div>
         <p>{{ claim.claim }}</p>
+        <button
+          v-if="claim.status !== 'SUPPORTED'"
+          type="button"
+          :disabled="Boolean(props.reviewTaskIds?.[claim.claim])"
+          @click="emit('addReview', claim)"
+        >{{ props.reviewTaskIds?.[claim.claim] ? "已加入复习" : "加入复习" }}</button>
+        <button
+          v-if="claim.status !== 'SUPPORTED'"
+          type="button"
+          :disabled="Boolean(props.reviewTaskIds?.[claim.claim])"
+          @click="emit('addReview', claim)"
+        >{{ props.reviewTaskIds?.[claim.claim] ? "已加入复习" : "加入复习" }}</button>
         <small v-if="claim.sourceNumbers.length" class="claim-sources">
           <span>引用资料：</span>
           <a
@@ -144,6 +159,18 @@ function sourceTarget(sourceNumber: number): string {
   color: var(--color-ink-2);
   font-size: var(--text-sm);
   line-height: 1.55;
+}
+
+.claim-evidence button {
+  justify-self: start;
+  min-height: 2rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-accent);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  font-size: var(--text-xs);
+  font-weight: 700;
 }
 
 .supported { color: var(--color-success); }
