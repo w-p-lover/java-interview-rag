@@ -37,8 +37,10 @@ spring:
       test-on-return: false
   data:
     redis:
-      host: ${JAVA_INTERVIEW_RAG_REDIS_HOST:127.0.0.1}
-      port: ${JAVA_INTERVIEW_RAG_REDIS_PORT:6379}
+      host: ${JAVA_INTERVIEW_RAG_REDIS_HOST:${BLOG_REDIS_HOST:127.0.0.1}}
+      port: ${JAVA_INTERVIEW_RAG_REDIS_PORT:${BLOG_REDIS_PORT:6379}}
+      password: ${JAVA_INTERVIEW_RAG_REDIS_PASSWORD:${BLOG_REDIS_PASSWORD:}}
+      database: ${JAVA_INTERVIEW_RAG_REDIS_DATABASE:${BLOG_REDIS_DATABASE:0}}
       timeout: ${JAVA_INTERVIEW_RAG_REDIS_TIMEOUT:500ms}
   ai:
     model:
