@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.util.List;
 
 public record BusinessObservabilityOverview(Instant generatedAt, long totalRequests,
-                                            long totalFailures, List<BusinessOperationMetric> operations) {
+                                            long totalFailures, List<BusinessOperationMetric> operations,
+                                            CacheMetric cache) {
     public BusinessObservabilityOverview {
         operations = List.copyOf(operations);
     }
@@ -12,5 +13,8 @@ public record BusinessObservabilityOverview(Instant generatedAt, long totalReque
     public record BusinessOperationMetric(String operation, long requestCount, long failureCount,
                                           double failureRate, double averageLatencyMillis,
                                           double maxLatencyMillis) {
+    }
+
+    public record CacheMetric(long hitCount, long missCount, long bypassCount) {
     }
 }

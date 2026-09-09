@@ -10,6 +10,8 @@ import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.persistence.MySqlRagRetrievalLogStore;
 import com.javainterview.rag.knowledge.persistence.RagRetrievalLogMapper;
 import com.javainterview.rag.knowledge.persistence.RedisRagAnswerCache;
+import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
+import com.javainterview.rag.knowledge.rag.RagAnswerCacheObserver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -19,6 +21,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import io.micrometer.core.instrument.MeterRegistry;
 
 import java.time.Duration;
 
@@ -43,6 +46,11 @@ public class RagAnswerConfiguration {
         return new RedisRagAnswerCache(redisTemplate, objectMapper, ttl);
     }
 
+    @Bean
+    RagAnswerCacheObserver ragAnswerCacheObserver(MeterRegistry meterRegistry) {
+        return new MicrometerRagAnswerCacheObserver(meterRegistry);
+    }
+
     @Bean(destroyMethod = "shutdown")
     ThreadPoolTaskExecutor ragAnswerExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -62,11 +70,12 @@ public class RagAnswerConfiguration {
                                       ThreadPoolTaskExecutor ragAnswerExecutor,
                                       RagAnswerCache answerCache,
                                       KnowledgeIndexVersionMetadata indexVersion,
-                                      MarkdownImportRegistry importRegistry) {
+                                      MarkdownImportRegistry importRegistry,
+                                      RagAnswerCacheObserver cacheObserver) {
         // 固定集对照显示相邻扩展增加噪声且无证据收益，生产回答暂时关闭扩展。
         return new RagAnswerService(searchService, hybridSearchService, null,
                 ragAnswerChatClient, logStore, answerTimeout, ragAnswerExecutor, 4,
-                answerCache, indexVersion.toString(), () -> knowledgeVersionKey(importRegistry));
+                answerCache, indexVersion.toString(), () -> knowledgeVersionKey(importRegistry), cacheObserver);
     }
 
     private String knowledgeVersionKey(MarkdownImportRegistry importRegistry) {

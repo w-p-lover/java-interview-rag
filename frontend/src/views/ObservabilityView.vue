@@ -48,6 +48,24 @@ function formatTime(value: string): string {
           <small>当前进程累计</small>
         </article>
         <article class="metric-card">
+          <Activity :size="19" aria-hidden="true" />
+          <span>回答缓存命中</span>
+          <strong>{{ result.cache.hitCount }}</strong>
+          <small>Redis 命中次数</small>
+        </article>
+        <article class="metric-card">
+          <Activity :size="19" aria-hidden="true" />
+          <span>缓存旁路</span>
+          <strong>{{ result.cache.bypassCount }}</strong>
+          <small>缓存异常后回源</small>
+        </article>
+        <article class="metric-card">
+          <Activity :size="19" aria-hidden="true" />
+          <span>缓存未命中</span>
+          <strong>{{ result.cache.missCount }}</strong>
+          <small>正常回源请求</small>
+        </article>
+        <article class="metric-card">
           <AlertTriangle :size="19" aria-hidden="true" />
           <span>失败请求</span>
           <strong>{{ result.totalFailures }}</strong>

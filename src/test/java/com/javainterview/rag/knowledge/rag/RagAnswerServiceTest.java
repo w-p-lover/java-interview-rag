@@ -599,4 +599,42 @@ class RagAnswerServiceTest {
         verify(searchService, org.mockito.Mockito.times(2)).search("HashMap", 5, 0.60);
         org.junit.jupiter.api.Assertions.assertEquals(2, values.size());
     }
+
+    @Test
+    void observesCacheMissAndBypass() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        RagAnswerCache cache = new RagAnswerCache() {
+            private boolean first = true;
+
+            @Override
+            public Optional<RagAnswerResult> get(String key) {
+                if (first) {
+                    first = false;
+                    return Optional.empty();
+                }
+                throw new IllegalStateException("Redis 不可用");
+            }
+
+            @Override
+            public void put(String key, RagAnswerResult result) {
+            }
+        };
+        RagAnswerCacheObserver observer = mock(RagAnswerCacheObserver.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).call().content()).thenReturn("HashMap 使用数组 [资料 1]。");
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 1,
+                cache, "test-index", () -> "version-1", observer);
+
+        service.answer("HashMap");
+        service.answer("HashMap");
+
+        org.mockito.Mockito.verify(observer).miss();
+        org.mockito.Mockito.verify(observer).bypass();
+    }
 }

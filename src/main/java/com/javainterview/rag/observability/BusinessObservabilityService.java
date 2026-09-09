@@ -3,6 +3,7 @@ package com.javainterview.rag.observability;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -58,7 +59,11 @@ public class BusinessObservabilityService {
                     metric.requestCount == 0 ? 0 : metric.failureCount * 1.0 / metric.requestCount,
                     averageMillis, metric.maxLatencyNanos / 1_000_000.0));
         });
-        return new BusinessObservabilityOverview(Instant.now(), totalRequests, totalFailures, operations);
+        return new BusinessObservabilityOverview(Instant.now(), totalRequests, totalFailures, operations,
+                new BusinessObservabilityOverview.CacheMetric(
+                        MicrometerRagAnswerCacheObserver.count(meterRegistry, "HIT"),
+                        MicrometerRagAnswerCacheObserver.count(meterRegistry, "MISS"),
+                        MicrometerRagAnswerCacheObserver.count(meterRegistry, "BYPASS")));
     }
 
     private static final class MutableMetric {

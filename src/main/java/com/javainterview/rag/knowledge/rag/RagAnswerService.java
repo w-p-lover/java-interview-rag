@@ -65,6 +65,7 @@ public class RagAnswerService {
     private final Executor answerExecutor;
     private final Semaphore answerBulkhead;
     private final RagAnswerCache answerCache;
+    private final RagAnswerCacheObserver cacheObserver;
     private final String indexVersionKey;
     private final Supplier<String> knowledgeVersionKeySupplier;
     private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
@@ -141,6 +142,19 @@ public class RagAnswerService {
                             Duration answerTimeout, Executor answerExecutor,
                             int maxConcurrentAnswers, RagAnswerCache answerCache,
                             String indexVersionKey, Supplier<String> knowledgeVersionKeySupplier) {
+        this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
+                answerTimeout, answerExecutor, maxConcurrentAnswers, answerCache,
+                indexVersionKey, knowledgeVersionKeySupplier, new NoopRagAnswerCacheObserver());
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore,
+                            Duration answerTimeout, Executor answerExecutor,
+                            int maxConcurrentAnswers, RagAnswerCache answerCache,
+                            String indexVersionKey, Supplier<String> knowledgeVersionKeySupplier,
+                            RagAnswerCacheObserver cacheObserver) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
@@ -153,6 +167,7 @@ public class RagAnswerService {
         }
         this.answerBulkhead = new Semaphore(maxConcurrentAnswers);
         this.answerCache = Objects.requireNonNull(answerCache, "回答缓存不能为空");
+        this.cacheObserver = Objects.requireNonNull(cacheObserver, "缓存观测器不能为空");
         this.indexVersionKey = Objects.requireNonNull(indexVersionKey, "索引版本不能为空");
         this.knowledgeVersionKeySupplier = Objects.requireNonNull(
                 knowledgeVersionKeySupplier, "知识版本摘要提供器不能为空");
@@ -462,8 +477,15 @@ public class RagAnswerService {
 
     private Optional<RagAnswerResult> readCache(String key) {
         try {
-            return answerCache.get(key);
+            Optional<RagAnswerResult> result = answerCache.get(key);
+            if (result.isPresent()) {
+                cacheObserver.hit();
+            } else {
+                cacheObserver.miss();
+            }
+            return result;
         } catch (RuntimeException ignored) {
+            cacheObserver.bypass();
             return Optional.empty();
         }
     }
