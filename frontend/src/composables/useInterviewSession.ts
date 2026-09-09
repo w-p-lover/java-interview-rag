@@ -72,8 +72,8 @@ export function useInterviewSession() {
 
   const latestAnswer = computed(() => session.value?.answers.at(-1) ?? null);
 
-  async function initialize(): Promise<void> {
-    await restore();
+  async function initialize(requestedSessionId?: string): Promise<void> {
+    await restore(requestedSessionId);
     if (!session.value) {
       await loadRecentSessions();
     }

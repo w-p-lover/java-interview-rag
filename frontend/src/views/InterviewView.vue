@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, nextTick, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import type {
   InterviewReviewTaskQuery,
@@ -58,6 +59,9 @@ const {
   reset,
 } = useInterviewSession();
 
+const route = useRoute();
+const router = useRouter();
+
 const progress = computed(() => {
   if (!session.value) {
     return 0;
@@ -67,7 +71,12 @@ const progress = computed(() => {
 
 const recentSessionIds = computed(() => recentSessions.value.map((item) => item.id));
 
-onMounted(initialize);
+onMounted(() => {
+  const requestedSessionId = typeof route.query.sessionId === "string"
+    ? route.query.sessionId
+    : undefined;
+  void initialize(requestedSessionId);
+});
 
 function handleStart(payload: InterviewSessionStartPayload): void {
   void start(payload);
@@ -83,6 +92,16 @@ function handleSubmit(answer: string): void {
 
 function handleRestore(sessionId: string): void {
   void restore(sessionId);
+}
+
+async function handleReviewPathOpen(sessionId: string): Promise<void> {
+  await router.push({ name: "interview", query: { sessionId } });
+  await restore(sessionId);
+  await nextTick();
+  document.getElementById("interview-review-tasks")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
 }
 
 function handleReviewRetry(): void {
@@ -134,7 +153,10 @@ function handleAssistantScheduled(): void {
         :restoring-session-id="restoringSessionId"
         @restore="handleRestore"
       />
-      <InterviewReviewPathPanel :session-ids="recentSessionIds" />
+      <InterviewReviewPathPanel
+        :session-ids="recentSessionIds"
+        @open-session="handleReviewPathOpen"
+      />
     </template>
 
     <template v-else>
@@ -189,7 +211,10 @@ function handleAssistantScheduled(): void {
           @schedule="handleReviewSchedule"
           @submit-attempt="handleReviewAttempt"
         />
-        <InterviewReviewPathPanel :session-ids="recentSessionIds" />
+        <InterviewReviewPathPanel
+          :session-ids="recentSessionIds"
+          @open-session="handleReviewPathOpen"
+        />
       </div>
 
       <section v-else-if="currentQuestion" class="interview-grid">

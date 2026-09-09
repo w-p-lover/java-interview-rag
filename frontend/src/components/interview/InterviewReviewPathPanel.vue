@@ -23,6 +23,10 @@ const {
   generate,
 } = useInterviewReviewPath(() => props.sessionIds);
 
+const emit = defineEmits<{
+  openSession: [sessionId: string];
+}>();
+
 const recommendations = computed(() => result.value?.recommendations ?? []);
 const actionLabel = computed(() => loading.value
   ? "正在整理…"
@@ -100,6 +104,14 @@ function emitGenerate(): void {
               <span><CalendarDays :size="14" aria-hidden="true" /> {{ formatDate(item.recommendedReviewDate) }}</span>
               <span><ChevronRight :size="14" aria-hidden="true" /> 间隔 {{ item.intervalDays }} 天</span>
             </div>
+            <button
+              type="button"
+              class="review-path__open"
+              @click="emit('openSession', item.sessionId)"
+            >
+              打开复习
+              <ChevronRight :size="14" aria-hidden="true" />
+            </button>
           </div>
         </li>
       </ol>
@@ -293,6 +305,28 @@ function emitGenerate(): void {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
+}
+
+.review-path__open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  width: fit-content;
+  min-height: 2.25rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-accent);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.review-path__open:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
 }
 
 @media (max-width: 48rem) {
