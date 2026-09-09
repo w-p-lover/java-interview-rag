@@ -69,6 +69,8 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 java-interview-rag:
+  resume-audit:
+    timeout: ${JAVA_INTERVIEW_RAG_RESUME_AUDIT_TIMEOUT:60s}
   answer:
     cache:
       ttl: ${JAVA_INTERVIEW_RAG_ANSWER_CACHE_TTL:10m}

@@ -4,6 +4,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLog;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService.ResumeEvidenceAuditTimeoutException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.ai.retry.NonTransientAiException;
@@ -68,7 +69,7 @@ public class ResumeEvidenceAuditController {
     }
 
     @ExceptionHandler({NonTransientAiException.class, TransientAiException.class,
-            ResourceAccessException.class})
+            ResourceAccessException.class, ResumeEvidenceAuditTimeoutException.class})
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public Map<String, String> handleModelFailure(RuntimeException exception) {
         String detail = exception.getMessage();

@@ -12,10 +12,26 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.time.Duration;
+import java.util.concurrent.Executor;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
 public class ResumeEvidenceAuditConfiguration {
+
+    @Bean(name = "resumeEvidenceAuditExecutor")
+    Executor resumeEvidenceAuditExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(8);
+        executor.setThreadNamePrefix("resume-audit-");
+        executor.setWaitForTasksToCompleteOnShutdown(false);
+        executor.initialize();
+        return executor;
+    }
 
     @Bean
     ResumeEvidenceAuditRequestLogStore resumeEvidenceAuditRequestLogStore(
@@ -33,8 +49,10 @@ public class ResumeEvidenceAuditConfiguration {
     ResumeEvidenceAuditService resumeEvidenceAuditService(
             ChatClient ragAnswerChatClient,
             ResumeEvidenceAuditRequestLogStore logStore,
-            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
-        return new ResumeEvidenceAuditService(ragAnswerChatClient, logStore, modelName);
+            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName,
+            @Value("${java-interview-rag.resume-audit.timeout:60s}") Duration timeout,
+            @org.springframework.beans.factory.annotation.Qualifier("resumeEvidenceAuditExecutor") Executor executor) {
+        return new ResumeEvidenceAuditService(ragAnswerChatClient, logStore, modelName, timeout, executor);
     }
 
     @Bean

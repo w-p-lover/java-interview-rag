@@ -11,6 +11,9 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.converter.BeanOutputConverter;
 
 import java.util.List;
+import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,6 +26,42 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ResumeEvidenceAuditServiceTest {
+
+    @Test
+    void timesOutModelCallAndRecordsTimeoutType() {
+        ChatClient chatClient = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.CallResponseSpec responseSpec = mock(ChatClient.CallResponseSpec.class);
+        ResumeEvidenceAuditRequestLogStore logStore = mock(ResumeEvidenceAuditRequestLogStore.class);
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        when(requestSpec.system(anyString())).thenReturn(requestSpec);
+        when(requestSpec.user(anyString())).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(responseSpec);
+        when(responseSpec.responseEntity(ResumeEvidenceAuditDraft.class)).thenAnswer(invocation -> {
+            try {
+                Thread.sleep(1_000);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        });
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            ResumeEvidenceAuditService service = new ResumeEvidenceAuditService(
+                    chatClient, logStore, "test-model", Duration.ofMillis(30), executor);
+
+            IllegalStateException exception = assertThrows(IllegalStateException.class,
+                    () -> service.audit("项目：Java 面试平台"));
+
+            assertEquals("简历审计模型调用超时，请稍后重试", exception.getMessage());
+            verify(logStore).record(org.mockito.ArgumentMatchers.argThat(log ->
+                    log.status() == ResumeEvidenceAuditRequestLog.Status.FAILED
+                            && "TIMEOUT".equals(log.errorType())
+                            && log.elapsedMillis() < 500));
+        } finally {
+            executor.shutdownNow();
+        }
+    }
 
     @Test
     void supportsSpringAiStructuredOutputConversion() {

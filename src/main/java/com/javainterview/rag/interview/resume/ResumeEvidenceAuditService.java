@@ -11,6 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -47,16 +51,31 @@ public class ResumeEvidenceAuditService {
     private final ChatClient chatClient;
     private final ResumeEvidenceAuditRequestLogStore logStore;
     private final String modelName;
+    private final java.time.Duration auditTimeout;
+    private final Executor auditExecutor;
 
     public ResumeEvidenceAuditService(ChatClient chatClient,
                                       ResumeEvidenceAuditRequestLogStore logStore,
                                       String modelName) {
+        this(chatClient, logStore, modelName, java.time.Duration.ofSeconds(60), Runnable::run);
+    }
+
+    public ResumeEvidenceAuditService(ChatClient chatClient,
+                                      ResumeEvidenceAuditRequestLogStore logStore,
+                                      String modelName,
+                                      java.time.Duration auditTimeout,
+                                      Executor auditExecutor) {
         this.chatClient = Objects.requireNonNull(chatClient, "ChatClient 不能为空");
         this.logStore = Objects.requireNonNull(logStore, "简历审计请求日志存储不能为空");
         if (modelName == null || modelName.isBlank()) {
             throw new IllegalArgumentException("简历审计模型名称不能为空");
         }
         this.modelName = modelName.strip();
+        this.auditTimeout = Objects.requireNonNull(auditTimeout, "简历审计超时时间不能为空");
+        if (auditTimeout.isNegative() || auditTimeout.isZero()) {
+            throw new IllegalArgumentException("简历审计超时时间必须大于 0");
+        }
+        this.auditExecutor = Objects.requireNonNull(auditExecutor, "简历审计执行器不能为空");
     }
 
     public ResumeEvidenceAuditResult audit(String resumeText) {
@@ -75,11 +94,28 @@ public class ResumeEvidenceAuditService {
         ResponseEntity<ChatResponse, ResumeEvidenceAuditDraft> modelResponse = null;
         ResumeEvidenceAuditDraft draft = null;
         try {
-            modelResponse = chatClient.prompt()
-                    .system(SYSTEM_PROMPT)
-                    .user(buildUserPrompt(sanitizedResume.modelInput()))
-                    .call()
-                    .responseEntity(ResumeEvidenceAuditDraft.class);
+            CompletableFuture<ResponseEntity<ChatResponse, ResumeEvidenceAuditDraft>> modelCall =
+                    CompletableFuture.supplyAsync(() -> chatClient.prompt()
+                            .system(SYSTEM_PROMPT)
+                            .user(buildUserPrompt(sanitizedResume.modelInput()))
+                            .call()
+                            .responseEntity(ResumeEvidenceAuditDraft.class), auditExecutor);
+            try {
+                modelResponse = modelCall.get(auditTimeout.toMillis(), java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (TimeoutException exception) {
+                modelCall.cancel(true);
+                throw new ResumeEvidenceAuditTimeoutException();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                modelCall.cancel(true);
+                throw new IllegalStateException("简历审计线程被中断", exception);
+            } catch (ExecutionException exception) {
+                Throwable cause = exception.getCause();
+                if (cause instanceof RuntimeException runtimeException) {
+                    throw runtimeException;
+                }
+                throw new IllegalStateException("简历审计模型调用失败", cause);
+            }
             if (modelResponse == null || modelResponse.entity() == null) {
                 throw new IllegalStateException("模型未返回可用的简历审计结果");
             }
@@ -97,7 +133,7 @@ public class ResumeEvidenceAuditService {
             TokenUsage usage = tokenUsage(modelResponse == null ? null : modelResponse.response());
             long elapsedMillis = elapsedMillis(startedAt);
             record(requestId, ResumeEvidenceAuditRequestLog.Status.FAILED,
-                    usage, exception.getClass().getSimpleName(), elapsedMillis);
+                    usage, errorType(exception), elapsedMillis);
             int candidateFactCount = draft == null ? 0 : draft.facts().size();
             int legalEvidenceCount = draft == null ? 0 : (int) draft.facts().stream()
                     .filter(fact -> sanitizedResume.modelInput().contains(fact.evidence()))
@@ -105,6 +141,17 @@ public class ResumeEvidenceAuditService {
             return EvaluationAttempt.failed(
                     draft != null, candidateFactCount, legalEvidenceCount,
                     usage, elapsedMillis, exception);
+        }
+    }
+
+    private String errorType(RuntimeException exception) {
+        return exception instanceof ResumeEvidenceAuditTimeoutException
+                ? "TIMEOUT" : exception.getClass().getSimpleName();
+    }
+
+    public static final class ResumeEvidenceAuditTimeoutException extends IllegalStateException {
+        public ResumeEvidenceAuditTimeoutException() {
+            super("简历审计模型调用超时，请稍后重试");
         }
     }
 
