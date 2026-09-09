@@ -14,6 +14,8 @@ import java.util.Objects;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.preparation.InterviewFocusArea;
+import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import java.util.UUID;
 
 public class KnowledgeReviewTaskService {
@@ -38,8 +40,11 @@ public class KnowledgeReviewTaskService {
         if (attemptStore == null || evaluator == null) throw new IllegalStateException("知识复习评价能力尚未配置");
         KnowledgeReviewTask task = find(null, null, null).stream().filter(item -> item.id().equals(requireId(taskId))).findFirst().orElseThrow(() -> new java.util.NoSuchElementException("知识复习任务不存在"));
         if (answer == null || answer.isBlank()) throw new IllegalArgumentException("复习回答不能为空");
-        InterviewPreparationProfile profile = new InterviewPreparationProfile("知识复习", List.of(), List.of(), List.of());
-        InterviewQuestion question = new InterviewQuestion(task.question(), "解释并纠正：" + task.claim(), List.of(), task.question(), false, List.of());
+        InterviewPreparationProfile profile = new InterviewPreparationProfile(
+                "知识复习用户", List.of("知识问答复习任务"), List.of(),
+                List.of(new InterviewFocusArea("知识复习", "针对证据问题复述并纠正", List.of(InterviewFocusSource.TARGET_ROLE))));
+        InterviewQuestion question = new InterviewQuestion(task.question(), "解释并纠正：" + task.claim(),
+                List.of(InterviewFocusSource.TARGET_ROLE), task.question(), false, List.of());
         var assessment = evaluator.evaluateForReview(profile, question, answer.strip(), List.of());
         return attemptStore.create(new KnowledgeReviewAttempt(UUID.randomUUID().toString(), task.id(), answer.strip(), assessment.evaluation(), java.time.LocalDateTime.now()));
     }
