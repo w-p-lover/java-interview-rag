@@ -25,6 +25,7 @@ const props = defineProps<{
   submittingAttemptTaskId: string;
   attemptError: string;
   history: InterviewReviewSessionHistory | null;
+  highlightedTaskId?: string;
 }>();
 
 const historiesByTaskId = computed(() => new Map(
@@ -115,8 +116,9 @@ function handleSchedule(taskId: string, plannedReviewDate: string | null): void 
       <li
         v-for="task in tasks"
         :key="task.id"
+        :id="`review-task-${task.id}`"
         class="review-item"
-        :class="{ completed: task.status === 'COMPLETED' }"
+        :class="{ completed: task.status === 'COMPLETED', highlighted: props.highlightedTaskId === task.id }"
       >
         <div class="review-marker" aria-hidden="true">
           <span>第 {{ task.questionIndex + 1 }} 题</span>
@@ -283,6 +285,15 @@ h2 {
 
 .review-item:last-child {
   border-bottom: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.review-item.highlighted {
+  margin-inline: calc(var(--space-md) * -1);
+  padding-inline: var(--space-md);
+  border-radius: var(--radius-control);
+  background: var(--color-accent-soft);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+  scroll-margin-top: var(--space-xl);
 }
 
 .review-marker {

@@ -24,7 +24,7 @@ const {
 } = useInterviewReviewPath(() => props.sessionIds);
 
 const emit = defineEmits<{
-  openSession: [sessionId: string];
+  openSession: [sessionId: string, taskId: string];
 }>();
 
 const recommendations = computed(() => result.value?.recommendations ?? []);
@@ -107,7 +107,7 @@ function emitGenerate(): void {
             <button
               type="button"
               class="review-path__open"
-              @click="emit('openSession', item.sessionId)"
+              @click="emit('openSession', item.sessionId, item.taskId)"
             >
               打开复习
               <ChevronRight :size="14" aria-hidden="true" />

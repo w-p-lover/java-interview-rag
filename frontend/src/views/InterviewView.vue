@@ -61,6 +61,9 @@ const {
 
 const route = useRoute();
 const router = useRouter();
+const highlightedReviewTaskId = computed(() => typeof route.query.taskId === "string"
+  ? route.query.taskId
+  : "");
 
 const progress = computed(() => {
   if (!session.value) {
@@ -71,11 +74,13 @@ const progress = computed(() => {
 
 const recentSessionIds = computed(() => recentSessions.value.map((item) => item.id));
 
-onMounted(() => {
+onMounted(async () => {
   const requestedSessionId = typeof route.query.sessionId === "string"
     ? route.query.sessionId
     : undefined;
-  void initialize(requestedSessionId);
+  await initialize(requestedSessionId);
+  await nextTick();
+  focusReviewTask(highlightedReviewTaskId.value);
 });
 
 function handleStart(payload: InterviewSessionStartPayload): void {
@@ -94,11 +99,16 @@ function handleRestore(sessionId: string): void {
   void restore(sessionId);
 }
 
-async function handleReviewPathOpen(sessionId: string): Promise<void> {
-  await router.push({ name: "interview", query: { sessionId } });
+async function handleReviewPathOpen(sessionId: string, taskId: string): Promise<void> {
+  await router.push({ name: "interview", query: { sessionId, taskId } });
   await restore(sessionId);
   await nextTick();
-  document.getElementById("interview-review-tasks")?.scrollIntoView({
+  focusReviewTask(taskId);
+}
+
+function focusReviewTask(taskId: string): void {
+  const target = taskId ? document.getElementById(`review-task-${taskId}`) : null;
+  (target ?? document.getElementById("interview-review-tasks"))?.scrollIntoView({
     behavior: "smooth",
     block: "start",
   });
@@ -205,6 +215,7 @@ function handleAssistantScheduled(): void {
           :submitting-attempt-task-id="submittingReviewAttemptTaskId"
           :attempt-error="reviewAttemptError"
           :history="reviewHistory"
+          :highlighted-task-id="highlightedReviewTaskId"
           @retry="handleReviewRetry"
           @complete="handleReviewComplete"
           @filter="handleReviewFilter"
