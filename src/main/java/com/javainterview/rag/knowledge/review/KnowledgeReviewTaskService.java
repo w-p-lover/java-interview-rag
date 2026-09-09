@@ -11,6 +11,10 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
+import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
+import com.javainterview.rag.interview.question.InterviewQuestion;
+import java.util.UUID;
 
 public class KnowledgeReviewTaskService {
     private static final List<RagAnswerClaimEvidenceStatus> REVIEWABLE = List.of(
@@ -19,9 +23,30 @@ public class KnowledgeReviewTaskService {
             RagAnswerClaimEvidenceStatus.CITATION_INVALID);
 
     private final KnowledgeReviewTaskStore store;
+    private KnowledgeReviewAttemptStore attemptStore;
+    private InterviewAnswerEvaluator evaluator;
 
     public KnowledgeReviewTaskService(KnowledgeReviewTaskStore store) {
         this.store = Objects.requireNonNull(store, "知识复习任务存储不能为空");
+    }
+
+    public KnowledgeReviewTaskService(KnowledgeReviewTaskStore store, KnowledgeReviewAttemptStore attemptStore, InterviewAnswerEvaluator evaluator) {
+        this(store); this.attemptStore = attemptStore; this.evaluator = evaluator;
+    }
+
+    public KnowledgeReviewAttempt submitAttempt(String taskId, String answer) {
+        if (attemptStore == null || evaluator == null) throw new IllegalStateException("知识复习评价能力尚未配置");
+        KnowledgeReviewTask task = find(null, null, null).stream().filter(item -> item.id().equals(requireId(taskId))).findFirst().orElseThrow(() -> new java.util.NoSuchElementException("知识复习任务不存在"));
+        if (answer == null || answer.isBlank()) throw new IllegalArgumentException("复习回答不能为空");
+        InterviewPreparationProfile profile = new InterviewPreparationProfile("知识复习", List.of(), List.of(), List.of());
+        InterviewQuestion question = new InterviewQuestion(task.question(), "解释并纠正：" + task.claim(), List.of(), task.question(), false, List.of());
+        var assessment = evaluator.evaluateForReview(profile, question, answer.strip(), List.of());
+        return attemptStore.create(new KnowledgeReviewAttempt(UUID.randomUUID().toString(), task.id(), answer.strip(), assessment.evaluation(), java.time.LocalDateTime.now()));
+    }
+
+    public List<KnowledgeReviewAttempt> findAttempts(String taskId) {
+        if (attemptStore == null) throw new IllegalStateException("知识复习回答能力尚未配置");
+        return attemptStore.findByTaskId(requireId(taskId));
     }
 
     public KnowledgeReviewTask create(String question, String claim,

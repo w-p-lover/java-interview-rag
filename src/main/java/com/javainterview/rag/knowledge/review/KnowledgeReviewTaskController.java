@@ -39,6 +39,15 @@ public class KnowledgeReviewTaskController {
     @PatchMapping("/{taskId}/complete")
     public KnowledgeReviewTask complete(@PathVariable String taskId) { return service.complete(taskId); }
 
+    @PostMapping("/{taskId}/attempts")
+    public KnowledgeReviewAttempt submitAttempt(@PathVariable String taskId, @RequestBody KnowledgeReviewAttemptRequest request) {
+        if (request == null) throw new IllegalArgumentException("复习回答请求不能为空");
+        return service.submitAttempt(taskId, request.answer());
+    }
+
+    @GetMapping("/{taskId}/attempts")
+    public List<KnowledgeReviewAttempt> findAttempts(@PathVariable String taskId) { return service.findAttempts(taskId); }
+
     @PatchMapping("/{taskId}/schedule")
     public KnowledgeReviewTask schedule(@PathVariable String taskId, @RequestBody KnowledgeReviewScheduleRequest request) {
         if (request == null) throw new IllegalArgumentException("复习计划请求不能为空");

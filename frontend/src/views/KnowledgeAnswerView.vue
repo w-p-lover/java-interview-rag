@@ -18,7 +18,8 @@ import {
   useKnowledgeSearch,
 } from "@/composables/useKnowledgeSearch";
 import { useKnowledgeCatalog } from "@/composables/useKnowledgeCatalog";
-import { completeKnowledgeReviewTask, createKnowledgeReviewTask, getKnowledgeReviewTasks, scheduleKnowledgeReviewTask, type KnowledgeAnswerClaimEvidence, type KnowledgeReviewTask } from "@/api/knowledge";
+import { completeKnowledgeReviewTask, createKnowledgeReviewTask, getKnowledgeReviewAttempts, getKnowledgeReviewTasks, scheduleKnowledgeReviewTask, submitKnowledgeReviewAttempt, type KnowledgeAnswerClaimEvidence, type KnowledgeReviewAttempt, type KnowledgeReviewTask } from "@/api/knowledge";
+import KnowledgeReviewTaskList from "@/components/knowledge/KnowledgeReviewTaskList.vue";
 
 type KnowledgeMode = "catalog" | "search" | "answer";
 
@@ -28,6 +29,7 @@ const activeMode = shallowRef<KnowledgeMode>(
   initialMode === "search" || initialMode === "answer" ? initialMode : "catalog",
 );
 const reviewTasks = shallowRef<KnowledgeReviewTask[]>([]);
+const reviewAttempts = shallowRef<Record<string, KnowledgeReviewAttempt[]>>({});
 const reviewError = shallowRef("");
 
 const {
@@ -127,6 +129,14 @@ async function handleScheduleReview(task: KnowledgeReviewTask, event: Event): Pr
   catch (error) { reviewError.value = error instanceof Error ? error.message : "安排复习失败"; }
 }
 
+async function handleSubmitReview(task: KnowledgeReviewTask, answer: string): Promise<void> {
+  try {
+    await submitKnowledgeReviewAttempt(task.id, answer);
+    reviewAttempts.value = { ...reviewAttempts.value, [task.id]: await getKnowledgeReviewAttempts(task.id) };
+    reviewError.value = "复习回答已提交并完成评分。";
+  } catch (error) { reviewError.value = error instanceof Error ? error.message : "复习评分失败"; }
+}
+
 onMounted(async () => {
   try { reviewTasks.value = await getKnowledgeReviewTasks(); }
   catch (error) { reviewError.value = error instanceof Error ? error.message : "复习任务加载失败"; }
@@ -176,17 +186,13 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
     <p v-if="activeError" class="error-banner" role="alert">{{ activeError }}</p>
     <p v-if="reviewError" class="error-banner" role="alert">{{ reviewError }}</p>
 
-    <section v-if="reviewTasks.length" class="knowledge-review-tasks" aria-labelledby="knowledge-review-title">
-      <header><h2 id="knowledge-review-title">知识复习任务</h2><span>{{ reviewTasks.filter((task) => task.status === 'PENDING').length }} 项待复习</span></header>
-      <ul>
-        <li v-for="task in reviewTasks" :key="task.id" :class="{ completed: task.status === 'COMPLETED' }">
-          <div><strong>{{ task.claim }}</strong><small>{{ task.evidenceStatus }} · {{ task.question }}</small></div>
-          <label v-if="task.status === 'PENDING'">计划日期<input type="date" :value="task.plannedReviewDate ?? ''" @change="handleScheduleReview(task, $event)" /></label>
-          <button v-if="task.status === 'PENDING'" type="button" @click="handleCompleteReview(task)">标记完成</button>
-          <span v-else>已完成</span>
-        </li>
-      </ul>
-    </section>
+    <KnowledgeReviewTaskList
+      :tasks="reviewTasks"
+      :attempts-by-task-id="reviewAttempts"
+      @complete="handleCompleteReview"
+      @schedule="handleScheduleReview"
+      @submit="handleSubmitReview"
+    />
 
     <div v-if="activeMode === 'catalog'" class="catalog-workspace">
       <KnowledgeCatalogPanel
@@ -345,39 +351,6 @@ h1 {
   gap: var(--space-2xl);
 }
 
-.knowledge-review-tasks {
-  display: grid;
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg);
-  border: var(--rule-thin) solid var(--color-rule-2);
-  border-radius: var(--radius-control);
-  background: var(--color-paper-2);
-}
-
-.knowledge-review-tasks header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  border: 0;
-  padding: 0;
-}
-
-.knowledge-review-tasks h2 { margin: 0; font-size: var(--text-lg); }
-.knowledge-review-tasks header span,
-.knowledge-review-tasks small { color: var(--color-muted); font-size: var(--text-xs); }
-.knowledge-review-tasks ul { display: grid; gap: var(--space-sm); margin: 0; padding: 0; list-style: none; }
-.knowledge-review-tasks li { display: flex; align-items: center; gap: var(--space-md); justify-content: space-between; padding-top: var(--space-sm); border-top: var(--rule-thin) solid var(--color-rule); }
-.knowledge-review-tasks li > div { display: grid; gap: var(--space-2xs); min-width: 0; }
-.knowledge-review-tasks li strong { overflow-wrap: anywhere; }
-.knowledge-review-tasks label { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--color-muted); font-size: var(--text-xs); white-space: nowrap; }
-.knowledge-review-tasks input { min-height: 2rem; }
-.knowledge-review-tasks button { min-height: 2rem; padding-inline: var(--space-sm); border: var(--rule-thin) solid var(--color-accent); border-radius: var(--radius-control); color: var(--color-accent-strong); background: var(--color-surface); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
-.knowledge-review-tasks .completed { opacity: .7; }
-
-@media (max-width: 40rem) {
-  .knowledge-review-tasks li { align-items: flex-start; flex-direction: column; }
-}
 
 .catalog-workspace {
   display: grid;

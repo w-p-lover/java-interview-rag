@@ -16,6 +16,10 @@ import com.javainterview.rag.knowledge.persistence.KnowledgeReviewTaskMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewTaskStore;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskService;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskStore;
+import com.javainterview.rag.knowledge.persistence.KnowledgeReviewAttemptMapper;
+import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewAttemptStore;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewAttemptStore;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
@@ -39,8 +43,15 @@ public class RagAnswerConfiguration {
     }
 
     @Bean
-    KnowledgeReviewTaskService knowledgeReviewTaskService(KnowledgeReviewTaskStore store) {
-        return new KnowledgeReviewTaskService(store);
+    KnowledgeReviewTaskService knowledgeReviewTaskService(KnowledgeReviewTaskStore store,
+                                                          KnowledgeReviewAttemptStore attemptStore,
+                                                          InterviewAnswerEvaluator evaluator) {
+        return new KnowledgeReviewTaskService(store, attemptStore, evaluator);
+    }
+
+    @Bean
+    KnowledgeReviewAttemptStore knowledgeReviewAttemptStore(KnowledgeReviewAttemptMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlKnowledgeReviewAttemptStore(mapper, objectMapper);
     }
 
     @Bean

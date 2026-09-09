@@ -60,6 +60,24 @@ export interface KnowledgeReviewTask {
   completedAt: string | null;
 }
 
+export interface KnowledgeReviewEvaluation {
+  technicalScore: number;
+  completenessScore: number;
+  communicationScore: number;
+  overallScore: number;
+  strengths: string[];
+  gaps: string[];
+  improvementSuggestion: string;
+}
+
+export interface KnowledgeReviewAttempt {
+  id: string;
+  taskId: string;
+  answer: string;
+  evaluation: KnowledgeReviewEvaluation;
+  createdAt: string;
+}
+
 export interface KnowledgeAnswerResponse {
   answer: string;
   grounded: boolean;
@@ -297,5 +315,15 @@ export async function completeKnowledgeReviewTask(taskId: string): Promise<Knowl
 
 export async function scheduleKnowledgeReviewTask(taskId: string, plannedReviewDate: string | null): Promise<KnowledgeReviewTask> {
   const response = await request.patch<KnowledgeReviewTask>(`/knowledge/review-tasks/${taskId}/schedule`, { plannedReviewDate });
+  return response.data;
+}
+
+export async function submitKnowledgeReviewAttempt(taskId: string, answer: string): Promise<KnowledgeReviewAttempt> {
+  const response = await request.post<KnowledgeReviewAttempt>(`/knowledge/review-tasks/${taskId}/attempts`, { answer }, { timeout: 120_000 });
+  return response.data;
+}
+
+export async function getKnowledgeReviewAttempts(taskId: string): Promise<KnowledgeReviewAttempt[]> {
+  const response = await request.get<KnowledgeReviewAttempt[]>(`/knowledge/review-tasks/${taskId}/attempts`);
   return response.data;
 }
