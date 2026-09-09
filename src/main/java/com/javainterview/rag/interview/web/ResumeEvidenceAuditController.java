@@ -6,6 +6,8 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.ai.retry.NonTransientAiException;
+import org.springframework.ai.retry.TransientAiException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -62,5 +64,16 @@ public class ResumeEvidenceAuditController {
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public Map<String, String> handleAuditFailure(IllegalStateException exception) {
         return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler({NonTransientAiException.class, TransientAiException.class})
+    @ResponseStatus(HttpStatus.BAD_GATEWAY)
+    public Map<String, String> handleModelFailure(RuntimeException exception) {
+        String detail = exception.getMessage();
+        boolean unauthorized = detail != null
+                && (detail.contains("HTTP 401") || detail.contains("HTTP 403"));
+        return Map.of("message", unauthorized
+                ? "模型服务鉴权失败，请检查 API Key 和模型权限配置"
+                : "模型服务暂时不可用，请稍后重试");
     }
 }

@@ -4,6 +4,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLog;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -78,6 +79,23 @@ class ResumeEvidenceAuditControllerTest {
                         .content("{\"resumeText\":\"虚构证据\"}"))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message").value("模型返回的简历事实证据不在原始简历中"));
+    }
+
+    @Test
+    void mapsModelAuthorizationFailureToSafeBadGatewayMessage() throws Exception {
+        ResumeEvidenceAuditService service = mock(ResumeEvidenceAuditService.class);
+        ResumeEvidenceAuditRequestLogQueryService logQueryService =
+                mock(ResumeEvidenceAuditRequestLogQueryService.class);
+        when(service.audit("真实简历")).thenThrow(new NonTransientAiException("模型服务返回 HTTP 401"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new ResumeEvidenceAuditController(service, logQueryService)).build();
+
+        mockMvc.perform(post("/api/interviews/resume-audits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resumeText\":\"真实简历\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message")
+                        .value("模型服务鉴权失败，请检查 API Key 和模型权限配置"));
     }
 
     @Test
