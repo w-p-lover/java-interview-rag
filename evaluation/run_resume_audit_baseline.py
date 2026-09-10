@@ -112,7 +112,7 @@ def print_summary(report: dict) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="运行十一类固定简历证据审计真实模型基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
-    parser.add_argument("--timeout", type=float, default=180.0, help="整批 HTTP 请求超时秒数")
+    parser.add_argument("--timeout", type=float, default=900.0, help="整批 HTTP 请求超时秒数")
     parser.add_argument("--output", type=Path, help="可选的脱敏评估结果 JSON 输出路径")
     parser.add_argument(
         "--allow-chat-calls",
@@ -133,6 +133,14 @@ def main() -> int:
         return 2
     try:
         report = request_json(args.base_url.rstrip("/"), args.timeout)
+    except TimeoutError as exception:
+        print(
+            "评估客户端等待超时；服务端可能仍在继续执行剩余 Chat 调用。"
+            "请先查询 /api/interviews/resume-audits/requests 核对本次 Prompt 版本的请求数量，"
+            "不要直接重跑。",
+            file=sys.stderr,
+        )
+        return 1
     except (OSError, RuntimeError, ValueError, json.JSONDecodeError) as exception:
         print(f"评估执行失败：{exception}", file=sys.stderr)
         return 1

@@ -128,6 +128,9 @@ curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
 python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls
 ```
 
+运行器默认允许整批请求等待 900 秒。若客户端等待超时，服务端可能仍会继续完成剩余样本；必须先通过
+`GET /api/interviews/resume-audits/requests?limit=20` 核对当前 Prompt 版本的请求数量，不得直接重跑。
+
 需要保存脱敏报告时显式指定输出文件：
 
 ```shell
