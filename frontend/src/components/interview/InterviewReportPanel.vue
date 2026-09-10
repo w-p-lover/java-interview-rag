@@ -1,34 +1,51 @@
 <script setup lang="ts">
-import { RotateCcw } from "@lucide/vue";
+import { Download, RotateCcw } from "@lucide/vue";
+import { computed } from "vue";
 
-import type { InterviewSessionMode, InterviewSessionReport } from "@/api/interview";
+import type { InterviewSession } from "@/api/interview";
+import { downloadInterviewSessionReport } from "@/utils/interviewSessionReportExport";
 
-defineProps<{
-  report: InterviewSessionReport;
-  targetRole: string;
-  mode: InterviewSessionMode;
+const props = defineProps<{
+  session: InterviewSession;
 }>();
 
 const emit = defineEmits<{
   restart: [];
 }>();
+
+const report = computed(() => {
+  if (!props.session.report) {
+    throw new Error("已完成的面试缺少汇总报告");
+  }
+  return props.session.report;
+});
+
+function exportReport(): void {
+  downloadInterviewSessionReport(props.session);
+}
 </script>
 
 <template>
   <section class="report-card" aria-labelledby="report-title">
     <header>
       <div>
-        <span>{{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖已完成" : "面试已完成" }}</span>
+        <span>{{ session.mode === "PROJECT_DEEP_DIVE" ? "项目深挖已完成" : "面试已完成" }}</span>
         <h2 id="report-title">本场报告</h2>
         <p>
-          {{ targetRole }} · {{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }}
+          {{ session.targetRole }} · {{ session.mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }}
           · 共回答 {{ report.answeredQuestions }} 道题
         </p>
       </div>
-      <button type="button" @click="emit('restart')">
-        <RotateCcw :size="16" aria-hidden="true" />
-        <span>开始新面试</span>
-      </button>
+      <div class="report-actions">
+        <button type="button" @click="exportReport">
+          <Download :size="16" aria-hidden="true" />
+          <span>导出复盘</span>
+        </button>
+        <button type="button" @click="emit('restart')">
+          <RotateCcw :size="16" aria-hidden="true" />
+          <span>开始新面试</span>
+        </button>
+      </div>
     </header>
 
     <div class="score-board">
@@ -82,11 +99,18 @@ const emit = defineEmits<{
 }
 
 header,
+.report-actions,
 .report-score {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-lg);
+}
+
+.report-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  gap: var(--space-xs);
 }
 
 header > div {
@@ -240,6 +264,11 @@ button {
 
   button {
     width: 100%;
+  }
+
+  .report-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

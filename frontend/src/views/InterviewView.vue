@@ -189,9 +189,7 @@ function handleAssistantScheduled(): void {
       <div v-if="session.status === 'COMPLETED' && session.report" class="completion-stack">
         <InterviewReportPanel
           id="interview-report"
-          :report="session.report"
-          :target-role="session.targetRole"
-          :mode="session.mode"
+          :session="session"
           @restart="reset"
         />
         <InterviewReviewAssistantPanel
