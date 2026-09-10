@@ -24,7 +24,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         FixedResumeEvidenceAuditEvaluationService.Report report = service.evaluate();
 
         assertEquals("resume-evidence-audit-dataset-v7", report.datasetVersion());
-        assertEquals("resume-evidence-audit-v3", report.promptVersion());
+        assertEquals("resume-evidence-audit-v4", report.promptVersion());
         assertEquals(11, report.totalCaseCount());
         assertEquals(11, report.passedCaseCount());
         assertEquals(1.0, report.metrics().auditSuccessRate());
@@ -97,7 +97,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
             String failedCaseId) {
         ResumeEvidenceAuditService auditService = mock(ResumeEvidenceAuditService.class);
         when(auditService.roleName()).thenReturn("RESUME_EVIDENCE_AUDITOR");
-        when(auditService.promptVersion()).thenReturn("resume-evidence-audit-v3");
+        when(auditService.promptVersion()).thenReturn("resume-evidence-audit-v4");
         when(auditService.modelName()).thenReturn("model-test");
         when(auditService.auditForEvaluation(anyString())).thenAnswer(invocation -> {
             String resumeText = invocation.getArgument(0);
@@ -147,7 +147,7 @@ class FixedResumeEvidenceAuditEvaluationServiceTest {
         return new ResumeEvidenceAuditResult(
                 "request-" + evaluationCase.id(),
                 "RESUME_EVIDENCE_AUDITOR",
-                "resume-evidence-audit-v3",
+                "resume-evidence-audit-v4",
                 evaluationCase.expectedFacts().stream()
                         .map(fact -> new ResumeEvidenceAuditResult.ConfirmedFact(
                                 fact.type(), fact.evidence(),

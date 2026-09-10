@@ -128,7 +128,7 @@ class ResumeEvidenceAuditServiceTest {
                 "项目：使用 Spring Boot 与 Qdrant 构建知识库。");
 
         assertEquals("RESUME_EVIDENCE_AUDITOR", result.role());
-        assertEquals("resume-evidence-audit-v3", result.promptVersion());
+        assertEquals("resume-evidence-audit-v4", result.promptVersion());
         assertEquals(1, result.confirmedFacts().size());
         assertEquals("使用 Spring Boot 与 Qdrant 构建知识库",
                 result.confirmedFacts().get(0).evidence());
@@ -151,7 +151,7 @@ class ResumeEvidenceAuditServiceTest {
         verify(logStore).record(org.mockito.ArgumentMatchers.argThat(log ->
                 result.requestId().equals(log.requestId())
                         && "RESUME_EVIDENCE_AUDITOR".equals(log.roleName())
-                        && "resume-evidence-audit-v3".equals(log.promptVersion())
+                        && "resume-evidence-audit-v4".equals(log.promptVersion())
                         && "qwen3.7-plus".equals(log.modelName())
                         && log.status() == ResumeEvidenceAuditRequestLog.Status.SUCCEEDED
                         && log.promptTokens() == 120

@@ -61,7 +61,7 @@ class ResumeEvidenceAuditEvaluationControllerTest {
                 "run-1",
                 "resume-evidence-audit-dataset-v7",
                 "RESUME_EVIDENCE_AUDITOR",
-                "resume-evidence-audit-v3",
+                "resume-evidence-audit-v4",
                 "model-test",
                 1,
                 1,
