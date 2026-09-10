@@ -101,6 +101,12 @@ def run(base_url: str, timeout: float) -> None:
         if not any(item.get("source") == source for item in documents if isinstance(item, dict)):
             raise AssertionError("查询导入目录: 未找到临时来源")
 
+        search = expect(request(base_url, "GET", "/api/knowledge/search?query=HashMap&topK=5",
+                                timeout=timeout), 200, "local 查资料")
+        results = search.get("results", []) if isinstance(search, dict) else []
+        if not any(item.get("source") == source for item in results if isinstance(item, dict)):
+            raise AssertionError("local 查资料: 未召回刚导入的临时来源")
+
         expect(request(base_url, "DELETE", f"/api/knowledge/documents?source={source}", timeout=timeout), 200, "删除临时资料")
         expect(request(base_url, "GET", f"/api/knowledge/documents/detail?source={source}", timeout=timeout), 404,
                "删除后查询详情")
@@ -114,7 +120,7 @@ def run(base_url: str, timeout: float) -> None:
     finally:
         request(base_url, "DELETE", f"/api/knowledge/documents?source={source}", timeout=timeout)
 
-    print(f"local smoke 通过: 评估集 {len(cases)} 题，导入/去重/删除/失败路径均已验证")
+    print(f"local smoke 通过: 评估集 {len(cases)} 题，导入/去重/查资料/删除/失败路径均已验证")
 
 
 def main() -> int:
