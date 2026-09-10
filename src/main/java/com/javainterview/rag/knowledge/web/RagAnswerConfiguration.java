@@ -16,6 +16,7 @@ import com.javainterview.rag.knowledge.persistence.KnowledgeReviewTaskMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewTaskStore;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskService;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskStore;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewPathService;
 import com.javainterview.rag.knowledge.persistence.KnowledgeReviewAttemptMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewAttemptStore;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewAttemptStore;
@@ -47,6 +48,12 @@ public class RagAnswerConfiguration {
                                                           KnowledgeReviewAttemptStore attemptStore,
                                                           InterviewAnswerEvaluator evaluator) {
         return new KnowledgeReviewTaskService(store, attemptStore, evaluator);
+    }
+
+    @Bean
+    KnowledgeReviewPathService knowledgeReviewPathService(KnowledgeReviewTaskStore store,
+                                                          KnowledgeReviewAttemptStore attemptStore) {
+        return new KnowledgeReviewPathService(store, attemptStore);
     }
 
     @Bean

@@ -78,6 +78,27 @@ export interface KnowledgeReviewAttempt {
   createdAt: string;
 }
 
+export interface KnowledgeReviewPathRecommendation {
+  taskId: string;
+  claim: string;
+  question: string;
+  status: "PENDING" | "COMPLETED";
+  plannedReviewDate: string | null;
+  attemptCount: number;
+  latestOverallScore: number | null;
+  bestOverallScore: number | null;
+  recommendedReviewDate: string;
+  intervalDays: number;
+  due: boolean;
+  reason: string;
+}
+
+export interface KnowledgeReviewPathResult {
+  generatedFor: string;
+  taskCount: number;
+  recommendations: KnowledgeReviewPathRecommendation[];
+}
+
 export interface KnowledgeAnswerResponse {
   answer: string;
   grounded: boolean;
@@ -325,5 +346,10 @@ export async function submitKnowledgeReviewAttempt(taskId: string, answer: strin
 
 export async function getKnowledgeReviewAttempts(taskId: string): Promise<KnowledgeReviewAttempt[]> {
   const response = await request.get<KnowledgeReviewAttempt[]>(`/knowledge/review-tasks/${taskId}/attempts`);
+  return response.data;
+}
+
+export async function getKnowledgeReviewPath(): Promise<KnowledgeReviewPathResult> {
+  const response = await request.get<KnowledgeReviewPathResult>("/knowledge/review-path");
   return response.data;
 }

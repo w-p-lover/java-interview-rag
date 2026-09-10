@@ -7,10 +7,35 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class KnowledgeReviewTaskServiceTest {
+    @Test
+    void buildsDeterministicKnowledgeReviewPathFromAttempts() {
+        InMemoryStore store = new InMemoryStore();
+        KnowledgeReviewTaskService taskService = new KnowledgeReviewTaskService(store);
+        KnowledgeReviewTask task = taskService.create("HashMap 是什么", "缺少树化条件",
+                RagAnswerClaimEvidenceStatus.EVIDENCE_INSUFFICIENT, List.of(1));
+        KnowledgeReviewAttempt attempt = new KnowledgeReviewAttempt("attempt-1", task.id(), "复习回答",
+                new InterviewAnswerEvaluation(82, 82, 82, 82, List.of("说明了结构"), List.of(),
+                        "继续补充边界。", true), LocalDateTime.of(2026, 9, 5, 10, 0));
+        KnowledgeReviewPathService pathService = new KnowledgeReviewPathService(store,
+                new KnowledgeReviewAttemptStore() {
+                    public KnowledgeReviewAttempt create(KnowledgeReviewAttempt value) { return value; }
+                    public List<KnowledgeReviewAttempt> findByTaskId(String taskId) { return List.of(attempt); }
+                });
+
+        KnowledgeReviewPathResult result = pathService.recommend(LocalDate.of(2026, 9, 7));
+
+        assertEquals(1, result.taskCount());
+        assertEquals(task.id(), result.recommendations().get(0).taskId());
+        assertEquals(LocalDate.of(2026, 9, 8), result.recommendations().get(0).recommendedReviewDate());
+        assertEquals(3, result.recommendations().get(0).intervalDays());
+        assertEquals(82, result.recommendations().get(0).latestOverallScore());
+    }
     @Test
     void createsDeterministicTaskAndRejectsSupportedClaim() {
         InMemoryStore store = new InMemoryStore();

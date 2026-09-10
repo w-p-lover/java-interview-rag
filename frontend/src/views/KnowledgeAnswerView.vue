@@ -18,7 +18,7 @@ import {
   useKnowledgeSearch,
 } from "@/composables/useKnowledgeSearch";
 import { useKnowledgeCatalog } from "@/composables/useKnowledgeCatalog";
-import { completeKnowledgeReviewTask, createKnowledgeReviewTask, getKnowledgeReviewAttempts, getKnowledgeReviewTasks, scheduleKnowledgeReviewTask, submitKnowledgeReviewAttempt, type KnowledgeAnswerClaimEvidence, type KnowledgeReviewAttempt, type KnowledgeReviewTask } from "@/api/knowledge";
+import { completeKnowledgeReviewTask, createKnowledgeReviewTask, getKnowledgeReviewAttempts, getKnowledgeReviewPath, getKnowledgeReviewTasks, scheduleKnowledgeReviewTask, submitKnowledgeReviewAttempt, type KnowledgeAnswerClaimEvidence, type KnowledgeReviewAttempt, type KnowledgeReviewPathResult, type KnowledgeReviewTask } from "@/api/knowledge";
 import KnowledgeReviewTaskList from "@/components/knowledge/KnowledgeReviewTaskList.vue";
 
 type KnowledgeMode = "catalog" | "search" | "answer";
@@ -31,6 +31,7 @@ const activeMode = shallowRef<KnowledgeMode>(
 const reviewTasks = shallowRef<KnowledgeReviewTask[]>([]);
 const reviewAttempts = shallowRef<Record<string, KnowledgeReviewAttempt[]>>({});
 const reviewError = shallowRef("");
+const reviewPath = shallowRef<KnowledgeReviewPathResult | null>(null);
 
 const {
   question,
@@ -116,6 +117,7 @@ async function handleCompleteReview(task: KnowledgeReviewTask): Promise<void> {
   try {
     const updated = await completeKnowledgeReviewTask(task.id);
     reviewTasks.value = reviewTasks.value.map((item) => item.id === task.id ? updated : item);
+    reviewPath.value = await getKnowledgeReviewPath();
   }
   catch (error) { reviewError.value = error instanceof Error ? error.message : "完成复习失败"; }
 }
@@ -125,6 +127,7 @@ async function handleScheduleReview(task: KnowledgeReviewTask, event: Event): Pr
   try {
     const updated = await scheduleKnowledgeReviewTask(task.id, date);
     reviewTasks.value = reviewTasks.value.map((item) => item.id === task.id ? updated : item);
+    reviewPath.value = await getKnowledgeReviewPath();
   }
   catch (error) { reviewError.value = error instanceof Error ? error.message : "安排复习失败"; }
 }
@@ -133,12 +136,16 @@ async function handleSubmitReview(task: KnowledgeReviewTask, answer: string): Pr
   try {
     await submitKnowledgeReviewAttempt(task.id, answer);
     reviewAttempts.value = { ...reviewAttempts.value, [task.id]: await getKnowledgeReviewAttempts(task.id) };
+    reviewPath.value = await getKnowledgeReviewPath();
     reviewError.value = "复习回答已提交并完成评分。";
   } catch (error) { reviewError.value = error instanceof Error ? error.message : "复习评分失败"; }
 }
 
 onMounted(async () => {
-  try { reviewTasks.value = await getKnowledgeReviewTasks(); }
+  try {
+    reviewTasks.value = await getKnowledgeReviewTasks();
+    reviewPath.value = await getKnowledgeReviewPath();
+  }
   catch (error) { reviewError.value = error instanceof Error ? error.message : "复习任务加载失败"; }
 });
 
@@ -189,6 +196,7 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
     <KnowledgeReviewTaskList
       :tasks="reviewTasks"
       :attempts-by-task-id="reviewAttempts"
+      :review-path="reviewPath"
       @complete="handleCompleteReview"
       @schedule="handleScheduleReview"
       @submit="handleSubmitReview"
