@@ -39,6 +39,6 @@ class LocalMarkdownSearchControllerTest {
                         .param("query", "HashMap")
                         .param("similarityThreshold", "1.1"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("相似度阈值必须在 0 到 1 之间"));
+                .andExpect(jsonPath("$.message").value("local BM25 检索不支持相似度阈值，请使用 0"));
     }
 }

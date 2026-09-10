@@ -34,8 +34,8 @@ public class LocalMarkdownSearchController {
     public MarkdownSearchResponse search(@RequestParam String query,
                                          @RequestParam(defaultValue = "5") int topK,
                                          @RequestParam(defaultValue = "0.0") double similarityThreshold) {
-        if (!Double.isFinite(similarityThreshold) || similarityThreshold < 0.0 || similarityThreshold > 1.0) {
-            throw new IllegalArgumentException("相似度阈值必须在 0 到 1 之间");
+        if (!Double.isFinite(similarityThreshold) || similarityThreshold != 0.0) {
+            throw new IllegalArgumentException("local BM25 检索不支持相似度阈值，请使用 0");
         }
         List<MarkdownSearchResult> results = searchService.search(query, topK);
         return MarkdownSearchResponse.from(query, topK, similarityThreshold, results);
