@@ -529,13 +529,14 @@ function exportAuditResult(): void {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .audit-action:not(:disabled):hover {
+  .audit-action:not(.audit-action-secondary):not(:disabled):hover {
     color: var(--color-accent-ink);
     background: var(--color-accent);
   }
 
   .audit-action-secondary:not(:disabled):hover {
     border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 }
 
@@ -551,7 +552,8 @@ function exportAuditResult(): void {
 
   .audit-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    width: 100%;
   }
 
   .audit-guidance,
