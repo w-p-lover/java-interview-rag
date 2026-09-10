@@ -24,6 +24,10 @@ import KnowledgeReviewTaskList from "@/components/knowledge/KnowledgeReviewTaskL
 type KnowledgeMode = "catalog" | "search" | "answer";
 
 const route = useRoute();
+const highlightedReviewTaskId = computed(() => {
+  const taskId = typeof route.query.reviewTaskId === "string" ? route.query.reviewTaskId.trim() : "";
+  return taskId.length <= 100 ? taskId : "";
+});
 const initialMode = route.query.mode;
 const activeMode = shallowRef<KnowledgeMode>(
   initialMode === "search" || initialMode === "answer" ? initialMode : "catalog",
@@ -145,9 +149,21 @@ onMounted(async () => {
   try {
     reviewTasks.value = await getKnowledgeReviewTasks();
     reviewPath.value = await getKnowledgeReviewPath();
+    await nextTick();
+    focusReviewTask(highlightedReviewTaskId.value);
   }
   catch (error) { reviewError.value = error instanceof Error ? error.message : "复习任务加载失败"; }
 });
+
+function focusReviewTask(taskId: string): void {
+  if (!taskId) {
+    return;
+  }
+  const target = document.getElementById(`knowledge-review-task-${taskId}`)
+    ?? document.getElementById("knowledge-review-tasks");
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  target?.focus({ preventScroll: true });
+}
 
 const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((task) => [task.claim, task.id])));
 </script>
@@ -197,6 +213,7 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
       :tasks="reviewTasks"
       :attempts-by-task-id="reviewAttempts"
       :review-path="reviewPath"
+      :highlighted-task-id="highlightedReviewTaskId"
       @complete="handleCompleteReview"
       @schedule="handleScheduleReview"
       @submit="handleSubmitReview"

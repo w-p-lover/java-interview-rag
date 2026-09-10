@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { shallowRef } from "vue";
+import { shallowRef, watch } from "vue";
 import type { KnowledgeReviewAttempt, KnowledgeReviewPathResult, KnowledgeReviewTask } from "@/api/knowledge";
 
-const props = defineProps<{ tasks: KnowledgeReviewTask[]; attemptsByTaskId?: Record<string, KnowledgeReviewAttempt[]>; reviewPath?: KnowledgeReviewPathResult | null }>();
+const props = defineProps<{
+  tasks: KnowledgeReviewTask[];
+  attemptsByTaskId?: Record<string, KnowledgeReviewAttempt[]>;
+  reviewPath?: KnowledgeReviewPathResult | null;
+  highlightedTaskId?: string;
+}>();
 const emit = defineEmits<{
   complete: [task: KnowledgeReviewTask];
   schedule: [task: KnowledgeReviewTask, event: Event];
@@ -10,6 +15,16 @@ const emit = defineEmits<{
 }>();
 const answers = shallowRef<Record<string, string>>({});
 const expanded = shallowRef<Record<string, boolean>>({});
+
+watch(
+  () => props.highlightedTaskId,
+  (taskId) => {
+    if (taskId) {
+      expanded.value = { ...expanded.value, [taskId]: true };
+    }
+  },
+  { immediate: true },
+);
 
 function toggle(task: KnowledgeReviewTask): void { expanded.value = { ...expanded.value, [task.id]: !expanded.value[task.id] }; }
 function submit(task: KnowledgeReviewTask): void {
@@ -19,7 +34,13 @@ function submit(task: KnowledgeReviewTask): void {
 </script>
 
 <template>
-  <section v-if="props.tasks.length" class="knowledge-review-tasks" aria-labelledby="knowledge-review-title">
+  <section
+    v-if="props.tasks.length"
+    id="knowledge-review-tasks"
+    class="knowledge-review-tasks"
+    aria-labelledby="knowledge-review-title"
+    tabindex="-1"
+  >
     <header><h2 id="knowledge-review-title">知识复习任务</h2><span>{{ props.tasks.filter((task) => task.status === 'PENDING').length }} 项待复习</span></header>
     <div v-if="props.reviewPath?.recommendations.length" class="review-path" aria-label="今日复习路径">
       <strong>今日复习路径</strong>
@@ -31,7 +52,16 @@ function submit(task: KnowledgeReviewTask): void {
       </ol>
     </div>
     <ul>
-      <li v-for="task in props.tasks" :key="task.id" :class="{ completed: task.status === 'COMPLETED' }">
+      <li
+        v-for="task in props.tasks"
+        :id="`knowledge-review-task-${task.id}`"
+        :key="task.id"
+        tabindex="-1"
+        :class="{
+          completed: task.status === 'COMPLETED',
+          highlighted: task.id === props.highlightedTaskId,
+        }"
+      >
         <div class="task-main"><strong>{{ task.claim }}</strong><small>{{ task.evidenceStatus }} · {{ task.question }}</small></div>
         <div class="task-actions">
           <label v-if="task.status === 'PENDING'">计划日期<input type="date" :value="task.plannedReviewDate ?? ''" @change="emit('schedule', task, $event)" /></label>
@@ -72,4 +102,6 @@ function submit(task: KnowledgeReviewTask): void {
 .attempt-result { padding: var(--space-sm); border-left: 3px solid var(--color-accent); background: var(--color-surface); }
 .attempt-result p { margin: var(--space-xs) 0 0; color: var(--color-muted); font-size: var(--text-sm); }
 .completed { opacity: .7; }
+.highlighted { padding: var(--space-md); border: var(--rule-thin) solid var(--color-accent); border-radius: var(--radius-control); background: var(--color-accent-soft); scroll-margin-top: calc(var(--space-3xl) + var(--space-lg)); }
+.highlighted:focus-visible { outline: var(--rule-focus) solid var(--color-focus); outline-offset: var(--rule-thin); }
 </style>

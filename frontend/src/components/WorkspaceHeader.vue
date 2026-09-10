@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { Activity, BookOpen, Command, Database, MessageCircleQuestion, Search } from "@lucide/vue";
+import { Activity, BookOpen, Command, Database, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,7 +8,7 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview" | "observability";
+  mode?: "knowledge" | "answer" | "interview" | "review" | "observability";
 }>(), {
   mode: "knowledge",
 });
@@ -34,6 +34,13 @@ const commands = computed<WorkspaceCommand[]>(() => {
     return [
       { id: "observability-overview", label: "运行概览", description: "查看业务请求和失败率" },
       { id: "observability-operations", label: "路由表现", description: "查看各业务路由耗时" },
+    ];
+  }
+  if (props.mode === "review") {
+    return [
+      { id: "review-overview", label: "复习概览", description: "查看今日、逾期和已有练习数量" },
+      { id: "review-filters", label: "筛选队列", description: "切换面试、知识和计划日期" },
+      { id: "review-list", label: "复习任务", description: "打开具体复习训练" },
     ];
   }
   return [
@@ -95,6 +102,10 @@ onUnmounted(() => {
         <RouterLink to="/interview" class="nav-link" aria-label="打开面试训练">
           <BookOpen :size="16" aria-hidden="true" />
           <span>面试训练</span>
+        </RouterLink>
+        <RouterLink to="/review" class="nav-link" aria-label="打开统一复习中心">
+          <ListChecks :size="16" aria-hidden="true" />
+          <span>复习中心</span>
         </RouterLink>
         <RouterLink to="/observability" class="nav-link" aria-label="打开运行观测">
           <Activity :size="16" aria-hidden="true" />
@@ -332,16 +343,18 @@ onUnmounted(() => {
 @media (max-width: 42rem) {
   .header-inner {
     grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-xs);
     width: calc(100% - (var(--space-md) * 2));
   }
 
   .header-links {
     justify-content: end;
+    gap: 0;
   }
 
   .nav-link {
     grid-template-columns: auto;
-    width: 2.5rem;
+    width: 2.25rem;
     padding: 0;
     place-items: center;
   }
