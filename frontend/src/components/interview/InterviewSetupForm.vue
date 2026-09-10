@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   Circle,
+  FlaskConical,
   Play,
   ShieldCheck,
   SlidersHorizontal,
@@ -19,6 +20,11 @@ import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue"
 import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
 import ResumeExpressionCoachPanel from "@/components/interview/ResumeExpressionCoachPanel.vue";
 import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
+import {
+  INTERVIEW_DEMO_JOB_DESCRIPTION,
+  INTERVIEW_DEMO_RESUME,
+  INTERVIEW_DEMO_TARGET_ROLE,
+} from "@/data/interviewDemo";
 
 const props = defineProps<{
   busy: boolean;
@@ -64,6 +70,9 @@ const readinessLabel = computed(() => canStart.value ? "可以开始" : "还差�
 const maxQuestionOptions = computed(() =>
   Array.from({ length: 13 - form.initialQuestionCount }, (_, index) => form.initialQuestionCount + index),
 );
+const demoLoaded = computed(() => form.targetRole === INTERVIEW_DEMO_TARGET_ROLE
+  && form.resumeText === INTERVIEW_DEMO_RESUME
+  && form.jobDescription === INTERVIEW_DEMO_JOB_DESCRIPTION);
 
 watch(
   () => form.initialQuestionCount,
@@ -91,6 +100,19 @@ function handleSubmit(): void {
 function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload): void {
   emit("startProjectDeepDive", payload);
 }
+
+function loadDemoMaterials(): void {
+  const hasExistingMaterials = Boolean(form.resumeText.trim() || form.jobDescription.trim());
+  if (hasExistingMaterials && !demoLoaded.value
+    && !window.confirm("加载演示资料会替换当前简历和岗位描述，是否继续？")) {
+    return;
+  }
+  form.targetRole = INTERVIEW_DEMO_TARGET_ROLE;
+  form.resumeText = INTERVIEW_DEMO_RESUME;
+  form.jobDescription = INTERVIEW_DEMO_JOB_DESCRIPTION;
+  form.initialQuestionCount = 5;
+  form.maxQuestionCount = 8;
+}
 </script>
 
 <template>
@@ -117,10 +139,25 @@ function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload)
 
     <div class="setup-layout">
       <section class="materials" aria-labelledby="materials-title">
-        <div class="section-heading">
-          <BriefcaseBusiness :size="18" aria-hidden="true" />
-          <h2 id="materials-title">面试材料</h2>
+        <div class="section-heading-row">
+          <div class="section-heading">
+            <BriefcaseBusiness :size="18" aria-hidden="true" />
+            <h2 id="materials-title">面试材料</h2>
+          </div>
+          <button
+            type="button"
+            class="demo-action"
+            :disabled="interactionBusy"
+            @click="loadDemoMaterials"
+          >
+            <FlaskConical :size="16" aria-hidden="true" />
+            <span>{{ demoLoaded ? "演示资料已加载" : "加载脱敏演示资料" }}</span>
+          </button>
         </div>
+
+        <p v-if="demoLoaded" class="demo-note" role="status">
+          已填入虚构的简历和岗位描述；点击“检查简历证据”后可继续体验岗位匹配、表达教练和项目深挖。
+        </p>
 
         <InterviewTextFileField
           v-model="form.resumeText"
@@ -372,6 +409,13 @@ h1 {
   gap: var(--space-xs);
 }
 
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
 .section-heading {
   color: var(--color-accent);
   padding-bottom: var(--space-xs);
@@ -381,6 +425,29 @@ h1 {
 .settings-heading h2 {
   color: var(--color-ink);
   font-size: var(--text-md);
+}
+
+.demo-action {
+  min-height: 2.5rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  color: var(--color-ink-2);
+  background: transparent;
+  font-size: var(--text-sm);
+}
+
+.demo-action:disabled {
+  color: var(--color-faint);
+  cursor: not-allowed;
+}
+
+.demo-note {
+  padding: var(--space-sm) var(--space-md);
+  border-left: var(--space-2xs) solid var(--color-success-rule);
+  color: var(--color-muted);
+  background: var(--color-success-soft);
+  font-size: var(--text-sm);
+  line-height: 1.55;
 }
 
 .role-field,
@@ -608,12 +675,28 @@ button.ready {
   .materials {
     padding: var(--space-lg) var(--space-md);
   }
+
+  .section-heading-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .demo-action {
+    width: 100%;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
   button.ready:hover {
     background: var(--color-accent-strong);
     transform: translateY(-1px);
+  }
+
+  .demo-action:not(:disabled):hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: transparent;
+    transform: none;
   }
 }
 </style>
