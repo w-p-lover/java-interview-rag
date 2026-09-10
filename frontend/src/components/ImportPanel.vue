@@ -1,5 +1,12 @@
 <script setup lang="ts">
+import { BookOpenCheck } from "@lucide/vue";
 import { computed, shallowRef } from "vue";
+
+import {
+  KNOWLEDGE_DEMO_CONTENT,
+  KNOWLEDGE_DEMO_FILE_NAME,
+  KNOWLEDGE_DEMO_SOURCE,
+} from "@/data/knowledgeDemo";
 
 interface SubmitPayload {
   file: File;
@@ -23,6 +30,8 @@ const selectedFile = shallowRef<File | null>(null);
 const source = shallowRef("");
 const localError = shallowRef("");
 const dragActive = shallowRef(false);
+const demoMode = shallowRef(false);
+const demoContent = shallowRef("");
 
 const visibleError = computed(() => localError.value || props.error);
 const submitLabel = computed(() => {
@@ -53,7 +62,34 @@ function selectFile(file: File | undefined): void {
   }
   selectedFile.value = file;
   source.value = file.name;
+  demoMode.value = false;
+  demoContent.value = "";
   localError.value = "";
+  resetParentState();
+}
+
+function loadDemoDocument(): void {
+  if (selectedFile.value && !demoMode.value
+    && !window.confirm("加载演示资料会替换当前选择的文件和资料来源，是否继续？")) {
+    return;
+  }
+  demoMode.value = true;
+  demoContent.value = KNOWLEDGE_DEMO_CONTENT;
+  selectedFile.value = createDemoFile();
+  source.value = KNOWLEDGE_DEMO_SOURCE;
+  localError.value = "";
+  resetParentState();
+}
+
+function createDemoFile(): File {
+  return new File([demoContent.value], KNOWLEDGE_DEMO_FILE_NAME, {
+    type: "text/markdown;charset=utf-8",
+  });
+}
+
+function handleDemoContentInput(): void {
+  localError.value = "";
+  selectedFile.value = createDemoFile();
   resetParentState();
 }
 
@@ -87,9 +123,13 @@ function submitImport(): void {
     localError.value = "请填写这份资料的稳定来源。";
     return;
   }
+  if (demoMode.value && !demoContent.value.trim()) {
+    localError.value = "演示资料正文不能为空。";
+    return;
+  }
   localError.value = "";
   emit("submit", {
-    file: selectedFile.value,
+    file: demoMode.value ? createDemoFile() : selectedFile.value,
     source: source.value.trim(),
   });
 }
@@ -103,6 +143,15 @@ function formatFileSize(size: number): string {
   <section class="import-panel" aria-labelledby="import-title">
     <header class="panel-heading">
       <h3 id="import-title">导入知识资料</h3>
+      <button
+        type="button"
+        class="demo-button"
+        :disabled="busy || demoMode"
+        @click="loadDemoDocument"
+      >
+        <BookOpenCheck :size="16" aria-hidden="true" />
+        <span>{{ demoMode ? "演示资料已加载" : "加载演示资料" }}</span>
+      </button>
     </header>
 
     <form class="import-form" @submit.prevent="submitImport">
@@ -132,6 +181,21 @@ function formatFileSize(size: number): string {
         <strong>{{ selectedFile ? selectedFile.name : "选择 Markdown 文件" }}</strong>
         <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "支持 Markdown 与文本型 PDF" }}</span>
       </label>
+
+      <div v-if="demoMode" class="demo-editor">
+        <div>
+          <strong>脱敏 Java 线程池资料</strong>
+          <span>可以先修改正文，再点击下方“导入并检查”。</span>
+        </div>
+        <textarea
+          v-model="demoContent"
+          rows="14"
+          maxlength="50000"
+          :disabled="busy"
+          aria-label="演示知识资料正文"
+          @input="handleDemoContentInput"
+        ></textarea>
+      </div>
 
       <div class="field-group">
         <label for="document-source">资料来源</label>
@@ -187,6 +251,27 @@ function formatFileSize(size: number): string {
   margin-bottom: var(--space-lg);
 }
 
+.demo-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.5rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.demo-button:disabled {
+  color: var(--color-faint);
+  cursor: not-allowed;
+}
+
 h3 {
   margin: 0;
   color: var(--color-ink);
@@ -201,6 +286,49 @@ h3 {
 .field-group {
   display: grid;
   gap: var(--space-md);
+}
+
+.demo-editor {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+}
+
+.demo-editor > div {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.demo-editor strong {
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.demo-editor span {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.demo-editor textarea {
+  width: 100%;
+  min-height: 18rem;
+  resize: vertical;
+  padding: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.demo-editor textarea:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--space-3xs);
 }
 
 .drop-zone {
@@ -412,6 +540,11 @@ h3 {
   .submit-button:hover:not(:disabled) {
     background: var(--color-accent-strong);
   }
+
+  .demo-button:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
 }
 
 @media (max-width: 39.99rem) {
@@ -421,6 +554,10 @@ h3 {
 
   .panel-heading {
     display: grid;
+  }
+
+  .demo-button {
+    width: 100%;
   }
 
   .drop-zone {
