@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import uuid
 from dataclasses import dataclass
 from urllib.error import HTTPError, URLError
@@ -70,7 +71,24 @@ def expect(result: HttpResult, status: int, label: str) -> object:
     return json_body(result)
 
 
-def run(base_url: str, timeout: float) -> None:
+def wait_for_backend(base_url: str, startup_timeout: float, request_timeout: float) -> None:
+    """等待已启动或刚启动的 local 服务开始接受请求，避免演示脚本依赖固定 sleep。"""
+    deadline = time.monotonic() + startup_timeout
+    last_error = "服务尚未就绪"
+    while time.monotonic() < deadline:
+        try:
+            result = request(base_url, "GET", "/actuator/health", timeout=request_timeout)
+            if result.status in (200, 503):
+                return
+            last_error = f"健康检查返回 HTTP {result.status}"
+        except RuntimeError as error:
+            last_error = str(error)
+        time.sleep(0.25)
+    raise RuntimeError(f"等待后端就绪超时（{startup_timeout:.1f}s）: {last_error}")
+
+
+def run(base_url: str, timeout: float, startup_timeout: float) -> None:
+    wait_for_backend(base_url, startup_timeout, timeout)
     source = "smoke/local-demo.md"
     content = "# 本地冒烟资料\n\n## Java\n\nHashMap 使用数组与链表保存键值对。\n"
     payload, content_type = multipart("file", "local-demo.md", content.encode("utf-8"), {"source": source})
@@ -127,10 +145,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="验证 Java Interview RAG 默认 local profile 的最小 HTTP 闭环")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="已启动的 local 后端地址")
     parser.add_argument("--timeout", type=float, default=5.0, help="单次 HTTP 请求超时秒数")
+    parser.add_argument("--startup-timeout", type=float, default=30.0,
+                        help="等待后端开始接受请求的最长秒数")
     args = parser.parse_args()
     try:
-        run(args.base_url, args.timeout)
-    except (AssertionError, RuntimeError) as error:
+        if args.startup_timeout <= 0:
+            raise ValueError("--startup-timeout 必须大于 0")
+        run(args.base_url, args.timeout, args.startup_timeout)
+    except (AssertionError, RuntimeError, ValueError) as error:
         print(f"local smoke 失败: {error}", file=sys.stderr)
         return 1
     return 0
