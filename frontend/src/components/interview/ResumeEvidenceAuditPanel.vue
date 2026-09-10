@@ -2,6 +2,7 @@
 import {
   AlertTriangle,
   ChevronDown,
+  Download,
   FileCheck2,
   FileWarning,
   Lightbulb,
@@ -17,6 +18,7 @@ import type {
   ResumeEvidenceConfirmedFact,
   ResumeEvidenceFactType,
 } from "@/api/interview";
+import { downloadResumeEvidenceAudit } from "@/utils/resumeEvidenceAuditExport";
 
 const props = defineProps<{
   result: ResumeEvidenceAuditResult | null;
@@ -63,6 +65,13 @@ const actionLabel = computed(() => {
   }
   return props.result ? "重新检查" : "检查简历证据";
 });
+
+function exportAuditResult(): void {
+  if (!props.result || props.loading || props.stale) {
+    return;
+  }
+  downloadResumeEvidenceAudit(props.result);
+}
 </script>
 
 <template>
@@ -78,16 +87,29 @@ const actionLabel = computed(() => {
         </div>
       </div>
 
-      <button
-        type="button"
-        class="audit-action"
-        :disabled="!canAudit || loading"
-        @click="emit('audit')"
-      >
-        <RefreshCw v-if="result" :size="16" aria-hidden="true" />
-        <ScanSearch v-else :size="16" aria-hidden="true" />
-        <span>{{ actionLabel }}</span>
-      </button>
+      <div class="audit-actions">
+        <button
+          v-if="result"
+          type="button"
+          class="audit-action audit-action-secondary"
+          :disabled="loading || stale"
+          :title="stale ? '简历内容已修改，请重新检查后再导出' : '导出 Markdown 审计报告'"
+          @click="exportAuditResult"
+        >
+          <Download :size="16" aria-hidden="true" />
+          <span>导出报告</span>
+        </button>
+        <button
+          type="button"
+          class="audit-action"
+          :disabled="!canAudit || loading"
+          @click="emit('audit')"
+        >
+          <RefreshCw v-if="result" :size="16" aria-hidden="true" />
+          <ScanSearch v-else :size="16" aria-hidden="true" />
+          <span>{{ actionLabel }}</span>
+        </button>
+      </div>
     </header>
 
     <p class="audit-privacy">
@@ -201,6 +223,7 @@ const actionLabel = computed(() => {
 
 .audit-heading,
 .audit-title,
+.audit-actions,
 .audit-action,
 .audit-summary span,
 .audit-error,
@@ -216,6 +239,11 @@ const actionLabel = computed(() => {
 .audit-heading {
   justify-content: space-between;
   gap: var(--space-md);
+}
+
+.audit-actions {
+  flex: 0 0 auto;
+  gap: var(--space-xs);
 }
 
 .audit-title {
@@ -283,6 +311,11 @@ const actionLabel = computed(() => {
   font-size: var(--text-sm);
   font-weight: 700;
   transition: color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+
+.audit-action-secondary {
+  border-color: var(--color-rule-2);
+  color: var(--color-ink-2);
 }
 
 .audit-action:disabled {
@@ -500,6 +533,10 @@ const actionLabel = computed(() => {
     color: var(--color-accent-ink);
     background: var(--color-accent);
   }
+
+  .audit-action-secondary:not(:disabled):hover {
+    border-color: var(--color-accent);
+  }
 }
 
 @media (max-width: 48rem) {
@@ -510,6 +547,11 @@ const actionLabel = computed(() => {
 
   .audit-action {
     width: 100%;
+  }
+
+  .audit-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .audit-guidance,
