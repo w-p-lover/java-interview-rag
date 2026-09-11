@@ -40,11 +40,9 @@ public final class TrackingMarkdownChunkIndexer implements MarkdownChunkIndexer 
 
     @Override
     public void deleteBySource(String source) {
-        try {
-            delegate.deleteBySource(source);
-        } finally {
-            stateStore.removeBySource(source);
-        }
+        delegate.deleteBySource(source);
+        // 只有所有索引删除成功后才能清理状态；失败时保留状态供巡检和人工重试使用。
+        stateStore.removeBySource(source);
     }
 
     private void track(MarkdownDocument document, List<MarkdownChunk> chunks, Runnable operation) {
