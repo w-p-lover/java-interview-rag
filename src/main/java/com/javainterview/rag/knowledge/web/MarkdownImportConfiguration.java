@@ -12,7 +12,9 @@ import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.document.TrackingMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
+import com.javainterview.rag.knowledge.persistence.KnowledgeIndexingStateMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownImportRegistry;
+import com.javainterview.rag.knowledge.persistence.MySqlMarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.vector.QdrantMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -39,8 +41,15 @@ public class MarkdownImportConfiguration {
     }
 
     @Bean
+    @Profile("!storage")
     MarkdownIndexingStateStore markdownIndexingStateStore() {
         return new InMemoryMarkdownIndexingStateStore();
+    }
+
+    @Bean
+    @Profile("storage")
+    MarkdownIndexingStateStore mysqlMarkdownIndexingStateStore(KnowledgeIndexingStateMapper mapper) {
+        return new MySqlMarkdownIndexingStateStore(mapper);
     }
 
     @Bean
