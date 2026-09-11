@@ -87,6 +87,19 @@ function indexingStatusLabel(status: string | null): string {
     FAILED: "索引失败",
   }[status || ""] || "未追踪";
 }
+
+function versionStatusLabel(status: string): string {
+  return {
+    MATCHED: "契约匹配",
+    PARTIAL_MISMATCH: "部分契约不匹配",
+    ALL_MISMATCH: "契约全部不匹配",
+    UNVERIFIABLE: "契约无法核验",
+  }[status] || status;
+}
+
+function chunkCountLabel(value: number | null): string {
+  return value === null ? "无法核验" : `${value} 个`;
+}
 </script>
 
 <template>
@@ -227,9 +240,62 @@ function indexingStatusLabel(status: string | null): string {
                   </div>
                   <div>
                     <dt>期望 Chunk</dt>
-                    <dd>{{ consistency.expectedChunkCount ?? "无法核验" }}</dd>
+                    <dd>{{ chunkCountLabel(consistency.expectedChunkCount) }}</dd>
                   </div>
                 </dl>
+                <div class="store-diagnostics">
+                  <section>
+                    <strong>Dense / Qdrant 明细</strong>
+                    <dl>
+                      <div>
+                        <dt>当前版本</dt>
+                        <dd>{{ chunkCountLabel(consistency.dense.currentVersionChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>来源总数</dt>
+                        <dd>{{ chunkCountLabel(consistency.dense.sourceChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>旧版本残留</dt>
+                        <dd>{{ chunkCountLabel(consistency.dense.staleVersionChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>版本契约</dt>
+                        <dd>{{ versionStatusLabel(consistency.dense.indexVersionStatus) }}</dd>
+                      </div>
+                    </dl>
+                    <p v-if="consistency.dense.errorType" class="store-error">
+                      存储错误：{{ consistency.dense.errorType }}
+                    </p>
+                  </section>
+                  <section>
+                    <strong>Sparse / Lucene 明细</strong>
+                    <dl>
+                      <div>
+                        <dt>当前版本</dt>
+                        <dd>{{ chunkCountLabel(consistency.sparse.currentVersionChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>来源总数</dt>
+                        <dd>{{ chunkCountLabel(consistency.sparse.sourceChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>旧版本残留</dt>
+                        <dd>{{ chunkCountLabel(consistency.sparse.staleVersionChunkCount) }}</dd>
+                      </div>
+                      <div>
+                        <dt>版本契约</dt>
+                        <dd>{{ versionStatusLabel(consistency.sparse.indexVersionStatus) }}</dd>
+                      </div>
+                    </dl>
+                    <p v-if="consistency.sparse.errorType" class="store-error">
+                      存储错误：{{ consistency.sparse.errorType }}
+                    </p>
+                  </section>
+                </div>
+                <p v-if="consistency.indexingState.errorType" class="store-error">
+                  最近编排错误：{{ consistency.indexingState.errorType }}
+                </p>
                 <p v-if="!consistency.consistent" class="consistency-guidance">
                   请先确认异常原因，再选择下方“重建当前版本”，并提供内容一致的原文件；不会自动删除或修复索引。
                 </p>
@@ -272,6 +338,9 @@ function indexingStatusLabel(status: string | null): string {
                 <strong>确认淘汰这份资料？</strong>
                 <p>将删除“{{ details.source }}”的全部向量和 {{ details.versionCount }} 条版本登记。</p>
                 <p v-if="deleteError" class="delete-error" role="alert">{{ deleteError }}</p>
+                <p v-if="deleteError && consistency" class="delete-guidance">
+                  {{ consistency.consistent ? "巡检显示当前索引已收敛，可再次确认淘汰。" : "巡检显示仍可能存在索引残留，请确认后重试淘汰。" }}
+                </p>
               </div>
               <div class="confirmation-actions">
                 <button type="button" :disabled="deleting || rebuilding" @click="confirmingDelete = false">取消</button>
@@ -539,6 +608,40 @@ function indexingStatusLabel(status: string | null): string {
   padding-top: var(--space-xs);
 }
 
+.store-diagnostics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+.store-diagnostics section {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-paper-2);
+}
+
+.store-diagnostics strong {
+  color: var(--color-ink);
+  font-size: var(--text-xs);
+}
+
+.store-diagnostics dl {
+  grid-template-columns: minmax(0, 1fr);
+  padding-top: 0;
+}
+
+.store-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .consistency-error {
   color: var(--color-error);
 }
@@ -792,6 +895,10 @@ button:focus-visible {
   }
 
   .consistency-result dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .store-diagnostics {
     grid-template-columns: minmax(0, 1fr);
   }
 

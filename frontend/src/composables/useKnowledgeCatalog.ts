@@ -100,9 +100,12 @@ export function useKnowledgeCatalog() {
     }
   }
 
-  async function inspectSelectedDocumentConsistency(showError = true): Promise<void> {
+  async function inspectSelectedDocumentConsistency(
+    showError = true,
+    allowDuringDelete = false,
+  ): Promise<void> {
     const source = selectedSource.value;
-    if (!source || consistencyLoading.value || deleting.value || rebuilding.value) {
+    if (!source || consistencyLoading.value || (deleting.value && !allowDuringDelete) || rebuilding.value) {
       return;
     }
     consistencyLoading.value = true;
@@ -136,6 +139,9 @@ export function useKnowledgeCatalog() {
       await load();
     } catch (requestError) {
       deleteError.value = resolveApiError(requestError, "资料淘汰失败");
+      // 删除可能只完成了部分存储；失败后立即刷新只读巡检，给用户下一次重试提供事实依据。
+      consistency.value = null;
+      await inspectSelectedDocumentConsistency(false, true);
     } finally {
       deleting.value = false;
     }
