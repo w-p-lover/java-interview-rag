@@ -8,6 +8,7 @@ import type {
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
+import InterviewAnswerRehearsalCard from "@/components/interview/InterviewAnswerRehearsalCard.vue";
 import InterviewConversationTimeline from "@/components/interview/InterviewConversationTimeline.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
 import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
@@ -73,6 +74,10 @@ const progress = computed(() => {
 });
 
 const recentSessionIds = computed(() => recentSessions.value.map((item) => item.id));
+const latestAnswerQuestion = computed(() => {
+  const answer = latestAnswer.value;
+  return answer && session.value ? session.value.questions[answer.questionIndex] ?? null : null;
+});
 
 onMounted(async () => {
   const requestedSessionId = typeof route.query.sessionId === "string"
@@ -192,6 +197,11 @@ function handleAssistantScheduled(): void {
           :session="session"
           @restart="reset"
         />
+        <InterviewAnswerRehearsalCard
+          v-if="latestAnswer && latestAnswerQuestion"
+          :question="latestAnswerQuestion"
+          :answer="latestAnswer"
+        />
         <InterviewReviewAssistantPanel
           :session-id="session.id"
           :tasks="reviewTasks"
@@ -240,6 +250,11 @@ function handleAssistantScheduled(): void {
           @submit="handleSubmit"
         />
         <InterviewFeedbackPanel id="latest-feedback" :answer="latestAnswer" />
+        <InterviewAnswerRehearsalCard
+          v-if="latestAnswer && latestAnswerQuestion"
+          :question="latestAnswerQuestion"
+          :answer="latestAnswer"
+        />
       </section>
     </template>
   </main>
