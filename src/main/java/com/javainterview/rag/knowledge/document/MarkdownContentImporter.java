@@ -116,8 +116,16 @@ public final class MarkdownContentImporter {
             throw new IllegalArgumentException("只能重建当前版本，历史版本不能直接恢复为检索版本");
         }
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
-        chunkIndexer.rebuild(document, chunks);
-        registry.updateOutline(document, outlineBuilder.build(sections, chunks));
+        try {
+            chunkIndexer.rebuild(document, chunks);
+            registry.updateOutline(document, outlineBuilder.build(sections, chunks));
+        } catch (RuntimeException exception) {
+            // 章节目录更新失败时，不能让索引状态继续保持 READY；下次巡检必须暴露这次重建未完整收口。
+            if (indexingStateStore != null) {
+                indexingStateStore.markFailed(document, chunks.size(), exception);
+            }
+            throw exception;
+        }
         return new MarkdownRebuildResult(document, chunks);
     }
 

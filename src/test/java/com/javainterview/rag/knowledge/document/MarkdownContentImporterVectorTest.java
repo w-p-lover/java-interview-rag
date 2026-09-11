@@ -249,6 +249,28 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
+    void marksRebuildFailedWhenOutlineUpdateFailsAfterIndexing() {
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, indexer, stateStore);
+        MarkdownDocument document = MarkdownDocument.create("java/rebuild-outline-failure.md", "# Java\n内容");
+        when(registry.findVersionsBySource(document.source())).thenReturn(List.of(
+                new KnowledgeDocumentSummary(document.source(), document.version(),
+                        document.content().length(), java.time.LocalDateTime.now(), null)));
+        doThrow(new IllegalStateException("章节目录更新失败"))
+                .when(registry).updateOutline(any(MarkdownDocument.class), any(KnowledgeDocumentOutline.class));
+
+        assertThrows(IllegalStateException.class,
+                () -> sourceImporter.rebuildContent(document.source(), document.content()));
+
+        assertEquals(MarkdownIndexingStatus.FAILED,
+                stateStore.find(document.source(), document.version()).orElseThrow().status());
+        verify(indexer).rebuild(any(MarkdownDocument.class), any());
+    }
+
+    @Test
     void deletesVectorsBeforeRemovingAllRegistrationsForTheSource() {
         MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
         MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);

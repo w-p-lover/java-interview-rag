@@ -97,7 +97,7 @@ export function useKnowledgeCatalog() {
     }
   }
 
-  async function inspectSelectedDocumentConsistency(): Promise<void> {
+  async function inspectSelectedDocumentConsistency(showError = true): Promise<void> {
     const source = selectedSource.value;
     if (!source || consistencyLoading.value || deleting.value || rebuilding.value) {
       return;
@@ -107,7 +107,9 @@ export function useKnowledgeCatalog() {
     try {
       consistency.value = await inspectKnowledgeDocumentConsistency(source);
     } catch (requestError) {
-      consistencyError.value = resolveApiError(requestError, "索引巡检失败");
+      if (showError) {
+        consistencyError.value = resolveApiError(requestError, "索引巡检失败");
+      }
     } finally {
       consistencyLoading.value = false;
     }
@@ -147,6 +149,7 @@ export function useKnowledgeCatalog() {
     try {
       const response = await rebuildMarkdown(file, source);
       await selectDocument(source, true);
+      await inspectSelectedDocumentConsistency(false);
       notice.value = `已重建当前版本：${response.source}（${response.chunkCount} 个切片）`;
     } catch (requestError) {
       rebuildError.value = resolveApiError(requestError, "当前版本重建失败");
