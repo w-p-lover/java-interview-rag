@@ -21,6 +21,7 @@ export function useKnowledgeCatalog() {
   const detailsLoading = shallowRef(false);
   const detailsError = shallowRef("");
   const deleting = shallowRef(false);
+  const deleteError = shallowRef("");
   const rebuilding = shallowRef(false);
   const rebuildError = shallowRef("");
   const notice = shallowRef("");
@@ -64,6 +65,7 @@ export function useKnowledgeCatalog() {
     detailsLoading.value = true;
     detailsError.value = "";
     rebuildError.value = "";
+    deleteError.value = "";
     consistency.value = null;
     consistencyError.value = "";
     notice.value = "";
@@ -89,6 +91,7 @@ export function useKnowledgeCatalog() {
     details.value = null;
     detailsLoading.value = false;
     detailsError.value = "";
+    deleteError.value = "";
   }
 
   async function retryDetails(): Promise<void> {
@@ -123,6 +126,7 @@ export function useKnowledgeCatalog() {
 
     deleting.value = true;
     detailsError.value = "";
+    deleteError.value = "";
     try {
       const response = await deleteKnowledgeDocument(source);
       closeDetails();
@@ -131,7 +135,7 @@ export function useKnowledgeCatalog() {
         : `资料已不在目录中：${source}`;
       await load();
     } catch (requestError) {
-      detailsError.value = resolveApiError(requestError, "资料淘汰失败");
+      deleteError.value = resolveApiError(requestError, "资料淘汰失败");
     } finally {
       deleting.value = false;
     }
@@ -171,6 +175,7 @@ export function useKnowledgeCatalog() {
     detailsLoading,
     detailsError,
     deleting,
+    deleteError,
     rebuilding,
     rebuildError,
     notice,

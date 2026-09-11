@@ -66,6 +66,7 @@ const {
   detailsLoading,
   detailsError,
   deleting: documentDeleting,
+  deleteError: documentDeleteError,
   rebuilding: documentRebuilding,
   rebuildError,
   notice: catalogNotice,
@@ -241,6 +242,7 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
         :loading="detailsLoading"
         :error="detailsError"
         :deleting="documentDeleting"
+        :delete-error="documentDeleteError"
         :rebuilding="documentRebuilding"
         :rebuild-error="rebuildError"
         :consistency="catalogConsistency"

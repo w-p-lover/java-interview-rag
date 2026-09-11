@@ -11,6 +11,7 @@ const props = defineProps<{
   loading: boolean;
   error: string;
   deleting: boolean;
+  deleteError: string;
   rebuilding: boolean;
   rebuildError: string;
   consistency: KnowledgeIndexConsistencyResponse | null;
@@ -270,12 +271,13 @@ function indexingStatusLabel(status: string | null): string {
               <div>
                 <strong>确认淘汰这份资料？</strong>
                 <p>将删除“{{ details.source }}”的全部向量和 {{ details.versionCount }} 条版本登记。</p>
+                <p v-if="deleteError" class="delete-error" role="alert">{{ deleteError }}</p>
               </div>
               <div class="confirmation-actions">
                 <button type="button" :disabled="deleting || rebuilding" @click="confirmingDelete = false">取消</button>
                 <button class="danger-button" type="button" :disabled="deleting || rebuilding" @click="emit('retire')">
                   <Trash2 :size="17" aria-hidden="true" />
-                  <span>{{ deleting ? "正在淘汰" : "确认淘汰" }}</span>
+                  <span>{{ deleting ? "正在淘汰" : deleteError ? "重试淘汰" : "确认淘汰" }}</span>
                 </button>
               </div>
             </div>
@@ -354,6 +356,10 @@ function indexingStatusLabel(status: string | null): string {
 .lifecycle-summary,
 .delete-confirmation p {
   margin: 0;
+}
+
+.delete-confirmation .delete-error {
+  color: var(--color-error);
 }
 
 .detail-header h2 {
