@@ -57,6 +57,32 @@ class KnowledgeReviewTaskServiceTest {
         assertEquals(KnowledgeReviewTaskStatus.COMPLETED, service.complete(task.id()).status());
     }
 
+    @Test
+    void reusesAttemptForSameIdempotencyKeyWithoutSecondEvaluation() {
+        InMemoryStore store = new InMemoryStore();
+        KnowledgeReviewTask task = new KnowledgeReviewTaskService(store).create("问题", "断言",
+                RagAnswerClaimEvidenceStatus.CITATION_INVALID, List.of());
+        CountingAttemptStore attempts = new CountingAttemptStore();
+        KnowledgeReviewTaskService service = new KnowledgeReviewTaskService(store, attempts,
+                (profile, question, answer) -> new com.javainterview.rag.interview.evaluation.InterviewAnswerAssessment(
+                        new InterviewAnswerEvaluation(80, 80, 80, 80, List.of(), List.of(), "建议", true), null));
+
+        KnowledgeReviewAttempt first = service.submitAttempt(task.id(), "回答", "retry-key");
+        KnowledgeReviewAttempt second = service.submitAttempt(task.id(), "回答", "retry-key");
+
+        assertEquals(first.id(), second.id());
+        assertEquals(1, attempts.createCount);
+    }
+
+    private static final class CountingAttemptStore implements KnowledgeReviewAttemptStore {
+        private final List<KnowledgeReviewAttempt> attempts = new ArrayList<>();
+        private int createCount;
+        public KnowledgeReviewAttempt create(KnowledgeReviewAttempt value) { attempts.add(value); createCount++; return value; }
+        public KnowledgeReviewAttempt create(String key, KnowledgeReviewAttempt value) { attempts.add(value); createCount++; return value; }
+        public Optional<KnowledgeReviewAttempt> findByIdempotencyKey(String key) { return createCount == 0 ? Optional.empty() : Optional.of(attempts.get(0)); }
+        public List<KnowledgeReviewAttempt> findByTaskId(String taskId) { return attempts; }
+    }
+
     private static final class InMemoryStore implements KnowledgeReviewTaskStore {
         private final List<KnowledgeReviewTask> tasks = new ArrayList<>();
         public KnowledgeReviewTask createIfAbsent(KnowledgeReviewTask task) {

@@ -40,9 +40,11 @@ public class KnowledgeReviewTaskController {
     public KnowledgeReviewTask complete(@PathVariable String taskId) { return service.complete(taskId); }
 
     @PostMapping("/{taskId}/attempts")
-    public KnowledgeReviewAttempt submitAttempt(@PathVariable String taskId, @RequestBody KnowledgeReviewAttemptRequest request) {
+    public KnowledgeReviewAttempt submitAttempt(@PathVariable String taskId,
+                                                @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+                                                @RequestBody KnowledgeReviewAttemptRequest request) {
         if (request == null) throw new IllegalArgumentException("复习回答请求不能为空");
-        return service.submitAttempt(taskId, request.answer());
+        return service.submitAttempt(taskId, request.answer(), idempotencyKey == null ? java.util.UUID.randomUUID().toString() : idempotencyKey);
     }
 
     @GetMapping("/{taskId}/attempts")

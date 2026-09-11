@@ -11,6 +11,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
@@ -37,8 +38,22 @@ public class KnowledgeReviewTaskService {
     }
 
     public KnowledgeReviewAttempt submitAttempt(String taskId, String answer) {
+        return submitAttempt(taskId, answer, UUID.randomUUID().toString());
+    }
+
+    public KnowledgeReviewAttempt submitAttempt(String taskId, String answer, String idempotencyKey) {
         if (attemptStore == null || evaluator == null) throw new IllegalStateException("知识复习评价能力尚未配置");
-        KnowledgeReviewTask task = find(null, null, null).stream().filter(item -> item.id().equals(requireId(taskId))).findFirst().orElseThrow(() -> new java.util.NoSuchElementException("知识复习任务不存在"));
+        String normalizedTaskId = requireId(taskId);
+        String normalizedKey = requireIdempotencyKey(idempotencyKey);
+        Optional<KnowledgeReviewAttempt> existing = attemptStore.findByIdempotencyKey(normalizedKey);
+        if (existing.isPresent()) {
+            if (!existing.get().taskId().equals(normalizedTaskId)
+                    || !existing.get().answer().equals(answer == null ? "" : answer.strip())) {
+                throw new IllegalArgumentException("幂等键已用于其他复习请求");
+            }
+            return existing.get();
+        }
+        KnowledgeReviewTask task = find(null, null, null).stream().filter(item -> item.id().equals(normalizedTaskId)).findFirst().orElseThrow(() -> new java.util.NoSuchElementException("知识复习任务不存在"));
         if (answer == null || answer.isBlank()) throw new IllegalArgumentException("复习回答不能为空");
         InterviewPreparationProfile profile = new InterviewPreparationProfile(
                 "知识复习用户", List.of("知识问答复习任务"), List.of(),
@@ -46,7 +61,7 @@ public class KnowledgeReviewTaskService {
         InterviewQuestion question = new InterviewQuestion(task.question(), "解释并纠正：" + task.claim(),
                 List.of(InterviewFocusSource.TARGET_ROLE), task.question(), false, List.of());
         var assessment = evaluator.evaluateForReview(profile, question, answer.strip(), List.of());
-        return attemptStore.create(new KnowledgeReviewAttempt(UUID.randomUUID().toString(), task.id(), answer.strip(), assessment.evaluation(), java.time.LocalDateTime.now()));
+        return attemptStore.create(normalizedKey, new KnowledgeReviewAttempt(UUID.randomUUID().toString(), task.id(), answer.strip(), assessment.evaluation(), java.time.LocalDateTime.now()));
     }
 
     public List<KnowledgeReviewAttempt> findAttempts(String taskId) {
@@ -106,6 +121,13 @@ public class KnowledgeReviewTaskService {
     private String requireId(String taskId) {
         if (taskId == null || taskId.isBlank()) throw new IllegalArgumentException("知识复习任务 ID 不能为空");
         return taskId.strip();
+    }
+
+    private String requireIdempotencyKey(String key) {
+        if (key == null || key.isBlank()) throw new IllegalArgumentException("复习回答幂等键不能为空");
+        String normalized = key.strip();
+        if (normalized.length() > 128) throw new IllegalArgumentException("复习回答幂等键不能超过 128 个字符");
+        return normalized;
     }
 
     private String requireLength(String value, String message, int maxLength) {

@@ -340,8 +340,23 @@ export async function scheduleKnowledgeReviewTask(taskId: string, plannedReviewD
 }
 
 export async function submitKnowledgeReviewAttempt(taskId: string, answer: string): Promise<KnowledgeReviewAttempt> {
-  const response = await request.post<KnowledgeReviewAttempt>(`/knowledge/review-tasks/${taskId}/attempts`, { answer }, { timeout: 120_000 });
+  const idempotencyKey = await knowledgeReviewAttemptKey(taskId, answer);
+  const response = await request.post<KnowledgeReviewAttempt>(`/knowledge/review-tasks/${taskId}/attempts`, { answer }, {
+    timeout: 120_000,
+    headers: { "Idempotency-Key": idempotencyKey },
+  });
   return response.data;
+}
+
+async function knowledgeReviewAttemptKey(taskId: string, answer: string): Promise<string> {
+  const input = new TextEncoder().encode(`${taskId}\u0000${answer.trim()}`);
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const digest = await crypto.subtle.digest("SHA-256", input);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  let hash = 2166136261;
+  for (const byte of input) hash = Math.imul(hash ^ byte, 16777619);
+  return `fallback-${(hash >>> 0).toString(16)}`;
 }
 
 export async function getKnowledgeReviewAttempts(taskId: string): Promise<KnowledgeReviewAttempt[]> {
