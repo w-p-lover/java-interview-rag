@@ -174,6 +174,52 @@ export interface KnowledgeDocumentDetailsResponse {
   versions: KnowledgeDocumentVersionItem[];
 }
 
+export type KnowledgeIndexStoreStatus =
+  | "CONSISTENT"
+  | "MISSING_CHUNKS"
+  | "EXCESS_CHUNKS"
+  | "STALE_VERSIONS"
+  | "UNVERIFIABLE"
+  | "UNAVAILABLE";
+
+export type KnowledgeIndexVersionStatus =
+  | "MATCHED"
+  | "PARTIAL_MISMATCH"
+  | "ALL_MISMATCH"
+  | "UNVERIFIABLE";
+
+export type KnowledgeIndexingStatus = "INDEXING" | "READY" | "FAILED";
+
+export interface KnowledgeIndexingStateCheck {
+  tracked: boolean;
+  status: KnowledgeIndexingStatus | null;
+  chunkCount: number | null;
+  expectedChunkCountMatched: boolean | null;
+  errorType: string | null;
+}
+
+export interface KnowledgeIndexStoreCheck {
+  status: KnowledgeIndexStoreStatus;
+  currentVersionChunkCount: number | null;
+  currentVersionMetadataMatchCount: number | null;
+  staleVersionChunkCount: number | null;
+  sourceChunkCount: number | null;
+  expectedChunkCountMatched: boolean | null;
+  indexVersionMatched: boolean | null;
+  indexVersionStatus: KnowledgeIndexVersionStatus;
+  errorType: string | null;
+}
+
+export interface KnowledgeIndexConsistencyResponse {
+  source: string;
+  documentVersion: string;
+  expectedChunkCount: number | null;
+  consistent: boolean;
+  indexingState: KnowledgeIndexingStateCheck;
+  dense: KnowledgeIndexStoreCheck;
+  sparse: KnowledgeIndexStoreCheck;
+}
+
 export interface MarkdownDeleteResponse {
   source: string;
   deleted: boolean;
@@ -304,6 +350,16 @@ export async function getKnowledgeDocumentDetails(
 ): Promise<KnowledgeDocumentDetailsResponse> {
   const response = await request.get<KnowledgeDocumentDetailsResponse>(
     "/knowledge/documents/detail",
+    { params: { source } },
+  );
+  return response.data;
+}
+
+export async function inspectKnowledgeDocumentConsistency(
+  source: string,
+): Promise<KnowledgeIndexConsistencyResponse> {
+  const response = await request.get<KnowledgeIndexConsistencyResponse>(
+    "/knowledge/documents/consistency",
     { params: { source } },
   );
   return response.data;

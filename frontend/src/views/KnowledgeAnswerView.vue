@@ -69,10 +69,14 @@ const {
   rebuilding: documentRebuilding,
   rebuildError,
   notice: catalogNotice,
+  consistency: catalogConsistency,
+  consistencyLoading: catalogConsistencyLoading,
+  consistencyError: catalogConsistencyError,
   refresh: refreshCatalog,
   selectDocument,
   closeDetails,
   retryDetails,
+  inspectSelectedDocumentConsistency,
   deleteSelectedDocument,
   rebuildSelectedDocument,
 } = useKnowledgeCatalog();
@@ -239,10 +243,14 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
         :deleting="documentDeleting"
         :rebuilding="documentRebuilding"
         :rebuild-error="rebuildError"
+        :consistency="catalogConsistency"
+        :consistency-loading="catalogConsistencyLoading"
+        :consistency-error="catalogConsistencyError"
         @close="closeDetails"
         @retry="retryDetails"
         @retire="deleteSelectedDocument"
         @rebuild="rebuildSelectedDocument"
+        @inspect-consistency="inspectSelectedDocumentConsistency"
         @search="handleSearchFromOutline"
       />
       <section v-else class="detail-placeholder" aria-labelledby="detail-placeholder-title">

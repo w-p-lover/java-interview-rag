@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { shallowRef, useTemplateRef, watch } from "vue";
-import { CircleAlert, History, RefreshCw, RotateCw, Settings2, Trash2, X } from "@lucide/vue";
+import { CircleAlert, History, RefreshCw, RotateCw, Settings2, ShieldCheck, Trash2, X } from "@lucide/vue";
 
-import type { KnowledgeDocumentDetailsResponse } from "@/api/knowledge";
+import type { KnowledgeDocumentDetailsResponse, KnowledgeIndexConsistencyResponse } from "@/api/knowledge";
 import KnowledgeDocumentOutline from "@/components/knowledge/KnowledgeDocumentOutline.vue";
 
 const props = defineProps<{
@@ -13,6 +13,9 @@ const props = defineProps<{
   deleting: boolean;
   rebuilding: boolean;
   rebuildError: string;
+  consistency: KnowledgeIndexConsistencyResponse | null;
+  consistencyLoading: boolean;
+  consistencyError: string;
 }>();
 
 const emit = defineEmits<{
@@ -20,6 +23,7 @@ const emit = defineEmits<{
   retry: [];
   retire: [];
   rebuild: [file: File];
+  inspectConsistency: [];
   search: [query: string];
 }>();
 
@@ -62,6 +66,25 @@ function formatContentLength(value: number): string {
 
 function formatVersion(value: string): string {
   return value.length > 16 ? value.slice(0, 16) : value;
+}
+
+function storeStatusLabel(status: string): string {
+  return {
+    CONSISTENT: "一致",
+    MISSING_CHUNKS: "缺少 Chunk",
+    EXCESS_CHUNKS: "Chunk 超额",
+    STALE_VERSIONS: "存在旧版本",
+    UNVERIFIABLE: "无法核验",
+    UNAVAILABLE: "存储不可用",
+  }[status] || status;
+}
+
+function indexingStatusLabel(status: string | null): string {
+  return {
+    INDEXING: "索引中",
+    READY: "已就绪",
+    FAILED: "索引失败",
+  }[status || ""] || "未追踪";
 }
 </script>
 
@@ -166,6 +189,51 @@ function formatVersion(value: string): string {
               <Settings2 :size="18" aria-hidden="true" />
               <h3 id="maintenance-title">资料维护</h3>
             </header>
+
+            <div class="consistency-check" aria-live="polite">
+              <div class="consistency-heading">
+                <div>
+                  <strong>索引一致性</strong>
+                  <p>只读比较目录期望 Chunk、Dense/Qdrant、Sparse/Lucene 和编排状态。</p>
+                </div>
+                <button
+                  type="button"
+                  :disabled="deleting || rebuilding || consistencyLoading"
+                  @click="emit('inspectConsistency')"
+                >
+                  <ShieldCheck :size="17" aria-hidden="true" />
+                  <span>{{ consistencyLoading ? "检查中" : "检查索引" }}</span>
+                </button>
+              </div>
+              <p v-if="consistencyError" class="consistency-error" role="alert">{{ consistencyError }}</p>
+              <div v-else-if="consistency" class="consistency-result">
+                <p :class="['consistency-overall', { 'is-consistent': consistency.consistent }]">
+                  <ShieldCheck :size="16" aria-hidden="true" />
+                  {{ consistency.consistent ? "当前索引与目录一致" : "发现不一致，请人工确认后再重建" }}
+                </p>
+                <dl>
+                  <div>
+                    <dt>Dense / Qdrant</dt>
+                    <dd>{{ storeStatusLabel(consistency.dense.status) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Sparse / Lucene</dt>
+                    <dd>{{ storeStatusLabel(consistency.sparse.status) }}</dd>
+                  </div>
+                  <div>
+                    <dt>编排状态</dt>
+                    <dd>{{ indexingStatusLabel(consistency.indexingState.status) }}</dd>
+                  </div>
+                  <div>
+                    <dt>期望 Chunk</dt>
+                    <dd>{{ consistency.expectedChunkCount ?? "无法核验" }}</dd>
+                  </div>
+                </dl>
+                <p v-if="!consistency.consistent" class="consistency-guidance">
+                  请先确认异常原因，再选择下方“重建当前版本”，并提供内容一致的原文件；不会自动删除或修复索引。
+                </p>
+              </div>
+            </div>
 
             <dl class="lifecycle-summary">
               <div>
@@ -367,6 +435,110 @@ function formatVersion(value: string): string {
   gap: var(--space-md);
   padding-top: var(--space-lg);
   border-top: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.consistency-check {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+}
+
+.consistency-heading,
+.consistency-heading > div,
+.consistency-result,
+.consistency-result dl,
+.consistency-result dl > div {
+  display: grid;
+}
+
+.consistency-heading {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-sm);
+}
+
+.consistency-heading > div,
+.consistency-result,
+.consistency-result dl,
+.consistency-result dl > div {
+  gap: var(--space-2xs);
+}
+
+.consistency-heading strong,
+.consistency-heading p,
+.consistency-error,
+.consistency-overall,
+.consistency-guidance,
+.consistency-result dl,
+.consistency-result dt,
+.consistency-result dd {
+  margin: 0;
+}
+
+.consistency-heading strong,
+.consistency-result dd {
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+}
+
+.consistency-heading p,
+.consistency-error,
+.consistency-guidance,
+.consistency-result dt,
+.consistency-result dd {
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+.consistency-heading p,
+.consistency-result dt {
+  color: var(--color-muted);
+}
+
+.consistency-heading button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 2.25rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.consistency-overall {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-warning-strong, var(--color-warning));
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.consistency-overall.is-consistent {
+  color: var(--color-success);
+}
+
+.consistency-result dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+}
+
+.consistency-error {
+  color: var(--color-error);
+}
+
+.consistency-guidance {
+  color: var(--color-warning-strong, var(--color-warning));
 }
 
 .maintenance header {
@@ -603,6 +775,18 @@ button:focus-visible {
 
   .rebuild-action button {
     width: 100%;
+  }
+
+  .consistency-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .consistency-heading button {
+    width: 100%;
+  }
+
+  .consistency-result dl {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .confirmation-actions {

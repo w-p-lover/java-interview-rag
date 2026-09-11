@@ -3,10 +3,12 @@ import { onMounted, shallowRef } from "vue";
 import {
   deleteKnowledgeDocument,
   getKnowledgeDocumentDetails,
+  inspectKnowledgeDocumentConsistency,
   listKnowledgeDocuments,
   rebuildMarkdown,
   type KnowledgeDocumentCatalogResponse,
   type KnowledgeDocumentDetailsResponse,
+  type KnowledgeIndexConsistencyResponse,
 } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
 
@@ -22,6 +24,9 @@ export function useKnowledgeCatalog() {
   const rebuilding = shallowRef(false);
   const rebuildError = shallowRef("");
   const notice = shallowRef("");
+  const consistency = shallowRef<KnowledgeIndexConsistencyResponse | null>(null);
+  const consistencyLoading = shallowRef(false);
+  const consistencyError = shallowRef("");
   let detailsRequestId = 0;
 
   async function load(): Promise<void> {
@@ -59,6 +64,8 @@ export function useKnowledgeCatalog() {
     detailsLoading.value = true;
     detailsError.value = "";
     rebuildError.value = "";
+    consistency.value = null;
+    consistencyError.value = "";
     notice.value = "";
     try {
       const response = await getKnowledgeDocumentDetails(source);
@@ -87,6 +94,22 @@ export function useKnowledgeCatalog() {
   async function retryDetails(): Promise<void> {
     if (selectedSource.value) {
       await selectDocument(selectedSource.value);
+    }
+  }
+
+  async function inspectSelectedDocumentConsistency(): Promise<void> {
+    const source = selectedSource.value;
+    if (!source || consistencyLoading.value || deleting.value || rebuilding.value) {
+      return;
+    }
+    consistencyLoading.value = true;
+    consistencyError.value = "";
+    try {
+      consistency.value = await inspectKnowledgeDocumentConsistency(source);
+    } catch (requestError) {
+      consistencyError.value = resolveApiError(requestError, "索引巡检失败");
+    } finally {
+      consistencyLoading.value = false;
     }
   }
 
@@ -148,11 +171,15 @@ export function useKnowledgeCatalog() {
     rebuilding,
     rebuildError,
     notice,
+    consistency,
+    consistencyLoading,
+    consistencyError,
     load,
     refresh,
     selectDocument,
     closeDetails,
     retryDetails,
+    inspectSelectedDocumentConsistency,
     deleteSelectedDocument,
     rebuildSelectedDocument,
   };
