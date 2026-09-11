@@ -1,5 +1,15 @@
 # 固定 RAG 评估
 
+## 五分钟演示
+
+在项目根目录执行以下命令，可自动启动默认 `local` 后端和 Vue 前端，等待健康检查与页面可访问后运行资料生命周期 smoke：
+
+```shell
+python evaluation/run_demo.py --keep-running
+```
+
+成功后访问 `http://127.0.0.1:5173/`。脚本固定输出后端健康地址、前端入口、推荐操作顺序和日志位置；`local` 演示不依赖 MySQL、Qdrant 或付费模型。默认端口被占用时可使用 `--backend-port 18082 --frontend-port 5174`，脚本会同步调整前端 `/api` 代理目标。未指定 `--keep-running` 时，smoke 通过后会自动停止本轮启动的进程。
+
 PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线不依赖 RAG 语料、
 数据库或模型调用。
 
