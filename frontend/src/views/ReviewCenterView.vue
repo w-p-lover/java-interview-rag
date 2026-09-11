@@ -15,6 +15,15 @@ import { useRouter } from "vue-router";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import {
+  completeInterviewReviewTask,
+  scheduleInterviewReviewTask,
+} from "@/api/interview";
+import {
+  completeKnowledgeReviewTask,
+  scheduleKnowledgeReviewTask,
+} from "@/api/knowledge";
+import { resolveApiError } from "@/api/request";
+import {
   useUnifiedReviewCenter,
   type UnifiedReviewItem,
   type UnifiedReviewKind,
@@ -57,6 +66,8 @@ const visibleItems = computed(() => items.value.filter((item) => {
 }));
 
 const hasPartialFailure = computed(() => Boolean(interviewError.value || knowledgeError.value));
+const actionLoadingKey = shallowRef("");
+const actionError = shallowRef("");
 
 function formatDate(date: string): string {
   return date.replaceAll("-", ".");
@@ -86,6 +97,41 @@ async function openItem(item: UnifiedReviewItem): Promise<void> {
     return;
   }
   await router.push({ name: "knowledge-answer", query: { reviewTaskId: item.taskId } });
+}
+
+async function completeItem(item: UnifiedReviewItem): Promise<void> {
+  actionLoadingKey.value = item.key;
+  actionError.value = "";
+  try {
+    if (item.kind === "INTERVIEW" && item.sessionId) {
+      await completeInterviewReviewTask(item.sessionId, item.taskId);
+    } else {
+      await completeKnowledgeReviewTask(item.taskId);
+    }
+    await load();
+  } catch (error) {
+    actionError.value = resolveApiError(error, "完成复习任务失败");
+  } finally {
+    actionLoadingKey.value = "";
+  }
+}
+
+async function scheduleItem(item: UnifiedReviewItem, event: Event): Promise<void> {
+  const plannedReviewDate = (event.target as HTMLInputElement).value || null;
+  actionLoadingKey.value = item.key;
+  actionError.value = "";
+  try {
+    if (item.kind === "INTERVIEW" && item.sessionId) {
+      await scheduleInterviewReviewTask(item.sessionId, item.taskId, plannedReviewDate);
+    } else {
+      await scheduleKnowledgeReviewTask(item.taskId, plannedReviewDate);
+    }
+    await load();
+  } catch (error) {
+    actionError.value = resolveApiError(error, "调整复习计划失败");
+  } finally {
+    actionLoadingKey.value = "";
+  }
 }
 
 function refresh(): void {
@@ -165,6 +211,8 @@ onMounted(load);
       </p>
     </div>
 
+    <p v-if="actionError" class="action-error" role="alert">{{ actionError }}</p>
+
     <section id="review-list" class="review-list" aria-live="polite" tabindex="-1">
       <div v-if="loading && !items.length" class="review-state" aria-busy="true">
         正在整理复习路径…
@@ -206,10 +254,19 @@ onMounted(load);
               <span v-if="item.bestOverallScore != null">最佳 {{ item.bestOverallScore }} 分</span>
             </div>
           </div>
-          <button type="button" class="open-action" @click="openItem(item)">
-            <span>进入训练</span>
-            <ArrowRight :size="16" aria-hidden="true" />
-          </button>
+          <div class="review-actions">
+            <label v-if="item.status === 'PENDING'" class="schedule-action">
+              <span class="sr-only">计划复习日期</span>
+              <input type="date" :value="item.plannedReviewDate ?? ''" :disabled="actionLoadingKey === item.key" @change="scheduleItem(item, $event)" />
+            </label>
+            <button v-if="item.status === 'PENDING'" type="button" class="complete-action" :disabled="actionLoadingKey === item.key" @click="completeItem(item)">
+              {{ actionLoadingKey === item.key ? "处理中…" : "标记完成" }}
+            </button>
+            <button type="button" class="open-action" @click="openItem(item)">
+              <span>进入训练</span>
+              <ArrowRight :size="16" aria-hidden="true" />
+            </button>
+          </div>
         </li>
       </ol>
     </section>
@@ -230,7 +287,8 @@ onMounted(load);
 .review-meta,
 .refresh-action,
 .partial-errors p,
-.review-empty {
+.review-empty,
+.review-actions {
   display: flex;
   align-items: center;
 }
@@ -295,6 +353,46 @@ onMounted(load);
   color: var(--color-accent-strong);
   background: var(--color-surface);
   font-weight: 700;
+}
+
+.review-actions {
+  justify-content: end;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  min-width: max-content;
+}
+
+.review-actions input,
+.complete-action {
+  min-height: 2.25rem;
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-xs);
+}
+
+.complete-action {
+  border-color: var(--color-accent);
+  color: var(--color-accent-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.complete-action:disabled,
+.review-actions input:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.action-error {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 3px solid var(--color-danger);
+  color: var(--color-danger-strong);
+  background: var(--color-danger-soft);
 }
 
 .refresh-action:disabled {
@@ -604,6 +702,11 @@ onMounted(load);
   .review-item-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .review-actions {
+    justify-content: start;
+    min-width: 0;
   }
 
   .open-action {
