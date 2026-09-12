@@ -235,6 +235,32 @@ export interface MarkdownRebuildResponse {
   warnings: string[];
 }
 
+export type KnowledgeDocumentTaskOperation = "IMPORT" | "REBUILD";
+export type KnowledgeDocumentTaskStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+
+export interface KnowledgeDocumentTaskSubmitResponse {
+  taskId: string;
+  source: string;
+  operation: KnowledgeDocumentTaskOperation;
+  status: KnowledgeDocumentTaskStatus;
+}
+
+export interface KnowledgeDocumentTaskResponse {
+  taskId: string;
+  source: string;
+  operation: KnowledgeDocumentTaskOperation;
+  status: KnowledgeDocumentTaskStatus;
+  version: string | null;
+  imported: boolean;
+  chunkCount: number;
+  format: "MARKDOWN" | "PDF" | null;
+  warningCount: number;
+  errorType: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
 export async function importMarkdown(
   file: File,
   source: string,
@@ -262,6 +288,26 @@ export async function rebuildMarkdown(
     "/knowledge/documents/rebuild",
     formData,
   );
+  return response.data;
+}
+
+export async function submitKnowledgeDocumentTask(
+  file: File,
+  source: string,
+  operation: KnowledgeDocumentTaskOperation,
+): Promise<KnowledgeDocumentTaskSubmitResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("source", source);
+  const path = operation === "IMPORT"
+    ? "/knowledge/documents/import-tasks"
+    : "/knowledge/documents/rebuild-tasks";
+  const response = await request.post<KnowledgeDocumentTaskSubmitResponse>(path, formData);
+  return response.data;
+}
+
+export async function getKnowledgeDocumentTask(taskId: string): Promise<KnowledgeDocumentTaskResponse> {
+  const response = await request.get<KnowledgeDocumentTaskResponse>(`/knowledge/documents/tasks/${taskId}`);
   return response.data;
 }
 

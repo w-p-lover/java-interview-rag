@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { shallowRef } from "vue";
+import { onBeforeUnmount, shallowRef } from "vue";
 
-import { importMarkdown, type MarkdownImportResponse } from "@/api/knowledge";
+import { getKnowledgeDocumentTask, submitKnowledgeDocumentTask, type KnowledgeDocumentTaskResponse, type MarkdownImportResponse } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
 import ChunkLedger from "@/components/ChunkLedger.vue";
 import ImportPanel from "@/components/ImportPanel.vue";
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import KnowledgeFeatureDock from "@/components/knowledge/KnowledgeFeatureDock.vue";
+import KnowledgeDocumentTaskPanel from "@/components/KnowledgeDocumentTaskPanel.vue";
 
 type WorkbenchState = "idle" | "loading" | "success" | "duplicate" | "error";
 
@@ -18,6 +19,50 @@ interface ImportPayload {
 const state = shallowRef<WorkbenchState>("idle");
 const result = shallowRef<MarkdownImportResponse | null>(null);
 const error = shallowRef("");
+const task = shallowRef<KnowledgeDocumentTaskResponse | null>(null);
+let pollTimer: number | undefined;
+let pollCount = 0;
+
+function clearTaskPolling(): void {
+  if (pollTimer !== undefined) {
+    window.clearTimeout(pollTimer);
+    pollTimer = undefined;
+  }
+}
+
+async function pollTask(taskId: string): Promise<void> {
+  clearTaskPolling();
+  try {
+    task.value = await getKnowledgeDocumentTask(taskId);
+    if (task.value.status === "SUCCEEDED") {
+      state.value = "success";
+      result.value = {
+        source: task.value.source,
+        version: task.value.version || "",
+        imported: task.value.imported,
+        chunkCount: task.value.chunkCount,
+        chunks: [],
+        format: task.value.format || "MARKDOWN",
+        pageCount: null,
+        pagesNeedingOcr: [],
+        warnings: [],
+      };
+      return;
+    }
+    if (task.value.status === "FAILED") {
+      state.value = "error";
+      return;
+    }
+    if (++pollCount >= 30) {
+      error.value = "任务状态长时间未完成，请稍后刷新资料目录确认结果。";
+      return;
+    }
+    pollTimer = window.setTimeout(() => void pollTask(taskId), Math.min(500 + pollCount * 100, 1500));
+  } catch (requestError) {
+    error.value = resolveApiError(requestError, "读取资料任务状态失败");
+    pollTimer = window.setTimeout(() => void pollTask(taskId), 1500);
+  }
+}
 
 async function handleImport(payload: ImportPayload): Promise<void> {
   state.value = "loading";
@@ -25,9 +70,10 @@ async function handleImport(payload: ImportPayload): Promise<void> {
   result.value = null;
 
   try {
-    const response = await importMarkdown(payload.file, payload.source);
-    result.value = response;
-    state.value = response.imported ? "success" : "duplicate";
+    task.value = null;
+    pollCount = 0;
+    const submitted = await submitKnowledgeDocumentTask(payload.file, payload.source, "IMPORT");
+    await pollTask(submitted.taskId);
   } catch (requestError) {
     error.value = resolveApiError(requestError, "导入失败");
     state.value = "error";
@@ -41,7 +87,11 @@ function resetImportState(): void {
   state.value = "idle";
   error.value = "";
   result.value = null;
+  task.value = null;
+  clearTaskPolling();
 }
+
+onBeforeUnmount(clearTaskPolling);
 </script>
 
 <template>
@@ -66,6 +116,7 @@ function resetImportState(): void {
       </div>
 
       <div id="import-result" class="workbench-pane" tabindex="-1">
+        <KnowledgeDocumentTaskPanel :task="task" :error="error" />
         <ChunkLedger :result="result" :state="state" />
       </div>
     </section>

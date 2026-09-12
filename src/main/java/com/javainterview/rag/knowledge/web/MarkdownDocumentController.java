@@ -10,6 +10,10 @@ import com.javainterview.rag.knowledge.document.MarkdownRebuildResult;
 import com.javainterview.rag.knowledge.document.MarkdownSection;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtraction;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTask;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskInput;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskOperation;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.task.TaskRejectedException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -37,13 +42,16 @@ public class MarkdownDocumentController {
     private final MarkdownContentImporter contentImporter;
     private final MarkdownImportRegistry importRegistry;
     private final PdfKnowledgeDocumentExtractor pdfExtractor;
+    private final KnowledgeDocumentTaskService taskService;
 
     public MarkdownDocumentController(MarkdownContentImporter contentImporter,
                                       MarkdownImportRegistry importRegistry,
-                                      PdfKnowledgeDocumentExtractor pdfExtractor) {
+                                      PdfKnowledgeDocumentExtractor pdfExtractor,
+                                      KnowledgeDocumentTaskService taskService) {
         this.contentImporter = contentImporter;
         this.importRegistry = importRegistry;
         this.pdfExtractor = pdfExtractor;
+        this.taskService = taskService;
     }
 
     @GetMapping
@@ -87,6 +95,37 @@ public class MarkdownDocumentController {
                 upload.format(), upload.pageCount(), upload.pagesNeedingOcr(), upload.warnings());
     }
 
+    @PostMapping(value = "/import-tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "异步导入知识资料")
+    public KnowledgeDocumentTaskSubmitResponse submitImportTask(@RequestParam MultipartFile file,
+                                                                 @RequestParam String source) {
+        KnowledgeUploadContent upload = readContentUnchecked(file, source);
+        KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.IMPORT,
+                toTaskInput(upload, source));
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.source(),
+                task.operation(), task.status());
+    }
+
+    @PostMapping(value = "/rebuild-tasks", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "异步重建知识资料")
+    public KnowledgeDocumentTaskSubmitResponse submitRebuildTask(@RequestParam MultipartFile file,
+                                                                  @RequestParam String source) {
+        KnowledgeUploadContent upload = readContentUnchecked(file, source);
+        KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.REBUILD,
+                toTaskInput(upload, source));
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.source(),
+                task.operation(), task.status());
+    }
+
+    @GetMapping("/tasks/{taskId}")
+    @Operation(summary = "查询知识资料异步任务")
+    public KnowledgeDocumentTaskResponse findTask(
+            @org.springframework.web.bind.annotation.PathVariable String taskId) {
+        return KnowledgeDocumentTaskResponse.from(taskService.find(taskId));
+    }
+
     @DeleteMapping
     @Operation(summary = "删除知识资料")
     public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
@@ -103,6 +142,12 @@ public class MarkdownDocumentController {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleMissingDocument(NoSuchElementException exception) {
         return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(TaskRejectedException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public Map<String, String> handleTaskRejected(TaskRejectedException exception) {
+        return Map.of("message", "当前资料索引任务较多，请稍后重试");
     }
 
     private void validateSource(String source) {
@@ -127,6 +172,19 @@ public class MarkdownDocumentController {
         }
         return new KnowledgeUploadContent(new String(file.getBytes(), StandardCharsets.UTF_8),
                 "MARKDOWN", null, List.of(), List.of(), List.of());
+    }
+
+    private KnowledgeUploadContent readContentUnchecked(MultipartFile file, String source) {
+        try {
+            return readContent(file, source);
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("资料文件读取失败");
+        }
+    }
+
+    private KnowledgeDocumentTaskInput toTaskInput(KnowledgeUploadContent upload, String source) {
+        return new KnowledgeDocumentTaskInput(source, upload.content(), upload.format(), upload.pageCount(),
+                upload.pagesNeedingOcr(), upload.warnings(), upload.sections());
     }
 
     private record KnowledgeUploadContent(String content, String format, Integer pageCount,

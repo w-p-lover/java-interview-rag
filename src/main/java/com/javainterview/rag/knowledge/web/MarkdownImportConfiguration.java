@@ -11,10 +11,15 @@ import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.document.TrackingMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
+import com.javainterview.rag.knowledge.task.InMemoryKnowledgeDocumentTaskStore;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskService;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
 import com.javainterview.rag.knowledge.persistence.KnowledgeIndexingStateMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownImportRegistry;
 import com.javainterview.rag.knowledge.persistence.MySqlMarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentTaskMapper;
+import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.vector.QdrantMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -23,6 +28,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.ApplicationRunner;
+
+import java.util.concurrent.Executor;
 
 @Configuration
 public class MarkdownImportConfiguration {
@@ -96,5 +105,36 @@ public class MarkdownImportConfiguration {
     @Bean
     PdfKnowledgeDocumentExtractor pdfKnowledgeDocumentExtractor() {
         return new PdfKnowledgeDocumentExtractor();
+    }
+
+    @Bean
+    @Profile("!storage")
+    KnowledgeDocumentTaskStore knowledgeDocumentTaskStore() {
+        return new InMemoryKnowledgeDocumentTaskStore();
+    }
+
+    @Bean
+    @Profile("storage")
+    KnowledgeDocumentTaskStore mysqlKnowledgeDocumentTaskStore(KnowledgeDocumentTaskMapper mapper) {
+        return new MySqlKnowledgeDocumentTaskStore(mapper);
+    }
+
+    @Bean
+    @Profile("storage")
+    ApplicationRunner failRunningKnowledgeDocumentTasksOnRestart(
+            KnowledgeDocumentTaskStore taskStore) {
+        return args -> {
+            if (taskStore instanceof MySqlKnowledgeDocumentTaskStore mysqlStore) {
+                mysqlStore.failRunningAfterRestart();
+            }
+        };
+    }
+
+    @Bean
+    KnowledgeDocumentTaskService knowledgeDocumentTaskService(
+            MarkdownContentImporter importer,
+            KnowledgeDocumentTaskStore taskStore,
+            @Qualifier("knowledgeDocumentTaskExecutor") Executor executor) {
+        return new KnowledgeDocumentTaskService(importer, taskStore, executor);
     }
 }
