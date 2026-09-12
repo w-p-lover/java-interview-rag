@@ -79,6 +79,13 @@ const latestAnswerQuestion = computed(() => {
   return answer && session.value ? session.value.questions[answer.questionIndex] ?? null : null;
 });
 
+const latestReviewTaskId = computed(() => {
+  const answer = latestAnswer.value;
+  return answer
+    ? reviewTasks.value.find((task) => task.questionIndex === answer.questionIndex)?.id
+    : undefined;
+});
+
 onMounted(async () => {
   const requestedSessionId = typeof route.query.sessionId === "string"
     ? route.query.sessionId
@@ -137,6 +144,13 @@ function handleReviewSchedule(taskId: string, plannedReviewDate: string | null):
 
 function handleReviewAttempt(taskId: string, answer: string): void {
   void submitReviewAttempt(taskId, answer);
+}
+
+function handleRehearsalPractice(taskId: string): void {
+  focusReviewTask(taskId);
+  window.setTimeout(() => {
+    document.getElementById(`review-attempt-answer-${taskId}`)?.focus();
+  }, 250);
 }
 
 function handleAssistantScheduled(): void {
@@ -201,6 +215,8 @@ function handleAssistantScheduled(): void {
           v-if="latestAnswer && latestAnswerQuestion"
           :question="latestAnswerQuestion"
           :answer="latestAnswer"
+          :review-task-id="latestReviewTaskId"
+          @practice="handleRehearsalPractice"
         />
         <InterviewReviewAssistantPanel
           :session-id="session.id"
@@ -254,6 +270,8 @@ function handleAssistantScheduled(): void {
           v-if="latestAnswer && latestAnswerQuestion"
           :question="latestAnswerQuestion"
           :answer="latestAnswer"
+          :review-task-id="latestReviewTaskId"
+          @practice="handleRehearsalPractice"
         />
       </section>
     </template>

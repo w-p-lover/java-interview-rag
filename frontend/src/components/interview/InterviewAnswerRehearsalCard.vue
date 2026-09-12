@@ -7,6 +7,11 @@ import type { InterviewQuestion, InterviewSessionAnswer } from "@/api/interview"
 const props = defineProps<{
   question: InterviewQuestion;
   answer: InterviewSessionAnswer;
+  reviewTaskId?: string;
+}>();
+
+const emit = defineEmits<{
+  practice: [taskId: string];
 }>();
 
 const copyState = shallowRef<"idle" | "copied" | "failed">("idle");
@@ -100,6 +105,15 @@ async function copyRehearsalCard(): Promise<void> {
         <Copy v-else :size="15" aria-hidden="true" />
         <span>{{ copyState === "copied" ? "已复制" : copyState === "failed" ? "复制失败" : "复制复述卡" }}</span>
       </button>
+      <button
+        v-if="props.reviewTaskId"
+        type="button"
+        class="practice-action"
+        @click="emit('practice', props.reviewTaskId)"
+      >
+        <ListOrdered :size="15" aria-hidden="true" />
+        <span>进入同题再练</span>
+      </button>
     </header>
 
     <p v-if="copyState === 'failed'" class="copy-hint" role="status">
@@ -166,6 +180,7 @@ async function copyRehearsalCard(): Promise<void> {
 .rehearsal-heading,
 .rehearsal-title,
 .copy-action,
+.practice-action,
 .rehearsal-section h3 {
   display: flex;
   align-items: center;
@@ -173,6 +188,7 @@ async function copyRehearsalCard(): Promise<void> {
 
 .rehearsal-heading {
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-md);
 }
 
@@ -235,12 +251,32 @@ ul {
   font-weight: 700;
 }
 
+.practice-action {
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: var(--space-xs);
+  min-height: 2.25rem;
+  padding: 0 var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
 .copy-action--failed {
   border-color: var(--color-error-rule);
   color: var(--color-error);
 }
 
 .copy-action:focus-visible {
+  outline: var(--rule-focus) solid var(--color-focus);
+  outline-offset: var(--rule-thin);
+}
+
+.practice-action:focus-visible {
   outline: var(--rule-focus) solid var(--color-focus);
   outline-offset: var(--rule-thin);
 }
@@ -333,6 +369,10 @@ ul {
   }
 
   .copy-action {
+    width: 100%;
+  }
+
+  .practice-action {
     width: 100%;
   }
 
