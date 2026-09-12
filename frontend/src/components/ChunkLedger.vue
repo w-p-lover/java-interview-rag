@@ -84,7 +84,7 @@ const blockTypeLabels: Record<MarkdownImportResponse["chunks"][number]["blockTyp
       </div>
 
       <div v-else-if="result.chunks.length === 0" class="status-note">
-        资料已登记，但正文没有生成可用切片。
+        {{ result.chunkCount > 0 ? "异步任务已完成；切片正文未随任务状态响应回传，可在资料目录查看当前版本详情。" : "资料已登记，但正文没有生成可用切片。" }}
       </div>
 
       <ol v-else class="chunk-list">

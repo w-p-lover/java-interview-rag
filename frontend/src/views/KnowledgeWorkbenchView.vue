@@ -35,7 +35,7 @@ async function pollTask(taskId: string): Promise<void> {
   try {
     task.value = await getKnowledgeDocumentTask(taskId);
     if (task.value.status === "SUCCEEDED") {
-      state.value = "success";
+      state.value = task.value.imported ? "success" : "duplicate";
       result.value = {
         source: task.value.source,
         version: task.value.version || "",
