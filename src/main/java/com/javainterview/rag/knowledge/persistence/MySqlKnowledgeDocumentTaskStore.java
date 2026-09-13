@@ -6,6 +6,8 @@ import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskStatus;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskStore;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentTaskStore {
 
@@ -48,6 +50,11 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
     @Override
     public boolean cancelQueued(String taskId) {
         return mapper.cancelQueued(taskId) > 0;
+    }
+
+    @Override
+    public List<KnowledgeDocumentTask> findRecent(int limit) {
+        return mapper.findRecent(limit).stream().map(this::toTask).collect(Collectors.toList());
     }
 
     public int failRunningAfterRestart() {

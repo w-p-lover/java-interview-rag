@@ -127,6 +127,15 @@ public class MarkdownDocumentController {
         return KnowledgeDocumentTaskResponse.from(taskService.find(taskId));
     }
 
+    @GetMapping("/tasks")
+    @Operation(summary = "查询最近知识资料任务")
+    public List<KnowledgeDocumentTaskResponse> findRecentTasks(
+            @RequestParam(defaultValue = "8") int limit) {
+        return taskService.findRecent(limit).stream()
+                .map(KnowledgeDocumentTaskResponse::from)
+                .toList();
+    }
+
     @org.springframework.web.bind.annotation.PatchMapping("/tasks/{taskId}/cancel")
     @Operation(summary = "取消排队中的知识资料任务")
     public KnowledgeDocumentTaskResponse cancelTask(

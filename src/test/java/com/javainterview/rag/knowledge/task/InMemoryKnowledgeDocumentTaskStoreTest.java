@@ -33,4 +33,14 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
         assertThat(store.find("task-2").orElseThrow().status())
                 .isEqualTo(KnowledgeDocumentTaskStatus.CANCELLED);
     }
+
+    @Test
+    void returnsRecentTasksNewestFirst() {
+        KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
+        store.create("task-old", "old.md", KnowledgeDocumentTaskOperation.IMPORT);
+        store.create("task-new", "new.md", KnowledgeDocumentTaskOperation.REBUILD);
+
+        assertThat(store.findRecent(1)).extracting(KnowledgeDocumentTask::taskId)
+                .containsExactly("task-new");
+    }
 }

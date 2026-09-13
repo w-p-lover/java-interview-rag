@@ -311,6 +311,11 @@ export async function getKnowledgeDocumentTask(taskId: string): Promise<Knowledg
   return response.data;
 }
 
+export async function getRecentKnowledgeDocumentTasks(limit = 8): Promise<KnowledgeDocumentTaskResponse[]> {
+  const response = await request.get<KnowledgeDocumentTaskResponse[]>("/knowledge/documents/tasks", { params: { limit } });
+  return response.data;
+}
+
 export async function cancelKnowledgeDocumentTask(taskId: string): Promise<KnowledgeDocumentTaskResponse> {
   const response = await request.patch<KnowledgeDocumentTaskResponse>(`/knowledge/documents/tasks/${taskId}/cancel`);
   return response.data;

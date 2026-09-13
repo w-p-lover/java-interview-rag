@@ -22,6 +22,11 @@ public interface KnowledgeDocumentTaskMapper {
             + "WHERE task_id = #{taskId}")
     KnowledgeDocumentTaskEntity find(@Param("taskId") String taskId);
 
+    @Select("SELECT task_id, source, operation, status, version, imported, chunk_count, format, warning_count, "
+            + "error_type, created_at, updated_at, completed_at FROM t_knowledge_document_task "
+            + "ORDER BY created_at DESC LIMIT #{limit}")
+    List<KnowledgeDocumentTaskEntity> findRecent(@Param("limit") int limit);
+
     @Update("UPDATE t_knowledge_document_task SET status = #{status}, version = #{version}, imported = #{imported}, "
             + "chunk_count = #{chunkCount}, format = #{format}, warning_count = #{warningCount}, "
             + "error_type = #{errorType}, updated_at = CURRENT_TIMESTAMP(6), "

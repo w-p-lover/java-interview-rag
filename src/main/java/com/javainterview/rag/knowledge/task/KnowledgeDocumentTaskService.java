@@ -7,6 +7,7 @@ import org.springframework.core.task.TaskRejectedException;
 
 import java.util.Objects;
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 public final class KnowledgeDocumentTaskService {
@@ -62,6 +63,13 @@ public final class KnowledgeDocumentTaskService {
             throw new KnowledgeDocumentTaskCancellationException("任务已开始执行，不能取消");
         }
         return find(normalizedTaskId);
+    }
+
+    public List<KnowledgeDocumentTask> findRecent(int limit) {
+        if (limit < 1 || limit > 20) {
+            throw new IllegalArgumentException("任务历史数量必须在 1 到 20 之间");
+        }
+        return taskStore.findRecent(limit);
     }
 
     private void execute(String taskId, KnowledgeDocumentTaskOperation operation,

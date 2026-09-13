@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.task;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface KnowledgeDocumentTaskStore {
 
@@ -17,4 +18,6 @@ public interface KnowledgeDocumentTaskStore {
     void markFailed(String taskId, String errorType);
 
     boolean cancelQueued(String taskId);
+
+    List<KnowledgeDocumentTask> findRecent(int limit);
 }

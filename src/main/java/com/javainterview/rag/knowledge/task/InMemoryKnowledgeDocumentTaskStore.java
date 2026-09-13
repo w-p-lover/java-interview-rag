@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocumentTaskStore {
 
@@ -66,6 +68,13 @@ public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocume
                 existing.imported(), existing.chunkCount(), existing.format(), existing.warningCount(),
                 "CANCELLED_BY_USER", LocalDateTime.now()));
         return true;
+    }
+
+    @Override
+    public synchronized List<KnowledgeDocumentTask> findRecent(int limit) {
+        java.util.ArrayList<KnowledgeDocumentTask> recent = new java.util.ArrayList<>(tasks.values());
+        java.util.Collections.reverse(recent);
+        return recent.stream().limit(limit).collect(Collectors.toList());
     }
 
     private void update(String taskId, java.util.function.UnaryOperator<KnowledgeDocumentTask> updater) {

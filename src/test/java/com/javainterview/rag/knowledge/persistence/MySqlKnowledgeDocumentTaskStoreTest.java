@@ -45,4 +45,12 @@ class MySqlKnowledgeDocumentTaskStoreTest {
         assertThat(store.cancelQueued("task-1")).isTrue();
         verify(mapper).cancelQueued("task-1");
     }
+
+    @Test
+    void loadsRecentTasksThroughMapper() {
+        when(mapper.findRecent(2)).thenReturn(java.util.List.of());
+
+        assertThat(store.findRecent(2)).isEmpty();
+        verify(mapper).findRecent(2);
+    }
 }
