@@ -49,9 +49,27 @@ public final class KnowledgeDocumentTaskService {
                 .orElseThrow(() -> new java.util.NoSuchElementException("知识资料任务不存在"));
     }
 
+    public KnowledgeDocumentTask cancel(String taskId) {
+        String normalizedTaskId = taskId == null ? null : taskId.strip();
+        if (normalizedTaskId == null || normalizedTaskId.isBlank()) {
+            throw new IllegalArgumentException("任务 ID 不能为空");
+        }
+        if (!taskStore.cancelQueued(normalizedTaskId)) {
+            KnowledgeDocumentTask task = find(normalizedTaskId);
+            if (task.status() == KnowledgeDocumentTaskStatus.CANCELLED) {
+                return task;
+            }
+            throw new KnowledgeDocumentTaskCancellationException("任务已开始执行，不能取消");
+        }
+        return find(normalizedTaskId);
+    }
+
     private void execute(String taskId, KnowledgeDocumentTaskOperation operation,
                          KnowledgeDocumentTaskInput input) {
         taskStore.markRunning(taskId);
+        if (taskStore.find(taskId).map(task -> task.status() == KnowledgeDocumentTaskStatus.CANCELLED).orElse(false)) {
+            return;
+        }
         try {
             if (operation == KnowledgeDocumentTaskOperation.IMPORT) {
                 MarkdownImportResult result = input.structured()

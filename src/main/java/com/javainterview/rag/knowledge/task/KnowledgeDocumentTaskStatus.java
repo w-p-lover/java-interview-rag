@@ -4,5 +4,6 @@ public enum KnowledgeDocumentTaskStatus {
     QUEUED,
     RUNNING,
     SUCCEEDED,
-    FAILED
+    FAILED,
+    CANCELLED
 }

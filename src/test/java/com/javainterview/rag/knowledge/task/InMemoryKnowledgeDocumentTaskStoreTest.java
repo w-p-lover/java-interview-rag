@@ -22,4 +22,15 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
         assertThat(result.version()).isEqualTo("version-1");
         assertThat(result.chunkCount()).isEqualTo(2);
     }
+
+    @Test
+    void cancelsQueuedTaskAndKeepsItTerminal() {
+        KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
+        store.create("task-2", "java/cancel.md", KnowledgeDocumentTaskOperation.IMPORT);
+
+        assertThat(store.cancelQueued("task-2")).isTrue();
+        assertThat(store.cancelQueued("task-2")).isFalse();
+        assertThat(store.find("task-2").orElseThrow().status())
+                .isEqualTo(KnowledgeDocumentTaskStatus.CANCELLED);
+    }
 }

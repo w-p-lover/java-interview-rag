@@ -236,7 +236,7 @@ export interface MarkdownRebuildResponse {
 }
 
 export type KnowledgeDocumentTaskOperation = "IMPORT" | "REBUILD";
-export type KnowledgeDocumentTaskStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+export type KnowledgeDocumentTaskStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
 
 export interface KnowledgeDocumentTaskSubmitResponse {
   taskId: string;
@@ -308,6 +308,11 @@ export async function submitKnowledgeDocumentTask(
 
 export async function getKnowledgeDocumentTask(taskId: string): Promise<KnowledgeDocumentTaskResponse> {
   const response = await request.get<KnowledgeDocumentTaskResponse>(`/knowledge/documents/tasks/${taskId}`);
+  return response.data;
+}
+
+export async function cancelKnowledgeDocumentTask(taskId: string): Promise<KnowledgeDocumentTaskResponse> {
+  const response = await request.patch<KnowledgeDocumentTaskResponse>(`/knowledge/documents/tasks/${taskId}/cancel`);
   return response.data;
 }
 

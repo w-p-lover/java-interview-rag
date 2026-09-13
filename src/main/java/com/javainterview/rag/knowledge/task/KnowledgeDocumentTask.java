@@ -37,6 +37,7 @@ public record KnowledgeDocumentTask(
 
     public boolean terminal() {
         return status == KnowledgeDocumentTaskStatus.SUCCEEDED
-                || status == KnowledgeDocumentTaskStatus.FAILED;
+                || status == KnowledgeDocumentTaskStatus.FAILED
+                || status == KnowledgeDocumentTaskStatus.CANCELLED;
     }
 }

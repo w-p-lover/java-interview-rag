@@ -45,6 +45,11 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
         mapper.markFailed(taskId, errorType);
     }
 
+    @Override
+    public boolean cancelQueued(String taskId) {
+        return mapper.cancelQueued(taskId) > 0;
+    }
+
     public int failRunningAfterRestart() {
         return mapper.failRunningAfterRestart();
     }

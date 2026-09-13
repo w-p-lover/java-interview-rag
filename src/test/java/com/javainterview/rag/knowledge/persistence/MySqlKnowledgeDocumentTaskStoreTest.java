@@ -37,4 +37,12 @@ class MySqlKnowledgeDocumentTaskStoreTest {
 
         verify(mapper).failRunningAfterRestart();
     }
+
+    @Test
+    void cancelsOnlyQueuedTask() {
+        when(mapper.cancelQueued("task-1")).thenReturn(1);
+
+        assertThat(store.cancelQueued("task-1")).isTrue();
+        verify(mapper).cancelQueued("task-1");
+    }
 }

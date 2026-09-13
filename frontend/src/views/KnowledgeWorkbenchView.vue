@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, shallowRef } from "vue";
 
-import { getKnowledgeDocumentTask, submitKnowledgeDocumentTask, type KnowledgeDocumentTaskResponse, type MarkdownImportResponse } from "@/api/knowledge";
+import { cancelKnowledgeDocumentTask, getKnowledgeDocumentTask, submitKnowledgeDocumentTask, type KnowledgeDocumentTaskResponse, type MarkdownImportResponse } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
 import ChunkLedger from "@/components/ChunkLedger.vue";
 import ImportPanel from "@/components/ImportPanel.vue";
@@ -49,7 +49,7 @@ async function pollTask(taskId: string): Promise<void> {
       };
       return;
     }
-    if (task.value.status === "FAILED") {
+    if (task.value.status === "FAILED" || task.value.status === "CANCELLED") {
       state.value = "error";
       return;
     }
@@ -61,6 +61,18 @@ async function pollTask(taskId: string): Promise<void> {
   } catch (requestError) {
     error.value = resolveApiError(requestError, "读取资料任务状态失败");
     pollTimer = window.setTimeout(() => void pollTask(taskId), 1500);
+  }
+}
+
+async function cancelTask(): Promise<void> {
+  if (!task.value || task.value.status !== "QUEUED") return;
+  clearTaskPolling();
+  try {
+    task.value = await cancelKnowledgeDocumentTask(task.value.taskId);
+    state.value = "idle";
+  } catch (requestError) {
+    error.value = resolveApiError(requestError, "取消资料任务失败");
+    pollTimer = window.setTimeout(() => void pollTask(task.value?.taskId || ""), 500);
   }
 }
 
@@ -116,7 +128,7 @@ onBeforeUnmount(clearTaskPolling);
       </div>
 
       <div id="import-result" class="workbench-pane" tabindex="-1">
-        <KnowledgeDocumentTaskPanel :task="task" :error="error" />
+        <KnowledgeDocumentTaskPanel :task="task" :error="error" @cancel="cancelTask" />
         <ChunkLedger :result="result" :state="state" />
       </div>
     </section>

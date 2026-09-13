@@ -57,4 +57,5 @@ class KnowledgeDocumentTaskControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("知识资料任务不存在"));
     }
+
 }

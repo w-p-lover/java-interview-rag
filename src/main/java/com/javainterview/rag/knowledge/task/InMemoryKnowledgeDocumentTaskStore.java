@@ -53,6 +53,21 @@ public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocume
                 LocalDateTime.now()));
     }
 
+    @Override
+    public synchronized boolean cancelQueued(String taskId) {
+        KnowledgeDocumentTask existing = tasks.get(taskId);
+        if (existing == null) {
+            throw new NoSuchElementException("知识资料任务不存在");
+        }
+        if (existing.status() != KnowledgeDocumentTaskStatus.QUEUED) {
+            return false;
+        }
+        tasks.put(taskId, copy(existing, KnowledgeDocumentTaskStatus.CANCELLED, existing.version(),
+                existing.imported(), existing.chunkCount(), existing.format(), existing.warningCount(),
+                "CANCELLED_BY_USER", LocalDateTime.now()));
+        return true;
+    }
+
     private void update(String taskId, java.util.function.UnaryOperator<KnowledgeDocumentTask> updater) {
         KnowledgeDocumentTask existing = tasks.get(taskId);
         if (existing == null) {

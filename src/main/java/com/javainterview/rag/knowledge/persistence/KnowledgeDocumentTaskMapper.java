@@ -26,7 +26,7 @@ public interface KnowledgeDocumentTaskMapper {
             + "chunk_count = #{chunkCount}, format = #{format}, warning_count = #{warningCount}, "
             + "error_type = #{errorType}, updated_at = CURRENT_TIMESTAMP(6), "
             + "completed_at = CURRENT_TIMESTAMP(6) WHERE task_id = #{taskId} "
-            + "AND status NOT IN ('SUCCEEDED','FAILED')")
+            + "AND status NOT IN ('SUCCEEDED','FAILED','CANCELLED')")
     int markSucceeded(@Param("taskId") String taskId, @Param("status") String status,
                       @Param("version") String version, @Param("imported") boolean imported,
                       @Param("chunkCount") int chunkCount,
@@ -35,11 +35,16 @@ public interface KnowledgeDocumentTaskMapper {
 
     @Update("UPDATE t_knowledge_document_task SET status = 'FAILED', error_type = #{errorType}, "
             + "updated_at = CURRENT_TIMESTAMP(6), completed_at = CURRENT_TIMESTAMP(6) "
-            + "WHERE task_id = #{taskId} AND status NOT IN ('SUCCEEDED','FAILED')")
+            + "WHERE task_id = #{taskId} AND status NOT IN ('SUCCEEDED','FAILED','CANCELLED')")
     int markFailed(@Param("taskId") String taskId, @Param("errorType") String errorType);
 
+    @Update("UPDATE t_knowledge_document_task SET status = 'CANCELLED', error_type = 'CANCELLED_BY_USER', "
+            + "updated_at = CURRENT_TIMESTAMP(6), completed_at = CURRENT_TIMESTAMP(6) "
+            + "WHERE task_id = #{taskId} AND status = 'QUEUED'")
+    int cancelQueued(@Param("taskId") String taskId);
+
     @Update("UPDATE t_knowledge_document_task SET status = #{status}, updated_at = CURRENT_TIMESTAMP(6) "
-            + "WHERE task_id = #{taskId} AND status NOT IN ('SUCCEEDED','FAILED')")
+            + "WHERE task_id = #{taskId} AND status = 'QUEUED'")
     int markRunning(@Param("taskId") String taskId, @Param("status") String status);
 
     @Update("UPDATE t_knowledge_document_task SET status = 'FAILED', error_type = 'APPLICATION_RESTARTED', "

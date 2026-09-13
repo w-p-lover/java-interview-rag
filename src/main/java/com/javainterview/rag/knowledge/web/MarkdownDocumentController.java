@@ -14,6 +14,7 @@ import com.javainterview.rag.knowledge.task.KnowledgeDocumentTask;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskInput;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskOperation;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskService;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskCancellationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -126,6 +127,13 @@ public class MarkdownDocumentController {
         return KnowledgeDocumentTaskResponse.from(taskService.find(taskId));
     }
 
+    @org.springframework.web.bind.annotation.PatchMapping("/tasks/{taskId}/cancel")
+    @Operation(summary = "取消排队中的知识资料任务")
+    public KnowledgeDocumentTaskResponse cancelTask(
+            @org.springframework.web.bind.annotation.PathVariable String taskId) {
+        return KnowledgeDocumentTaskResponse.from(taskService.cancel(taskId));
+    }
+
     @DeleteMapping
     @Operation(summary = "删除知识资料")
     public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
@@ -141,6 +149,12 @@ public class MarkdownDocumentController {
     @ExceptionHandler(NoSuchElementException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleMissingDocument(NoSuchElementException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(KnowledgeDocumentTaskCancellationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleTaskCancellation(KnowledgeDocumentTaskCancellationException exception) {
         return Map.of("message", exception.getMessage());
     }
 

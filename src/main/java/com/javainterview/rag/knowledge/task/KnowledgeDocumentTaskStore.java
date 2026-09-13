@@ -15,4 +15,6 @@ public interface KnowledgeDocumentTaskStore {
                        String format, int warningCount);
 
     void markFailed(String taskId, String errorType);
+
+    boolean cancelQueued(String taskId);
 }
