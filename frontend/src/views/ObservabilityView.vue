@@ -115,6 +115,25 @@ function formatTime(value: string): string {
           <p>还没有可统计的业务请求，刷新页面后再试。</p>
         </div>
       </section>
+
+      <section id="observability-tasks" class="operations-section" aria-labelledby="tasks-title">
+        <header>
+          <div>
+            <span>知识资料异步执行器</span>
+            <h2 id="tasks-title">任务容量</h2>
+          </div>
+          <small>2 个工作线程 · 8 个排队槽位</small>
+        </header>
+        <div class="task-metrics">
+          <article><span>排队中</span><strong>{{ result.tasks.queued }}</strong></article>
+          <article><span>执行中</span><strong>{{ result.tasks.running }}</strong></article>
+          <article><span>已完成</span><strong>{{ result.tasks.succeeded }}</strong></article>
+          <article><span>失败</span><strong class="danger">{{ result.tasks.failed }}</strong></article>
+          <article><span>已取消</span><strong>{{ result.tasks.cancelled }}</strong></article>
+          <article><span>被拒绝</span><strong class="danger">{{ result.tasks.rejected }}</strong></article>
+        </div>
+        <p class="task-capacity-note">排队数达到 8 时，新任务会被拒绝；被拒绝次数用于识别容量边界，不代表资料正文处理失败。</p>
+      </section>
     </template>
     <div v-else-if="loading" class="loading-state" aria-live="polite">正在读取运行指标</div>
   </main>
@@ -144,11 +163,17 @@ thead th { color: var(--color-muted); font-weight: 700; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 code { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--text-xs); }
 .danger { color: var(--color-error); font-weight: 700; }
+.task-metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-sm); }
+.task-metrics article { display: grid; gap: var(--space-xs); padding: var(--space-md); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); background: var(--color-paper-2); }
+.task-metrics span, .task-capacity-note { color: var(--color-muted); font-size: var(--text-xs); }
+.task-metrics strong { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--text-xl); }
+.task-capacity-note { margin: 0; }
 .error-banner { padding: var(--space-sm) var(--space-md); border: var(--rule-thin) solid var(--color-error-rule); border-radius: var(--radius-control); color: var(--color-error); background: var(--color-error-soft); font-size: var(--text-sm); }
 .empty-state, .loading-state { display: flex; align-items: center; justify-content: center; gap: var(--space-sm); min-height: 16rem; color: var(--color-muted); }
 .empty-state svg { color: var(--color-accent); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 68rem) { .observability-workspace { margin-left: 0; } }
-@media (max-width: 42rem) { .observability-workspace { width: calc(100% - (var(--space-md) * 2)); margin-inline: auto; padding: var(--space-lg) 0 var(--space-xl); } .observability-heading { align-items: start; flex-direction: column; } .metric-cards { grid-template-columns: 1fr; } .metric-card { min-height: auto; } }
+@media (max-width: 68rem) { .task-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 42rem) { .observability-workspace { width: calc(100% - (var(--space-md) * 2)); margin-inline: auto; padding: var(--space-lg) 0 var(--space-xl); } .observability-heading { align-items: start; flex-direction: column; } .metric-cards, .task-metrics { grid-template-columns: 1fr; } .metric-card { min-height: auto; } }
 @media (prefers-reduced-motion: reduce) { .spinning { animation: none; } }
 </style>

@@ -13,6 +13,7 @@ import com.javainterview.rag.knowledge.document.TrackingMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import com.javainterview.rag.knowledge.task.InMemoryKnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskService;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskMetrics;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentVersionMapper;
 import com.javainterview.rag.knowledge.persistence.KnowledgeIndexingStateMapper;
@@ -134,7 +135,8 @@ public class MarkdownImportConfiguration {
     KnowledgeDocumentTaskService knowledgeDocumentTaskService(
             MarkdownContentImporter importer,
             KnowledgeDocumentTaskStore taskStore,
-            @Qualifier("knowledgeDocumentTaskExecutor") Executor executor) {
-        return new KnowledgeDocumentTaskService(importer, taskStore, executor);
+            @Qualifier("knowledgeDocumentTaskExecutor") Executor executor,
+            KnowledgeDocumentTaskMetrics metrics) {
+        return new KnowledgeDocumentTaskService(importer, taskStore, executor, metrics);
     }
 }

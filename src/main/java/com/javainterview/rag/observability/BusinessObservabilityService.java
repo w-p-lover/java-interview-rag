@@ -4,6 +4,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
+import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskMetrics;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -18,9 +19,11 @@ public class BusinessObservabilityService {
     private static final String LATENCY_METRIC = "java.interview.business.request.latency";
 
     private final MeterRegistry meterRegistry;
+    private final KnowledgeDocumentTaskMetrics taskMetrics;
 
-    public BusinessObservabilityService(MeterRegistry meterRegistry) {
+    public BusinessObservabilityService(MeterRegistry meterRegistry, KnowledgeDocumentTaskMetrics taskMetrics) {
         this.meterRegistry = meterRegistry;
+        this.taskMetrics = taskMetrics;
     }
 
     public BusinessObservabilityOverview overview() {
@@ -63,7 +66,13 @@ public class BusinessObservabilityService {
                 new BusinessObservabilityOverview.CacheMetric(
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "HIT"),
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "MISS"),
-                        MicrometerRagAnswerCacheObserver.count(meterRegistry, "BYPASS")));
+                        MicrometerRagAnswerCacheObserver.count(meterRegistry, "BYPASS")),
+                toTaskMetric(taskMetrics.snapshot()));
+    }
+
+    private BusinessObservabilityOverview.TaskMetric toTaskMetric(KnowledgeDocumentTaskMetrics.Snapshot snapshot) {
+        return new BusinessObservabilityOverview.TaskMetric(snapshot.queued(), snapshot.running(), snapshot.succeeded(),
+                snapshot.failed(), snapshot.cancelled(), snapshot.rejected());
     }
 
     private static final class MutableMetric {

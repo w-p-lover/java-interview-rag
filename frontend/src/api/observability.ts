@@ -15,6 +15,7 @@ export interface BusinessObservabilityOverview {
   totalFailures: number;
   operations: BusinessOperationMetric[];
   cache: { hitCount: number; missCount: number; bypassCount: number };
+  tasks: { queued: number; running: number; succeeded: number; failed: number; cancelled: number; rejected: number };
 }
 
 export async function getBusinessObservabilityOverview(): Promise<BusinessObservabilityOverview> {

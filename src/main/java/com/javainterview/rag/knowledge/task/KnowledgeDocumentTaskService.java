@@ -15,13 +15,16 @@ public final class KnowledgeDocumentTaskService {
     private final MarkdownContentImporter importer;
     private final KnowledgeDocumentTaskStore taskStore;
     private final Executor executor;
+    private final KnowledgeDocumentTaskMetrics metrics;
 
     public KnowledgeDocumentTaskService(MarkdownContentImporter importer,
                                         KnowledgeDocumentTaskStore taskStore,
-                                        Executor executor) {
+                                        Executor executor,
+                                        KnowledgeDocumentTaskMetrics metrics) {
         this.importer = Objects.requireNonNull(importer, "Markdown 导入器不能为空");
         this.taskStore = Objects.requireNonNull(taskStore, "资料任务存储不能为空");
         this.executor = Objects.requireNonNull(executor, "资料任务执行器不能为空");
+        this.metrics = Objects.requireNonNull(metrics, "资料任务指标不能为空");
     }
 
     public KnowledgeDocumentTask submit(KnowledgeDocumentTaskOperation operation,
@@ -30,13 +33,18 @@ public final class KnowledgeDocumentTaskService {
         Objects.requireNonNull(input, "任务输入不能为空");
         String taskId = UUID.randomUUID().toString();
         KnowledgeDocumentTask task = taskStore.create(taskId, input.source(), operation);
+        metrics.submitted();
         try {
             executor.execute(() -> execute(taskId, operation, input));
         } catch (TaskRejectedException exception) {
             taskStore.markFailed(taskId, "TASK_REJECTED");
+            metrics.rejected();
+            metrics.failed();
             throw exception;
         } catch (RuntimeException exception) {
             taskStore.markFailed(taskId, exception.getClass().getSimpleName());
+            metrics.rejected();
+            metrics.failed();
             throw exception;
         }
         return task;
@@ -62,6 +70,7 @@ public final class KnowledgeDocumentTaskService {
             }
             throw new KnowledgeDocumentTaskCancellationException("任务已开始执行，不能取消");
         }
+        metrics.cancelled();
         return find(normalizedTaskId);
     }
 
@@ -75,9 +84,10 @@ public final class KnowledgeDocumentTaskService {
     private void execute(String taskId, KnowledgeDocumentTaskOperation operation,
                          KnowledgeDocumentTaskInput input) {
         taskStore.markRunning(taskId);
-        if (taskStore.find(taskId).map(task -> task.status() == KnowledgeDocumentTaskStatus.CANCELLED).orElse(false)) {
+        if (taskStore.find(taskId).map(task -> task.status() != KnowledgeDocumentTaskStatus.RUNNING).orElse(true)) {
             return;
         }
+        metrics.started();
         try {
             if (operation == KnowledgeDocumentTaskOperation.IMPORT) {
                 MarkdownImportResult result = input.structured()
@@ -85,6 +95,7 @@ public final class KnowledgeDocumentTaskService {
                         : importer.importContent(input.source(), input.content());
                 taskStore.markSucceeded(taskId, result.document().version(), result.imported(), result.chunks().size(),
                         input.format(), input.warnings().size());
+                metrics.succeeded();
                 return;
             }
             MarkdownRebuildResult result = input.structured()
@@ -92,8 +103,10 @@ public final class KnowledgeDocumentTaskService {
                     : importer.rebuildContent(input.source(), input.content());
             taskStore.markSucceeded(taskId, result.document().version(), true, result.chunks().size(),
                     input.format(), input.warnings().size());
+            metrics.succeeded();
         } catch (RuntimeException exception) {
             taskStore.markFailed(taskId, exception.getClass().getSimpleName());
+            metrics.failed();
         }
     }
 }
