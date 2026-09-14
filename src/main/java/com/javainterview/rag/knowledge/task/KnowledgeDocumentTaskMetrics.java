@@ -13,6 +13,7 @@ public final class KnowledgeDocumentTaskMetrics {
     private final AtomicLong failed = new AtomicLong();
     private final AtomicLong cancelled = new AtomicLong();
     private final AtomicLong rejected = new AtomicLong();
+    private final AtomicLong timedOut = new AtomicLong();
 
     public void submitted() { queued.incrementAndGet(); }
 
@@ -35,8 +36,17 @@ public final class KnowledgeDocumentTaskMetrics {
         rejected.incrementAndGet();
     }
 
+    public void timedOut() { timedOut.incrementAndGet(); }
+
+    public void timeoutTask() {
+        decrementIfPositive(queued);
+        decrementIfPositive(running);
+        failed.incrementAndGet();
+        timedOut.incrementAndGet();
+    }
+
     public Snapshot snapshot() {
-        return new Snapshot(queued.get(), running.get(), succeeded.get(), failed.get(), cancelled.get(), rejected.get());
+        return new Snapshot(queued.get(), running.get(), succeeded.get(), failed.get(), cancelled.get(), rejected.get(), timedOut.get());
     }
 
     private void terminal(AtomicLong active, AtomicLong completed) {
@@ -48,5 +58,6 @@ public final class KnowledgeDocumentTaskMetrics {
         value.updateAndGet(current -> current > 0 ? current - 1 : 0);
     }
 
-    public record Snapshot(long queued, long running, long succeeded, long failed, long cancelled, long rejected) { }
+    public record Snapshot(long queued, long running, long succeeded, long failed, long cancelled, long rejected,
+                           long timedOut) { }
 }

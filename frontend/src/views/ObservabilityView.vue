@@ -122,7 +122,7 @@ function formatTime(value: string): string {
             <span>知识资料异步执行器</span>
             <h2 id="tasks-title">任务容量</h2>
           </div>
-          <small>2 个工作线程 · 8 个排队槽位</small>
+          <small>2 个工作线程 · 8 个排队槽位 · 默认 10 分钟截止</small>
         </header>
         <div class="task-metrics">
           <article><span>排队中</span><strong>{{ result.tasks.queued }}</strong></article>
@@ -131,6 +131,7 @@ function formatTime(value: string): string {
           <article><span>失败</span><strong class="danger">{{ result.tasks.failed }}</strong></article>
           <article><span>已取消</span><strong>{{ result.tasks.cancelled }}</strong></article>
           <article><span>被拒绝</span><strong class="danger">{{ result.tasks.rejected }}</strong></article>
+          <article><span>超时</span><strong class="danger">{{ result.tasks.timedOut }}</strong></article>
         </div>
         <p class="task-capacity-note">排队数达到 8 时，新任务会被拒绝；被拒绝次数用于识别容量边界，不代表资料正文处理失败。</p>
       </section>

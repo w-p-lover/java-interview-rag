@@ -19,6 +19,6 @@ public record BusinessObservabilityOverview(Instant generatedAt, long totalReque
     }
 
     public record TaskMetric(long queued, long running, long succeeded, long failed,
-                             long cancelled, long rejected) {
+                             long cancelled, long rejected, long timedOut) {
     }
 }

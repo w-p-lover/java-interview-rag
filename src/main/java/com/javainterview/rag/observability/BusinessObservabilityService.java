@@ -72,7 +72,7 @@ public class BusinessObservabilityService {
 
     private BusinessObservabilityOverview.TaskMetric toTaskMetric(KnowledgeDocumentTaskMetrics.Snapshot snapshot) {
         return new BusinessObservabilityOverview.TaskMetric(snapshot.queued(), snapshot.running(), snapshot.succeeded(),
-                snapshot.failed(), snapshot.cancelled(), snapshot.rejected());
+                snapshot.failed(), snapshot.cancelled(), snapshot.rejected(), snapshot.timedOut());
     }
 
     private static final class MutableMetric {
