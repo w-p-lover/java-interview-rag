@@ -154,6 +154,53 @@ export async function createKnowledgeReviewTaskFromFeedback(
   return response.data;
 }
 
+export interface RagEvaluationCandidate {
+  id: string;
+  feedbackId: number | null;
+  question: string;
+  expectedSources: string[];
+  expectedAnswerPoints: string[];
+  status: "PENDING" | "ACTIVE" | "IGNORED";
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export async function createRagEvaluationCandidate(
+  feedbackId: number,
+  payload: { question: string; expectedSources: string[]; expectedAnswerPoints: string[] },
+): Promise<RagEvaluationCandidate> {
+  const response = await request.post<RagEvaluationCandidate>(`/knowledge/evaluation-candidates?feedbackId=${feedbackId}`, payload);
+  return response.data;
+}
+
+export interface RagEvaluationCandidateResult {
+  candidateId: string;
+  question: string;
+  grounded: boolean;
+  expectedSourceMatched: boolean;
+  expectedAnswerPoints: string[];
+  matchedAnswerPoints: string[];
+  actualSources: string[];
+  retrievalStrategy: string;
+  degraded: boolean;
+  degradationReason: string | null;
+}
+
+export async function getRagEvaluationCandidates(status?: RagEvaluationCandidate["status"]): Promise<RagEvaluationCandidate[]> {
+  const response = await request.get<RagEvaluationCandidate[]>("/knowledge/evaluation-candidates", { params: { status } });
+  return response.data;
+}
+
+export async function reviewRagEvaluationCandidate(id: string, status: "ACTIVE" | "IGNORED"): Promise<RagEvaluationCandidate> {
+  const response = await request.patch<RagEvaluationCandidate>(`/knowledge/evaluation-candidates/${id}`, { status });
+  return response.data;
+}
+
+export async function evaluateRagEvaluationCandidate(id: string): Promise<RagEvaluationCandidateResult> {
+  const response = await request.post<RagEvaluationCandidateResult>(`/knowledge/evaluation-candidates/${id}/evaluate`);
+  return response.data;
+}
+
 export interface KnowledgeConversationTurn {
   question: string;
   answer: string;
