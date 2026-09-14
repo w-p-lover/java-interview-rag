@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.feedback.RagAnswerFeedback;
 import com.javainterview.rag.knowledge.feedback.RagAnswerFeedbackStore;
+import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +19,9 @@ import java.util.List;
 @RequestMapping("/api/knowledge/answer/feedback")
 public class RagAnswerFeedbackController {
     private final RagAnswerFeedbackStore store;
+    private final RagRetrievalLogStore retrievalLogStore;
 
-    public RagAnswerFeedbackController(RagAnswerFeedbackStore store) { this.store = store; }
+    public RagAnswerFeedbackController(RagAnswerFeedbackStore store, RagRetrievalLogStore retrievalLogStore) { this.store = store; this.retrievalLogStore = retrievalLogStore; }
 
     @PostMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -28,7 +30,7 @@ public class RagAnswerFeedbackController {
             throw new IllegalArgumentException("问题不能为空");
         }
         store.record(new RagAnswerFeedback(null, hash(request.question()), request.grounded(), request.retrievalStrategy(),
-                request.feedback(), "PENDING", null, LocalDateTime.now(), null));
+                request.feedback(), "PENDING", null, null, LocalDateTime.now(), null));
     }
 
     @GetMapping
@@ -42,7 +44,13 @@ public class RagAnswerFeedbackController {
     @PatchMapping("/{id}")
     public RagAnswerFeedback review(@PathVariable long id, @RequestBody RagAnswerFeedbackReviewRequest request) {
         if (request == null) throw new IllegalArgumentException("审阅请求不能为空");
-        return store.review(id, request.reviewStatus(), request.reviewNote());
+        return store.review(id, request.reviewStatus(), request.reviewNote(), request.failureLayer());
+    }
+
+    @GetMapping("/{id}/diagnosis")
+    public RagAnswerFeedbackDiagnosis diagnosis(@PathVariable long id) {
+        RagAnswerFeedback feedback = store.findById(id).orElseThrow(() -> new IllegalArgumentException("反馈不存在"));
+        return new RagAnswerFeedbackDiagnosis(feedback, retrievalLogStore.findRecentByQuestionHash(feedback.questionHash(), 100));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

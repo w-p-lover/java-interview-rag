@@ -20,11 +20,12 @@ public class RagAnswerFeedbackEntity {
     private String feedback;
     private String reviewStatus;
     private String reviewNote;
+    private String failureLayer;
     private LocalDateTime createdAt;
     private LocalDateTime reviewedAt;
 
     public static RagAnswerFeedbackEntity from(RagAnswerFeedback value) {
         return new RagAnswerFeedbackEntity(null, value.questionHash(), value.grounded(), value.retrievalStrategy(),
-                value.feedback(), value.reviewStatus(), value.reviewNote(), value.createdAt(), value.reviewedAt());
+                value.feedback(), value.reviewStatus(), value.reviewNote(), value.failureLayer(), value.createdAt(), value.reviewedAt());
     }
 }

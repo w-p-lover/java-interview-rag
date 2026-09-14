@@ -121,8 +121,19 @@ export interface KnowledgeAnswerFeedback {
   feedback: "HELPFUL" | "NOT_HELPFUL";
   reviewStatus: "PENDING" | "EVALUATION" | "IGNORED";
   reviewNote: string | null;
+  failureLayer: string | null;
   createdAt: string;
   reviewedAt: string | null;
+}
+
+export interface KnowledgeFeedbackDiagnosis {
+  feedback: KnowledgeAnswerFeedback;
+  retrievalLogs: Array<{ id: number | null; status: string; grounded: boolean; sources: KnowledgeAnswerSource[]; elapsedMillis: number; errorType: string | null; createdAt: string }>;
+}
+
+export async function getKnowledgeAnswerFeedbackDiagnosis(id: number): Promise<KnowledgeFeedbackDiagnosis> {
+  const response = await request.get<KnowledgeFeedbackDiagnosis>(`/knowledge/answer/feedback/${id}/diagnosis`);
+  return response.data;
 }
 
 export async function getKnowledgeAnswerFeedback(limit = 50, reviewStatus?: string): Promise<KnowledgeAnswerFeedback[]> {
@@ -130,8 +141,8 @@ export async function getKnowledgeAnswerFeedback(limit = 50, reviewStatus?: stri
   return response.data;
 }
 
-export async function reviewKnowledgeAnswerFeedback(id: number, reviewStatus: "EVALUATION" | "IGNORED", reviewNote: string): Promise<KnowledgeAnswerFeedback> {
-  const response = await request.patch<KnowledgeAnswerFeedback>(`/knowledge/answer/feedback/${id}`, { reviewStatus, reviewNote });
+export async function reviewKnowledgeAnswerFeedback(id: number, reviewStatus: "EVALUATION" | "IGNORED", reviewNote: string, failureLayer: string | null): Promise<KnowledgeAnswerFeedback> {
+  const response = await request.patch<KnowledgeAnswerFeedback>(`/knowledge/answer/feedback/${id}`, { reviewStatus, reviewNote, failureLayer });
   return response.data;
 }
 
