@@ -113,6 +113,28 @@ export async function sendKnowledgeAnswerFeedback(payload: { question: string; g
   await request.post("/knowledge/answer/feedback", payload);
 }
 
+export interface KnowledgeAnswerFeedback {
+  id: number;
+  questionHash: string;
+  grounded: boolean;
+  retrievalStrategy: string;
+  feedback: "HELPFUL" | "NOT_HELPFUL";
+  reviewStatus: "PENDING" | "EVALUATION" | "IGNORED";
+  reviewNote: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+}
+
+export async function getKnowledgeAnswerFeedback(limit = 50, reviewStatus?: string): Promise<KnowledgeAnswerFeedback[]> {
+  const response = await request.get<KnowledgeAnswerFeedback[]>("/knowledge/answer/feedback", { params: { limit, reviewStatus } });
+  return response.data;
+}
+
+export async function reviewKnowledgeAnswerFeedback(id: number, reviewStatus: "EVALUATION" | "IGNORED", reviewNote: string): Promise<KnowledgeAnswerFeedback> {
+  const response = await request.patch<KnowledgeAnswerFeedback>(`/knowledge/answer/feedback/${id}`, { reviewStatus, reviewNote });
+  return response.data;
+}
+
 export interface KnowledgeConversationTurn {
   question: string;
   answer: string;

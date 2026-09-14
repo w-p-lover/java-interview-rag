@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskMetrics;
+import com.javainterview.rag.knowledge.feedback.RagAnswerFeedbackStore;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -20,10 +21,13 @@ public class BusinessObservabilityService {
 
     private final MeterRegistry meterRegistry;
     private final KnowledgeDocumentTaskMetrics taskMetrics;
+    private final RagAnswerFeedbackStore feedbackStore;
 
-    public BusinessObservabilityService(MeterRegistry meterRegistry, KnowledgeDocumentTaskMetrics taskMetrics) {
+    public BusinessObservabilityService(MeterRegistry meterRegistry, KnowledgeDocumentTaskMetrics taskMetrics,
+                                        RagAnswerFeedbackStore feedbackStore) {
         this.meterRegistry = meterRegistry;
         this.taskMetrics = taskMetrics;
+        this.feedbackStore = feedbackStore;
     }
 
     public BusinessObservabilityOverview overview() {
@@ -67,7 +71,16 @@ public class BusinessObservabilityService {
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "HIT"),
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "MISS"),
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "BYPASS")),
-                toTaskMetric(taskMetrics.snapshot()));
+                toTaskMetric(taskMetrics.snapshot()), toFeedbackMetric());
+    }
+
+    private BusinessObservabilityOverview.FeedbackMetric toFeedbackMetric() {
+        var feedback = feedbackStore.findRecent(100, null, null);
+        return new BusinessObservabilityOverview.FeedbackMetric(feedback.size(),
+                feedback.stream().filter(item -> "HELPFUL".equals(item.feedback())).count(),
+                feedback.stream().filter(item -> "NOT_HELPFUL".equals(item.feedback())).count(),
+                feedback.stream().filter(item -> "PENDING".equals(item.reviewStatus())).count(),
+                feedback.stream().filter(item -> "EVALUATION".equals(item.reviewStatus())).count());
     }
 
     private BusinessObservabilityOverview.TaskMetric toTaskMetric(KnowledgeDocumentTaskMetrics.Snapshot snapshot) {

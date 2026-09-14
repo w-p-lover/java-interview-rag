@@ -135,6 +135,24 @@ function formatTime(value: string): string {
         </div>
         <p class="task-capacity-note">排队数达到 8 时，新任务会被拒绝；被拒绝次数用于识别容量边界，不代表资料正文处理失败。</p>
       </section>
+
+      <section id="observability-feedback" class="operations-section" aria-labelledby="feedback-title">
+        <header>
+          <div>
+            <span>RAG 真实使用反馈</span>
+            <h2 id="feedback-title">回答反馈</h2>
+          </div>
+          <small>低敏元数据 · 人工确认后进入评估</small>
+        </header>
+        <div class="feedback-summary">
+          <article><span>总反馈</span><strong>{{ result.feedback.total }}</strong></article>
+          <article><span>有帮助</span><strong>{{ result.feedback.helpful }}</strong></article>
+          <article><span>没帮助</span><strong class="danger">{{ result.feedback.notHelpful }}</strong></article>
+          <article><span>待审阅</span><strong class="danger">{{ result.feedback.pending }}</strong></article>
+          <article><span>已纳入评估</span><strong>{{ result.feedback.evaluation }}</strong></article>
+        </div>
+        <RouterLink to="/observability/feedback" class="feedback-link">打开反馈审阅中心</RouterLink>
+      </section>
     </template>
     <div v-else-if="loading" class="loading-state" aria-live="polite">正在读取运行指标</div>
   </main>
@@ -169,6 +187,11 @@ code { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--
 .task-metrics span, .task-capacity-note { color: var(--color-muted); font-size: var(--text-xs); }
 .task-metrics strong { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--text-xl); }
 .task-capacity-note { margin: 0; }
+.feedback-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-sm); }
+.feedback-summary article { display: grid; gap: var(--space-xs); padding: var(--space-md); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); background: var(--color-paper-2); }
+.feedback-summary span { color: var(--color-muted); font-size: var(--text-xs); }
+.feedback-summary strong { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--text-xl); }
+.feedback-link { color: var(--color-accent); font-size: var(--text-sm); font-weight: 700; }
 .error-banner { padding: var(--space-sm) var(--space-md); border: var(--rule-thin) solid var(--color-error-rule); border-radius: var(--radius-control); color: var(--color-error); background: var(--color-error-soft); font-size: var(--text-sm); }
 .empty-state, .loading-state { display: flex; align-items: center; justify-content: center; gap: var(--space-sm); min-height: 16rem; color: var(--color-muted); }
 .empty-state svg { color: var(--color-accent); }
@@ -176,5 +199,7 @@ code { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--
 @media (max-width: 68rem) { .observability-workspace { margin-left: 0; } }
 @media (max-width: 68rem) { .task-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 42rem) { .observability-workspace { width: calc(100% - (var(--space-md) * 2)); margin-inline: auto; padding: var(--space-lg) 0 var(--space-xl); } .observability-heading { align-items: start; flex-direction: column; } .metric-cards, .task-metrics { grid-template-columns: 1fr; } .metric-card { min-height: auto; } }
+@media (max-width: 68rem) { .feedback-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 42rem) { .feedback-summary { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .spinning { animation: none; } }
 </style>

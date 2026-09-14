@@ -18,9 +18,13 @@ public class RagAnswerFeedbackEntity {
     private Boolean grounded;
     private String retrievalStrategy;
     private String feedback;
+    private String reviewStatus;
+    private String reviewNote;
     private LocalDateTime createdAt;
+    private LocalDateTime reviewedAt;
 
     public static RagAnswerFeedbackEntity from(RagAnswerFeedback value) {
-        return new RagAnswerFeedbackEntity(null, value.questionHash(), value.grounded(), value.retrievalStrategy(), value.feedback(), value.createdAt());
+        return new RagAnswerFeedbackEntity(null, value.questionHash(), value.grounded(), value.retrievalStrategy(),
+                value.feedback(), value.reviewStatus(), value.reviewNote(), value.createdAt(), value.reviewedAt());
     }
 }

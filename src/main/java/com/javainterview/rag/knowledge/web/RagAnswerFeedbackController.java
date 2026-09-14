@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @Profile("storage")
@@ -26,7 +27,22 @@ public class RagAnswerFeedbackController {
         if (request == null || request.question() == null || request.question().isBlank()) {
             throw new IllegalArgumentException("问题不能为空");
         }
-        store.record(new RagAnswerFeedback(hash(request.question()), request.grounded(), request.retrievalStrategy(), request.feedback(), LocalDateTime.now()));
+        store.record(new RagAnswerFeedback(null, hash(request.question()), request.grounded(), request.retrievalStrategy(),
+                request.feedback(), "PENDING", null, LocalDateTime.now(), null));
+    }
+
+    @GetMapping
+    public List<RagAnswerFeedback> recent(@RequestParam(defaultValue = "20") int limit,
+                                          @RequestParam(required = false) String feedback,
+                                          @RequestParam(required = false) String reviewStatus) {
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("反馈数量必须在 1 到 100 之间");
+        return store.findRecent(limit, feedback, reviewStatus);
+    }
+
+    @PatchMapping("/{id}")
+    public RagAnswerFeedback review(@PathVariable long id, @RequestBody RagAnswerFeedbackReviewRequest request) {
+        if (request == null) throw new IllegalArgumentException("审阅请求不能为空");
+        return store.review(id, request.reviewStatus(), request.reviewNote());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

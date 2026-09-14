@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import("@/views/ObservabilityView.vue"),
     },
     {
+      path: "/observability/feedback",
+      name: "observability-feedback",
+      component: () => import("@/views/ObservabilityFeedbackView.vue"),
+    },
+    {
       path: "/answer",
       name: "knowledge-answer",
       component: () => import("@/views/KnowledgeAnswerView.vue"),
