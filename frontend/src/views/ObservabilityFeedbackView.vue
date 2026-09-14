@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, shallowRef } from "vue";
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
-import { getKnowledgeAnswerFeedback, getKnowledgeAnswerFeedbackDiagnosis, reviewKnowledgeAnswerFeedback, type KnowledgeAnswerFeedback, type KnowledgeFeedbackDiagnosis } from "@/api/knowledge";
+import { createKnowledgeReviewTaskFromFeedback, getKnowledgeAnswerFeedback, getKnowledgeAnswerFeedbackDiagnosis, reviewKnowledgeAnswerFeedback, type KnowledgeAnswerFeedback, type KnowledgeFeedbackDiagnosis } from "@/api/knowledge";
 import { resolveApiError } from "@/api/request";
 
 const items = shallowRef<KnowledgeAnswerFeedback[]>([]);
@@ -11,6 +11,11 @@ const selectedStatus = shallowRef("PENDING");
 const notes = shallowRef<Record<number, string>>({});
 const layers = shallowRef<Record<number, string>>({});
 const diagnoses = shallowRef<Record<number, KnowledgeFeedbackDiagnosis>>({});
+const taskQuestions = shallowRef<Record<number, string>>({});
+const taskClaims = shallowRef<Record<number, string>>({});
+const taskStatuses = shallowRef<Record<number, string>>({});
+const taskSources = shallowRef<Record<number, string>>({});
+const taskIds = shallowRef<Record<number, string>>({});
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -30,6 +35,21 @@ async function review(item: KnowledgeAnswerFeedback, status: "EVALUATION" | "IGN
     const updated = await reviewKnowledgeAnswerFeedback(item.id, status, notes.value[item.id] || "", layers.value[item.id] || null);
     items.value = items.value.map(current => current.id === updated.id ? updated : current);
   } catch (requestError) { error.value = resolveApiError(requestError, "更新反馈审阅状态失败"); }
+}
+
+async function createReviewTask(item: KnowledgeAnswerFeedback): Promise<void> {
+  const question = taskQuestions.value[item.id]?.trim();
+  const claim = taskClaims.value[item.id]?.trim();
+  const evidenceStatus = taskStatuses.value[item.id] as "EVIDENCE_INSUFFICIENT" | "EVIDENCE_CONFLICTING" | "CITATION_INVALID" | undefined;
+  if (!question || !claim || !evidenceStatus) {
+    error.value = "请补充脱敏问题、待纠正断言和证据问题类型";
+    return;
+  }
+  try {
+    const sourceNumbers = (taskSources.value[item.id] || "").split(",").map(value => Number(value.trim())).filter(Number.isInteger).filter(value => value > 0);
+    const task = await createKnowledgeReviewTaskFromFeedback(item.id, { question, claim, evidenceStatus, sourceNumbers });
+    taskIds.value = { ...taskIds.value, [item.id]: task.id };
+  } catch (requestError) { error.value = resolveApiError(requestError, "创建复习任务失败"); }
 }
 
 onMounted(() => void load());
@@ -58,6 +78,15 @@ onMounted(() => void load());
         <select v-if="item.reviewStatus === 'PENDING'" v-model="layers[item.id]" aria-label="人工确认 RAG 失败层"><option value="">选择失败层（可选）</option><option value="RETRIEVAL_MISSING">候选未召回</option><option value="RANKING_LOW">排序过低</option><option value="EVIDENCE_INSUFFICIENT">证据不足</option><option value="ANSWER_UNUSED_EVIDENCE">回答未使用证据</option><option value="UNKNOWN">暂无法判断</option></select>
         <div v-if="item.reviewStatus === 'PENDING'" class="actions"><button type="button" @click="review(item, 'EVALUATION')">纳入评估</button><button type="button" class="secondary" @click="review(item, 'IGNORED')">忽略</button></div>
         <small v-else>已处理：{{ item.reviewStatus === "EVALUATION" ? "纳入评估" : "忽略" }}{{ item.reviewNote ? ` · ${item.reviewNote}` : "" }}</small>
+        <div v-if="item.reviewStatus === 'EVALUATION' && item.feedback === 'NOT_HELPFUL'" class="review-task-form">
+          <strong>转为针对性复习</strong>
+          <p>只录入脱敏问题与断言，不回填原始回答；同一内容会幂等复用已有任务。</p>
+          <input v-model="taskQuestions[item.id]" maxlength="2000" placeholder="脱敏后的问题" />
+          <input v-model="taskClaims[item.id]" maxlength="2000" placeholder="需要用户纠正的断言" />
+          <select v-model="taskStatuses[item.id]" aria-label="复习证据问题类型"><option value="">选择证据问题类型</option><option value="EVIDENCE_INSUFFICIENT">证据不足</option><option value="EVIDENCE_CONFLICTING">证据冲突</option><option value="CITATION_INVALID">引用无效</option></select>
+          <input v-model="taskSources[item.id]" placeholder="引用资料编号，可选：1,2" />
+          <button type="button" class="task-button" @click="createReviewTask(item)">{{ taskIds[item.id] ? `已创建任务 ${taskIds[item.id]}` : "创建知识复习任务" }}</button>
+        </div>
       </article>
     </div>
     <div v-else class="empty-state">当前筛选没有反馈。</div>
@@ -71,6 +100,11 @@ onMounted(() => void load());
 .diagnose-button { justify-self: start; min-height: 2.25rem; padding-inline: var(--space-sm); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); color: var(--color-ink-2); background: transparent; font: inherit; }
 .diagnosis { display: grid; gap: var(--space-2xs); padding: var(--space-sm); border-left: 3px solid var(--color-accent); background: var(--color-surface); }
 .diagnosis p { margin: 0; color: var(--color-muted); font-size: var(--text-xs); }
+.review-task-form { display: grid; gap: var(--space-xs); padding: var(--space-md); border-left: 3px solid var(--color-accent); background: var(--color-surface); }
+.review-task-form strong { color: var(--color-ink); font-size: var(--text-sm); }
+.review-task-form p { color: var(--color-muted); font-size: var(--text-xs); }
+.review-task-form input, .review-task-form select { width: 100%; min-height: 2.25rem; padding-inline: var(--space-sm); }
+.task-button { width: fit-content; min-height: 2.25rem; padding-inline: var(--space-sm); border: var(--rule-thin) solid var(--color-accent); border-radius: var(--radius-control); color: var(--color-accent-ink); background: var(--color-accent); font: inherit; font-size: var(--text-xs); font-weight: 700; }
 select, textarea { border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); color: var(--color-ink-2); background: var(--color-surface); font: inherit; }
 select { min-height: 2.5rem; padding-inline: var(--space-sm); } .feedback-list { display: grid; gap: var(--space-md); max-width: 56rem; }.feedback-card { display: grid; gap: var(--space-sm); padding: var(--space-lg); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-surface); background: var(--color-paper-2); }.feedback-card header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }.feedback-card p { margin: 0; color: var(--color-muted); font-size: var(--text-sm); }.feedback-card code { font-family: var(--font-mono); }.feedback-card textarea { width: 100%; padding: var(--space-sm); resize: vertical; }.actions { display: flex; gap: var(--space-sm); }.actions button { min-height: 2.5rem; padding-inline: var(--space-md); border: var(--rule-thin) solid var(--color-accent); border-radius: var(--radius-control); color: var(--color-accent-ink); background: var(--color-accent); font: inherit; font-weight: 700; }.actions .secondary { border-color: var(--color-rule-2); color: var(--color-ink-2); background: transparent; }.danger { color: var(--color-error); }.helpful { color: var(--color-success); }.error-banner { padding: var(--space-sm) var(--space-md); color: var(--color-error); background: var(--color-error-soft); }.empty-state { min-height: 18rem; display: grid; place-items: center; color: var(--color-muted); }
 @media (max-width: 68rem) { .feedback-workspace { margin-left: 0; } } @media (max-width: 42rem) { .feedback-heading { align-items: start; flex-direction: column; } }

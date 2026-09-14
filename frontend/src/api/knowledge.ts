@@ -146,6 +146,14 @@ export async function reviewKnowledgeAnswerFeedback(id: number, reviewStatus: "E
   return response.data;
 }
 
+export async function createKnowledgeReviewTaskFromFeedback(
+  id: number,
+  payload: { question: string; claim: string; evidenceStatus: "EVIDENCE_INSUFFICIENT" | "EVIDENCE_CONFLICTING" | "CITATION_INVALID"; sourceNumbers: number[] },
+): Promise<KnowledgeReviewTask> {
+  const response = await request.post<KnowledgeReviewTask>(`/knowledge/answer/feedback/${id}/review-task`, payload);
+  return response.data;
+}
+
 export interface KnowledgeConversationTurn {
   question: string;
   answer: string;

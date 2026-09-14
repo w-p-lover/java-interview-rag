@@ -3,6 +3,9 @@ package com.javainterview.rag.knowledge.web;
 import com.javainterview.rag.knowledge.feedback.RagAnswerFeedback;
 import com.javainterview.rag.knowledge.feedback.RagAnswerFeedbackStore;
 import com.javainterview.rag.knowledge.rag.RagRetrievalLogStore;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewTask;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskRequest;
+import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskService;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +23,14 @@ import java.util.List;
 public class RagAnswerFeedbackController {
     private final RagAnswerFeedbackStore store;
     private final RagRetrievalLogStore retrievalLogStore;
+    private final KnowledgeReviewTaskService reviewTaskService;
 
-    public RagAnswerFeedbackController(RagAnswerFeedbackStore store, RagRetrievalLogStore retrievalLogStore) { this.store = store; this.retrievalLogStore = retrievalLogStore; }
+    public RagAnswerFeedbackController(RagAnswerFeedbackStore store, RagRetrievalLogStore retrievalLogStore,
+                                       KnowledgeReviewTaskService reviewTaskService) {
+        this.store = store;
+        this.retrievalLogStore = retrievalLogStore;
+        this.reviewTaskService = reviewTaskService;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -51,6 +60,21 @@ public class RagAnswerFeedbackController {
     public RagAnswerFeedbackDiagnosis diagnosis(@PathVariable long id) {
         RagAnswerFeedback feedback = store.findById(id).orElseThrow(() -> new IllegalArgumentException("反馈不存在"));
         return new RagAnswerFeedbackDiagnosis(feedback, retrievalLogStore.findRecentByQuestionHash(feedback.questionHash(), 100));
+    }
+
+    @PostMapping("/{id}/review-task")
+    public KnowledgeReviewTask createReviewTask(@PathVariable long id,
+                                                @RequestBody KnowledgeReviewTaskRequest request) {
+        RagAnswerFeedback feedback = store.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("反馈不存在"));
+        if (!"NOT_HELPFUL".equals(feedback.feedback()) || !"EVALUATION".equals(feedback.reviewStatus())) {
+            throw new IllegalArgumentException("只有已纳入评估的差评可以创建复习任务");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("复习任务请求不能为空");
+        }
+        return reviewTaskService.create(request.question(), request.claim(),
+                request.evidenceStatus(), request.sourceNumbers());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
