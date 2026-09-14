@@ -11,6 +11,9 @@ import com.javainterview.rag.knowledge.persistence.MySqlRagRetrievalLogStore;
 import com.javainterview.rag.knowledge.persistence.RagRetrievalLogMapper;
 import com.javainterview.rag.knowledge.persistence.RedisRagAnswerCache;
 import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
+import com.javainterview.rag.knowledge.feedback.RagAnswerFeedbackStore;
+import com.javainterview.rag.knowledge.persistence.RagAnswerFeedbackMapper;
+import com.javainterview.rag.knowledge.persistence.MySqlRagAnswerFeedbackStore;
 import com.javainterview.rag.knowledge.rag.RagAnswerCacheObserver;
 import com.javainterview.rag.knowledge.persistence.KnowledgeReviewTaskMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewTaskStore;
@@ -69,6 +72,11 @@ public class RagAnswerConfiguration {
     @Bean
     RagRetrievalLogStore ragRetrievalLogStore(RagRetrievalLogMapper mapper, ObjectMapper objectMapper) {
         return new MySqlRagRetrievalLogStore(mapper, objectMapper);
+    }
+
+    @Bean
+    RagAnswerFeedbackStore ragAnswerFeedbackStore(RagAnswerFeedbackMapper mapper) {
+        return new MySqlRagAnswerFeedbackStore(mapper);
     }
 
     @Bean

@@ -109,6 +109,10 @@ export interface KnowledgeAnswerResponse {
   degradationReason: string | null;
 }
 
+export async function sendKnowledgeAnswerFeedback(payload: { question: string; grounded: boolean; retrievalStrategy: string; feedback: "HELPFUL" | "NOT_HELPFUL" }): Promise<void> {
+  await request.post("/knowledge/answer/feedback", payload);
+}
+
 export interface KnowledgeConversationTurn {
   question: string;
   answer: string;

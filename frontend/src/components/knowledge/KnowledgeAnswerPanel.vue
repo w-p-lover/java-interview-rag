@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { BookOpenCheck, CircleAlert, LibraryBig, TriangleAlert } from "@lucide/vue";
+import { shallowRef } from "vue";
 
 import type { KnowledgeAnswerClaimEvidence, KnowledgeAnswerResponse } from "@/api/knowledge";
 import KnowledgeClaimEvidence from "@/components/knowledge/KnowledgeClaimEvidence.vue";
 import KnowledgeSourceList from "@/components/knowledge/KnowledgeSourceList.vue";
+import { sendKnowledgeAnswerFeedback } from "@/api/knowledge";
 
-defineProps<{
+const props = defineProps<{
   loading: boolean;
   streaming: boolean;
   question: string;
@@ -14,6 +16,24 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{ addReview: [claim: KnowledgeAnswerClaimEvidence] }>();
+const feedback = shallowRef<"HELPFUL" | "NOT_HELPFUL" | "">("");
+const feedbackError = shallowRef("");
+
+async function submitFeedback(value: "HELPFUL" | "NOT_HELPFUL"): Promise<void> {
+  feedbackError.value = "";
+  if (!props.question || !props.result || props.streaming) return;
+  try {
+    await sendKnowledgeAnswerFeedback({
+      question: props.question,
+      grounded: props.result.grounded,
+      retrievalStrategy: props.result.retrievalStrategy,
+      feedback: value,
+    });
+    feedback.value = value;
+  } catch (error) {
+    feedbackError.value = error instanceof Error ? error.message : "反馈提交失败";
+  }
+}
 </script>
 
 <template>
@@ -55,6 +75,13 @@ const emit = defineEmits<{ addReview: [claim: KnowledgeAnswerClaimEvidence] }>()
       </p>
 
       <p class="answer-content">{{ result.answer }}</p>
+      <div class="answer-feedback" aria-label="回答反馈">
+        <span>这份回答对你有帮助吗？</span>
+        <button type="button" :class="{ selected: feedback === 'HELPFUL' }" @click="submitFeedback('HELPFUL')">有帮助</button>
+        <button type="button" :class="{ selected: feedback === 'NOT_HELPFUL' }" @click="submitFeedback('NOT_HELPFUL')">没帮助</button>
+        <small v-if="feedback">感谢反馈，后续会用于改进检索。</small>
+        <small v-if="feedbackError" class="feedback-error">{{ feedbackError }}</small>
+      </div>
       <KnowledgeClaimEvidence :claims="result.claimEvidence" :review-task-ids="reviewTaskIds" @add-review="emit('addReview', $event)" />
       <KnowledgeSourceList :sources="result.sources" />
     </template>
@@ -163,6 +190,12 @@ header > strong {
   line-height: 1.8;
   overflow-wrap: anywhere;
 }
+
+.answer-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-xs); color: var(--color-muted); font-size: var(--text-xs); }
+.answer-feedback button { padding: var(--space-2xs) var(--space-sm); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-round); color: var(--color-ink-2); background: transparent; font: inherit; }
+.answer-feedback button.selected { border-color: var(--color-accent); color: var(--color-accent); background: var(--color-accent-soft); }
+.answer-feedback small { color: var(--color-success); }
+.answer-feedback .feedback-error { color: var(--color-error); }
 
 .answer-empty {
   align-items: flex-start;
