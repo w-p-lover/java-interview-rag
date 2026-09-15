@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.document;
 
+import com.javainterview.rag.interview.document.PdfPageLayout;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -101,6 +102,22 @@ class PdfKnowledgeDocumentExtractorTest {
                 extractor.toSections("java/inline-code.pdf", extraction.blocks()), 1000);
         assertEquals(1, chunks.size());
         assertEquals(KnowledgeBlockType.TEXT, chunks.get(0).blockType());
+    }
+
+    @Test
+    void keepsTwoColumnProseInReadingOrderWithoutCreatingTableChunks() throws IOException {
+        PdfKnowledgeDocumentExtractor extractor = new PdfKnowledgeDocumentExtractor();
+        PdfKnowledgeDocumentExtraction extraction = extractor.extract(new MockMultipartFile(
+                "file", "two-column.pdf", "application/pdf", twoColumnKnowledgePdf()));
+
+        assertEquals(PdfPageLayout.TWO_COLUMN, extraction.pages().get(0).layout());
+        List<MarkdownChunk> chunks = new MarkdownSectionChunker().chunk(
+                extractor.toSections("java/two-column.pdf", extraction.blocks()), 1000);
+        assertTrue(chunks.stream().noneMatch(chunk -> chunk.blockType() == KnowledgeBlockType.TABLE));
+        String content = chunks.stream().map(MarkdownChunk::content)
+                .reduce((left, right) -> left + "\n" + right).orElse("");
+        assertOrder(content, "LEFT_KNOWLEDGE_ONE", "LEFT_KNOWLEDGE_TWO", "LEFT_KNOWLEDGE_THREE",
+                "RIGHT_KNOWLEDGE_ONE", "RIGHT_KNOWLEDGE_TWO", "RIGHT_KNOWLEDGE_THREE");
     }
 
     @Test
@@ -228,6 +245,39 @@ class PdfKnowledgeDocumentExtractorTest {
         }
     }
 
+    private byte[] twoColumnKnowledgePdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDPage page = new PDPage(new PDRectangle(612, 792));
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                drawText(stream, regular, 9, 54, 700,
+                        paddedLine(regular, 9, "LEFT_KNOWLEDGE_ONE", 235));
+                drawText(stream, regular, 9, 54, 680,
+                        paddedLine(regular, 9, "LEFT_KNOWLEDGE_TWO", 235));
+                drawText(stream, regular, 9, 54, 660,
+                        paddedLine(regular, 9, "LEFT_KNOWLEDGE_THREE", 235));
+                drawText(stream, regular, 9, 317, 700,
+                        paddedLine(regular, 9, "RIGHT_KNOWLEDGE_ONE", 120));
+                drawText(stream, regular, 9, 317, 680,
+                        paddedLine(regular, 9, "RIGHT_KNOWLEDGE_TWO", 120));
+                drawText(stream, regular, 9, 317, 660,
+                        paddedLine(regular, 9, "RIGHT_KNOWLEDGE_THREE", 120));
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private String paddedLine(PDType1Font font, float fontSize, String marker,
+                              float minimumWidth) throws IOException {
+        StringBuilder text = new StringBuilder(marker);
+        while (font.getStringWidth(text.toString()) / 1000.0f * fontSize < minimumWidth) {
+            text.append(" x");
+        }
+        return text.toString();
+    }
+
     private void drawTableRow(PDPageContentStream stream, PDType1Font font, float fontSize,
                               float y, String first, String second) throws IOException {
         drawText(stream, font, fontSize, 40, y, first);
@@ -241,5 +291,14 @@ class PdfKnowledgeDocumentExtractorTest {
         stream.newLineAtOffset(x, y);
         stream.showText(text);
         stream.endText();
+    }
+
+    private void assertOrder(String content, String... markers) {
+        int previous = -1;
+        for (String marker : markers) {
+            int current = content.indexOf(marker);
+            assertTrue(current > previous, () -> marker + " 顺序错误，实际正文：\n" + content);
+            previous = current;
+        }
     }
 }

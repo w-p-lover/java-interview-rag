@@ -19,9 +19,9 @@ public final class PdfDocumentAnalyzer {
 
     private static final float LINE_Y_TOLERANCE = 2.5f;
     private static final float VISUAL_ROW_Y_TOLERANCE = 4.0f;
-    private static final float LEFT_COLUMN_LIMIT = 0.48f;
-    private static final float RIGHT_COLUMN_LIMIT = 0.52f;
-    private static final float MINIMUM_GUTTER_RATIO = 0.06f;
+    private static final float LEFT_COLUMN_LIMIT = 0.485f;
+    private static final float RIGHT_COLUMN_LIMIT = 0.515f;
+    private static final float MINIMUM_GUTTER_RATIO = 0.03f;
     private static final float EXTREME_SAME_COLUMN_GAP_RATIO = 0.20f;
     private static final float MINIMUM_COLUMN_TEXT_WIDTH_RATIO = 0.16f;
     private static final double MINIMUM_MONOSPACED_CHARACTER_RATIO = 0.60;
@@ -150,8 +150,9 @@ public final class PdfDocumentAnalyzer {
         }
         // 只有前后文字分别落在页面中缝两侧时，才把大间距视为双栏分隔；
         // 同一栏内的两列对齐文本或异常字距仍应保留在同一视觉行。
-        boolean crossesPageGutter = previous.getXDirAdj() + previous.getWidthDirAdj() <= pageWidth * LEFT_COLUMN_LIMIT
-                && current.getXDirAdj() >= pageWidth * RIGHT_COLUMN_LIMIT;
+        boolean crossesPageGutter = previous.getXDirAdj() + previous.getWidthDirAdj()
+                <= pageWidth * RIGHT_COLUMN_LIMIT
+                && current.getXDirAdj() >= pageWidth * LEFT_COLUMN_LIMIT;
         // 表格列可能都位于页面左半区，极端大间距仍需保留为独立列。
         return crossesPageGutter || gap >= pageWidth * EXTREME_SAME_COLUMN_GAP_RATIO;
     }
@@ -253,27 +254,54 @@ public final class PdfDocumentAnalyzer {
         }
 
         List<TextLine> before = lines.stream().filter(line -> line.y() < block.startY() - LINE_Y_TOLERANCE).toList();
-        List<TextLine> left = leftCandidates.stream()
+        List<TextLine> columnBlock = lines.stream()
                 .filter(line -> inside(line.y(), block.startY(), block.endY()))
                 .toList();
-        List<TextLine> right = rightCandidates.stream()
-                .filter(line -> inside(line.y(), block.startY(), block.endY()))
-                .toList();
-        List<TextLine> middleSpanning = lines.stream()
-                .filter(line -> inside(line.y(), block.startY(), block.endY()))
-                .filter(line -> !left.contains(line) && !right.contains(line))
-                .toList();
-        if (!middleSpanning.isEmpty()) {
-            return new PageText(lines, PdfPageLayout.SINGLE_COLUMN);
-        }
         List<TextLine> after = lines.stream().filter(line -> line.y() > block.endY() + LINE_Y_TOLERANCE).toList();
 
-        List<TextLine> ordered = new ArrayList<>(before.size() + left.size() + right.size() + after.size());
+        List<TextLine> orderedBlock = orderColumnRegions(columnBlock, block);
+        List<TextLine> ordered = new ArrayList<>(before.size() + orderedBlock.size() + after.size());
         ordered.addAll(before);
-        ordered.addAll(left);
-        ordered.addAll(right);
+        ordered.addAll(orderedBlock);
         ordered.addAll(after);
         return new PageText(List.copyOf(ordered), PdfPageLayout.TWO_COLUMN);
+    }
+
+    private List<TextLine> orderColumnRegions(List<TextLine> lines, ColumnBlock block) {
+        List<TextLine> ordered = new ArrayList<>(lines.size());
+        List<TextLine> region = new ArrayList<>();
+        for (List<TextLine> row : lines.stream()
+                .collect(java.util.stream.Collectors.groupingBy(TextLine::visualRow,
+                        java.util.LinkedHashMap::new, java.util.stream.Collectors.toList()))
+                .values()) {
+            boolean spanningRow = row.stream().anyMatch(line -> spansColumns(line, block));
+            if (spanningRow) {
+                appendColumnRegion(ordered, region, block);
+                ordered.addAll(row);
+            } else {
+                region.addAll(row);
+            }
+        }
+        appendColumnRegion(ordered, region, block);
+        return List.copyOf(ordered);
+    }
+
+    private void appendColumnRegion(List<TextLine> ordered, List<TextLine> region, ColumnBlock block) {
+        if (region.isEmpty()) {
+            return;
+        }
+        float divider = (block.leftEdge() + block.rightEdge()) / 2.0f;
+        ordered.addAll(region.stream().filter(line -> midpoint(line) < divider).toList());
+        ordered.addAll(region.stream().filter(line -> midpoint(line) >= divider).toList());
+        region.clear();
+    }
+
+    private boolean spansColumns(TextLine line, ColumnBlock block) {
+        return line.xStart() < block.leftEdge() && line.xEnd() > block.rightEdge();
+    }
+
+    private float midpoint(TextLine line) {
+        return (line.xStart() + line.xEnd()) / 2.0f;
     }
 
     private ColumnBlock detectColumnBlock(List<TextLine> left, List<TextLine> right, float pageWidth) {
@@ -300,7 +328,7 @@ public final class PdfDocumentAnalyzer {
                 || averageWidth(overlappingRight) < pageWidth * MINIMUM_COLUMN_TEXT_WIDTH_RATIO) {
             return null;
         }
-        return new ColumnBlock(startY, endY);
+        return new ColumnBlock(startY, endY, leftEdge, rightEdge);
     }
 
     private double averageWidth(List<TextLine> lines) {
@@ -351,7 +379,7 @@ public final class PdfDocumentAnalyzer {
         }
     }
 
-    private record ColumnBlock(float startY, float endY) {
+    private record ColumnBlock(float startY, float endY, float leftEdge, float rightEdge) {
     }
 
     private static final class PositionCollector extends PDFTextStripper {

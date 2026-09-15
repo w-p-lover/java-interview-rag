@@ -46,6 +46,72 @@ class PdfDocumentAnalyzerTest {
     }
 
     @Test
+    void recognizesTwoColumnsSeparatedByANarrowPageCenterGutter() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addWidePage(document);
+            PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeText(stream, font, 9, 54, 700, paddedLine(font, 9, "LEFT_NARROW_ONE", 235));
+                writeText(stream, font, 9, 54, 680, paddedLine(font, 9, "LEFT_NARROW_TWO", 235));
+                writeText(stream, font, 9, 317, 700, paddedLine(font, 9, "RIGHT_NARROW_ONE", 120));
+                writeText(stream, font, 9, 317, 680, paddedLine(font, 9, "RIGHT_NARROW_TWO", 120));
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.TWO_COLUMN, result.layout());
+            assertOrder(result.content(), "LEFT_NARROW_ONE", "LEFT_NARROW_TWO",
+                    "RIGHT_NARROW_ONE", "RIGHT_NARROW_TWO");
+        }
+    }
+
+    @Test
+    void keepsSpanningSectionHeadingBetweenTwoColumnRegions() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addWidePage(document);
+            PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeColumnRegion(stream, font, 700, "LEFT_BEFORE", "RIGHT_BEFORE");
+                writeColumnRegion(stream, font, 680, "LEFT_BEFORE_END", "RIGHT_BEFORE_END");
+                writeText(stream, bold, 14, 54, 620,
+                        paddedLine(bold, 14, "SPANNING_SECTION", 340));
+                writeColumnRegion(stream, font, 560, "LEFT_AFTER", "RIGHT_AFTER");
+                writeColumnRegion(stream, font, 540, "LEFT_AFTER_END", "RIGHT_AFTER_END");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.TWO_COLUMN, result.layout());
+            assertOrder(result.content(), "LEFT_BEFORE", "LEFT_BEFORE_END",
+                    "RIGHT_BEFORE", "RIGHT_BEFORE_END", "SPANNING_SECTION",
+                    "LEFT_AFTER", "LEFT_AFTER_END", "RIGHT_AFTER", "RIGHT_AFTER_END");
+        }
+    }
+
+    @Test
+    void keepsSlightlyWideLineInItsLeftColumn() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addWidePage(document);
+            PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeColumnRegion(stream, font, 700, "LEFT_START", "RIGHT_START");
+                writeText(stream, font, 9, 54, 680,
+                        paddedLine(font, 9, "LEFT_SLIGHTLY_WIDE", 250));
+                writeText(stream, font, 9, 330, 680,
+                        paddedLine(font, 9, "RIGHT_MIDDLE", 130));
+                writeColumnRegion(stream, font, 660, "LEFT_END", "RIGHT_END");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.TWO_COLUMN, result.layout());
+            assertOrder(result.content(), "LEFT_START", "LEFT_SLIGHTLY_WIDE", "LEFT_END",
+                    "RIGHT_START", "RIGHT_MIDDLE", "RIGHT_END");
+        }
+    }
+
+    @Test
     void keepsSingleColumnPageInVerticalOrder() throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDPage page = addPage(document);
@@ -167,6 +233,36 @@ class PdfDocumentAnalyzerTest {
         PDPage page = new PDPage(PDRectangle.A4);
         document.addPage(page);
         return page;
+    }
+
+    private PDPage addWidePage(PDDocument document) {
+        PDPage page = new PDPage(new PDRectangle(612, 792));
+        document.addPage(page);
+        return page;
+    }
+
+    private void writeColumnRegion(PDPageContentStream stream, PDType1Font font, float y,
+                                   String leftMarker, String rightMarker) throws IOException {
+        writeText(stream, font, 9, 54, y, paddedLine(font, 9, leftMarker, 130));
+        writeText(stream, font, 9, 330, y, paddedLine(font, 9, rightMarker, 130));
+    }
+
+    private String paddedLine(PDType1Font font, float fontSize, String marker,
+                              float minimumWidth) throws IOException {
+        StringBuilder text = new StringBuilder(marker);
+        while (font.getStringWidth(text.toString()) / 1000.0f * fontSize < minimumWidth) {
+            text.append(" x");
+        }
+        return text.toString();
+    }
+
+    private void writeText(PDPageContentStream stream, PDType1Font font, float fontSize,
+                           float x, float y, String text) throws IOException {
+        stream.setFont(font, fontSize);
+        stream.beginText();
+        stream.newLineAtOffset(x, y);
+        stream.showText(text);
+        stream.endText();
     }
 
     private void writeLine(PDPageContentStream stream, float x, float y, String text) throws IOException {
