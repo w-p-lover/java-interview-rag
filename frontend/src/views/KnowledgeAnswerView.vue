@@ -81,6 +81,7 @@ const {
   deleteSelectedDocument,
   rebuildSelectedDocument,
   rollbackSelectedDocument,
+  repairSelectedDocumentIndex,
 } = useKnowledgeCatalog();
 
 const activeError = computed(() => {
@@ -254,6 +255,7 @@ const reviewTaskIds = computed(() => Object.fromEntries(reviewTasks.value.map((t
         @retire="deleteSelectedDocument"
         @rebuild="rebuildSelectedDocument"
         @rollback="rollbackSelectedDocument"
+        @repair="repairSelectedDocumentIndex"
         @inspect-consistency="inspectSelectedDocumentConsistency"
         @search="handleSearchFromOutline"
       />

@@ -4,7 +4,10 @@ import com.javainterview.rag.knowledge.document.InMemoryMarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.InMemoryMarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline;
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
+import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStatus;
+import com.javainterview.rag.knowledge.document.MarkdownRebuildResult;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.jupiter.api.AfterEach;
@@ -12,11 +15,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class KnowledgeIndexConsistencyServiceTest {
 
@@ -120,9 +128,88 @@ class KnowledgeIndexConsistencyServiceTest {
                 () -> service.inspect("java/missing.md")).getMessage());
     }
 
+    @Test
+    void repairsCurrentSnapshotAndReturnsConvergedReport() {
+        MarkdownDocument document = registerCurrent("java/repair.md", "HashMap", 2);
+        List<MarkdownChunk> expectedChunks = chunks(document, 2);
+        sparseIndex.index(document, expectedChunks.subList(0, 1));
+        AtomicInteger inspections = new AtomicInteger();
+        KnowledgeVectorIndexInspector vectorInspector = (source, version) ->
+                inspections.getAndIncrement() == 0
+                        ? new KnowledgeIndexCounts(1, 1)
+                        : new KnowledgeIndexCounts(2, 2);
+        MarkdownContentImporter importer = mock(MarkdownContentImporter.class);
+        when(importer.rebuildCurrentSnapshot(document.source())).thenAnswer(invocation -> {
+            sparseIndex.rebuild(document, expectedChunks);
+            return new MarkdownRebuildResult(document, expectedChunks);
+        });
+        KnowledgeIndexConsistencyService service = new KnowledgeIndexConsistencyService(
+                registry, stateStore, vectorInspector, sparseIndex, importer);
+
+        KnowledgeIndexRepairResult result = service.repair(document.source());
+
+        assertTrue(result.consistency().consistent());
+        assertEquals(2, result.chunkCount());
+        verify(importer).rebuildCurrentSnapshot(document.source());
+    }
+
+    @Test
+    void rejectsRepairWhenIndexIsAlreadyConsistent() {
+        MarkdownDocument document = registerCurrent("java/consistent.md", "HashMap", 1);
+        sparseIndex.index(document, chunks(document, 1));
+        MarkdownContentImporter importer = mock(MarkdownContentImporter.class);
+        KnowledgeIndexConsistencyService service = new KnowledgeIndexConsistencyService(
+                registry, stateStore, (source, version) -> new KnowledgeIndexCounts(1, 1),
+                sparseIndex, importer);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.repair(document.source()));
+
+        assertEquals("当前索引已经一致，无需修复", exception.getMessage());
+        verify(importer, never()).rebuildCurrentSnapshot(document.source());
+    }
+
+    @Test
+    void rejectsRepairWhenAStoreIsUnavailable() {
+        MarkdownDocument document = registerCurrent("java/unavailable.md", "HashMap", 1);
+        sparseIndex.index(document, chunks(document, 1));
+        MarkdownContentImporter importer = mock(MarkdownContentImporter.class);
+        KnowledgeIndexConsistencyService service = new KnowledgeIndexConsistencyService(
+                registry, stateStore, (source, version) -> {
+                    throw new IllegalStateException("qdrant down");
+                }, sparseIndex, importer);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.repair(document.source()));
+
+        assertEquals("索引存储不可用，不能执行修复", exception.getMessage());
+        verify(importer, never()).rebuildCurrentSnapshot(document.source());
+    }
+
+    @Test
+    void marksRepairFailedWhenPostInspectionStillFindsMismatch() {
+        MarkdownDocument document = registerCurrent("java/not-converged.md", "HashMap", 2);
+        List<MarkdownChunk> expectedChunks = chunks(document, 2);
+        sparseIndex.index(document, expectedChunks);
+        MarkdownContentImporter importer = mock(MarkdownContentImporter.class);
+        when(importer.rebuildCurrentSnapshot(document.source()))
+                .thenReturn(new MarkdownRebuildResult(document, expectedChunks));
+        KnowledgeIndexConsistencyService service = new KnowledgeIndexConsistencyService(
+                registry, stateStore, (source, version) -> new KnowledgeIndexCounts(1, 1),
+                sparseIndex, importer);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> service.repair(document.source()));
+
+        assertEquals("修复后索引仍不一致，请查看最新巡检结果", exception.getMessage());
+        assertEquals(MarkdownIndexingStatus.FAILED,
+                stateStore.find(document.source(), document.version()).orElseThrow().status());
+    }
+
     private KnowledgeIndexConsistencyService service(KnowledgeVectorIndexInspector vectorInspector) {
         return new KnowledgeIndexConsistencyService(
-                registry, stateStore, vectorInspector, sparseIndex);
+                registry, stateStore, vectorInspector, sparseIndex,
+                mock(MarkdownContentImporter.class));
     }
 
     private MarkdownDocument registerCurrent(String source, String content, int chunkCount) {

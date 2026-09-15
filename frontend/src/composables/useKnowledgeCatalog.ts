@@ -5,6 +5,7 @@ import {
   getKnowledgeDocumentDetails,
   inspectKnowledgeDocumentConsistency,
   listKnowledgeDocuments,
+  repairKnowledgeDocumentIndex,
   rebuildMarkdown,
   rollbackKnowledgeDocument,
   type KnowledgeDocumentCatalogResponse,
@@ -193,6 +194,28 @@ export function useKnowledgeCatalog() {
     }
   }
 
+  async function repairSelectedDocumentIndex(): Promise<void> {
+    const source = selectedSource.value;
+    if (!source || rebuilding.value || deleting.value) {
+      return;
+    }
+    rebuilding.value = true;
+    rebuildError.value = "";
+    notice.value = "";
+    try {
+      const response = await repairKnowledgeDocumentIndex(source);
+      await selectDocument(source, true);
+      consistency.value = response.consistency;
+      notice.value = `已修复当前索引：${response.source}（${response.chunkCount} 个切片）`;
+    } catch (requestError) {
+      rebuildError.value = resolveApiError(requestError, "当前索引修复失败");
+      consistency.value = null;
+      await inspectSelectedDocumentConsistency(false, false, true);
+    } finally {
+      rebuilding.value = false;
+    }
+  }
+
   onMounted(() => {
     void load();
   });
@@ -222,5 +245,6 @@ export function useKnowledgeCatalog() {
     deleteSelectedDocument,
     rebuildSelectedDocument,
     rollbackSelectedDocument,
+    repairSelectedDocumentIndex,
   };
 }

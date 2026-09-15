@@ -104,6 +104,22 @@ public final class MarkdownContentImporter {
         return rebuildDocument(document, validateSections(document, sections));
     }
 
+    public MarkdownRebuildResult rebuildCurrentSnapshot(String source) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        List<KnowledgeDocumentSummary> versions = registry.findVersionsBySource(source);
+        if (versions.isEmpty()) {
+            throw new IllegalArgumentException("资料不存在");
+        }
+        KnowledgeDocumentSummary current = versions.get(0);
+        KnowledgeDocumentSnapshot snapshot = registry.findSnapshot(source, current.version())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "当前版本没有可恢复快照，请重新上传原文件"));
+        List<MarkdownSection> sections = snapshot.sections().isEmpty()
+                ? headingParser.parse(snapshot.document())
+                : validateSections(snapshot.document(), snapshot.sections());
+        return rebuildDocument(snapshot.document(), sections);
+    }
+
     public MarkdownRebuildResult rollbackToVersion(String source, String version) {
         Objects.requireNonNull(source, "文档来源不能为空");
         Objects.requireNonNull(version, "文档版本不能为空");

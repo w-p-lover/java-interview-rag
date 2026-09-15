@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.consistency.KnowledgeIndexConsistencyReport;
+import com.javainterview.rag.knowledge.consistency.KnowledgeIndexRepairResult;
 import com.javainterview.rag.knowledge.consistency.KnowledgeIndexConsistencyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,6 +9,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -32,6 +34,13 @@ public class KnowledgeIndexConsistencyController {
     @Operation(summary = "巡检单个知识来源", description = "只执行精确计数，不调用 Embedding 或修改索引")
     public KnowledgeIndexConsistencyReport inspect(@RequestParam String source) {
         return service.inspect(source);
+    }
+
+    @PostMapping("/repair")
+    @Operation(summary = "按当前版本快照修复索引",
+            description = "仅在人工确认后重建当前版本 Dense/Sparse 索引，并返回修复后的巡检结果")
+    public KnowledgeIndexRepairResult repair(@RequestParam String source) {
+        return service.repair(source);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

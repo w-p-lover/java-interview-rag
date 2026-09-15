@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.consistency.KnowledgeVectorIndexInspector
 import com.javainterview.rag.knowledge.consistency.QdrantKnowledgeVectorIndexInspector;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
 import io.qdrant.client.QdrantClient;
@@ -30,8 +31,9 @@ public class KnowledgeIndexConsistencyConfiguration {
             MarkdownImportRegistry importRegistry,
             MarkdownIndexingStateStore indexingStateStore,
             KnowledgeVectorIndexInspector vectorIndexInspector,
-            LuceneMarkdownChunkIndex sparseIndex) {
+            LuceneMarkdownChunkIndex sparseIndex,
+            MarkdownContentImporter contentImporter) {
         return new KnowledgeIndexConsistencyService(
-                importRegistry, indexingStateStore, vectorIndexInspector, sparseIndex);
+                importRegistry, indexingStateStore, vectorIndexInspector, sparseIndex, contentImporter);
     }
 }

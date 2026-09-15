@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { shallowRef, useTemplateRef, watch } from "vue";
-import { CircleAlert, History, RefreshCw, RotateCw, Settings2, ShieldCheck, Trash2, X } from "@lucide/vue";
+import { computed, shallowRef, useTemplateRef, watch } from "vue";
+import { CircleAlert, History, RefreshCw, RotateCw, Settings2, ShieldCheck, Trash2, Wrench, X } from "@lucide/vue";
 
 import type { KnowledgeDocumentDetailsResponse, KnowledgeIndexConsistencyResponse } from "@/api/knowledge";
 import KnowledgeDocumentOutline from "@/components/knowledge/KnowledgeDocumentOutline.vue";
@@ -25,12 +25,14 @@ const emit = defineEmits<{
   retire: [];
   rebuild: [file: File];
   rollback: [version: string];
+  repair: [];
   inspectConsistency: [];
   search: [query: string];
 }>();
 
 const confirmingDelete = shallowRef(false);
 const confirmingRollbackVersion = shallowRef("");
+const confirmingRepair = shallowRef(false);
 const rebuildFileInput = useTemplateRef<HTMLInputElement>("rebuildFileInput");
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   dateStyle: "medium",
@@ -41,10 +43,19 @@ const numberFormatter = new Intl.NumberFormat("zh-CN");
 watch(() => props.source, () => {
   confirmingDelete.value = false;
   confirmingRollbackVersion.value = "";
+  confirmingRepair.value = false;
   if (rebuildFileInput.value) {
     rebuildFileInput.value.value = "";
   }
 });
+
+const canRepairFromSnapshot = computed(() => Boolean(
+  props.consistency
+  && !props.consistency.consistent
+  && props.details?.versions[0]?.restorable
+  && props.consistency.dense.status !== "UNAVAILABLE"
+  && props.consistency.sparse.status !== "UNAVAILABLE",
+));
 
 function chooseRebuildFile(): void {
   rebuildFileInput.value?.click();
@@ -325,8 +336,31 @@ function chunkCountLabel(value: number | null): string {
                   最近编排错误：{{ consistency.indexingState.errorType }}
                 </p>
                 <p v-if="!consistency.consistent" class="consistency-guidance">
-                  请先确认异常原因，再选择下方“重建当前版本”，并提供内容一致的原文件；不会自动删除或修复索引。
+                  {{ canRepairFromSnapshot
+                    ? "可使用当前版本保存的可信快照重建两类索引。"
+                    : details?.versions[0]?.restorable
+                      ? "索引存储当前不可用，请恢复服务后重新巡检。"
+                      : "当前版本缺少可信快照，请使用下方入口重新选择原文件。" }}
                 </p>
+                <button
+                  v-if="canRepairFromSnapshot && !confirmingRepair"
+                  type="button"
+                  class="version-rollback-button"
+                  :disabled="deleting || rebuilding || consistencyLoading"
+                  @click="confirmingRepair = true"
+                >
+                  <Wrench :size="16" aria-hidden="true" />
+                  <span>按快照修复</span>
+                </button>
+                <div v-if="canRepairFromSnapshot && confirmingRepair" class="rollback-confirmation">
+                  <p>将按当前版本快照重建 Dense 与 Sparse 索引，并清理此来源的旧版本残留。</p>
+                  <div class="confirmation-actions">
+                    <button type="button" :disabled="rebuilding" @click="confirmingRepair = false">取消</button>
+                    <button type="button" :disabled="rebuilding" @click="emit('repair'); confirmingRepair = false">
+                      确认修复
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

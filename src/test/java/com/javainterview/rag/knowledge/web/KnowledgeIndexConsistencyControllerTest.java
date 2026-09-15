@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.consistency.KnowledgeIndexConsistencyReport;
 import com.javainterview.rag.knowledge.consistency.KnowledgeIndexConsistencyService;
+import com.javainterview.rag.knowledge.consistency.KnowledgeIndexRepairResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -11,6 +12,7 @@ import java.util.NoSuchElementException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,6 +53,26 @@ class KnowledgeIndexConsistencyControllerTest {
                         .param("source", "java/missing.md"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("资料不存在"));
+    }
+
+    @Test
+    void repairsCurrentSnapshotAndReturnsLatestConsistency() throws Exception {
+        KnowledgeIndexConsistencyService service = mock(KnowledgeIndexConsistencyService.class);
+        KnowledgeIndexConsistencyReport report = new KnowledgeIndexConsistencyReport(
+                "java/basic.md", "version-1", 2, true,
+                new KnowledgeIndexConsistencyReport.IndexingStateCheck(false, null, null, null, null),
+                consistentStore(), consistentStore());
+        when(service.repair("java/basic.md")).thenReturn(new KnowledgeIndexRepairResult(
+                "java/basic.md", "version-1", 2, report));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new KnowledgeIndexConsistencyController(service)).build();
+
+        mockMvc.perform(post("/api/knowledge/documents/consistency/repair")
+                        .param("source", "java/basic.md"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.documentVersion").value("version-1"))
+                .andExpect(jsonPath("$.chunkCount").value(2))
+                .andExpect(jsonPath("$.consistency.consistent").value(true));
     }
 
     private KnowledgeIndexConsistencyReport.StoreCheck consistentStore() {

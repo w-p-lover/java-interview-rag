@@ -526,6 +526,18 @@ export async function inspectKnowledgeDocumentConsistency(
   return response.data;
 }
 
+export async function repairKnowledgeDocumentIndex(
+  source: string,
+): Promise<{ source: string; documentVersion: string; chunkCount: number; consistency: KnowledgeIndexConsistencyResponse }> {
+  const response = await request.post<{
+    source: string;
+    documentVersion: string;
+    chunkCount: number;
+    consistency: KnowledgeIndexConsistencyResponse;
+  }>("/knowledge/documents/consistency/repair", null, { params: { source } });
+  return response.data;
+}
+
 export async function deleteKnowledgeDocument(source: string): Promise<MarkdownDeleteResponse> {
   const response = await request.delete<MarkdownDeleteResponse>(
     "/knowledge/documents",

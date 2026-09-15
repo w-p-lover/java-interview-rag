@@ -167,6 +167,21 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
+    void rebuildsCurrentVersionFromStoredSnapshot() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownImportResult current = sourceImporter.importContent(
+                "java/repair.md", "# Java\n索引修复");
+
+        MarkdownRebuildResult rebuilt = sourceImporter.rebuildCurrentSnapshot(current.document().source());
+
+        assertEquals(current.document(), rebuilt.document());
+        assertEquals(current.chunks(), rebuilt.chunks());
+        verify(indexer).rebuild(current.document(), current.chunks());
+    }
+
+    @Test
     void rejectsHistoricalVersionBeforeRebuildingVectors() {
         InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
         MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
