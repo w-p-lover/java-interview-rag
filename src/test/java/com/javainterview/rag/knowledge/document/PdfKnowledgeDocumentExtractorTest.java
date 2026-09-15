@@ -150,6 +150,17 @@ class PdfKnowledgeDocumentExtractorTest {
                 && chunk.blockType() == KnowledgeBlockType.TABLE
                 && chunk.content().contains("Synthetic | ClassFile 45.3")
                 && chunk.content().contains("record_component_info")));
+
+        List<MarkdownChunk> boundedChunks = new MarkdownSectionChunker().chunk(
+                extractor.toSections("java/jvm-attributes.pdf", extraction.blocks()), 120);
+        List<MarkdownChunk> continuedTableChunks = boundedChunks.stream()
+                .filter(chunk -> chunk.pageNumber() == 2)
+                .filter(chunk -> chunk.blockType() == KnowledgeBlockType.TABLE)
+                .toList();
+        assertTrue(continuedTableChunks.size() > 1);
+        assertTrue(continuedTableChunks.stream()
+                .allMatch(chunk -> chunk.content().startsWith("Attribute | Location class file\n")
+                        && chunk.content().length() <= 120));
     }
 
     @Test

@@ -19,7 +19,7 @@ public record KnowledgeIndexVersionMetadata(String embeddingModel, int embedding
 
     public static KnowledgeIndexVersionMetadata current() {
         return new KnowledgeIndexVersionMetadata(
-                "text-embedding-v3", 1024, "markdown-section-chunker-v3",
+                "text-embedding-v3", 1024, "markdown-section-chunker-v4",
                 "pdf-knowledge-parser-v6", "knowledge-index-v2");
     }
 

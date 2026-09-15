@@ -45,7 +45,7 @@ public class MarkdownImportConfiguration {
     KnowledgeIndexVersionMetadata knowledgeIndexVersionMetadata(
             @Value("${java-interview-rag.index.embedding-model:text-embedding-v3}") String embeddingModel,
             @Value("${java-interview-rag.index.embedding-dimensions:1024}") int embeddingDimensions,
-            @Value("${java-interview-rag.index.chunk-policy-version:markdown-section-chunker-v3}") String chunkPolicyVersion,
+            @Value("${java-interview-rag.index.chunk-policy-version:markdown-section-chunker-v4}") String chunkPolicyVersion,
             @Value("${java-interview-rag.index.parser-version:pdf-knowledge-parser-v6}") String parserVersion,
             @Value("${java-interview-rag.index.schema-version:knowledge-index-v2}") String indexSchemaVersion) {
         return new KnowledgeIndexVersionMetadata(embeddingModel, embeddingDimensions,

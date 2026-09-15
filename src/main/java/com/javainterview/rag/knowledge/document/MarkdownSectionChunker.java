@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.document;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -27,6 +28,10 @@ public final class MarkdownSectionChunker {
                 continue;
             }
 
+            if (section.blockType() == KnowledgeBlockType.TABLE) {
+                addTableChunks(chunks, section, normalizedContent, maxLength);
+                continue;
+            }
             if (section.blockType() != KnowledgeBlockType.TEXT) {
                 addBoundedChunks(chunks, section, normalizedContent, maxLength, section.blockType());
                 continue;
@@ -35,6 +40,8 @@ public final class MarkdownSectionChunker {
             for (ContentBlock block : splitContentBlocks(normalizedContent)) {
                 if (block.type() == KnowledgeBlockType.TEXT) {
                     addTextChunks(chunks, section, block.content(), maxLength);
+                } else if (block.type() == KnowledgeBlockType.TABLE) {
+                    addTableChunks(chunks, section, block.content(), maxLength);
                 } else {
                     addBoundedChunks(chunks, section, block.content(), maxLength, block.type());
                 }
@@ -67,6 +74,33 @@ public final class MarkdownSectionChunker {
             currentContent.append(paragraph);
         }
         addPendingChunk(chunks, section, currentContent);
+    }
+
+    private void addTableChunks(List<MarkdownChunk> chunks, MarkdownSection section,
+                                String content, int maxLength) {
+        String[] lines = content.split("\n", -1);
+        int headerLineCount = lines.length > 1 && TABLE_DELIMITER.matcher(lines[1]).matches() ? 2 : 1;
+        String header = String.join("\n", Arrays.copyOfRange(lines, 0, headerLineCount));
+        int rowCapacity = maxLength - header.length() - 1;
+        boolean oversizedRow = Arrays.stream(lines, headerLineCount, lines.length)
+                .anyMatch(line -> line.length() > rowCapacity);
+        if (lines.length <= headerLineCount || !lines[0].contains("|") || rowCapacity <= 0
+                || oversizedRow) {
+            addBoundedChunks(chunks, section, content, maxLength, KnowledgeBlockType.TABLE);
+            return;
+        }
+
+        StringBuilder current = new StringBuilder(header);
+        for (int index = headerLineCount; index < lines.length; index++) {
+            String row = lines[index];
+            if (current.length() + 1 + row.length() > maxLength) {
+                addChunk(chunks, section, current.toString(), KnowledgeBlockType.TABLE);
+                current.setLength(0);
+                current.append(header);
+            }
+            current.append('\n').append(row);
+        }
+        addChunk(chunks, section, current.toString(), KnowledgeBlockType.TABLE);
     }
 
     private void addBoundedChunks(List<MarkdownChunk> chunks, MarkdownSection section,

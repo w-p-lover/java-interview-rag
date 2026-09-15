@@ -81,6 +81,40 @@ class MarkdownSectionChunkerTest {
     }
 
     @Test
+    void carriesTableHeaderIntoEveryContinuationChunk() {
+        MarkdownSection pdfTable = new MarkdownSection("java/jvms.pdf", 0, 2,
+                List.of("4.7 Attributes"),
+                "name | value\nalpha | 1111\nbravo | 2222\ncharlie | 3333",
+                119, KnowledgeBlockType.TABLE);
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(pdfTable), 28);
+
+        assertEquals(List.of(
+                        "name | value\nalpha | 1111",
+                        "name | value\nbravo | 2222",
+                        "name | value\ncharlie | 3333"),
+                chunks.stream().map(MarkdownChunk::content).toList());
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.content().length() <= 28
+                && chunk.pageNumber() == 119
+                && chunk.blockType() == KnowledgeBlockType.TABLE));
+    }
+
+    @Test
+    void carriesMarkdownTableDelimiterIntoContinuationChunk() {
+        MarkdownSection markdownTable = new MarkdownSection("java/map.md", 0, 2,
+                List.of("集合"), "| name | value |\n| --- | --- |\n| alpha | 1 |\n| bravo | 2 |");
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(markdownTable), 45);
+
+        assertEquals(List.of(
+                        "| name | value |\n| --- | --- |\n| alpha | 1 |",
+                        "| name | value |\n| --- | --- |\n| bravo | 2 |"),
+                chunks.stream().map(MarkdownChunk::content).toList());
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.blockType() == KnowledgeBlockType.TABLE
+                && chunk.content().length() <= 45));
+    }
+
+    @Test
     void classifiesMarkdownCodeFencesAndTablesWithoutChangingHeadingMetadata() {
         MarkdownSection section = new MarkdownSection("java/mixed.md", 0, 2,
                 List.of("Java", "集合"), """
