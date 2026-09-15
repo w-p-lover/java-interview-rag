@@ -83,6 +83,27 @@ class PdfKnowledgeDocumentExtractorTest {
     }
 
     @Test
+    void keepsProseWithInlineMonospaceTermsInOneTextBlock() throws IOException {
+        PdfKnowledgeDocumentExtractor extractor = new PdfKnowledgeDocumentExtractor();
+        PdfKnowledgeDocumentExtraction extraction = extractor.extract(new MockMultipartFile(
+                "file", "inline-code.pdf", "application/pdf", inlineMonospaceProsePdf()));
+
+        List<PdfKnowledgeBlock> contentBlocks = extraction.blocks().stream()
+                .filter(block -> !block.heading())
+                .toList();
+        assertEquals(List.of(KnowledgeBlockType.TEXT),
+                contentBlocks.stream().map(PdfKnowledgeBlock::type).toList());
+        assertTrue(contentBlocks.get(0).content().contains(
+                "Calling Thread.sleep does not create synchronization semantics."));
+        assertTrue(contentBlocks.get(0).content().contains(
+                "The compiler may continue using a cached field value."));
+        List<MarkdownChunk> chunks = new MarkdownSectionChunker().chunk(
+                extractor.toSections("java/inline-code.pdf", extraction.blocks()), 1000);
+        assertEquals(1, chunks.size());
+        assertEquals(KnowledgeBlockType.TEXT, chunks.get(0).blockType());
+    }
+
+    @Test
     void rejectsPdfWithoutTextInsteadOfIndexingAnEmptyDocument() throws IOException {
         assertEquals("PDF 未提取到可用文字，可能是扫描件；当前暂不支持 OCR",
                 assertThrows(IllegalArgumentException.class, () -> new PdfKnowledgeDocumentExtractor()
@@ -177,6 +198,30 @@ class PdfKnowledgeDocumentExtractorTest {
             try (PDPageContentStream stream = new PDPageContentStream(document, secondPage)) {
                 drawTableRow(stream, regular, 11, 760, "Key", "Value");
                 drawTableRow(stream, regular, 11, 740, "timeout", "30");
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private byte[] inlineMonospaceProsePdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font code = new PDType1Font(Standard14Fonts.FontName.COURIER);
+            PDPage page = new PDPage(PDRectangle.A4);
+            document.addPage(page);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                stream.beginText();
+                stream.newLineAtOffset(40, 740);
+                stream.setFont(regular, 11);
+                stream.showText("Calling ");
+                stream.setFont(code, 11);
+                stream.showText("Thread.sleep");
+                stream.setFont(regular, 11);
+                stream.showText(" does not create synchronization semantics.");
+                stream.endText();
+                drawText(stream, regular, 11, 40, 715,
+                        "The compiler may continue using a cached field value.");
             }
             document.save(output);
             return output.toByteArray();

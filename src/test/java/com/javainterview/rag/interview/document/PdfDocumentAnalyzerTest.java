@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PdfDocumentAnalyzerTest {
@@ -117,6 +118,7 @@ class PdfDocumentAnalyzerTest {
             PdfPageAnalysis result = analyzer.analyze(document).get(0);
 
             assertEquals("before code, after", result.content());
+            assertFalse(result.lines().get(0).monospaced());
         }
     }
 

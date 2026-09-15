@@ -24,6 +24,7 @@ public final class PdfDocumentAnalyzer {
     private static final float MINIMUM_GUTTER_RATIO = 0.06f;
     private static final float EXTREME_SAME_COLUMN_GAP_RATIO = 0.20f;
     private static final float MINIMUM_COLUMN_TEXT_WIDTH_RATIO = 0.16f;
+    private static final double MINIMUM_MONOSPACED_CHARACTER_RATIO = 0.60;
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
 
     public List<PdfPageAnalysis> analyze(PDDocument document) throws IOException {
@@ -181,13 +182,22 @@ public final class PdfDocumentAnalyzer {
                 .average()
                 .orElse(0.0);
         boolean bold = ordered.stream().anyMatch(position -> fontName(position).contains("bold"));
-        boolean monospaced = ordered.stream().anyMatch(position -> {
-            String fontName = fontName(position);
-            return fontName.contains("courier") || fontName.contains("mono")
-                    || fontName.contains("consolas") || fontName.contains("code");
-        });
+        long characterCount = ordered.stream().mapToLong(this::visibleCharacterCount).sum();
+        long monospacedCharacterCount = ordered.stream()
+                .filter(position -> isMonospacedFont(fontFamily(position)))
+                .mapToLong(this::visibleCharacterCount)
+                .sum();
+        boolean monospaced = characterCount > 0
+                && (double) monospacedCharacterCount / characterCount
+                >= MINIMUM_MONOSPACED_CHARACTER_RATIO;
         return new TextLine(text.toString().trim(), xStart, xEnd, averageY(ordered),
                 fontSize, bold, monospaced, 0, 1);
+    }
+
+    private long visibleCharacterCount(TextPosition position) {
+        return position.getUnicode().codePoints()
+                .filter(codePoint -> !Character.isWhitespace(codePoint))
+                .count();
     }
 
     private boolean isInlineStyledWordBoundary(TextPosition previous, TextPosition current, float gap) {
