@@ -182,6 +182,66 @@ class MarkdownContentImporterVectorTest {
     }
 
     @Test
+    void rollsBackToStoredHistoricalSnapshotAndActivatesItAfterIndexing() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownImportResult original = sourceImporter.importContent("java/rollback.md", "# Java\n原内容");
+        sourceImporter.importContent("java/rollback.md", "# Java\n新内容");
+
+        MarkdownRebuildResult rollback = sourceImporter.rollbackToVersion(
+                original.document().source(), original.document().version());
+
+        assertEquals(original.document(), rollback.document());
+        assertEquals(original.document().version(),
+                registry.findVersionsBySource(original.document().source()).get(0).version());
+        verify(indexer).rebuild(original.document(), original.chunks());
+    }
+
+    @Test
+    void preservesStructuredPdfMetadataWhenRollingBack() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, mock(MarkdownChunkIndexer.class));
+        String source = "java/rollback.pdf";
+        String originalContent = "# HashMap\n代码片段\n字段表格";
+        List<MarkdownSection> sections = List.of(
+                new MarkdownSection(source, 0, 1, List.of("HashMap"),
+                        "代码片段", 2, KnowledgeBlockType.CODE),
+                new MarkdownSection(source, 1, 1, List.of("HashMap"),
+                        "字段表格", 3, KnowledgeBlockType.TABLE));
+        MarkdownImportResult original = sourceImporter.importStructuredContent(
+                source, originalContent, sections);
+        sourceImporter.importContent(source, "# HashMap\n更新内容");
+
+        MarkdownRebuildResult rollback = sourceImporter.rollbackToVersion(
+                source, original.document().version());
+
+        assertEquals(List.of(2, 3), rollback.chunks().stream().map(MarkdownChunk::pageNumber).toList());
+        assertEquals(List.of(KnowledgeBlockType.CODE, KnowledgeBlockType.TABLE),
+                rollback.chunks().stream().map(MarkdownChunk::blockType).toList());
+        assertEquals(List.of(List.of("HashMap"), List.of("HashMap")),
+                rollback.chunks().stream().map(MarkdownChunk::headingPath).toList());
+    }
+
+    @Test
+    void keepsCurrentVersionWhenRollbackIndexingFails() {
+        InMemoryMarkdownImportRegistry registry = new InMemoryMarkdownImportRegistry();
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownImportResult original = sourceImporter.importContent("java/rollback-fail.md", "# Java\n原内容");
+        MarkdownImportResult current = sourceImporter.importContent("java/rollback-fail.md", "# Java\n新内容");
+        doThrow(new IllegalStateException("Qdrant unavailable"))
+                .when(indexer).rebuild(any(MarkdownDocument.class), any());
+
+        assertThrows(IllegalStateException.class, () -> sourceImporter.rollbackToVersion(
+                original.document().source(), original.document().version()));
+
+        assertEquals(current.document().version(),
+                registry.findVersionsBySource(current.document().source()).get(0).version());
+    }
+
+    @Test
     void rejectsRebuildForAnUnregisteredVersionBeforeIndexing() {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> importer.rebuildContent("java/missing.md", "# Java\n未导入"));

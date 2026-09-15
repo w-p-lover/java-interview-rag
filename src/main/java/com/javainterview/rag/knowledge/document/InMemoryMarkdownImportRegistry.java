@@ -10,21 +10,19 @@ import java.util.Map;
 public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegistry {
 
     private final Map<ImportKey, KnowledgeDocumentSummary> registeredImports = new LinkedHashMap<>();
+    private final Map<ImportKey, KnowledgeDocumentSnapshot> snapshots = new LinkedHashMap<>();
     private final Map<String, ImportKey> currentImports = new LinkedHashMap<>();
 
     @Override
-    public boolean register(MarkdownDocument document) {
-        return register(document, null);
-    }
-
-    @Override
-    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline) {
+    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
+                            List<MarkdownSection> sections) {
         ImportKey key = new ImportKey(document.source(), document.version());
         if (registeredImports.containsKey(key)) {
             return false;
         }
         registeredImports.put(key, new KnowledgeDocumentSummary(
                 document.source(), document.version(), document.content().length(), LocalDateTime.now(), outline));
+        snapshots.put(key, new KnowledgeDocumentSnapshot(document, sections));
         currentImports.put(document.source(), key);
         return true;
     }
@@ -40,6 +38,7 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
         if (registeredImports.remove(key) == null) {
             return false;
         }
+        snapshots.remove(key);
         if (key.equals(currentImports.get(document.source()))) {
             restorePreviousCurrent(document.source());
         }
@@ -49,6 +48,7 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
     @Override
     public boolean unregisterBySource(String source) {
         boolean removed = registeredImports.keySet().removeIf(importKey -> importKey.source().equals(source));
+        snapshots.keySet().removeIf(importKey -> importKey.source().equals(source));
         currentImports.remove(source);
         return removed;
     }
@@ -81,7 +81,27 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
                 versions.add(0, summary);
             }
         });
+        ImportKey current = currentImports.get(source);
+        versions.sort(Comparator
+                .comparing((KnowledgeDocumentSummary summary) -> current != null
+                        && summary.version().equals(current.version())).reversed()
+                .thenComparing(KnowledgeDocumentSummary::registeredAt, Comparator.reverseOrder()));
         return List.copyOf(versions);
+    }
+
+    @Override
+    public java.util.Optional<KnowledgeDocumentSnapshot> findSnapshot(String source, String version) {
+        return java.util.Optional.ofNullable(snapshots.get(new ImportKey(source, version)));
+    }
+
+    @Override
+    public boolean activate(String source, String version) {
+        ImportKey key = new ImportKey(source, version);
+        if (!registeredImports.containsKey(key)) {
+            return false;
+        }
+        currentImports.put(source, key);
+        return true;
     }
 
     private void restorePreviousCurrent(String source) {

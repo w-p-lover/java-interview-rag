@@ -242,6 +242,7 @@ export interface KnowledgeDocumentVersionItem {
   contentLength: number;
   registeredAt: string;
   current: boolean;
+  restorable: boolean;
 }
 
 export interface KnowledgeDocumentOutlineNode {
@@ -379,6 +380,18 @@ export async function rebuildMarkdown(
   const response = await request.post<MarkdownRebuildResponse>(
     "/knowledge/documents/rebuild",
     formData,
+  );
+  return response.data;
+}
+
+export async function rollbackKnowledgeDocument(
+  source: string,
+  version: string,
+): Promise<{ source: string; version: string; chunkCount: number }> {
+  const response = await request.post<{ source: string; version: string; chunkCount: number }>(
+    "/knowledge/documents/rollback",
+    null,
+    { params: { source, version } },
   );
   return response.data;
 }

@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -211,6 +212,30 @@ class MarkdownDocumentControllerTest {
                 .andExpect(jsonPath("$.versions[0].current").value(true))
                 .andExpect(jsonPath("$.versions[1].version").value(original.version()))
                 .andExpect(jsonPath("$.versions[1].current").value(false));
+    }
+
+    @Test
+    void rollsBackToARecoverableHistoricalVersion() throws Exception {
+        String source = "java/web-rollback.md";
+        String originalContent = "# Java\n原内容";
+        String currentContent = "# Java\n新内容";
+        MarkdownDocument original = MarkdownDocument.create(source, originalContent);
+        mockMvc.perform(multipart("/api/knowledge/documents/import").file(markdownFile(originalContent)).param("source", source))
+                .andExpect(status().isOk());
+        mockMvc.perform(multipart("/api/knowledge/documents/import").file(markdownFile(currentContent)).param("source", source))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/knowledge/documents/rollback")
+                        .param("source", source).param("version", original.version()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(original.version()))
+                .andExpect(jsonPath("$.chunkCount").value(1));
+
+        mockMvc.perform(get("/api/knowledge/documents/detail").param("source", source))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentVersion").value(original.version()))
+                .andExpect(jsonPath("$.versions[0].current").value(true))
+                .andExpect(jsonPath("$.versions[0].restorable").value(true));
     }
 
     @Test

@@ -1,17 +1,22 @@
 package com.javainterview.rag.knowledge.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline;
-import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSnapshot;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary;
+import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownSection;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry {
+    private static final TypeReference<List<MarkdownSection>> SECTIONS = new TypeReference<>() { };
 
     private final KnowledgeDocumentVersionMapper mapper;
     private final ObjectMapper objectMapper;
@@ -22,15 +27,12 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     }
 
     @Override
-    public boolean register(MarkdownDocument document) {
-        return register(document, null);
-    }
-
-    @Override
-    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline) {
+    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
+                            List<MarkdownSection> sections) {
         Objects.requireNonNull(document, "Markdown 文档不能为空");
         KnowledgeDocumentVersionEntity entity = KnowledgeDocumentVersionEntity.create(
-                document.source(), document.version(), document.content().length(), writeOutline(outline));
+                document.source(), document.version(), document.content().length(), writeOutline(outline),
+                document.content(), writeSections(sections));
         try {
             return mapper.insert(entity) == 1;
         } catch (DuplicateKeyException exception) {
@@ -80,6 +82,38 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
                 .toList();
     }
 
+    @Override
+    public Optional<KnowledgeDocumentSnapshot> findSnapshot(String source, String version) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        Objects.requireNonNull(version, "文档版本不能为空");
+        KnowledgeDocumentVersionEntity entity = mapper.selectBySourceAndVersion(source, version);
+        if (entity == null || entity.getContent() == null || entity.getSectionsJson() == null) {
+            return Optional.empty();
+        }
+        try {
+            MarkdownDocument document = MarkdownDocument.create(entity.getSource(), entity.getContent());
+            if (!document.version().equals(entity.getVersion())) {
+                throw new IllegalStateException("文档快照版本校验失败");
+            }
+            return Optional.of(new KnowledgeDocumentSnapshot(document,
+                    objectMapper.readValue(entity.getSectionsJson(), SECTIONS)));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("文档章节快照数据损坏", exception);
+        }
+    }
+
+    @Override
+    public boolean hasSnapshot(String source, String version) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        Objects.requireNonNull(version, "文档版本不能为空");
+        return mapper.countSnapshotBySourceAndVersion(source, version) > 0;
+    }
+
+    @Override
+    public boolean activate(String source, String version) {
+        return mapper.activate(source, version) == 1;
+    }
+
     private KnowledgeDocumentSummary toSummary(KnowledgeDocumentVersionEntity entity) {
         return new KnowledgeDocumentSummary(
                 entity.getSource(), entity.getVersion(), entity.getContentLength(), entity.getCreatedAt(),
@@ -94,6 +128,14 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
             return objectMapper.writeValueAsString(outline);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("章节目录序列化失败", exception);
+        }
+    }
+
+    private String writeSections(List<MarkdownSection> sections) {
+        try {
+            return objectMapper.writeValueAsString(sections == null ? List.of() : sections);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("文档章节快照序列化失败", exception);
         }
     }
 

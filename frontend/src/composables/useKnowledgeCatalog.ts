@@ -6,6 +6,7 @@ import {
   inspectKnowledgeDocumentConsistency,
   listKnowledgeDocuments,
   rebuildMarkdown,
+  rollbackKnowledgeDocument,
   type KnowledgeDocumentCatalogResponse,
   type KnowledgeDocumentDetailsResponse,
   type KnowledgeIndexConsistencyResponse,
@@ -103,9 +104,11 @@ export function useKnowledgeCatalog() {
   async function inspectSelectedDocumentConsistency(
     showError = true,
     allowDuringDelete = false,
+    allowDuringRebuild = false,
   ): Promise<void> {
     const source = selectedSource.value;
-    if (!source || consistencyLoading.value || (deleting.value && !allowDuringDelete) || rebuilding.value) {
+    if (!source || consistencyLoading.value || (deleting.value && !allowDuringDelete)
+      || (rebuilding.value && !allowDuringRebuild)) {
       return;
     }
     consistencyLoading.value = true;
@@ -159,10 +162,32 @@ export function useKnowledgeCatalog() {
     try {
       const response = await rebuildMarkdown(file, source);
       await selectDocument(source, true);
-      await inspectSelectedDocumentConsistency(false);
+      await inspectSelectedDocumentConsistency(false, false, true);
       notice.value = `已重建当前版本：${response.source}（${response.chunkCount} 个切片）`;
     } catch (requestError) {
       rebuildError.value = resolveApiError(requestError, "当前版本重建失败");
+    } finally {
+      rebuilding.value = false;
+    }
+  }
+
+  async function rollbackSelectedDocument(version: string): Promise<void> {
+    const source = selectedSource.value;
+    if (!source || rebuilding.value || deleting.value) {
+      return;
+    }
+    rebuilding.value = true;
+    rebuildError.value = "";
+    notice.value = "";
+    try {
+      const response = await rollbackKnowledgeDocument(source, version);
+      await selectDocument(source, true);
+      await inspectSelectedDocumentConsistency(false, false, true);
+      notice.value = `已回退资料版本：${response.source}（${response.chunkCount} 个切片）`;
+    } catch (requestError) {
+      rebuildError.value = resolveApiError(requestError, "历史版本回退失败");
+      consistency.value = null;
+      await inspectSelectedDocumentConsistency(false, false, true);
     } finally {
       rebuilding.value = false;
     }
@@ -196,5 +221,6 @@ export function useKnowledgeCatalog() {
     inspectSelectedDocumentConsistency,
     deleteSelectedDocument,
     rebuildSelectedDocument,
+    rollbackSelectedDocument,
   };
 }

@@ -50,7 +50,7 @@ public final class MarkdownContentImporter {
                                                 List<MarkdownSection> sections) {
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
         KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
-        if (!registry.register(document, outline)) {
+        if (!registry.register(document, outline, sections)) {
             retryFailedCleanup(document);
             return new MarkdownImportResult(document, false, List.of());
         }
@@ -102,6 +102,44 @@ public final class MarkdownContentImporter {
                                                            List<MarkdownSection> sections) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
         return rebuildDocument(document, validateSections(document, sections));
+    }
+
+    public MarkdownRebuildResult rollbackToVersion(String source, String version) {
+        Objects.requireNonNull(source, "文档来源不能为空");
+        Objects.requireNonNull(version, "文档版本不能为空");
+        List<KnowledgeDocumentSummary> versions = registry.findVersionsBySource(source);
+        if (versions.isEmpty()) {
+            throw new IllegalArgumentException("资料不存在");
+        }
+        if (versions.get(0).version().equals(version)) {
+            throw new IllegalArgumentException("目标版本已经是当前版本");
+        }
+        KnowledgeDocumentSnapshot snapshot = registry.findSnapshot(source, version)
+                .orElseThrow(() -> new IllegalArgumentException("该历史版本没有可恢复快照，请重新上传原文件"));
+        List<MarkdownSection> sections = snapshot.sections().isEmpty()
+                ? headingParser.parse(snapshot.document())
+                : validateSections(snapshot.document(), snapshot.sections());
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        try {
+            chunkIndexer.rebuild(snapshot.document(), chunks);
+            registry.updateOutline(snapshot.document(), outlineBuilder.build(sections, chunks));
+            if (!registry.activate(source, version)) {
+                throw new IllegalStateException("历史版本激活失败");
+            }
+            boolean activated = registry.findVersionsBySource(source).stream()
+                    .findFirst()
+                    .map(current -> current.version().equals(version))
+                    .orElse(false);
+            if (!activated) {
+                throw new IllegalStateException("历史版本激活后未成为当前版本");
+            }
+        } catch (RuntimeException exception) {
+            if (indexingStateStore != null) {
+                indexingStateStore.markFailed(snapshot.document(), chunks.size(), exception);
+            }
+            throw exception;
+        }
+        return new MarkdownRebuildResult(snapshot.document(), chunks);
     }
 
     private MarkdownRebuildResult rebuildDocument(MarkdownDocument document,

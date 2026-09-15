@@ -24,11 +24,13 @@ const emit = defineEmits<{
   retry: [];
   retire: [];
   rebuild: [file: File];
+  rollback: [version: string];
   inspectConsistency: [];
   search: [query: string];
 }>();
 
 const confirmingDelete = shallowRef(false);
+const confirmingRollbackVersion = shallowRef("");
 const rebuildFileInput = useTemplateRef<HTMLInputElement>("rebuildFileInput");
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   dateStyle: "medium",
@@ -38,6 +40,7 @@ const numberFormatter = new Intl.NumberFormat("zh-CN");
 
 watch(() => props.source, () => {
   confirmingDelete.value = false;
+  confirmingRollbackVersion.value = "";
   if (rebuildFileInput.value) {
     rebuildFileInput.value.value = "";
   }
@@ -67,6 +70,13 @@ function formatContentLength(value: number): string {
 
 function formatVersion(value: string): string {
   return value.length > 16 ? value.slice(0, 16) : value;
+}
+
+function formatContentDelta(targetLength: number): string {
+  const currentLength = props.details?.versions[0]?.contentLength ?? targetLength;
+  const delta = targetLength - currentLength;
+  if (delta === 0) return "字符数不变";
+  return `${delta > 0 ? "增加" : "减少"}${numberFormatter.format(Math.abs(delta))} 字符`;
 }
 
 function storeStatusLabel(status: string): string {
@@ -194,6 +204,24 @@ function chunkCountLabel(value: number | null): string {
                     <dd><time :datetime="version.registeredAt">{{ formatRegisteredAt(version.registeredAt) }}</time></dd>
                   </div>
                 </dl>
+                <button
+                  v-if="!version.current"
+                  type="button"
+                  class="version-rollback-button"
+                  :disabled="deleting || rebuilding || !version.restorable"
+                  :title="version.restorable ? '回退到这个版本' : '旧登记没有正文快照，不能直接恢复'"
+                  @click="confirmingRollbackVersion = version.version"
+                >
+                  <RotateCw :size="15" aria-hidden="true" />
+                  <span>{{ version.restorable ? "回退到此版本" : "缺少恢复快照" }}</span>
+                </button>
+                <div v-if="confirmingRollbackVersion === version.version" class="rollback-confirmation">
+                  <p>与当前版本相比{{ formatContentDelta(version.contentLength) }}。确认后将重建 Dense 与 Sparse 索引，并把此版本设为当前版本。</p>
+                  <div class="confirmation-actions">
+                    <button type="button" :disabled="rebuilding" @click="confirmingRollbackVersion = ''">取消</button>
+                    <button type="button" :disabled="rebuilding" @click="emit('rollback', version.version); confirmingRollbackVersion = ''">确认回退</button>
+                  </div>
+                </div>
               </li>
             </ol>
           </div>
@@ -690,6 +718,37 @@ function chunkCountLabel(value: number | null): string {
 .version-history li strong {
   color: var(--color-success);
   font-size: var(--text-xs);
+}
+
+.version-rollback-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-inline: var(--space-sm);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.rollback-confirmation {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-left: 3px solid var(--color-warning);
+  background: var(--color-surface);
+}
+
+.rollback-confirmation p {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+  line-height: 1.55;
 }
 
 .version-history dl {

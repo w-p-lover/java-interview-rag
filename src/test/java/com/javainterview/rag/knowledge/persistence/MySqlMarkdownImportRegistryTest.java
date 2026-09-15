@@ -3,7 +3,9 @@ package com.javainterview.rag.knowledge.persistence;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline;
 import com.javainterview.rag.knowledge.document.KnowledgeDocumentOutlineNode;
+import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.MarkdownSection;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -43,6 +45,8 @@ class MySqlMarkdownImportRegistryTest {
         assertEquals(document.version(), entity.getVersion());
         assertEquals(document.content().length(), entity.getContentLength());
         assertNull(entity.getOutlineJson());
+        assertEquals(document.content(), entity.getContent());
+        assertEquals("[]", entity.getSectionsJson());
     }
 
     @Test
@@ -61,6 +65,25 @@ class MySqlMarkdownImportRegistryTest {
                 stored.getSource(), stored.getVersion(), stored.getContentLength(), stored.getOutlineJson());
         when(mapper.selectCurrentVersions()).thenReturn(List.of(loaded));
         assertEquals(outline, registry.findCurrentDocuments().get(0).outline());
+    }
+
+    @Test
+    void storesAndReadsStructuredDocumentSnapshot() {
+        MarkdownDocument document = MarkdownDocument.create("resume/backend.pdf", "# Java\n代码");
+        List<MarkdownSection> sections = List.of(new MarkdownSection(
+                document.source(), 0, 1, List.of("Java"), "代码", 2,
+                KnowledgeBlockType.CODE));
+        when(mapper.insert(any(KnowledgeDocumentVersionEntity.class))).thenReturn(1);
+
+        assertTrue(registry.register(document, null, sections));
+
+        var entityCaptor = org.mockito.ArgumentCaptor.forClass(KnowledgeDocumentVersionEntity.class);
+        verify(mapper).insert(entityCaptor.capture());
+        when(mapper.selectBySourceAndVersion(document.source(), document.version()))
+                .thenReturn(entityCaptor.getValue());
+        var snapshot = registry.findSnapshot(document.source(), document.version()).orElseThrow();
+        assertEquals(document.content(), snapshot.document().content());
+        assertEquals(sections, snapshot.sections());
     }
 
     @Test
@@ -174,6 +197,12 @@ class MySqlMarkdownImportRegistryTest {
         Update outlineUpdate = KnowledgeDocumentVersionMapper.class
                 .getMethod("updateOutline", String.class, String.class, String.class)
                 .getAnnotation(Update.class);
+        Update activateUpdate = KnowledgeDocumentVersionMapper.class
+                .getMethod("activate", String.class, String.class)
+                .getAnnotation(Update.class);
+        Select snapshotCountSelect = KnowledgeDocumentVersionMapper.class
+                .getMethod("countSnapshotBySourceAndVersion", String.class, String.class)
+                .getAnnotation(Select.class);
 
         assertEquals("SELECT COUNT(*) FROM t_knowledge_document_version "
                         + "WHERE BINARY source = BINARY #{source} AND version = #{version}",
@@ -186,19 +215,27 @@ class MySqlMarkdownImportRegistryTest {
         assertEquals("UPDATE t_knowledge_document_version SET outline_json = #{outlineJson} "
                 + "WHERE BINARY source = BINARY #{source} AND version = #{version}",
                 outlineUpdate.value()[0]);
+        assertTrue(activateUpdate.value()[0].contains(
+                "DATE_ADD(MAX(activated_at), INTERVAL 1 MICROSECOND)"));
+        assertEquals("SELECT COUNT(*) FROM t_knowledge_document_version "
+                        + "WHERE BINARY source = BINARY #{source} AND version = #{version} "
+                        + "AND content IS NOT NULL AND sections_json IS NOT NULL",
+                snapshotCountSelect.value()[0]);
         assertEquals("SELECT current_version.id, current_version.source, current_version.version, "
-                + "current_version.content_length, current_version.outline_json, current_version.created_at "
+                + "current_version.content_length, current_version.outline_json, current_version.content, "
+                + "current_version.sections_json, current_version.activated_at, current_version.created_at "
                 + "FROM t_knowledge_document_version current_version "
                 + "LEFT JOIN t_knowledge_document_version newer_version "
                 + "ON BINARY newer_version.source = BINARY current_version.source "
-                + "AND newer_version.id > current_version.id "
+                + "AND (newer_version.activated_at > current_version.activated_at "
+                + "OR (newer_version.activated_at = current_version.activated_at AND newer_version.id > current_version.id)) "
                 + "WHERE newer_version.id IS NULL "
-                + "ORDER BY current_version.created_at DESC, current_version.id DESC",
+                + "ORDER BY current_version.activated_at DESC, current_version.id DESC",
                 currentVersionsSelect.value()[0]);
-        assertEquals("SELECT id, source, version, content_length, outline_json, created_at "
+        assertEquals("SELECT id, source, version, content_length, outline_json, content, sections_json, activated_at, created_at "
                         + "FROM t_knowledge_document_version "
                         + "WHERE BINARY source = BINARY #{source} "
-                        + "ORDER BY id DESC",
+                        + "ORDER BY activated_at DESC, id DESC",
                 sourceVersionsSelect.value()[0]);
     }
 }

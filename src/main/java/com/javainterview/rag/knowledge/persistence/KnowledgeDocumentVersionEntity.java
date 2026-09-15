@@ -21,17 +21,29 @@ public class KnowledgeDocumentVersionEntity {
     private String version;
     private Integer contentLength;
     private String outlineJson;
+    private String content;
+    private String sectionsJson;
+    private LocalDateTime activatedAt;
     private LocalDateTime createdAt;
 
     public static KnowledgeDocumentVersionEntity create(String source, String version,
-                                                        int contentLength, String outlineJson) {
+                                                        int contentLength, String outlineJson,
+                                                        String content, String sectionsJson) {
         KnowledgeDocumentVersionEntity entity = new KnowledgeDocumentVersionEntity();
         entity.source = source;
         entity.version = version;
         entity.contentLength = contentLength;
         entity.outlineJson = outlineJson;
+        entity.content = content;
+        entity.sectionsJson = sectionsJson;
+        entity.activatedAt = LocalDateTime.now();
         entity.createdAt = LocalDateTime.now();
         return entity;
+    }
+
+    public static KnowledgeDocumentVersionEntity create(String source, String version,
+                                                         int contentLength, String outlineJson) {
+        return create(source, version, contentLength, outlineJson, null, null);
     }
 
 }

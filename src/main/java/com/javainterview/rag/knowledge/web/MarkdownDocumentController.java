@@ -69,7 +69,16 @@ public class MarkdownDocumentController {
         if (versions.isEmpty()) {
             throw new NoSuchElementException("资料不存在");
         }
-        return KnowledgeDocumentDetailsResponse.from(versions);
+        return KnowledgeDocumentDetailsResponse.from(versions,
+                version -> importRegistry.hasSnapshot(source, version));
+    }
+
+    @PostMapping("/rollback")
+    @Operation(summary = "回退知识资料历史版本")
+    public MarkdownRollbackResponse rollbackDocument(@RequestParam String source,
+                                                      @RequestParam String version) {
+        validateSource(source);
+        return MarkdownRollbackResponse.from(contentImporter.rollbackToVersion(source, version));
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

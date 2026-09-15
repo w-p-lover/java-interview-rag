@@ -8,11 +8,13 @@ public record KnowledgeDocumentVersionItem(
         String version,
         int contentLength,
         LocalDateTime registeredAt,
-        boolean current
+        boolean current,
+        boolean restorable
 ) {
 
-    static KnowledgeDocumentVersionItem from(KnowledgeDocumentSummary version, boolean current) {
+    static KnowledgeDocumentVersionItem from(KnowledgeDocumentSummary version, boolean current,
+                                              boolean restorable) {
         return new KnowledgeDocumentVersionItem(
-                version.version(), version.contentLength(), version.registeredAt(), current);
+                version.version(), version.contentLength(), version.registeredAt(), current, restorable);
     }
 }
