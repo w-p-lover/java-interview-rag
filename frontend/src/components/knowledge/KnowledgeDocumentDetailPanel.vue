@@ -354,7 +354,7 @@ function chunkCountLabel(value: number | null): string {
                 ref="rebuildFileInput"
                 hidden
                 type="file"
-                accept=".md,.markdown,text/markdown"
+                accept=".md,.markdown,.txt,.pdf,text/markdown,text/plain,application/pdf"
                 :disabled="deleting || rebuilding"
                 @change="handleRebuildFileChange"
               />

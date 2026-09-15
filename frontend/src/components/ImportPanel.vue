@@ -32,8 +32,15 @@ const localError = shallowRef("");
 const dragActive = shallowRef(false);
 const demoMode = shallowRef(false);
 const demoContent = shallowRef("");
+const supportedFilePattern = /\.(md|markdown|txt|pdf)$/i;
 
 const visibleError = computed(() => localError.value || props.error);
+const selectedFileFormat = computed(() => {
+  const filename = selectedFile.value?.name || "";
+  if (/\.pdf$/i.test(filename)) return "PDF";
+  if (/\.txt$/i.test(filename)) return "TXT";
+  return "MD";
+});
 const submitLabel = computed(() => {
   if (props.busy) {
     return "正在检查资料";
@@ -58,6 +65,10 @@ function resetParentState(): void {
 
 function selectFile(file: File | undefined): void {
   if (!file || props.busy) {
+    return;
+  }
+  if (!supportedFilePattern.test(file.name)) {
+    localError.value = "当前仅支持 Markdown、TXT 或 PDF 文件。";
     return;
   }
   selectedFile.value = file;
@@ -116,7 +127,7 @@ function handleDrop(event: DragEvent): void {
 
 function submitImport(): void {
   if (!selectedFile.value) {
-    localError.value = "请先选择一份 Markdown 或 PDF 知识资料。";
+    localError.value = "请先选择一份 Markdown、TXT 或 PDF 知识资料。";
     return;
   }
   if (!source.value.trim()) {
@@ -173,13 +184,13 @@ function formatFileSize(size: number): string {
           id="markdown-file"
           class="file-input"
           type="file"
-          accept=".md,.markdown,.pdf,text/markdown,text/plain,application/pdf"
+          accept=".md,.markdown,.txt,.pdf,text/markdown,text/plain,application/pdf"
           :disabled="busy"
           @change="handleFileInput"
         />
-        <span class="file-mark" aria-hidden="true">{{ selectedFile?.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'MD' }}</span>
-        <strong>{{ selectedFile ? selectedFile.name : "选择 Markdown 文件" }}</strong>
-        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "支持 Markdown 与文本型 PDF" }}</span>
+        <span class="file-mark" aria-hidden="true">{{ selectedFileFormat }}</span>
+        <strong>{{ selectedFile ? selectedFile.name : "选择知识资料" }}</strong>
+        <span>{{ selectedFile ? formatFileSize(selectedFile.size) : "支持 Markdown、TXT 与文本型 PDF" }}</span>
       </label>
 
       <div v-if="demoMode" class="demo-editor">

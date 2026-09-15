@@ -29,6 +29,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.task.TaskRejectedException;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +40,7 @@ import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/knowledge/documents")
-@Tag(name = "知识资料", description = "Markdown/PDF 知识资料导入、重建与删除")
+@Tag(name = "知识资料", description = "Markdown/TXT/PDF 知识资料导入、重建与删除")
 public class MarkdownDocumentController {
 
     private final MarkdownContentImporter contentImporter;
@@ -82,7 +85,7 @@ public class MarkdownDocumentController {
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "导入知识资料", description = "支持 Markdown 和带文本层的 PDF 文件")
+    @Operation(summary = "导入知识资料", description = "支持 UTF-8 Markdown/TXT 和带文本层的 PDF 文件")
     public MarkdownImportResponse importDocument(@RequestParam MultipartFile file,
                                                  @RequestParam String source) throws IOException {
         KnowledgeUploadContent upload = readContent(file, source);
@@ -196,14 +199,34 @@ public class MarkdownDocumentController {
             throw new IllegalArgumentException("资料文件不能为空");
         }
         String filename = file.getOriginalFilename();
-        if (filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("资料文件名不能为空");
+        }
+        String normalizedFilename = filename.toLowerCase(Locale.ROOT);
+        if (normalizedFilename.endsWith(".pdf")) {
             PdfKnowledgeDocumentExtraction extraction = pdfExtractor.extract(file);
             return new KnowledgeUploadContent(extraction.markdownContent(), "PDF",
                     extraction.pageCount(), extraction.pagesNeedingOcr(), extraction.warnings(),
                     pdfExtractor.toSections(source, extraction.blocks()));
         }
-        return new KnowledgeUploadContent(new String(file.getBytes(), StandardCharsets.UTF_8),
+        if (!normalizedFilename.endsWith(".md") && !normalizedFilename.endsWith(".markdown")
+                && !normalizedFilename.endsWith(".txt")) {
+            throw new IllegalArgumentException("当前仅支持 Markdown、TXT 或 PDF 文件");
+        }
+        return new KnowledgeUploadContent(decodeUtf8(file.getBytes()),
                 "MARKDOWN", null, List.of(), List.of(), List.of());
+    }
+
+    private String decodeUtf8(byte[] content) {
+        try {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(content))
+                    .toString();
+        } catch (CharacterCodingException exception) {
+            throw new IllegalArgumentException("文本资料必须使用 UTF-8 编码");
+        }
     }
 
     private KnowledgeUploadContent readContentUnchecked(MultipartFile file, String source) {

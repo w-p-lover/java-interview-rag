@@ -58,4 +58,14 @@ class KnowledgeDocumentTaskControllerTest {
                 .andExpect(jsonPath("$.message").value("知识资料任务不存在"));
     }
 
+    @Test
+    void rejectsUnsupportedFileBeforeSubmittingTask() throws Exception {
+        mockMvc.perform(multipart("/api/knowledge/documents/import-tasks")
+                        .file(new MockMultipartFile("file", "archive.zip", "application/zip",
+                                new byte[]{'P', 'K', 3, 4}))
+                        .param("source", "java/archive.zip"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("当前仅支持 Markdown、TXT 或 PDF 文件"));
+    }
+
 }

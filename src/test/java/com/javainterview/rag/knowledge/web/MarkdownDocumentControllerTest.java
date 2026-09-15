@@ -84,6 +84,42 @@ class MarkdownDocumentControllerTest {
     }
 
     @Test
+    void importsUtf8TextKnowledgeContent() throws Exception {
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(new MockMultipartFile("file", "collections.txt", "text/plain",
+                                "HashMap 使用数组、链表和红黑树。".getBytes(StandardCharsets.UTF_8)))
+                        .param("source", "java/collections.txt"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.format").value("MARKDOWN"))
+                .andExpect(jsonPath("$.chunkCount").value(1));
+    }
+
+    @Test
+    void rejectsUnsupportedOrInvalidKnowledgeFilesBeforeImport() throws Exception {
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(new MockMultipartFile("file", "notes.docx",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                new byte[]{'P', 'K', 3, 4}))
+                        .param("source", "java/notes.docx"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("当前仅支持 Markdown、TXT 或 PDF 文件"));
+
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(new MockMultipartFile("file", "invalid.md", "text/markdown",
+                                new byte[]{(byte) 0xC3, (byte) 0x28}))
+                        .param("source", "java/invalid.md"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("文本资料必须使用 UTF-8 编码"));
+
+        mockMvc.perform(multipart("/api/knowledge/documents/import")
+                        .file(new MockMultipartFile("file", "fake.pdf", "application/pdf",
+                                "not a pdf".getBytes(StandardCharsets.UTF_8)))
+                        .param("source", "java/fake.pdf"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("PDF 解析失败，请确认文件完整"));
+    }
+
+    @Test
     void returnsBadRequestForBlankSource() throws Exception {
         mockMvc.perform(multipart("/api/knowledge/documents/import")
                         .file(markdownFile("# Java\n内容"))
