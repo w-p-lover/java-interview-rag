@@ -121,6 +121,52 @@ class PdfKnowledgeDocumentExtractorTest {
     }
 
     @Test
+    void keepsCaptionedCrossPageTableAndMultilineCellsAsTableChunks() throws IOException {
+        PdfKnowledgeDocumentExtractor extractor = new PdfKnowledgeDocumentExtractor();
+        PdfKnowledgeDocumentExtraction extraction = extractor.extract(new MockMultipartFile(
+                "file", "jvm-attributes.pdf", "application/pdf", captionedCrossPageTablePdf()));
+
+        assertEquals(List.of(PdfPageLayout.SINGLE_COLUMN, PdfPageLayout.SINGLE_COLUMN),
+                extraction.pages().stream().map(page -> page.layout()).toList());
+        List<PdfKnowledgeBlock> tableBlocks = extraction.blocks().stream()
+                .filter(block -> block.type() == KnowledgeBlockType.TABLE)
+                .toList();
+        assertEquals(2, tableBlocks.size());
+        assertEquals(1, tableBlocks.get(0).pageNumber());
+        assertEquals(2, tableBlocks.get(1).pageNumber());
+        assertTrue(tableBlocks.get(0).content().contains("RuntimeInvisibleParameterAnnotations"));
+        assertTrue(tableBlocks.get(1).content().contains("Synthetic | ClassFile 45.3"));
+        assertTrue(tableBlocks.get(1).content().contains("field_info"));
+        assertTrue(tableBlocks.get(1).content().contains("record_component_info"));
+        assertTrue(extraction.blocks().stream()
+                .filter(block -> block.pageNumber() <= 2)
+                .noneMatch(block -> block.type() == KnowledgeBlockType.CODE));
+        assertOrder(extraction.markdownContent(), "Table 4.7-C (cont.)", "Synthetic",
+                "record_component_info", "4.7.1 Defining and Naming New Attributes", "COMPILER_TEXT");
+
+        List<MarkdownChunk> chunks = new MarkdownSectionChunker().chunk(
+                extractor.toSections("java/jvm-attributes.pdf", extraction.blocks()), 800);
+        assertTrue(chunks.stream().anyMatch(chunk -> chunk.pageNumber() == 2
+                && chunk.blockType() == KnowledgeBlockType.TABLE
+                && chunk.content().contains("Synthetic | ClassFile 45.3")
+                && chunk.content().contains("record_component_info")));
+    }
+
+    @Test
+    void keepsRepeatedMonospacedTableRowsNearPageBottom() throws IOException {
+        PdfKnowledgeDocumentExtraction extraction = new PdfKnowledgeDocumentExtractor()
+                .extract(new MockMultipartFile("file", "bottom-table.pdf", "application/pdf",
+                        repeatedBottomTableRowsPdf()));
+
+        List<PdfKnowledgeBlock> tableBlocks = extraction.blocks().stream()
+                .filter(block -> block.type() == KnowledgeBlockType.TABLE)
+                .toList();
+        assertEquals(2, tableBlocks.size());
+        assertTrue(tableBlocks.stream().allMatch(block -> block.content().contains("Record")));
+        assertTrue(tableBlocks.stream().allMatch(block -> block.content().contains("PermittedSubclasses")));
+    }
+
+    @Test
     void rejectsPdfWithoutTextInsteadOfIndexingAnEmptyDocument() throws IOException {
         assertEquals("PDF 未提取到可用文字，可能是扫描件；当前暂不支持 OCR",
                 assertThrows(IllegalArgumentException.class, () -> new PdfKnowledgeDocumentExtractor()
@@ -267,6 +313,75 @@ class PdfKnowledgeDocumentExtractorTest {
             document.save(output);
             return output.toByteArray();
         }
+    }
+
+    private byte[] captionedCrossPageTablePdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font code = new PDType1Font(Standard14Fonts.FontName.COURIER);
+            PDRectangle pageSize = new PDRectangle(504, 648);
+
+            PDPage firstPage = new PDPage(pageSize);
+            document.addPage(firstPage);
+            try (PDPageContentStream stream = new PDPageContentStream(document, firstPage)) {
+                drawText(stream, bold, 12, 72, 580,
+                        paddedLine(bold, 12, "Table 4.7-C. Predefined attributes", 310));
+                drawTableCells(stream, regular, 10, 540, "Attribute", "Location class file");
+                drawTableCells(stream, code, 10, 520, "SourceFile", "ClassFile 45.3");
+                drawTableCells(stream, code, 10, 500,
+                        "RuntimeVisibleParameterAnnotations,", "method_info 49.0");
+                drawText(stream, code, 10, 74, 486, "RuntimeInvisibleParameterAnnotations");
+                drawTableCells(stream, code, 10, 466, "MethodParameters", "method_info 52.0");
+            }
+
+            PDPage secondPage = new PDPage(pageSize);
+            document.addPage(secondPage);
+            try (PDPageContentStream stream = new PDPageContentStream(document, secondPage)) {
+                drawText(stream, bold, 12, 72, 580,
+                        paddedLine(bold, 12, "Table 4.7-C (cont.). Predefined attributes", 310));
+                drawTableCells(stream, regular, 10, 540, "Attribute", "Location class file");
+                drawTableCells(stream, code, 10, 520, "Synthetic", "ClassFile 45.3");
+                drawText(stream, code, 10, 280, 506, "field_info,");
+                drawText(stream, code, 10, 280, 492, "method_info");
+                drawTableCells(stream, code, 10, 470, "Signature", "ClassFile 49.0");
+                drawText(stream, code, 10, 280, 456, "field_info,");
+                drawText(stream, code, 10, 280, 442, "method_info,");
+                drawText(stream, code, 10, 280, 428, "record_component_info");
+                drawText(stream, bold, 14, 72, 380, "4.7.1 Defining and Naming New Attributes");
+                drawText(stream, regular, 11, 72, 354, "COMPILER_TEXT remains after the continued table.");
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private byte[] repeatedBottomTableRowsPdf() throws IOException {
+        try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font code = new PDType1Font(Standard14Fonts.FontName.COURIER);
+            for (int pageNumber = 1; pageNumber <= 2; pageNumber++) {
+                PDPage page = new PDPage(PDRectangle.A4);
+                document.addPage(page);
+                try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                    drawText(stream, bold, 12, 72, 180, "Table 4.7. Attributes by version");
+                    drawTableCells(stream, regular, 10, 140, "Attribute", "Version");
+                    drawTableCells(stream, code, 10, 110, "Code", "45.3");
+                    drawTableCells(stream, code, 10, 80, "Record", "60.0");
+                    drawTableCells(stream, code, 10, 60, "PermittedSubclasses", "61.0");
+                    drawText(stream, regular, 9, 290, 25, String.valueOf(pageNumber));
+                }
+            }
+            document.save(output);
+            return output.toByteArray();
+        }
+    }
+
+    private void drawTableCells(PDPageContentStream stream, PDType1Font font, float fontSize,
+                                float y, String first, String second) throws IOException {
+        drawText(stream, font, fontSize, 74, y, first);
+        drawText(stream, font, fontSize, 280, y, second);
     }
 
     private String paddedLine(PDType1Font font, float fontSize, String marker,

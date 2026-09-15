@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public final class PdfDocumentAnalyzer {
 
@@ -26,6 +27,10 @@ public final class PdfDocumentAnalyzer {
     private static final float MINIMUM_COLUMN_TEXT_WIDTH_RATIO = 0.16f;
     private static final double MINIMUM_MONOSPACED_CHARACTER_RATIO = 0.60;
     private static final int MINIMUM_LINES_PER_COLUMN = 2;
+    private static final Pattern TABLE_CAPTION = Pattern.compile(
+            "^(?:table\\s+[\\p{Alnum}]+(?:[.\\-][\\p{Alnum}]+)*(?:\\s+\\(cont\\.\\))?[.:]"
+                    + "|表\\s*[0-9]+(?:[.\\-][0-9]+)*[：:.])",
+            Pattern.CASE_INSENSITIVE);
 
     public List<PdfPageAnalysis> analyze(PDDocument document) throws IOException {
         PositionCollector collector = new PositionCollector();
@@ -252,6 +257,9 @@ public final class PdfDocumentAnalyzer {
         if (block == null) {
             return new PageText(lines, PdfPageLayout.SINGLE_COLUMN);
         }
+        if (isCaptionedTable(lines, block)) {
+            return new PageText(lines, PdfPageLayout.SINGLE_COLUMN);
+        }
 
         List<TextLine> before = lines.stream().filter(line -> line.y() < block.startY() - LINE_Y_TOLERANCE).toList();
         List<TextLine> columnBlock = lines.stream()
@@ -265,6 +273,25 @@ public final class PdfDocumentAnalyzer {
         ordered.addAll(orderedBlock);
         ordered.addAll(after);
         return new PageText(List.copyOf(ordered), PdfPageLayout.TWO_COLUMN);
+    }
+
+    private boolean isCaptionedTable(List<TextLine> lines, ColumnBlock block) {
+        for (TextLine caption : lines) {
+            if (!TABLE_CAPTION.matcher(caption.text()).find() || !spansColumns(caption, block)) {
+                continue;
+            }
+            long tableRows = lines.stream()
+                    .filter(line -> line.y() > caption.y())
+                    .filter(line -> inside(line.y(), caption.y(), block.endY()))
+                    .filter(line -> line.visualRowSegmentCount() >= 2)
+                    .map(TextLine::visualRow)
+                    .distinct()
+                    .count();
+            if (tableRows >= 3) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<TextLine> orderColumnRegions(List<TextLine> lines, ColumnBlock block) {

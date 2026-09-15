@@ -112,6 +112,51 @@ class PdfDocumentAnalyzerTest {
     }
 
     @Test
+    void keepsCaptionedTableColumnsInSingleColumnLayout() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addWidePage(document);
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeText(stream, regular, 9, 54, 770, "4.7 Attributes");
+                writeText(stream, regular, 9, 420, 770, "THE CLASS FILE FORMAT");
+                writeText(stream, regular, 12, 54, 740,
+                        paddedLine(regular, 12, "Table 4.7-C. JVM attributes", 380));
+                writeColumnRegion(stream, regular, 700, "ATTRIBUTE_HEADER", "LOCATION_HEADER");
+                writeColumnRegion(stream, regular, 680, "ATTRIBUTE_ONE", "LOCATION_ONE");
+                writeColumnRegion(stream, regular, 660, "ATTRIBUTE_TWO", "LOCATION_TWO");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.SINGLE_COLUMN, result.layout());
+            assertOrder(result.content(), "4.7 Attributes", "THE CLASS FILE FORMAT",
+                    "Table 4.7-C", "ATTRIBUTE_HEADER", "LOCATION_HEADER",
+                    "ATTRIBUTE_ONE", "LOCATION_ONE", "ATTRIBUTE_TWO", "LOCATION_TWO");
+        }
+    }
+
+    @Test
+    void doesNotTreatTableReferenceAsCaptionBeforeTwoColumnProse() throws IOException {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = addWidePage(document);
+            PDType1Font regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
+                writeText(stream, regular, 12, 54, 740,
+                        paddedLine(regular, 12, "Table 1 shows benchmark results", 380));
+                writeColumnRegion(stream, regular, 700, "LEFT_RESULT_ONE", "RIGHT_RESULT_ONE");
+                writeColumnRegion(stream, regular, 680, "LEFT_RESULT_TWO", "RIGHT_RESULT_TWO");
+                writeColumnRegion(stream, regular, 660, "LEFT_RESULT_THREE", "RIGHT_RESULT_THREE");
+            }
+
+            PdfPageAnalysis result = analyzer.analyze(document).get(0);
+
+            assertEquals(PdfPageLayout.TWO_COLUMN, result.layout());
+            assertOrder(result.content(), "LEFT_RESULT_ONE", "LEFT_RESULT_TWO", "LEFT_RESULT_THREE",
+                    "RIGHT_RESULT_ONE", "RIGHT_RESULT_TWO", "RIGHT_RESULT_THREE");
+        }
+    }
+
+    @Test
     void keepsSingleColumnPageInVerticalOrder() throws IOException {
         try (PDDocument document = new PDDocument()) {
             PDPage page = addPage(document);

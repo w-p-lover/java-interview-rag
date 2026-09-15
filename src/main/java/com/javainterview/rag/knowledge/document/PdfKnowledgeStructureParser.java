@@ -28,6 +28,10 @@ public final class PdfKnowledgeStructureParser {
             "^(\\d+(?:\\.\\d+){0,5})(?:[.、．]|\\s)+.+$");
     private static final Pattern PAGE_NUMBER = Pattern.compile(
             "^(?:page\\s*)?[-—–]?\\s*\\d+\\s*[-—–]?$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TABLE_CAPTION = Pattern.compile(
+            "^(?:table\\s+[\\p{Alnum}]+(?:[.\\-][\\p{Alnum}]+)*(?:\\s+\\(cont\\.\\))?[.:]"
+                    + "|表\\s*[0-9]+(?:[.\\-][0-9]+)*[：:.])",
+            Pattern.CASE_INSENSITIVE);
     private static final int MIN_TABLE_ROWS = 3;
 
     public List<PdfKnowledgeBlock> parse(List<PdfPageAnalysis> pages) {
@@ -225,7 +229,7 @@ public final class PdfKnowledgeStructureParser {
                 .map(Map.Entry::getKey)
                 .toList();
         if (candidates.size() >= MIN_TABLE_ROWS) {
-            return Set.copyOf(candidates);
+            return captionedTableRows(lines, rows, candidates);
         }
         if (!continuingTable || candidates.size() < 2) {
             return Set.of();
@@ -235,6 +239,36 @@ public final class PdfKnowledgeStructureParser {
         boolean startsNearPageTop = firstCandidate <= lines.get(0).visualRow() + 1;
         boolean contiguous = lastCandidate - firstCandidate + 1 == candidates.size();
         return startsNearPageTop && contiguous ? Set.copyOf(candidates) : Set.of();
+    }
+
+    private Set<Integer> captionedTableRows(List<PdfTextLineAnalysis> lines,
+                                            Map<Integer, List<PdfTextLineAnalysis>> rows,
+                                            List<Integer> candidates) {
+        int firstCandidate = candidates.stream().mapToInt(Integer::intValue).min().orElseThrow();
+        boolean captionBeforeTable = lines.stream()
+                .filter(line -> line.visualRow() < firstCandidate)
+                .anyMatch(line -> TABLE_CAPTION.matcher(line.text()).find());
+        if (!captionBeforeTable) {
+            return Set.copyOf(candidates);
+        }
+        int lastTableRow = candidates.stream().mapToInt(Integer::intValue).max().orElseThrow();
+        for (Map.Entry<Integer, List<PdfTextLineAnalysis>> entry : rows.entrySet()) {
+            if (entry.getKey() <= lastTableRow) {
+                continue;
+            }
+            if (entry.getValue().stream().allMatch(PdfTextLineAnalysis::monospaced)) {
+                lastTableRow = entry.getKey();
+            } else {
+                break;
+            }
+        }
+        Set<Integer> tableRows = new HashSet<>();
+        for (Integer row : rows.keySet()) {
+            if (row >= firstCandidate && row <= lastTableRow) {
+                tableRows.add(row);
+            }
+        }
+        return Set.copyOf(tableRows);
     }
 
     private boolean continuesTable(List<PdfKnowledgeBlock> blocks, int pageNumber,
@@ -295,7 +329,8 @@ public final class PdfKnowledgeStructureParser {
     private boolean ignoreLine(PdfPageAnalysis page, PdfTextLineAnalysis line,
                                Set<String> repeatedMargins) {
         return line.text().isBlank()
-                || (marginLine(page, line) && repeatedMargins.contains(normalize(line.text())))
+                || (marginLine(page, line) && !line.monospaced()
+                && repeatedMargins.contains(normalize(line.text())))
                 || (marginLine(page, line) && PAGE_NUMBER.matcher(line.text().strip()).matches());
     }
 

@@ -61,7 +61,7 @@ class QdrantMarkdownChunkIndexerTest {
         assertEquals(1024, firstWrite.get(0).getMetadata().get("embedding_dimensions"));
         assertEquals("markdown-section-chunker-v3",
                 firstWrite.get(0).getMetadata().get("chunk_policy_version"));
-        assertEquals("pdf-knowledge-parser-v5",
+        assertEquals("pdf-knowledge-parser-v6",
                 firstWrite.get(0).getMetadata().get("parser_version"));
         assertEquals("knowledge-index-v2",
                 firstWrite.get(0).getMetadata().get("index_schema_version"));
