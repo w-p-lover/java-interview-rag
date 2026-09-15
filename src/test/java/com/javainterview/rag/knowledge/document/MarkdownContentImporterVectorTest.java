@@ -11,10 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -254,6 +256,92 @@ class MarkdownContentImporterVectorTest {
 
         assertEquals(current.document().version(),
                 registry.findVersionsBySource(current.document().source()).get(0).version());
+    }
+
+    @Test
+    void restoresCurrentSnapshotWhenHistoricalVersionActivationFails() {
+        InMemoryMarkdownImportRegistry registry = spy(new InMemoryMarkdownImportRegistry());
+        MarkdownChunkIndexer delegate = mock(MarkdownChunkIndexer.class);
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, new TrackingMarkdownChunkIndexer(delegate, stateStore), stateStore);
+        MarkdownImportResult original = sourceImporter.importContent(
+                "java/rollback-activation.md", "# Java\n原内容");
+        MarkdownImportResult current = sourceImporter.importContent(
+                "java/rollback-activation.md", "# Java\n新内容");
+        doReturn(false).when(registry)
+                .activate(original.document().source(), original.document().version());
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> sourceImporter.rollbackToVersion(
+                        original.document().source(), original.document().version()));
+
+        assertEquals("历史版本激活失败", exception.getMessage());
+        assertEquals(current.document().version(),
+                registry.findVersionsBySource(current.document().source()).get(0).version());
+        assertEquals(MarkdownIndexingStatus.FAILED,
+                stateStore.find(original.document().source(), original.document().version())
+                        .orElseThrow().status());
+        assertEquals(MarkdownIndexingStatus.READY,
+                stateStore.find(current.document().source(), current.document().version())
+                        .orElseThrow().status());
+        var orderedCalls = inOrder(delegate);
+        orderedCalls.verify(delegate).rebuild(original.document(), original.chunks());
+        orderedCalls.verify(delegate).rebuild(current.document(), current.chunks());
+    }
+
+    @Test
+    void keepsRollbackFailureAndMarksCurrentVersionFailedWhenCompensationAlsoFails() {
+        InMemoryMarkdownImportRegistry registry = spy(new InMemoryMarkdownImportRegistry());
+        MarkdownChunkIndexer delegate = mock(MarkdownChunkIndexer.class);
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(
+                registry, 100, new TrackingMarkdownChunkIndexer(delegate, stateStore), stateStore);
+        MarkdownImportResult original = sourceImporter.importContent(
+                "java/rollback-compensation.md", "# Java\n原内容");
+        MarkdownImportResult current = sourceImporter.importContent(
+                "java/rollback-compensation.md", "# Java\n新内容");
+        doReturn(false).when(registry)
+                .activate(original.document().source(), original.document().version());
+        doNothing().doThrow(new IllegalStateException("原索引恢复失败"))
+                .when(delegate).rebuild(any(MarkdownDocument.class), any());
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> sourceImporter.rollbackToVersion(
+                        original.document().source(), original.document().version()));
+
+        assertEquals("历史版本激活失败", exception.getMessage());
+        assertEquals(1, exception.getSuppressed().length);
+        assertEquals("原索引恢复失败", exception.getSuppressed()[0].getMessage());
+        assertEquals(MarkdownIndexingStatus.FAILED,
+                stateStore.find(current.document().source(), current.document().version())
+                        .orElseThrow().status());
+    }
+
+    @Test
+    void rejectsRollbackBeforeIndexingWhenCurrentVersionHasNoRecoverySnapshot() {
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownChunkIndexer indexer = mock(MarkdownChunkIndexer.class);
+        MarkdownContentImporter sourceImporter = new MarkdownContentImporter(registry, 100, indexer);
+        MarkdownDocument current = MarkdownDocument.create("java/rollback-legacy.md", "# Java\n新内容");
+        MarkdownDocument historical = MarkdownDocument.create("java/rollback-legacy.md", "# Java\n原内容");
+        when(registry.findVersionsBySource(current.source())).thenReturn(List.of(
+                new KnowledgeDocumentSummary(current.source(), current.version(), current.content().length(),
+                        java.time.LocalDateTime.now(), null),
+                new KnowledgeDocumentSummary(historical.source(), historical.version(), historical.content().length(),
+                        java.time.LocalDateTime.now().minusDays(1), null)));
+        when(registry.findSnapshot(historical.source(), historical.version()))
+                .thenReturn(java.util.Optional.of(new KnowledgeDocumentSnapshot(
+                        historical, new MarkdownHeadingParser().parse(historical))));
+        when(registry.findSnapshot(current.source(), current.version()))
+                .thenReturn(java.util.Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> sourceImporter.rollbackToVersion(historical.source(), historical.version()));
+
+        assertEquals("当前版本没有可恢复快照，无法在回退失败时恢复索引，请重新上传当前版本原文件",
+                exception.getMessage());
+        verify(indexer, never()).rebuild(any(), any());
     }
 
     @Test

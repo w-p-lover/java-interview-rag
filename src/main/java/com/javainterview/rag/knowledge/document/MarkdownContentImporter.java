@@ -132,13 +132,14 @@ public final class MarkdownContentImporter {
         }
         KnowledgeDocumentSnapshot snapshot = registry.findSnapshot(source, version)
                 .orElseThrow(() -> new IllegalArgumentException("该历史版本没有可恢复快照，请重新上传原文件"));
-        List<MarkdownSection> sections = snapshot.sections().isEmpty()
-                ? headingParser.parse(snapshot.document())
-                : validateSections(snapshot.document(), snapshot.sections());
-        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        KnowledgeDocumentSnapshot currentSnapshot = registry.findSnapshot(source, versions.get(0).version())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "当前版本没有可恢复快照，无法在回退失败时恢复索引，请重新上传当前版本原文件"));
+        PreparedSnapshot target = prepareSnapshot(snapshot);
+        PreparedSnapshot originalCurrent = prepareSnapshot(currentSnapshot);
         try {
-            chunkIndexer.rebuild(snapshot.document(), chunks);
-            registry.updateOutline(snapshot.document(), outlineBuilder.build(sections, chunks));
+            chunkIndexer.rebuild(target.document(), target.chunks());
+            registry.updateOutline(target.document(), target.outline());
             if (!registry.activate(source, version)) {
                 throw new IllegalStateException("历史版本激活失败");
             }
@@ -151,11 +152,51 @@ public final class MarkdownContentImporter {
             }
         } catch (RuntimeException exception) {
             if (indexingStateStore != null) {
-                indexingStateStore.markFailed(snapshot.document(), chunks.size(), exception);
+                indexingStateStore.markFailed(target.document(), target.chunks().size(), exception);
             }
+            restoreCurrentVersion(originalCurrent, exception);
             throw exception;
         }
-        return new MarkdownRebuildResult(snapshot.document(), chunks);
+        return new MarkdownRebuildResult(target.document(), target.chunks());
+    }
+
+    private PreparedSnapshot prepareSnapshot(KnowledgeDocumentSnapshot snapshot) {
+        MarkdownDocument document = snapshot.document();
+        List<MarkdownSection> sections = snapshot.sections().isEmpty()
+                ? headingParser.parse(document)
+                : validateSections(document, snapshot.sections());
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        return new PreparedSnapshot(document, chunks, outlineBuilder.build(sections, chunks));
+    }
+
+    private void restoreCurrentVersion(PreparedSnapshot snapshot,
+                                       RuntimeException rollbackFailure) {
+        MarkdownDocument document = snapshot.document();
+        try {
+            chunkIndexer.rebuild(document, snapshot.chunks());
+            registry.updateOutline(document, snapshot.outline());
+            if (!registry.activate(document.source(), document.version())) {
+                throw new IllegalStateException("原当前版本恢复激活失败");
+            }
+            boolean restored = registry.findVersionsBySource(document.source()).stream()
+                    .findFirst()
+                    .map(current -> current.version().equals(document.version()))
+                    .orElse(false);
+            if (!restored) {
+                throw new IllegalStateException("原当前版本恢复后未成为当前版本");
+            }
+        } catch (RuntimeException compensationFailure) {
+            if (indexingStateStore != null) {
+                indexingStateStore.markFailed(document, snapshot.chunks().size(), compensationFailure);
+            }
+            if (compensationFailure != rollbackFailure) {
+                rollbackFailure.addSuppressed(compensationFailure);
+            }
+        }
+    }
+
+    private record PreparedSnapshot(MarkdownDocument document, List<MarkdownChunk> chunks,
+                                    KnowledgeDocumentOutline outline) {
     }
 
     private MarkdownRebuildResult rebuildDocument(MarkdownDocument document,

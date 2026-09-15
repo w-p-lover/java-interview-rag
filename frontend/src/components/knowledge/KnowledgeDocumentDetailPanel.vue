@@ -39,6 +39,9 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   timeStyle: "short",
 });
 const numberFormatter = new Intl.NumberFormat("zh-CN");
+const currentVersionRestorable = computed(() => Boolean(
+  props.details?.versions.find((version) => version.current)?.restorable,
+));
 
 watch(() => props.source, () => {
   confirmingDelete.value = false;
@@ -219,12 +222,20 @@ function chunkCountLabel(value: number | null): string {
                   v-if="!version.current"
                   type="button"
                   class="version-rollback-button"
-                  :disabled="deleting || rebuilding || !version.restorable"
-                  :title="version.restorable ? '回退到这个版本' : '旧登记没有正文快照，不能直接恢复'"
+                  :disabled="deleting || rebuilding || !version.restorable || !currentVersionRestorable"
+                  :title="!version.restorable
+                    ? '旧登记没有正文快照，不能直接恢复'
+                    : !currentVersionRestorable
+                      ? '当前版本没有正文快照，回退失败时无法恢复索引'
+                      : '回退到这个版本'"
                   @click="confirmingRollbackVersion = version.version"
                 >
                   <RotateCw :size="15" aria-hidden="true" />
-                  <span>{{ version.restorable ? "回退到此版本" : "缺少恢复快照" }}</span>
+                  <span>{{ !version.restorable
+                    ? "缺少恢复快照"
+                    : currentVersionRestorable
+                      ? "回退到此版本"
+                      : "当前版本不可补偿" }}</span>
                 </button>
                 <div v-if="confirmingRollbackVersion === version.version" class="rollback-confirmation">
                   <p>与当前版本相比{{ formatContentDelta(version.contentLength) }}。确认后将重建 Dense 与 Sparse 索引，并把此版本设为当前版本。</p>
