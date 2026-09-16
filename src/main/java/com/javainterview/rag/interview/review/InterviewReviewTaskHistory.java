@@ -15,7 +15,8 @@ public record InterviewReviewTaskHistory(
         Integer latestScoreDeltaFromOriginal,
         List<String> unresolvedGaps,
         LocalDateTime latestAttemptAt,
-        List<InterviewReviewAttempt> attempts
+        List<InterviewReviewAttempt> attempts,
+        List<InterviewReviewAttemptComparison> comparisons
 ) {
 
     public InterviewReviewTaskHistory {
@@ -31,8 +32,20 @@ public record InterviewReviewTaskHistory(
         unresolvedGaps = List.copyOf(Objects.requireNonNull(
                 unresolvedGaps, "未解决遗漏不能为空"));
         attempts = List.copyOf(Objects.requireNonNull(attempts, "复习回答历史不能为空"));
+        comparisons = List.copyOf(Objects.requireNonNull(comparisons, "复习回答比较结果不能为空"));
         if (attemptCount != attempts.size()) {
             throw new IllegalArgumentException("复习回答次数与历史数量不一致");
+        }
+        if (attemptCount != comparisons.size()) {
+            throw new IllegalArgumentException("复习回答次数与比较结果数量不一致");
+        }
+        for (int index = 0; index < attemptCount; index++) {
+            InterviewReviewAttempt attempt = attempts.get(index);
+            InterviewReviewAttemptComparison comparison = comparisons.get(index);
+            if (!attempt.id().equals(comparison.attemptId())
+                    || attempt.attemptNumber() != comparison.attemptNumber()) {
+                throw new IllegalArgumentException("复习回答与比较结果不匹配");
+            }
         }
         if (attemptCount == 0) {
             if (firstOverallScore != null || latestOverallScore != null

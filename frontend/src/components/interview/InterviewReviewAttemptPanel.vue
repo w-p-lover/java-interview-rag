@@ -21,6 +21,14 @@ const emit = defineEmits<{
 const answer = shallowRef("");
 const canSubmit = computed(() => answer.value.trim().length > 0 && !props.submitting);
 const answerFieldId = computed(() => `review-attempt-answer-${props.taskId}`);
+const attemptRows = computed(() => {
+  const comparisons = new Map((props.summary?.comparisons ?? [])
+    .map((comparison) => [comparison.attemptId, comparison]));
+  return props.attempts.map((attempt) => ({
+    attempt,
+    comparison: comparisons.get(attempt.id) ?? null,
+  }));
+});
 
 function submit(): void {
   const normalized = answer.value.trim();
@@ -113,24 +121,74 @@ function formatDelta(value: number | null): string {
     </div>
 
     <ol v-if="attempts.length" class="attempt-list">
-      <li v-for="attempt in attempts" :key="attempt.id" class="attempt-item">
+      <li v-for="row in attemptRows" :key="row.attempt.id" class="attempt-item">
         <div class="attempt-meta">
-          <strong>第 {{ attempt.attemptNumber }} 次复习回答</strong>
-          <span>{{ formatDate(attempt.createdAt) }}</span>
+          <strong>第 {{ row.attempt.attemptNumber }} 次复习回答</strong>
+          <span>{{ formatDate(row.attempt.createdAt) }}</span>
         </div>
-        <p class="attempt-answer">{{ attempt.answer }}</p>
-        <InterviewEvaluationEvidence :evaluation="attempt.evaluation" />
+        <p class="attempt-answer">{{ row.attempt.answer }}</p>
+        <InterviewEvaluationEvidence :evaluation="row.attempt.evaluation" />
         <div class="attempt-score-row">
-          <span>本次 {{ attempt.evaluation.overallScore }} 分</span>
-          <span>较原回答 {{ formatDelta(attempt.scoreDeltaFromOriginal) }}</span>
-          <span v-if="attempt.previousOverallScore !== null">
-            较上次 {{ formatDelta(attempt.scoreDeltaFromPrevious) }}
+          <span>本次 {{ row.attempt.evaluation.overallScore }} 分</span>
+          <span>较原回答 {{ formatDelta(row.attempt.scoreDeltaFromOriginal) }}</span>
+          <span v-if="row.attempt.previousOverallScore !== null">
+            较上次 {{ formatDelta(row.attempt.scoreDeltaFromPrevious) }}
           </span>
         </div>
-        <p class="attempt-feedback">{{ attempt.evaluation.improvementSuggestion }}</p>
+        <div v-if="row.comparison" class="attempt-comparison">
+          <strong>评分维度变化</strong>
+          <div class="comparison-table-wrap">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th scope="col">维度</th>
+                  <th scope="col">较正式回答</th>
+                  <th scope="col">较上次</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">技术准确性</th>
+                  <td>{{ formatDelta(row.comparison.technicalDeltaFromOriginal) }}</td>
+                  <td>{{ formatDelta(row.comparison.technicalDeltaFromPrevious) }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">完整性</th>
+                  <td>{{ formatDelta(row.comparison.completenessDeltaFromOriginal) }}</td>
+                  <td>{{ formatDelta(row.comparison.completenessDeltaFromPrevious) }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">表达清晰度</th>
+                  <td>{{ formatDelta(row.comparison.communicationDeltaFromOriginal) }}</td>
+                  <td>{{ formatDelta(row.comparison.communicationDeltaFromPrevious) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="comparison-gaps">
+            <section v-if="row.comparison.originalGapsStillPresent.length" class="gap-group gap-group--warning">
+              <strong>原遗漏仍出现</strong>
+              <ul><li v-for="gap in row.comparison.originalGapsStillPresent" :key="gap">{{ gap }}</li></ul>
+            </section>
+            <section v-if="row.comparison.originalGapsNotRepeated.length" class="gap-group gap-group--success">
+              <strong>原遗漏本次未再出现</strong>
+              <ul><li v-for="gap in row.comparison.originalGapsNotRepeated" :key="gap">{{ gap }}</li></ul>
+            </section>
+            <section v-if="row.attempt.attemptNumber > 1 && row.comparison.previousGapsNotRepeated.length" class="gap-group">
+              <strong>较上次未再出现</strong>
+              <ul><li v-for="gap in row.comparison.previousGapsNotRepeated" :key="gap">{{ gap }}</li></ul>
+            </section>
+            <section v-if="row.comparison.newGapsSincePrevious.length" class="gap-group gap-group--warning">
+              <strong>本次新增评价项</strong>
+              <ul><li v-for="gap in row.comparison.newGapsSincePrevious" :key="gap">{{ gap }}</li></ul>
+            </section>
+          </div>
+          <small class="comparison-note">评价项按规范化文本精确比较；措辞变化不等同于能力已经掌握。</small>
+        </div>
+        <p class="attempt-feedback">{{ row.attempt.evaluation.improvementSuggestion }}</p>
         <details class="attempt-version">
           <summary>评价信息</summary>
-          <small>{{ attempt.promptVersion }} · {{ attempt.rubricVersion }} · {{ attempt.modelName }}</small>
+          <small>{{ row.attempt.promptVersion }} · {{ row.attempt.rubricVersion }} · {{ row.attempt.modelName }}</small>
         </details>
       </li>
     </ol>
@@ -197,6 +255,76 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
+}
+
+.attempt-comparison {
+  display: grid;
+  gap: var(--space-sm);
+  padding-block: var(--space-sm);
+  border-block: var(--rule-thin) solid var(--color-rule);
+}
+
+.attempt-comparison > strong,
+.gap-group strong {
+  color: var(--color-ink-2);
+  font-size: var(--text-xs);
+}
+
+.comparison-table-wrap {
+  overflow-x: auto;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--color-ink-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: var(--rule-thin) solid var(--color-rule);
+  white-space: nowrap;
+}
+
+.comparison-table thead th {
+  color: var(--color-muted);
+}
+
+.comparison-gaps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.gap-group {
+  display: grid;
+  align-content: start;
+  gap: var(--space-xs);
+}
+
+.gap-group ul {
+  margin: 0;
+  padding-left: var(--space-lg);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.gap-group--warning strong {
+  color: var(--color-warning);
+}
+
+.gap-group--success strong {
+  color: var(--color-success);
+}
+
+.comparison-note {
+  color: var(--color-faint);
+  font-size: var(--text-xs);
 }
 
 button {
@@ -366,6 +494,10 @@ button {
   .attempt-meta {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .comparison-gaps {
+    grid-template-columns: 1fr;
   }
 
   .attempt-review-link {

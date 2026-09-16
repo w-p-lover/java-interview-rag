@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.web;
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
 import com.javainterview.rag.interview.review.InterviewReviewAttempt;
+import com.javainterview.rag.interview.review.InterviewReviewAttemptComparison;
 import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTaskHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTaskService;
@@ -145,9 +146,13 @@ class InterviewReviewTaskControllerTest {
     @Test
     void returnsPersistedReviewHistoryForOneSession() throws Exception {
         InterviewReviewTaskService service = mock(InterviewReviewTaskService.class);
+        InterviewReviewAttempt attempt = attempt();
         InterviewReviewTaskHistory taskHistory = new InterviewReviewTaskHistory(
                 "task-1", 0, 1, 80, 85, 85, 85, 5,
-                List.of(), LocalDateTime.of(2026, 7, 30, 9, 30), List.of(attempt()));
+                List.of(), LocalDateTime.of(2026, 7, 30, 9, 30), List.of(attempt),
+                List.of(new InterviewReviewAttemptComparison(
+                        attempt.id(), 1, 5, 5, 5, null, null, null,
+                        List.of(), List.of("缺少失败补偿"), List.of(), List.of())));
         when(service.findAttemptHistory("session-1")).thenReturn(
                 new InterviewReviewSessionHistory("session-1", 1, 1, 1, 1,
                         List.of(taskHistory)));
@@ -159,7 +164,10 @@ class InterviewReviewTaskControllerTest {
                 .andExpect(jsonPath("$.totalAttemptCount").value(1))
                 .andExpect(jsonPath("$.tasks[0].bestOverallScore").value(85))
                 .andExpect(jsonPath("$.tasks[0].unresolvedGaps").isEmpty())
-                .andExpect(jsonPath("$.tasks[0].attempts[0].attemptNumber").value(1));
+                .andExpect(jsonPath("$.tasks[0].attempts[0].attemptNumber").value(1))
+                .andExpect(jsonPath("$.tasks[0].comparisons[0].technicalDeltaFromOriginal").value(5))
+                .andExpect(jsonPath("$.tasks[0].comparisons[0].originalGapsNotRepeated[0]")
+                        .value("缺少失败补偿"));
     }
 
     private InterviewReviewTask task() {

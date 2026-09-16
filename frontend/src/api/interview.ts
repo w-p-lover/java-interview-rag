@@ -161,6 +161,22 @@ export interface InterviewReviewTaskHistory {
   unresolvedGaps: string[];
   latestAttemptAt: string | null;
   attempts: InterviewReviewAttempt[];
+  comparisons: InterviewReviewAttemptComparison[];
+}
+
+export interface InterviewReviewAttemptComparison {
+  attemptId: string;
+  attemptNumber: number;
+  technicalDeltaFromOriginal: number;
+  completenessDeltaFromOriginal: number;
+  communicationDeltaFromOriginal: number;
+  technicalDeltaFromPrevious: number | null;
+  completenessDeltaFromPrevious: number | null;
+  communicationDeltaFromPrevious: number | null;
+  originalGapsStillPresent: string[];
+  originalGapsNotRepeated: string[];
+  previousGapsNotRepeated: string[];
+  newGapsSincePrevious: string[];
 }
 
 export interface InterviewReviewSessionHistory {

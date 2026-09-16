@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.tool;
 
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
 import com.javainterview.rag.interview.review.InterviewReviewAttempt;
+import com.javainterview.rag.interview.review.InterviewReviewAttemptComparison;
 import com.javainterview.rag.interview.review.InterviewReviewKnowledgeSource;
 import com.javainterview.rag.interview.review.InterviewReviewSessionHistory;
 import com.javainterview.rag.interview.review.InterviewReviewTask;
@@ -138,10 +139,13 @@ class InterviewReviewToolsTest {
         InterviewReviewAttempt attempt = reviewAttempt();
         InterviewReviewTaskHistory practiced = new InterviewReviewTaskHistory(
                 "task-1", 0, 1, 70, 82, 82, 82, 12,
-                List.of("仍缺少监控指标"), attempt.createdAt(), List.of(attempt));
+                List.of("仍缺少监控指标"), attempt.createdAt(), List.of(attempt),
+                List.of(new InterviewReviewAttemptComparison(
+                        attempt.id(), 1, 12, 12, 12, null, null, null,
+                        List.of("仍缺少监控指标"), List.of(), List.of(), List.of())));
         InterviewReviewTaskHistory unpracticed = new InterviewReviewTaskHistory(
                 "task-2", 1, 0, 65, null, null, null, null,
-                List.of("事务边界不完整"), null, List.of());
+                List.of("事务边界不完整"), null, List.of(), List.of());
         when(service.findAttemptHistory("session-1")).thenReturn(
                 new InterviewReviewSessionHistory(
                         "session-1", 2, 1, 1, 1, List.of(practiced, unpracticed)));

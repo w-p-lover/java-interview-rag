@@ -96,7 +96,7 @@ class InterviewReviewAttemptServiceTest {
         when(taskStore.findBySessionId("session-1")).thenReturn(List.of(firstTask, secondTask));
         when(attemptStore.findByReviewTaskId("session-1", "task-1"))
                 .thenReturn(List.of(attempt(1, 85, List.of("缺少失败补偿细节")),
-                        attempt(2, 92, List.of())));
+                        attempt(2, 92, List.of("缺少容量评估"))));
         when(attemptStore.findByReviewTaskId("session-1", "task-2")).thenReturn(List.of());
         InterviewReviewTaskService service = new InterviewReviewTaskService(
                 sessionStore, taskStore, attemptStore, mock(InterviewAnswerEvaluator.class));
@@ -113,11 +113,23 @@ class InterviewReviewAttemptServiceTest {
         assertEquals(92, practiced.latestOverallScore());
         assertEquals(92, practiced.bestOverallScore());
         assertEquals(12, practiced.latestScoreDeltaFromOriginal());
-        assertEquals(List.of(), practiced.unresolvedGaps());
+        assertEquals(List.of("缺少容量评估"), practiced.unresolvedGaps());
         assertEquals(2, practiced.attempts().size());
+        InterviewReviewAttemptComparison firstComparison = practiced.comparisons().get(0);
+        assertEquals(5, firstComparison.technicalDeltaFromOriginal());
+        assertEquals(List.of("缺少失败补偿细节"), firstComparison.originalGapsStillPresent());
+        assertEquals(List.of(), firstComparison.originalGapsNotRepeated());
+        InterviewReviewAttemptComparison secondComparison = practiced.comparisons().get(1);
+        assertEquals(12, secondComparison.technicalDeltaFromOriginal());
+        assertEquals(7, secondComparison.technicalDeltaFromPrevious());
+        assertEquals(List.of(), secondComparison.originalGapsStillPresent());
+        assertEquals(List.of("缺少失败补偿细节"), secondComparison.originalGapsNotRepeated());
+        assertEquals(List.of("缺少失败补偿细节"), secondComparison.previousGapsNotRepeated());
+        assertEquals(List.of("缺少容量评估"), secondComparison.newGapsSincePrevious());
         InterviewReviewTaskHistory unpracticed = result.tasks().get(1);
         assertNull(unpracticed.firstOverallScore());
         assertEquals(List.of("缺少执行计划分析"), unpracticed.unresolvedGaps());
+        assertEquals(List.of(), unpracticed.comparisons());
     }
 
     private InterviewReviewAttempt attempt() {

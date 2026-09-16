@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.review;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerPreviousAttempt;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerAssessment;
+import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
@@ -12,12 +13,15 @@ import com.javainterview.rag.interview.session.InterviewSessionStore;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class InterviewReviewTaskService {
 
@@ -195,8 +199,9 @@ public class InterviewReviewTaskService {
         if (attempts.isEmpty()) {
             return new InterviewReviewTaskHistory(
                     task.id(), task.questionIndex(), 0, originalOverallScore,
-                    null, null, null, null, task.gaps(), null, List.of());
+                    null, null, null, null, task.gaps(), null, List.of(), List.of());
         }
+        InterviewAnswerEvaluation originalEvaluation = session.answers().get(task.questionIndex()).evaluation();
         InterviewReviewAttempt first = attempts.get(0);
         InterviewReviewAttempt latest = attempts.get(attempts.size() - 1);
         int bestOverallScore = attempts.stream()
@@ -207,7 +212,51 @@ public class InterviewReviewTaskService {
                 task.id(), task.questionIndex(), attempts.size(), originalOverallScore,
                 first.evaluation().overallScore(), latest.evaluation().overallScore(),
                 bestOverallScore, latest.evaluation().overallScore() - originalOverallScore,
-                latest.evaluation().gaps(), latest.createdAt(), attempts);
+                latest.evaluation().gaps(), latest.createdAt(), attempts,
+                compareAttempts(originalEvaluation, attempts));
+    }
+
+    private List<InterviewReviewAttemptComparison> compareAttempts(
+            InterviewAnswerEvaluation original,
+            List<InterviewReviewAttempt> attempts) {
+        InterviewAnswerEvaluation previous = original;
+        List<InterviewReviewAttemptComparison> comparisons = new ArrayList<>();
+        for (InterviewReviewAttempt attempt : attempts) {
+            InterviewAnswerEvaluation current = attempt.evaluation();
+            boolean hasPreviousAttempt = attempt.attemptNumber() > 1;
+            comparisons.add(new InterviewReviewAttemptComparison(
+                    attempt.id(), attempt.attemptNumber(),
+                    current.technicalScore() - original.technicalScore(),
+                    current.completenessScore() - original.completenessScore(),
+                    current.communicationScore() - original.communicationScore(),
+                    hasPreviousAttempt ? current.technicalScore() - previous.technicalScore() : null,
+                    hasPreviousAttempt ? current.completenessScore() - previous.completenessScore() : null,
+                    hasPreviousAttempt ? current.communicationScore() - previous.communicationScore() : null,
+                    retainedGaps(original.gaps(), current.gaps()),
+                    missingGaps(original.gaps(), current.gaps()),
+                    hasPreviousAttempt ? missingGaps(previous.gaps(), current.gaps()) : List.of(),
+                    missingGaps(current.gaps(), previous.gaps())));
+            previous = current;
+        }
+        return List.copyOf(comparisons);
+    }
+
+    private List<String> retainedGaps(List<String> baseline, List<String> current) {
+        Set<String> currentKeys = gapKeys(current);
+        return baseline.stream().filter(gap -> currentKeys.contains(normalizeGap(gap))).toList();
+    }
+
+    private List<String> missingGaps(List<String> baseline, List<String> current) {
+        Set<String> currentKeys = gapKeys(current);
+        return baseline.stream().filter(gap -> !currentKeys.contains(normalizeGap(gap))).toList();
+    }
+
+    private Set<String> gapKeys(List<String> gaps) {
+        return gaps.stream().map(this::normalizeGap).collect(Collectors.toSet());
+    }
+
+    private String normalizeGap(String gap) {
+        return gap.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private void requireAttemptStore() {
