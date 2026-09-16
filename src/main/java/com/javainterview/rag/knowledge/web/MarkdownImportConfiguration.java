@@ -31,10 +31,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 @Configuration
 public class MarkdownImportConfiguration {
@@ -137,7 +137,7 @@ public class MarkdownImportConfiguration {
     KnowledgeDocumentTaskService knowledgeDocumentTaskService(
             MarkdownContentImporter importer,
             KnowledgeDocumentTaskStore taskStore,
-            @Qualifier("knowledgeDocumentTaskExecutor") Executor executor,
+            @Qualifier("knowledgeDocumentTaskExecutor") ThreadPoolTaskExecutor executor,
             KnowledgeDocumentTaskMetrics metrics,
             @Qualifier("knowledgeDocumentTaskTimeoutScheduler") ScheduledExecutorService timeoutScheduler,
             @Value("${java-interview-rag.knowledge.task.timeout-ms:600000}") long timeoutMillis) {
@@ -146,10 +146,12 @@ public class MarkdownImportConfiguration {
 
     @Bean(name = "knowledgeDocumentTaskTimeoutScheduler", destroyMethod = "shutdownNow")
     ScheduledExecutorService knowledgeDocumentTaskTimeoutScheduler() {
-        return Executors.newSingleThreadScheduledExecutor(runnable -> {
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1, runnable -> {
             Thread thread = new Thread(runnable, "knowledge-task-timeout");
             thread.setDaemon(true);
             return thread;
         });
+        executor.setRemoveOnCancelPolicy(true);
+        return executor;
     }
 }

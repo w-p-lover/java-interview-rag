@@ -4,13 +4,14 @@ import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
 import com.javainterview.rag.knowledge.document.MarkdownRebuildResult;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.Objects;
 import java.util.UUID;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,15 +20,17 @@ public final class KnowledgeDocumentTaskService {
 
     private final MarkdownContentImporter importer;
     private final KnowledgeDocumentTaskStore taskStore;
-    private final Executor executor;
+    private final ThreadPoolTaskExecutor executor;
     private final KnowledgeDocumentTaskMetrics metrics;
     private final ScheduledExecutorService timeoutScheduler;
     private final long timeoutMillis;
     private final ConcurrentHashMap<String, AtomicBoolean> completionGuards = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, FutureTask<Void>> submittedTasks = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ScheduledFuture<?>> taskTimeouts = new ConcurrentHashMap<>();
 
     public KnowledgeDocumentTaskService(MarkdownContentImporter importer,
                                         KnowledgeDocumentTaskStore taskStore,
-                                        Executor executor,
+                                        ThreadPoolTaskExecutor executor,
                                         KnowledgeDocumentTaskMetrics metrics,
                                         ScheduledExecutorService timeoutScheduler,
                                         long timeoutMillis) {
@@ -54,20 +57,17 @@ public final class KnowledgeDocumentTaskService {
             execute(taskId, operation, input);
             return null;
         });
+        submittedTasks.put(taskId, work);
         try {
+            ScheduledFuture<?> timeout = timeoutScheduler.schedule(
+                    () -> timeout(taskId, work), timeoutMillis, TimeUnit.MILLISECONDS);
+            taskTimeouts.put(taskId, timeout);
             executor.execute(work);
-            timeoutScheduler.schedule(() -> timeout(taskId, work), timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TaskRejectedException exception) {
-            taskStore.markFailed(taskId, "TASK_REJECTED");
-            metrics.rejected();
-            metrics.failed();
-            completionGuards.remove(taskId);
+            failSubmission(taskId, work, "TASK_REJECTED");
             throw exception;
         } catch (RuntimeException exception) {
-            taskStore.markFailed(taskId, exception.getClass().getSimpleName());
-            metrics.rejected();
-            metrics.failed();
-            completionGuards.remove(taskId);
+            failSubmission(taskId, work, exception.getClass().getSimpleName());
             throw exception;
         }
         return task;
@@ -94,7 +94,7 @@ public final class KnowledgeDocumentTaskService {
             throw new KnowledgeDocumentTaskCancellationException("任务已开始执行，不能取消");
         }
         metrics.cancelled();
-        completionGuards.remove(normalizedTaskId);
+        cancelPendingExecution(normalizedTaskId);
         return find(normalizedTaskId);
     }
 
@@ -147,11 +147,44 @@ public final class KnowledgeDocumentTaskService {
             taskStore.markFailed(taskId, "TASK_TIMEOUT");
             metrics.timeoutTask();
             work.cancel(true);
+            executor.getThreadPoolExecutor().remove(work);
         }
     }
 
     private boolean complete(String taskId) {
         AtomicBoolean guard = completionGuards.remove(taskId);
-        return guard != null && guard.compareAndSet(false, true);
+        if (guard == null || !guard.compareAndSet(false, true)) {
+            return false;
+        }
+        submittedTasks.remove(taskId);
+        cancelTimeout(taskId);
+        return true;
+    }
+
+    private void failSubmission(String taskId, FutureTask<Void> work, String errorType) {
+        if (complete(taskId)) {
+            taskStore.markFailed(taskId, errorType);
+            metrics.rejected();
+            metrics.failed();
+        }
+        work.cancel(false);
+        executor.getThreadPoolExecutor().remove(work);
+    }
+
+    private void cancelPendingExecution(String taskId) {
+        completionGuards.remove(taskId);
+        FutureTask<Void> work = submittedTasks.remove(taskId);
+        if (work != null) {
+            work.cancel(false);
+            executor.getThreadPoolExecutor().remove(work);
+        }
+        cancelTimeout(taskId);
+    }
+
+    private void cancelTimeout(String taskId) {
+        ScheduledFuture<?> timeout = taskTimeouts.remove(taskId);
+        if (timeout != null) {
+            timeout.cancel(false);
+        }
     }
 }
