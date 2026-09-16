@@ -49,6 +49,9 @@ public final class QdrantMarkdownChunkIndexer implements MarkdownChunkIndexer {
         for (int start = 0; start < vectorDocuments.size(); start += EMBEDDING_BATCH_SIZE) {
             int end = Math.min(start + EMBEDDING_BATCH_SIZE, vectorDocuments.size());
             vectorStore.add(vectorDocuments.subList(start, end));
+            if (Thread.currentThread().isInterrupted()) {
+                throw new IllegalStateException("知识资料索引任务已超时，停止后续向量写入");
+            }
         }
     }
 

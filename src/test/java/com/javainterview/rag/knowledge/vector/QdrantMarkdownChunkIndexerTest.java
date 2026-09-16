@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -106,6 +107,28 @@ class QdrantMarkdownChunkIndexerTest {
                 .getMetadata().get("chunk_order"));
         assertEquals(25, ((Document) captor.getAllValues().get(2).get(5))
                 .getMetadata().get("chunk_order"));
+    }
+
+    @Test
+    void stopsAfterCurrentBatchWhenTaskHasTimedOut() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/large.md", "大文档");
+        List<MarkdownChunk> chunks = IntStream.range(0, 11)
+                .mapToObj(order -> new MarkdownChunk(document.source(), order, order,
+                        1, List.of("Java"), "内容" + order))
+                .toList();
+
+        Thread.currentThread().interrupt();
+        try {
+            IllegalStateException exception = assertThrows(IllegalStateException.class,
+                    () -> indexer.index(document, chunks));
+
+            assertEquals("知识资料索引任务已超时，停止后续向量写入", exception.getMessage());
+            verify(vectorStore, times(1)).add(anyList());
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @Test
