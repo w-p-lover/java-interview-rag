@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.document;
 
+import com.javainterview.rag.knowledge.token.TokenBudget;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MarkdownSectionChunkerTest {
 
     private final MarkdownSectionChunker chunker = new MarkdownSectionChunker();
+    private final TokenBudget tokenBudget = new TokenBudget();
 
     @Test
     void packsParagraphsWithinLimitAndKeepsMetadataAndGlobalOrder() {
@@ -31,7 +33,10 @@ class MarkdownSectionChunkerTest {
         MarkdownSection section = new MarkdownSection(
                 "java/basic.md", 0, 1, List.of("Java"), "12345\n\n6789");
 
-        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), 8);
+        int maxTokens = Math.max(tokenBudget.count("12345"), tokenBudget.count("6789"));
+        assertTrue(tokenBudget.count("12345\n\n6789") > maxTokens);
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), maxTokens);
 
         assertEquals(2, chunks.size());
         assertEquals("12345", chunks.get(0).content());
@@ -45,12 +50,14 @@ class MarkdownSectionChunkerTest {
                 new MarkdownSection("java/basic.md", 1, 2, List.of("Java", "集合"), "123456789")
         );
 
-        List<MarkdownChunk> chunks = chunker.chunk(sections, 4);
+        List<MarkdownChunk> chunks = chunker.chunk(sections, 1);
 
-        assertEquals(3, chunks.size());
-        assertChunk(chunks.get(0), "java/basic.md", 0, 1, 2, List.of("Java", "集合"), "1234");
-        assertChunk(chunks.get(1), "java/basic.md", 1, 1, 2, List.of("Java", "集合"), "5678");
-        assertChunk(chunks.get(2), "java/basic.md", 2, 1, 2, List.of("Java", "集合"), "9");
+        assertTrue(chunks.size() > 1);
+        assertEquals("123456789", chunks.stream().map(MarkdownChunk::content)
+                .collect(java.util.stream.Collectors.joining()));
+        assertTrue(chunks.stream().allMatch(chunk -> tokenBudget.count(chunk.content()) <= 1));
+        assertChunk(chunks.get(0), "java/basic.md", 0, 1, 2,
+                List.of("Java", "集合"), chunks.get(0).content());
     }
 
     @Test
@@ -58,7 +65,8 @@ class MarkdownSectionChunkerTest {
         MarkdownSection section = new MarkdownSection(
                 "java/basic.md", 0, 1, List.of("Java"), "第一句说明。第二句说明！第三句");
 
-        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), 8);
+        int maxTokens = tokenBudget.count("第一句说明。");
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), maxTokens);
 
         assertEquals(List.of("第一句说明。", "第二句说明！", "第三句"),
                 chunks.stream().map(MarkdownChunk::content).toList());
@@ -71,12 +79,15 @@ class MarkdownSectionChunkerTest {
         MarkdownSection table = new MarkdownSection("java/table.pdf", 0, 1, List.of("Java"),
                 "名称 | 值\nHashMap | 16\nTreeMap | 32", 1, KnowledgeBlockType.TABLE);
 
-        List<MarkdownChunk> codeChunks = chunker.chunk(List.of(code), 18);
-        List<MarkdownChunk> tableChunks = chunker.chunk(List.of(table), 14);
+        int codeTokens = tokenBudget.count("int a = 1;\n");
+        int tableTokens = Math.max(tokenBudget.count("名称 | 值\nHashMap | 16"),
+                tokenBudget.count("名称 | 值\nTreeMap | 32"));
+        List<MarkdownChunk> codeChunks = chunker.chunk(List.of(code), codeTokens);
+        List<MarkdownChunk> tableChunks = chunker.chunk(List.of(table), tableTokens);
 
         assertEquals(List.of("int a = 1;\n", "int b = 2;\n", "int c = 3;"),
                 codeChunks.stream().map(MarkdownChunk::content).toList());
-        assertEquals(List.of("名称 | 值\n", "HashMap | 16\n", "TreeMap | 32"),
+        assertEquals(List.of("名称 | 值\nHashMap | 16", "名称 | 值\nTreeMap | 32"),
                 tableChunks.stream().map(MarkdownChunk::content).toList());
     }
 
@@ -87,14 +98,15 @@ class MarkdownSectionChunkerTest {
                 "name | value\nalpha | 1111\nbravo | 2222\ncharlie | 3333",
                 119, KnowledgeBlockType.TABLE);
 
-        List<MarkdownChunk> chunks = chunker.chunk(List.of(pdfTable), 28);
+        int maxTokens = tokenBudget.count("name | value\ncharlie | 3333");
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(pdfTable), maxTokens);
 
         assertEquals(List.of(
                         "name | value\nalpha | 1111",
                         "name | value\nbravo | 2222",
                         "name | value\ncharlie | 3333"),
                 chunks.stream().map(MarkdownChunk::content).toList());
-        assertTrue(chunks.stream().allMatch(chunk -> chunk.content().length() <= 28
+        assertTrue(chunks.stream().allMatch(chunk -> tokenBudget.count(chunk.content()) <= maxTokens
                 && chunk.pageNumber() == 119
                 && chunk.blockType() == KnowledgeBlockType.TABLE));
     }
@@ -104,14 +116,17 @@ class MarkdownSectionChunkerTest {
         MarkdownSection markdownTable = new MarkdownSection("java/map.md", 0, 2,
                 List.of("集合"), "| name | value |\n| --- | --- |\n| alpha | 1 |\n| bravo | 2 |");
 
-        List<MarkdownChunk> chunks = chunker.chunk(List.of(markdownTable), 45);
+        int maxTokens = Math.max(
+                tokenBudget.count("| name | value |\n| --- | --- |\n| alpha | 1 |"),
+                tokenBudget.count("| name | value |\n| --- | --- |\n| bravo | 2 |"));
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(markdownTable), maxTokens);
 
         assertEquals(List.of(
                         "| name | value |\n| --- | --- |\n| alpha | 1 |",
                         "| name | value |\n| --- | --- |\n| bravo | 2 |"),
                 chunks.stream().map(MarkdownChunk::content).toList());
         assertTrue(chunks.stream().allMatch(chunk -> chunk.blockType() == KnowledgeBlockType.TABLE
-                && chunk.content().length() <= 45));
+                && tokenBudget.count(chunk.content()) <= maxTokens));
     }
 
     @Test
@@ -149,6 +164,84 @@ class MarkdownSectionChunkerTest {
     void rejectsInvalidArguments() {
         assertThrows(NullPointerException.class, () -> chunker.chunk(null, 100));
         assertThrows(IllegalArgumentException.class, () -> chunker.chunk(List.of(), 0));
+    }
+
+    @Test
+    void usesTokenCountForChineseAndEnglishInsteadOfCharacterLength() {
+        String english = "aaaaaaaaaaaaaaaaaaaaaaaa";
+        String chinese = "并发集合线程安全内存模型锁优化原子变量可见性有序性重排序屏障";
+        int maxTokens = tokenBudget.count(english);
+        assertTrue(tokenBudget.count(chinese) > maxTokens);
+
+        MarkdownSection englishSection = new MarkdownSection(
+                "java/jls.md", 0, 1, List.of("JLS"), english);
+        MarkdownSection chineseSection = new MarkdownSection(
+                "java/concurrency.md", 1, 1, List.of("并发"), chinese);
+
+        List<MarkdownChunk> englishChunks = chunker.chunk(List.of(englishSection), maxTokens);
+        List<MarkdownChunk> chineseChunks = chunker.chunk(List.of(chineseSection), maxTokens);
+
+        assertEquals(1, englishChunks.size());
+        assertTrue(chineseChunks.size() > 1);
+        assertEquals(chinese, chineseChunks.stream().map(MarkdownChunk::content)
+                .collect(java.util.stream.Collectors.joining()));
+    }
+
+    @Test
+    void keepsLongJavaMethodWholeWhenItFitsAndSplitsOversizedMethodOnLines() {
+        String method = """
+                public int sum(int[] values) {
+                    int result = 0;
+                    for (int value : values) {
+                        result += value;
+                    }
+                    return result;
+                }""";
+        MarkdownSection section = new MarkdownSection("java/code.pdf", 3, 3,
+                List.of("Java", "方法"), method, 7, KnowledgeBlockType.CODE);
+
+        List<MarkdownChunk> whole = chunker.chunk(List.of(section), tokenBudget.count(method));
+        assertEquals(List.of(method), whole.stream().map(MarkdownChunk::content).toList());
+
+        int splitBudget = tokenBudget.count("public int sum(int[] values) {\n");
+        List<MarkdownChunk> split = chunker.chunk(List.of(section), splitBudget);
+        assertTrue(split.size() > 1);
+        assertEquals(method, split.stream().map(MarkdownChunk::content)
+                .collect(java.util.stream.Collectors.joining()));
+        assertTrue(split.stream().allMatch(chunk -> tokenBudget.count(chunk.content()) <= splitBudget
+                && chunk.blockType() == KnowledgeBlockType.CODE
+                && chunk.pageNumber() == 7));
+    }
+
+    @Test
+    void preservesCrossPageChapterMetadataWithoutMergingPageProvenance() {
+        List<MarkdownSection> sections = List.of(
+                new MarkdownSection("java/jvms.pdf", 4, 2, List.of("4.7 Attributes"),
+                        "第一页结论。", 119, KnowledgeBlockType.TEXT),
+                new MarkdownSection("java/jvms.pdf", 5, 2, List.of("4.7 Attributes"),
+                        "第二页结论。", 120, KnowledgeBlockType.TEXT));
+
+        List<MarkdownChunk> chunks = chunker.chunk(sections, 100);
+
+        assertEquals(List.of(119, 120), chunks.stream().map(MarkdownChunk::pageNumber).toList());
+        assertEquals(List.of(4, 5), chunks.stream().map(MarkdownChunk::sectionOrder).toList());
+        assertEquals(List.of(0, 1), chunks.stream().map(MarkdownChunk::order).toList());
+        assertTrue(chunks.stream().allMatch(chunk -> chunk.headingPath().equals(List.of("4.7 Attributes"))));
+    }
+
+    @Test
+    void makesProgressForAPathologicalSingleLine() {
+        String line = "VeryLongIdentifierWithoutAnyNaturalBoundary".repeat(20);
+        MarkdownSection section = new MarkdownSection("java/code.md", 0, 1,
+                List.of("Java"), line, null, KnowledgeBlockType.CODE);
+
+        List<MarkdownChunk> chunks = chunker.chunk(List.of(section), 3);
+
+        assertTrue(chunks.size() > 1);
+        assertEquals(line, chunks.stream().map(MarkdownChunk::content)
+                .collect(java.util.stream.Collectors.joining()));
+        assertTrue(chunks.stream().allMatch(chunk -> !chunk.content().isEmpty()
+                && tokenBudget.count(chunk.content()) <= 3));
     }
 
     private void assertChunk(MarkdownChunk chunk, String source, int order, int sectionOrder,

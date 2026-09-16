@@ -10,8 +10,8 @@ public final class MarkdownFileImporter {
 
     private final MarkdownContentImporter contentImporter;
 
-    public MarkdownFileImporter(MarkdownImportRegistry registry, int maxChunkLength) {
-        this.contentImporter = new MarkdownContentImporter(registry, maxChunkLength);
+    public MarkdownFileImporter(MarkdownImportRegistry registry, int maxChunkTokens) {
+        this.contentImporter = new MarkdownContentImporter(registry, maxChunkTokens);
     }
 
     public MarkdownImportResult importFile(Path file, String source) throws IOException {

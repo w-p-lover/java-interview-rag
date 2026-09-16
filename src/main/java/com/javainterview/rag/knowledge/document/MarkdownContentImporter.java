@@ -11,27 +11,27 @@ public final class MarkdownContentImporter {
     private final KnowledgeDocumentOutlineBuilder outlineBuilder = new KnowledgeDocumentOutlineBuilder();
     private final MarkdownChunkIndexer chunkIndexer;
     private final MarkdownIndexingStateStore indexingStateStore;
-    private final int maxChunkLength;
+    private final int maxChunkTokens;
 
-    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength) {
-        this(registry, maxChunkLength, MarkdownChunkIndexer.noOp());
+    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkTokens) {
+        this(registry, maxChunkTokens, MarkdownChunkIndexer.noOp());
     }
 
-    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength,
+    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkTokens,
                                    MarkdownChunkIndexer chunkIndexer) {
-        this(registry, maxChunkLength, chunkIndexer, null);
+        this(registry, maxChunkTokens, chunkIndexer, null);
     }
 
-    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkLength,
+    public MarkdownContentImporter(MarkdownImportRegistry registry, int maxChunkTokens,
                                    MarkdownChunkIndexer chunkIndexer,
                                    MarkdownIndexingStateStore indexingStateStore) {
         this.registry = Objects.requireNonNull(registry, "Markdown 导入登记器不能为空");
-        if (maxChunkLength <= 0) {
-            throw new IllegalArgumentException("Chunk 最大长度必须大于 0");
+        if (maxChunkTokens <= 0) {
+            throw new IllegalArgumentException("Chunk 最大 Token 数必须大于 0");
         }
         this.chunkIndexer = Objects.requireNonNull(chunkIndexer, "Markdown Chunk 索引器不能为空");
         this.indexingStateStore = indexingStateStore;
-        this.maxChunkLength = maxChunkLength;
+        this.maxChunkTokens = maxChunkTokens;
     }
 
     public MarkdownImportResult importContent(String source, String content) {
@@ -48,7 +48,7 @@ public final class MarkdownContentImporter {
 
     private MarkdownImportResult importDocument(MarkdownDocument document,
                                                 List<MarkdownSection> sections) {
-        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkTokens);
         KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
         if (!registry.register(document, outline, sections)) {
             retryFailedCleanup(document);
@@ -165,7 +165,7 @@ public final class MarkdownContentImporter {
         List<MarkdownSection> sections = snapshot.sections().isEmpty()
                 ? headingParser.parse(document)
                 : validateSections(document, snapshot.sections());
-        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkTokens);
         return new PreparedSnapshot(document, chunks, outlineBuilder.build(sections, chunks));
     }
 
@@ -210,7 +210,7 @@ public final class MarkdownContentImporter {
         if (!versions.get(0).version().equals(document.version())) {
             throw new IllegalArgumentException("只能重建当前版本，历史版本不能直接恢复为检索版本");
         }
-        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkLength);
+        List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkTokens);
         try {
             chunkIndexer.rebuild(document, chunks);
             registry.updateOutline(document, outlineBuilder.build(sections, chunks));

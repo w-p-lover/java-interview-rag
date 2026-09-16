@@ -1,6 +1,7 @@
 package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
+import com.javainterview.rag.knowledge.token.TokenBudget;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
@@ -80,7 +81,7 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
-        assertEquals("rag-answer-v5", logCaptor.getValue().promptVersion());
+        assertEquals("rag-answer-v6", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
         assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
         assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());
@@ -393,6 +394,68 @@ class RagAnswerServiceTest {
         String prompt = promptCaptor.getAllValues().get(1);
         assertTrue(prompt.contains("最近问答上下文"));
         assertTrue(prompt.length() < 12_000);
+    }
+
+    @Test
+    void appliesOneContextBudgetToSyncAndStreamAndDropsHistoryBeforeReliableSources() {
+        String question = "HashMap 的结构是什么";
+        MarkdownSearchResult first = new MarkdownSearchResult(
+                "HashMap 使用数组。".repeat(12), "java/first.md", "version-1", 0,
+                List.of("Java", "集合"), 0.93);
+        MarkdownSearchResult second = new MarkdownSearchResult(
+                "链表过长时会树化。".repeat(12), "java/second.md", "version-1", 1,
+                List.of("Java", "集合"), 0.91);
+        MarkdownSearchResult third = new MarkdownSearchResult(
+                "这是预算外的第三份资料。".repeat(20), "java/third.md", "version-1", 2,
+                List.of("Java", "集合"), 0.89);
+        TokenBudget tokenBudget = new TokenBudget();
+
+        MarkdownSimilaritySearchService baselineSearch = mock(MarkdownSimilaritySearchService.class);
+        ChatClient baselineChat = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore baselineLog = mock(RagRetrievalLogStore.class);
+        when(baselineSearch.search(question, 5, 0.60)).thenReturn(List.of(first, second));
+        when(baselineChat.prompt(anyString()).call().content())
+                .thenReturn("HashMap 使用数组 [资料 1]。");
+        clearInvocations(baselineChat);
+        new RagAnswerService(baselineSearch, baselineChat, baselineLog).answer(question);
+        ArgumentCaptor<String> baselinePrompt = ArgumentCaptor.forClass(String.class);
+        verify(baselineChat).prompt(baselinePrompt.capture());
+        int inputBudget = tokenBudget.count(baselinePrompt.getValue());
+
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        when(searchService.search(question, 5, 0.60)).thenReturn(List.of(first, second, third));
+        when(chatClient.prompt(anyString()).call().content())
+                .thenReturn("HashMap 使用数组 [资料 1]。");
+        when(chatClient.prompt(anyString()).stream().content())
+                .thenReturn(Flux.just("HashMap 使用数组 [资料 1]。"));
+        clearInvocations(chatClient);
+        int responseReserve = 100;
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofSeconds(1), Runnable::run, 2,
+                new NoopRagAnswerCache(), "test-index", () -> "version-1",
+                new NoopRagAnswerCacheObserver(), tokenBudget,
+                inputBudget + responseReserve, responseReserve);
+        List<RagConversationTurn> history = List.of(
+                new RagConversationTurn("应被移除的旧问题", "应被移除的旧回答".repeat(20)));
+
+        RagAnswerResult sync = service.answer(question, history);
+        List<RagAnswerStreamEvent> events = service.streamAnswer(question, history).collectList().block();
+        RagAnswerStreamEvent streamed = events.get(events.size() - 1);
+
+        assertEquals(List.of(first, second), sync.sources());
+        assertEquals(sync.sources(), streamed.sources());
+        ArgumentCaptor<String> prompts = ArgumentCaptor.forClass(String.class);
+        verify(chatClient, org.mockito.Mockito.times(2)).prompt(prompts.capture());
+        assertEquals(prompts.getAllValues().get(0), prompts.getAllValues().get(1));
+        String prompt = prompts.getValue();
+        assertTrue(tokenBudget.count(prompt) <= inputBudget);
+        assertTrue(prompt.contains("问题：" + question));
+        assertTrue(prompt.contains("[资料 1]") && prompt.contains("[资料 2]"));
+        assertEquals(false, prompt.contains("[资料 3]"));
+        assertEquals(false, prompt.contains("java/third.md"));
+        assertEquals(false, prompt.contains("应被移除的旧问题"));
     }
 
     @Test

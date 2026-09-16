@@ -18,6 +18,7 @@ import com.javainterview.rag.knowledge.persistence.RagEvaluationCandidateMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlRagEvaluationCandidateStore;
 import com.javainterview.rag.knowledge.evaluation.RagEvaluationCandidateService;
 import com.javainterview.rag.knowledge.rag.RagAnswerCacheObserver;
+import com.javainterview.rag.knowledge.token.TokenBudget;
 import com.javainterview.rag.knowledge.persistence.KnowledgeReviewTaskMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeReviewTaskStore;
 import com.javainterview.rag.knowledge.review.KnowledgeReviewTaskService;
@@ -121,11 +122,16 @@ public class RagAnswerConfiguration {
                                       RagAnswerCache answerCache,
                                       KnowledgeIndexVersionMetadata indexVersion,
                                       MarkdownImportRegistry importRegistry,
-                                      RagAnswerCacheObserver cacheObserver) {
+                                      RagAnswerCacheObserver cacheObserver,
+                                      @Value("${java-interview-rag.answer.context-token-budget:6000}")
+                                      int contextTokenBudget,
+                                      @Value("${java-interview-rag.answer.response-token-reserve:1200}")
+                                      int responseTokenReserve) {
         // 固定集对照显示相邻扩展增加噪声且无证据收益，生产回答暂时关闭扩展。
         return new RagAnswerService(searchService, hybridSearchService, null,
                 ragAnswerChatClient, logStore, answerTimeout, ragAnswerExecutor, 4,
-                answerCache, indexVersion.toString(), () -> knowledgeVersionKey(importRegistry), cacheObserver);
+                answerCache, indexVersion.toString(), () -> knowledgeVersionKey(importRegistry), cacheObserver,
+                new TokenBudget(), contextTokenBudget, responseTokenReserve);
     }
 
     private String knowledgeVersionKey(MarkdownImportRegistry importRegistry) {

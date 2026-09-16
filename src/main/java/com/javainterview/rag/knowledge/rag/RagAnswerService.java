@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.rag;
 
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
 import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
+import com.javainterview.rag.knowledge.token.TokenBudget;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
@@ -36,9 +37,10 @@ public class RagAnswerService {
     private static final int ANSWER_TOP_K = 5;
     private static final int MAX_HISTORY_TURNS = 4;
     private static final int MAX_HISTORY_TOKENS = 800;
-    private static final int ESTIMATED_CHARS_PER_TOKEN = 2;
+    private static final int DEFAULT_CONTEXT_TOKEN_BUDGET = 6000;
+    private static final int DEFAULT_RESPONSE_TOKEN_RESERVE = 1200;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "rag-answer-v5";
+    private static final String PROMPT_VERSION = "rag-answer-v6";
     private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final String TIMEOUT_ANSWER = "知识库回答生成超时，请稍后重试。";
@@ -68,6 +70,9 @@ public class RagAnswerService {
     private final RagAnswerCacheObserver cacheObserver;
     private final String indexVersionKey;
     private final Supplier<String> knowledgeVersionKeySupplier;
+    private final TokenBudget tokenBudget;
+    private final int contextTokenBudget;
+    private final int responseTokenReserve;
     private final RagAnswerEvidenceValidator evidenceValidator = new RagAnswerEvidenceValidator();
 
     public RagAnswerService(MarkdownSimilaritySearchService searchService, ChatClient chatClient,
@@ -155,6 +160,21 @@ public class RagAnswerService {
                             int maxConcurrentAnswers, RagAnswerCache answerCache,
                             String indexVersionKey, Supplier<String> knowledgeVersionKeySupplier,
                             RagAnswerCacheObserver cacheObserver) {
+        this(searchService, hybridSearchService, contextExpander, chatClient, logStore,
+                answerTimeout, answerExecutor, maxConcurrentAnswers, answerCache,
+                indexVersionKey, knowledgeVersionKeySupplier, cacheObserver,
+                new TokenBudget(), DEFAULT_CONTEXT_TOKEN_BUDGET, DEFAULT_RESPONSE_TOKEN_RESERVE);
+    }
+
+    public RagAnswerService(MarkdownSimilaritySearchService searchService,
+                            MarkdownHybridSearchService hybridSearchService,
+                            MarkdownAdjacentChunkExpander contextExpander,
+                            ChatClient chatClient, RagRetrievalLogStore logStore,
+                            Duration answerTimeout, Executor answerExecutor,
+                            int maxConcurrentAnswers, RagAnswerCache answerCache,
+                            String indexVersionKey, Supplier<String> knowledgeVersionKeySupplier,
+                            RagAnswerCacheObserver cacheObserver, TokenBudget tokenBudget,
+                            int contextTokenBudget, int responseTokenReserve) {
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
         this.hybridSearchService = hybridSearchService;
         this.contextExpander = contextExpander;
@@ -171,6 +191,15 @@ public class RagAnswerService {
         this.indexVersionKey = Objects.requireNonNull(indexVersionKey, "索引版本不能为空");
         this.knowledgeVersionKeySupplier = Objects.requireNonNull(
                 knowledgeVersionKeySupplier, "知识版本摘要提供器不能为空");
+        this.tokenBudget = Objects.requireNonNull(tokenBudget, "Token 预算不能为空");
+        if (contextTokenBudget <= 0) {
+            throw new IllegalArgumentException("模型上下文 Token 预算必须大于 0");
+        }
+        if (responseTokenReserve <= 0 || responseTokenReserve >= contextTokenBudget) {
+            throw new IllegalArgumentException("回答预留 Token 必须大于 0 且小于上下文预算");
+        }
+        this.contextTokenBudget = contextTokenBudget;
+        this.responseTokenReserve = responseTokenReserve;
         if (answerTimeout.isZero() || answerTimeout.isNegative()) {
             throw new IllegalArgumentException("回答超时时间必须大于 0");
         }
@@ -202,12 +231,14 @@ public class RagAnswerService {
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
+            PromptContext promptContext = preparePromptContext(question, sources, boundedHistory);
+            sources = promptContext.sources();
             if (sources.isEmpty()) {
                 return recordAndReturn(question, sources,
                         toAnswerResult(INSUFFICIENT_ANSWER, false, List.of(), List.of(), retrieval), startedAt);
             }
 
-            String answer = callWithTimeout(buildPrompt(question, sources, boundedHistory));
+            String answer = callWithTimeout(promptContext.prompt());
             if (answer == null || answer.isBlank() || INSUFFICIENT_ANSWER.equals(answer.strip())) {
                 return recordAndReturn(question, sources,
                         toAnswerResult(INSUFFICIENT_ANSWER, false, sources, List.of(), retrieval), startedAt);
@@ -299,6 +330,8 @@ public class RagAnswerService {
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);
             }
+            PromptContext promptContext = preparePromptContext(question, sources, boundedHistory);
+            sources = promptContext.sources();
             if (sources.isEmpty()) {
                 RagAnswerResult result = toAnswerResult(
                         INSUFFICIENT_ANSWER, false, List.of(), List.of(), retrieval);
@@ -318,7 +351,7 @@ public class RagAnswerService {
             AtomicReference<String> pending = new AtomicReference<>("");
             AtomicBoolean streamBlocked = new AtomicBoolean();
             try {
-                return chatClient.prompt(buildPrompt(question, sources, boundedHistory)).stream().content()
+                return chatClient.prompt(promptContext.prompt()).stream().content()
                     .doOnNext(answer::append)
                     .<RagAnswerStreamEvent>handle((chunk, sink) -> {
                         if (streamBlocked.get()) {
@@ -499,7 +532,8 @@ public class RagAnswerService {
             // 当前版本不可读时禁用缓存命中，避免用未知版本返回旧回答。
             knowledgeVersionKey = "unavailable:" + System.nanoTime();
         }
-        String raw = PROMPT_VERSION + "|" + indexVersionKey + "|" + knowledgeVersionKey + "|"
+        String raw = PROMPT_VERSION + "|" + contextTokenBudget + "|" + responseTokenReserve
+                + "|" + indexVersionKey + "|" + knowledgeVersionKey + "|"
                 + question + "|"
                 + history.stream().map(turn -> turn.question() + "\u0000" + turn.answer())
                 .collect(Collectors.joining("\u0001"));
@@ -543,6 +577,41 @@ public class RagAnswerService {
         }
     }
 
+    private PromptContext preparePromptContext(String question, List<MarkdownSearchResult> sources,
+                                               List<RagConversationTurn> history) {
+        int inputTokenBudget = contextTokenBudget - responseTokenReserve;
+        String promptWithoutQuestion = buildPrompt("", List.of(), List.of());
+        if (!tokenBudget.fits(promptWithoutQuestion, inputTokenBudget)) {
+            throw new IllegalStateException("模型上下文预算不足以容纳回答指令");
+        }
+        String boundedQuestion = question.strip();
+        String promptWithoutSources = buildPrompt(boundedQuestion, List.of(), List.of());
+        if (!tokenBudget.fits(promptWithoutSources, inputTokenBudget)) {
+            return new PromptContext(promptWithoutSources, List.of());
+        }
+
+        List<MarkdownSearchResult> selectedSources = new java.util.ArrayList<>();
+        for (MarkdownSearchResult source : sources) {
+            List<MarkdownSearchResult> candidate = new java.util.ArrayList<>(selectedSources);
+            candidate.add(source);
+            if (tokenBudget.fits(buildPrompt(boundedQuestion, candidate, List.of()), inputTokenBudget)) {
+                selectedSources.add(source);
+            }
+        }
+
+        List<RagConversationTurn> selectedHistory = new java.util.ArrayList<>();
+        for (int index = history.size() - 1; index >= 0; index--) {
+            selectedHistory.add(0, history.get(index));
+            if (!tokenBudget.fits(buildPrompt(boundedQuestion, selectedSources, selectedHistory),
+                    inputTokenBudget)) {
+                selectedHistory.remove(0);
+                break;
+            }
+        }
+        return new PromptContext(buildPrompt(boundedQuestion, selectedSources, selectedHistory),
+                List.copyOf(selectedSources));
+    }
+
     private String buildPrompt(String question, List<MarkdownSearchResult> sources,
                                List<RagConversationTurn> history) {
         String historyText = history.isEmpty() ? "" : "\n\n最近问答上下文（仅用于理解指代，不作为资料证据）：\n"
@@ -562,22 +631,22 @@ public class RagAnswerService {
                 .filter(Objects::nonNull)
                 .skip(Math.max(0, history.size() - MAX_HISTORY_TURNS))
                 .toList();
-        int remaining = MAX_HISTORY_TOKENS * ESTIMATED_CHARS_PER_TOKEN;
+        int remaining = MAX_HISTORY_TOKENS;
         List<RagConversationTurn> bounded = new java.util.ArrayList<>();
         for (int index = recent.size() - 1; index >= 0 && remaining > 0; index--) {
             RagConversationTurn turn = recent.get(index);
-            if (remaining < 2) {
+            if (remaining < 2 || turn.question().isBlank() || turn.answer().isBlank()) {
                 break;
             }
-            int questionLength = Math.min(turn.question().length(), Math.max(1, remaining / 3));
-            int answerLength = Math.min(turn.answer().length(), remaining - questionLength);
-            if (answerLength < 1) {
+            String boundedQuestion = tokenBudget.truncate(turn.question(), Math.max(1, remaining / 3));
+            int answerBudget = remaining - tokenBudget.count(boundedQuestion);
+            if (answerBudget < 1) {
                 continue;
             }
+            String boundedAnswer = tokenBudget.truncate(turn.answer(), answerBudget);
             bounded.add(0, new RagConversationTurn(
-                    turn.question().substring(0, questionLength),
-                    turn.answer().substring(0, answerLength)));
-            remaining -= questionLength + answerLength;
+                    boundedQuestion, boundedAnswer));
+            remaining -= tokenBudget.count(boundedQuestion) + tokenBudget.count(boundedAnswer);
         }
         return List.copyOf(bounded);
     }
@@ -613,5 +682,8 @@ public class RagAnswerService {
             case CODE -> "代码";
             case TABLE -> "表格";
         };
+    }
+
+    private record PromptContext(String prompt, List<MarkdownSearchResult> sources) {
     }
 }

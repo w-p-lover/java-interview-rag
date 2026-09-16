@@ -1,5 +1,6 @@
 package com.javainterview.rag.knowledge.document;
 
+import com.javainterview.rag.knowledge.token.TokenBudget;
 import com.javainterview.rag.interview.document.PdfPageLayout;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -151,8 +152,15 @@ class PdfKnowledgeDocumentExtractorTest {
                 && chunk.content().contains("Synthetic | ClassFile 45.3")
                 && chunk.content().contains("record_component_info")));
 
+        TokenBudget tokenBudget = new TokenBudget();
+        String[] continuedLines = tableBlocks.get(1).content().split("\n");
+        String tableHeader = continuedLines[0];
+        int tableMaxTokens = java.util.Arrays.stream(continuedLines, 1, continuedLines.length)
+                .mapToInt(row -> tokenBudget.count(tableHeader + "\n" + row))
+                .max()
+                .orElseThrow();
         List<MarkdownChunk> boundedChunks = new MarkdownSectionChunker().chunk(
-                extractor.toSections("java/jvm-attributes.pdf", extraction.blocks()), 120);
+                extractor.toSections("java/jvm-attributes.pdf", extraction.blocks()), tableMaxTokens);
         List<MarkdownChunk> continuedTableChunks = boundedChunks.stream()
                 .filter(chunk -> chunk.pageNumber() == 2)
                 .filter(chunk -> chunk.blockType() == KnowledgeBlockType.TABLE)
@@ -160,7 +168,7 @@ class PdfKnowledgeDocumentExtractorTest {
         assertTrue(continuedTableChunks.size() > 1);
         assertTrue(continuedTableChunks.stream()
                 .allMatch(chunk -> chunk.content().startsWith("Attribute | Location class file\n")
-                        && chunk.content().length() <= 120));
+                        && tokenBudget.count(chunk.content()) <= tableMaxTokens));
     }
 
     @Test

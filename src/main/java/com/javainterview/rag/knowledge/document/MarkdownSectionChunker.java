@@ -1,5 +1,7 @@
 package com.javainterview.rag.knowledge.document;
 
+import com.javainterview.rag.knowledge.token.TokenBudget;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,11 +15,20 @@ public final class MarkdownSectionChunker {
     private static final Pattern FENCE_START = Pattern.compile("^ {0,3}(`{3,}|~{3,}).*$");
     private static final Pattern TABLE_DELIMITER = Pattern.compile(
             "^ {0,3}\\|?\\s*:?-{3,}:?\\s*(?:\\|\\s*:?-{3,}:?\\s*)+\\|?\\s*$");
+    private final TokenBudget tokenBudget;
 
-    public List<MarkdownChunk> chunk(List<MarkdownSection> sections, int maxLength) {
+    public MarkdownSectionChunker() {
+        this(new TokenBudget());
+    }
+
+    public MarkdownSectionChunker(TokenBudget tokenBudget) {
+        this.tokenBudget = Objects.requireNonNull(tokenBudget, "Token 预算不能为空");
+    }
+
+    public List<MarkdownChunk> chunk(List<MarkdownSection> sections, int maxTokens) {
         Objects.requireNonNull(sections, "Markdown Section 列表不能为空");
-        if (maxLength <= 0) {
-            throw new IllegalArgumentException("Chunk 最大长度必须大于 0");
+        if (maxTokens <= 0) {
+            throw new IllegalArgumentException("Chunk 最大 Token 数必须大于 0");
         }
 
         List<MarkdownChunk> chunks = new ArrayList<>();
@@ -29,21 +40,21 @@ public final class MarkdownSectionChunker {
             }
 
             if (section.blockType() == KnowledgeBlockType.TABLE) {
-                addTableChunks(chunks, section, normalizedContent, maxLength);
+                addTableChunks(chunks, section, normalizedContent, maxTokens);
                 continue;
             }
             if (section.blockType() != KnowledgeBlockType.TEXT) {
-                addBoundedChunks(chunks, section, normalizedContent, maxLength, section.blockType());
+                addBoundedChunks(chunks, section, normalizedContent, maxTokens, section.blockType());
                 continue;
             }
 
             for (ContentBlock block : splitContentBlocks(normalizedContent)) {
                 if (block.type() == KnowledgeBlockType.TEXT) {
-                    addTextChunks(chunks, section, block.content(), maxLength);
+                    addTextChunks(chunks, section, block.content(), maxTokens);
                 } else if (block.type() == KnowledgeBlockType.TABLE) {
-                    addTableChunks(chunks, section, block.content(), maxLength);
+                    addTableChunks(chunks, section, block.content(), maxTokens);
                 } else {
-                    addBoundedChunks(chunks, section, block.content(), maxLength, block.type());
+                    addBoundedChunks(chunks, section, block.content(), maxTokens, block.type());
                 }
             }
         }
@@ -51,21 +62,21 @@ public final class MarkdownSectionChunker {
     }
 
     private void addTextChunks(List<MarkdownChunk> chunks, MarkdownSection section,
-                               String content, int maxLength) {
+                               String content, int maxTokens) {
         StringBuilder currentContent = new StringBuilder();
         for (String paragraph : PARAGRAPH_SEPARATOR.split(content)) {
             if (paragraph.isBlank()) {
                 continue;
             }
-            if (paragraph.length() > maxLength) {
+            if (!tokenBudget.fits(paragraph, maxTokens)) {
                 addPendingChunk(chunks, section, currentContent);
-                addBoundedChunks(chunks, section, paragraph, maxLength, KnowledgeBlockType.TEXT);
+                addBoundedChunks(chunks, section, paragraph, maxTokens, KnowledgeBlockType.TEXT);
                 continue;
             }
 
-            int combinedLength = currentContent.length() + (currentContent.isEmpty() ? 0 : 2)
-                    + paragraph.length();
-            if (!currentContent.isEmpty() && combinedLength > maxLength) {
+            String combined = currentContent.isEmpty()
+                    ? paragraph : currentContent + "\n\n" + paragraph;
+            if (!currentContent.isEmpty() && !tokenBudget.fits(combined, maxTokens)) {
                 addPendingChunk(chunks, section, currentContent);
             }
             if (!currentContent.isEmpty()) {
@@ -77,43 +88,87 @@ public final class MarkdownSectionChunker {
     }
 
     private void addTableChunks(List<MarkdownChunk> chunks, MarkdownSection section,
-                                String content, int maxLength) {
+                                String content, int maxTokens) {
         String[] lines = content.split("\n", -1);
         int headerLineCount = lines.length > 1 && TABLE_DELIMITER.matcher(lines[1]).matches() ? 2 : 1;
         String header = String.join("\n", Arrays.copyOfRange(lines, 0, headerLineCount));
-        int rowCapacity = maxLength - header.length() - 1;
-        boolean oversizedRow = Arrays.stream(lines, headerLineCount, lines.length)
-                .anyMatch(line -> line.length() > rowCapacity);
-        if (lines.length <= headerLineCount || !lines[0].contains("|") || rowCapacity <= 0
-                || oversizedRow) {
-            addBoundedChunks(chunks, section, content, maxLength, KnowledgeBlockType.TABLE);
+        if (lines.length <= headerLineCount || !lines[0].contains("|")
+                || !tokenBudget.fits(header, maxTokens)) {
+            addBoundedChunks(chunks, section, content, maxTokens, KnowledgeBlockType.TABLE);
             return;
         }
 
         StringBuilder current = new StringBuilder(header);
         for (int index = headerLineCount; index < lines.length; index++) {
             String row = lines[index];
-            if (current.length() + 1 + row.length() > maxLength) {
+            String candidate = current + "\n" + row;
+            if (tokenBudget.fits(candidate, maxTokens)) {
+                current.append('\n').append(row);
+                continue;
+            }
+            if (!current.toString().equals(header)) {
                 addChunk(chunks, section, current.toString(), KnowledgeBlockType.TABLE);
                 current.setLength(0);
                 current.append(header);
             }
-            current.append('\n').append(row);
+            if (tokenBudget.fits(header + "\n" + row, maxTokens)) {
+                current.append('\n').append(row);
+                continue;
+            }
+            addOversizedTableRow(chunks, section, header, row, maxTokens);
         }
-        addChunk(chunks, section, current.toString(), KnowledgeBlockType.TABLE);
+        if (!current.toString().equals(header)) {
+            addChunk(chunks, section, current.toString(), KnowledgeBlockType.TABLE);
+        }
+    }
+
+    private void addOversizedTableRow(List<MarkdownChunk> chunks, MarkdownSection section,
+                                      String header, String row, int maxTokens) {
+        int start = 0;
+        while (start < row.length()) {
+            String remaining = row.substring(start);
+            String prefix = maximumTableRowPrefix(header, remaining, maxTokens);
+            if (prefix.isEmpty()) {
+                addBoundedChunks(chunks, section, remaining, maxTokens, KnowledgeBlockType.TABLE);
+                return;
+            }
+            addChunk(chunks, section, header + "\n" + prefix, KnowledgeBlockType.TABLE);
+            start += prefix.length();
+        }
+    }
+
+    private String maximumTableRowPrefix(String header, String row, int maxTokens) {
+        int low = 1;
+        int high = row.codePointCount(0, row.length());
+        int accepted = 0;
+        while (low <= high) {
+            int middle = (low + high) >>> 1;
+            int end = row.offsetByCodePoints(0, middle);
+            if (tokenBudget.fits(header + "\n" + row.substring(0, end), maxTokens)) {
+                accepted = middle;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+        if (accepted == 0) {
+            return "";
+        }
+        return row.substring(0, row.offsetByCodePoints(0, accepted));
     }
 
     private void addBoundedChunks(List<MarkdownChunk> chunks, MarkdownSection section,
-                                  String content, int maxLength, KnowledgeBlockType blockType) {
+                                  String content, int maxTokens, KnowledgeBlockType blockType) {
         int start = 0;
         while (start < content.length()) {
-            int remaining = content.length() - start;
-            if (remaining <= maxLength) {
-                addChunk(chunks, section, content.substring(start), blockType);
+            String remaining = content.substring(start);
+            if (tokenBudget.fits(remaining, maxTokens)) {
+                addChunk(chunks, section, remaining, blockType);
                 return;
             }
 
-            int limit = start + maxLength;
+            String prefix = tokenBudget.truncate(remaining, maxTokens);
+            int limit = start + prefix.length();
             int boundary = findBoundary(content, start, limit, blockType);
             if (boundary <= start) {
                 boundary = limit;

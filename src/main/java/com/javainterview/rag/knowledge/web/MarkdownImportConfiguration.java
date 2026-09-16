@@ -39,13 +39,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @Configuration
 public class MarkdownImportConfiguration {
 
-    private static final int MAX_CHUNK_LENGTH = 800;
-
     @Bean
     KnowledgeIndexVersionMetadata knowledgeIndexVersionMetadata(
             @Value("${java-interview-rag.index.embedding-model:text-embedding-v3}") String embeddingModel,
             @Value("${java-interview-rag.index.embedding-dimensions:1024}") int embeddingDimensions,
-            @Value("${java-interview-rag.index.chunk-policy-version:markdown-section-chunker-v4}") String chunkPolicyVersion,
+            @Value("${java-interview-rag.index.chunk-policy-version:markdown-section-chunker-v5}") String chunkPolicyVersion,
             @Value("${java-interview-rag.index.parser-version:pdf-knowledge-parser-v6}") String parserVersion,
             @Value("${java-interview-rag.index.schema-version:knowledge-index-v2}") String indexSchemaVersion) {
         return new KnowledgeIndexVersionMetadata(embeddingModel, embeddingDimensions,
@@ -101,8 +99,10 @@ public class MarkdownImportConfiguration {
     @Bean
     MarkdownContentImporter markdownContentImporter(MarkdownImportRegistry registry,
                                                      MarkdownChunkIndexer chunkIndexer,
-                                                     MarkdownIndexingStateStore stateStore) {
-        return new MarkdownContentImporter(registry, MAX_CHUNK_LENGTH, chunkIndexer, stateStore);
+                                                     MarkdownIndexingStateStore stateStore,
+                                                     @Value("${java-interview-rag.knowledge.chunk.max-tokens:600}")
+                                                     int maxChunkTokens) {
+        return new MarkdownContentImporter(registry, maxChunkTokens, chunkIndexer, stateStore);
     }
 
     @Bean

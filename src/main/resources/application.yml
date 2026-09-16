@@ -38,10 +38,15 @@ server:
 java-interview-rag:
   answer:
     timeout: ${JAVA_INTERVIEW_RAG_ANSWER_TIMEOUT:60s}
+    context-token-budget: ${JAVA_INTERVIEW_RAG_ANSWER_CONTEXT_TOKEN_BUDGET:6000}
+    response-token-reserve: ${JAVA_INTERVIEW_RAG_ANSWER_RESPONSE_TOKEN_RESERVE:1200}
+  knowledge:
+    chunk:
+      max-tokens: ${JAVA_INTERVIEW_RAG_CHUNK_MAX_TOKENS:600}
   index:
     embedding-model: ${JAVA_INTERVIEW_RAG_EMBEDDING_MODEL:text-embedding-v3}
     embedding-dimensions: ${JAVA_INTERVIEW_RAG_EMBEDDING_DIMENSIONS:1024}
-    chunk-policy-version: ${JAVA_INTERVIEW_RAG_CHUNK_POLICY_VERSION:markdown-section-chunker-v4}
+    chunk-policy-version: ${JAVA_INTERVIEW_RAG_CHUNK_POLICY_VERSION:markdown-section-chunker-v5}
     parser-version: ${JAVA_INTERVIEW_RAG_PARSER_VERSION:pdf-knowledge-parser-v6}
     schema-version: ${JAVA_INTERVIEW_RAG_INDEX_SCHEMA_VERSION:knowledge-index-v2}
 
