@@ -6,6 +6,8 @@ import io.micrometer.core.instrument.Timer;
 import com.javainterview.rag.knowledge.persistence.MicrometerRagAnswerCacheObserver;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskMetrics;
 import com.javainterview.rag.knowledge.feedback.RagAnswerFeedbackStore;
+import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalDeadline;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,12 +24,20 @@ public class BusinessObservabilityService {
     private final MeterRegistry meterRegistry;
     private final KnowledgeDocumentTaskMetrics taskMetrics;
     private final RagAnswerFeedbackStore feedbackStore;
+    private final KnowledgeRetrievalDeadline denseRetrievalDeadline;
+    private final KnowledgeRetrievalDeadline sparseRetrievalDeadline;
 
     public BusinessObservabilityService(MeterRegistry meterRegistry, KnowledgeDocumentTaskMetrics taskMetrics,
-                                        RagAnswerFeedbackStore feedbackStore) {
+                                        RagAnswerFeedbackStore feedbackStore,
+                                        @Qualifier("denseRetrievalDeadline")
+                                        KnowledgeRetrievalDeadline denseRetrievalDeadline,
+                                        @Qualifier("sparseRetrievalDeadline")
+                                        KnowledgeRetrievalDeadline sparseRetrievalDeadline) {
         this.meterRegistry = meterRegistry;
         this.taskMetrics = taskMetrics;
         this.feedbackStore = feedbackStore;
+        this.denseRetrievalDeadline = denseRetrievalDeadline;
+        this.sparseRetrievalDeadline = sparseRetrievalDeadline;
     }
 
     public BusinessObservabilityOverview overview() {
@@ -71,7 +81,11 @@ public class BusinessObservabilityService {
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "HIT"),
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "MISS"),
                         MicrometerRagAnswerCacheObserver.count(meterRegistry, "BYPASS")),
-                toTaskMetric(taskMetrics.snapshot()), toFeedbackMetric());
+                toTaskMetric(taskMetrics.snapshot()),
+                new BusinessObservabilityOverview.RetrievalMetric(
+                        toRetrievalMetric(denseRetrievalDeadline.snapshot()),
+                        toRetrievalMetric(sparseRetrievalDeadline.snapshot())),
+                toFeedbackMetric());
     }
 
     private BusinessObservabilityOverview.FeedbackMetric toFeedbackMetric() {
@@ -86,6 +100,13 @@ public class BusinessObservabilityService {
     private BusinessObservabilityOverview.TaskMetric toTaskMetric(KnowledgeDocumentTaskMetrics.Snapshot snapshot) {
         return new BusinessObservabilityOverview.TaskMetric(snapshot.queued(), snapshot.running(), snapshot.succeeded(),
                 snapshot.failed(), snapshot.cancelled(), snapshot.rejected(), snapshot.timedOut());
+    }
+
+    private BusinessObservabilityOverview.RetrievalChannelMetric toRetrievalMetric(
+            KnowledgeRetrievalDeadline.Snapshot snapshot) {
+        return new BusinessObservabilityOverview.RetrievalChannelMetric(
+                snapshot.threadCapacity(), snapshot.queueCapacity(), snapshot.submitted(), snapshot.active(),
+                snapshot.queued(), snapshot.completed(), snapshot.timedOut(), snapshot.rejected());
     }
 
     private static final class MutableMetric {

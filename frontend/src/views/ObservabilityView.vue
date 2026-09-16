@@ -1,10 +1,38 @@
 <script setup lang="ts">
 import { Activity, AlertTriangle, RefreshCw, Timer, Wifi } from "@lucide/vue";
+import { computed } from "vue";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
+import type { RetrievalChannelMetric } from "@/api/observability";
 import { useObservability } from "@/composables/useObservability";
 
 const { result, loading, error, refresh } = useObservability();
+
+const retrievalChannels = computed(() => {
+  if (!result.value) {
+    return [];
+  }
+  return [
+    { key: "dense", name: "Dense", detail: "Qdrant / Embedding", metric: result.value.retrieval.dense },
+    { key: "sparse", name: "Sparse", detail: "Lucene BM25", metric: result.value.retrieval.sparse },
+  ].map((channel) => ({ ...channel, state: retrievalState(channel.metric) }));
+});
+
+function retrievalState(metric: RetrievalChannelMetric): { label: string; tone: string } {
+  if (metric.queueCapacity > 0 && metric.queued >= metric.queueCapacity) {
+    return { label: "队列已满", tone: "danger" };
+  }
+  if (metric.queued > 0) {
+    return { label: "正在排队", tone: "warning" };
+  }
+  if (metric.threadCapacity > 0 && metric.active >= metric.threadCapacity) {
+    return { label: "线程满载", tone: "warning" };
+  }
+  if (metric.rejected > 0) {
+    return { label: "存在拒绝记录", tone: "danger" };
+  }
+  return { label: "运行正常", tone: "healthy" };
+}
 
 function formatRate(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -116,6 +144,50 @@ function formatTime(value: string): string {
         </div>
       </section>
 
+      <section id="observability-retrieval" class="operations-section" aria-labelledby="retrieval-title">
+        <header>
+          <div>
+            <span>RAG 检索隔离执行器</span>
+            <h2 id="retrieval-title">检索容量</h2>
+          </div>
+          <small>Dense 与 Sparse 独立线程池 · 默认单路 5 秒截止</small>
+        </header>
+        <div class="operations-table-wrap">
+          <table class="operations-table retrieval-table">
+            <thead>
+              <tr>
+                <th scope="col">通道</th>
+                <th scope="col">状态</th>
+                <th scope="col">活动线程</th>
+                <th scope="col">排队</th>
+                <th scope="col">已提交</th>
+                <th scope="col">执行结束</th>
+                <th scope="col">超时</th>
+                <th scope="col">拒绝</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="channel in retrievalChannels" :key="channel.key">
+                <th scope="row">
+                  <strong>{{ channel.name }}</strong>
+                  <small>{{ channel.detail }}</small>
+                </th>
+                <td :class="channel.state.tone">
+                  {{ channel.state.label }}
+                </td>
+                <td>{{ channel.metric.active }} / {{ channel.metric.threadCapacity }}</td>
+                <td>{{ channel.metric.queued }} / {{ channel.metric.queueCapacity }}</td>
+                <td>{{ channel.metric.submitted }}</td>
+                <td>{{ channel.metric.completed }}</td>
+                <td :class="{ danger: channel.metric.timedOut > 0 }">{{ channel.metric.timedOut }}</td>
+                <td :class="{ danger: channel.metric.rejected > 0 }">{{ channel.metric.rejected }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="task-capacity-note">超时任务会从等待队列移除；活动数持续满载或排队增长时，再依据真实瓶颈调整容量。</p>
+      </section>
+
       <section id="observability-tasks" class="operations-section" aria-labelledby="tasks-title">
         <header>
           <div>
@@ -182,6 +254,11 @@ thead th { color: var(--color-muted); font-weight: 700; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 code { color: var(--color-ink); font-family: var(--font-mono); font-size: var(--text-xs); }
 .danger { color: var(--color-error); font-weight: 700; }
+.warning { color: var(--color-warning); font-weight: 700; }
+.healthy { color: var(--color-success); font-weight: 700; }
+.retrieval-table th:first-child { display: grid; gap: var(--space-2xs); }
+.retrieval-table th:first-child strong { color: var(--color-ink); }
+.retrieval-table th:first-child small { color: var(--color-muted); font-weight: 400; }
 .task-metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-sm); }
 .task-metrics article { display: grid; gap: var(--space-xs); padding: var(--space-md); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); background: var(--color-paper-2); }
 .task-metrics span, .task-capacity-note { color: var(--color-muted); font-size: var(--text-xs); }
