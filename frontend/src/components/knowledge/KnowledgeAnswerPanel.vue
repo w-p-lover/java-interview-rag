@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BookOpenCheck, CircleAlert, LibraryBig, TriangleAlert } from "@lucide/vue";
-import { shallowRef } from "vue";
+import { computed, shallowRef } from "vue";
 
 import type { KnowledgeAnswerClaimEvidence, KnowledgeAnswerResponse } from "@/api/knowledge";
 import KnowledgeClaimEvidence from "@/components/knowledge/KnowledgeClaimEvidence.vue";
@@ -18,6 +18,22 @@ const props = defineProps<{
 const emit = defineEmits<{ addReview: [claim: KnowledgeAnswerClaimEvidence] }>();
 const feedback = shallowRef<"HELPFUL" | "NOT_HELPFUL" | "">("");
 const feedbackError = shallowRef("");
+const answerStatus = computed(() => {
+  if (props.result?.retrievalStrategy === "UNAVAILABLE") return "检索不可用";
+  return props.result?.grounded ? "资料已支撑" : "资料不足";
+});
+const degradationNotice = computed(() => {
+  switch (props.result?.retrievalStrategy) {
+    case "SPARSE_ONLY":
+      return "向量检索暂时不可用，本次已切换为关键词检索；回答仍经过资料引用校验。";
+    case "DENSE_ONLY":
+      return "关键词检索暂时不可用，本次仅使用向量检索；回答仍经过资料引用校验。";
+    case "UNAVAILABLE":
+      return "向量与关键词检索均暂时不可用，本次未调用模型。";
+    default:
+      return "";
+  }
+});
 
 async function submitFeedback(value: "HELPFUL" | "NOT_HELPFUL"): Promise<void> {
   feedbackError.value = "";
@@ -65,17 +81,17 @@ async function submitFeedback(value: "HELPFUL" | "NOT_HELPFUL"): Promise<void> {
         <strong v-else :class="result.grounded ? 'is-grounded' : 'is-insufficient'">
           <BookOpenCheck v-if="result.grounded" :size="17" aria-hidden="true" />
           <CircleAlert v-else :size="17" aria-hidden="true" />
-          {{ result.grounded ? "资料已支撑" : "资料不足" }}
+          {{ answerStatus }}
         </strong>
       </header>
 
       <p v-if="result.degraded && !streaming" class="degradation-notice" role="status">
         <TriangleAlert :size="16" aria-hidden="true" />
-        <span>向量检索暂时不可用，本次已切换为关键词检索；回答仍经过资料引用校验。</span>
+        <span>{{ degradationNotice }}</span>
       </p>
 
       <p class="answer-content">{{ result.answer }}</p>
-      <div class="answer-feedback" aria-label="回答反馈">
+      <div v-if="result.retrievalStrategy !== 'UNAVAILABLE'" class="answer-feedback" aria-label="回答反馈">
         <span>这份回答对你有帮助吗？</span>
         <button type="button" :class="{ selected: feedback === 'HELPFUL' }" @click="submitFeedback('HELPFUL')">有帮助</button>
         <button type="button" :class="{ selected: feedback === 'NOT_HELPFUL' }" @click="submitFeedback('NOT_HELPFUL')">没帮助</button>

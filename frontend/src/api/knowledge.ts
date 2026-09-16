@@ -99,12 +99,14 @@ export interface KnowledgeReviewPathResult {
   recommendations: KnowledgeReviewPathRecommendation[];
 }
 
+export type KnowledgeRetrievalStrategy = "HYBRID" | "DENSE_ONLY" | "SPARSE_ONLY" | "UNAVAILABLE";
+
 export interface KnowledgeAnswerResponse {
   answer: string;
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
   claimEvidence: KnowledgeAnswerClaimEvidence[];
-  retrievalStrategy: "HYBRID" | "DENSE_ONLY" | "SPARSE_ONLY";
+  retrievalStrategy: KnowledgeRetrievalStrategy;
   degraded: boolean;
   degradationReason: string | null;
 }
@@ -212,7 +214,7 @@ export interface KnowledgeAnswerStreamEvent {
   grounded: boolean;
   sources: KnowledgeAnswerSource[];
   claimEvidence: KnowledgeAnswerClaimEvidence[];
-  retrievalStrategy: "HYBRID" | "DENSE_ONLY" | "SPARSE_ONLY";
+  retrievalStrategy: KnowledgeRetrievalStrategy;
   degraded: boolean;
   degradationReason: string | null;
 }

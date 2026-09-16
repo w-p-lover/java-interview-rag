@@ -9,6 +9,9 @@ import org.springframework.ai.vectorstore.VectorStore;
 
 import java.util.List;
 import java.util.Map;
+import java.time.Duration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -71,5 +74,27 @@ class MarkdownSimilaritySearchServiceTest {
         assertEquals("相似度阈值必须在 0 到 1 之间",
                 assertThrows(IllegalArgumentException.class,
                         () -> service.search("HashMap", 5, 1.1)).getMessage());
+    }
+
+    @Test
+    void stopsWaitingWhenDenseRetrievalExceedsItsDeadline() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenAnswer(invocation -> {
+            Thread.sleep(200);
+            return List.of();
+        });
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            MarkdownSimilaritySearchService service = new MarkdownSimilaritySearchService(
+                    vectorStore, new KnowledgeRetrievalDeadline(executor, Duration.ofMillis(20)));
+
+            KnowledgeRetrievalTimeoutException exception = assertThrows(
+                    KnowledgeRetrievalTimeoutException.class,
+                    () -> service.search("HashMap", 5, 0.6));
+
+            org.junit.jupiter.api.Assertions.assertTrue(exception.getMessage().contains("Dense 向量检索"));
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

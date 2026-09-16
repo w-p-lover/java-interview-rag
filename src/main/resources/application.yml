@@ -36,6 +36,8 @@ server:
   port: 18080
 
 java-interview-rag:
+  retrieval:
+    timeout: ${JAVA_INTERVIEW_RAG_RETRIEVAL_TIMEOUT:5s}
   answer:
     timeout: ${JAVA_INTERVIEW_RAG_ANSWER_TIMEOUT:60s}
     context-token-budget: ${JAVA_INTERVIEW_RAG_ANSWER_CONTEXT_TOKEN_BUDGET:6000}

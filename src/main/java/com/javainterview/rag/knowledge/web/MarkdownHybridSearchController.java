@@ -27,7 +27,7 @@ public class MarkdownHybridSearchController {
     }
 
     @GetMapping
-    @Operation(summary = "Dense + BM25 混合检索", description = "并行召回候选并按排名融合，返回每条结果的双路命中情况")
+    @Operation(summary = "Dense + BM25 混合检索", description = "依次执行双路召回并按排名融合，返回每条结果的双路命中情况")
     public MarkdownHybridSearchService.MarkdownHybridSearchResult search(
             @RequestParam String query,
             @RequestParam(defaultValue = "5") int topK,

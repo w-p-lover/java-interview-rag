@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
+import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -38,5 +39,20 @@ class MarkdownHybridSearchControllerTest {
                 .andExpect(jsonPath("$.hits[0].denseRank").value(2))
                 .andExpect(jsonPath("$.hits[0].sparseRank").value(1))
                 .andExpect(jsonPath("$.hits[0].rrfScore").value(0.032));
+    }
+
+    @Test
+    void returnsServiceUnavailableWhenBothRetrieversFail() throws Exception {
+        MarkdownHybridSearchService service = mock(MarkdownHybridSearchService.class);
+        when(service.searchDetailed(eq("HashMap"), eq(5), eq(0.0)))
+                .thenThrow(new KnowledgeRetrievalUnavailableException("Dense 与 Sparse 检索均不可用"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                        new MarkdownHybridSearchController(service))
+                .setControllerAdvice(new KnowledgeRetrievalExceptionHandler())
+                .build();
+
+        mockMvc.perform(get("/api/knowledge/search/hybrid").param("query", "HashMap"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("Dense 与 Sparse 检索均不可用"));
     }
 }

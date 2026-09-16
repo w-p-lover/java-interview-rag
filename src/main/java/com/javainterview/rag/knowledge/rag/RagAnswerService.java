@@ -7,6 +7,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalUnavailableException;
 import org.springframework.ai.chat.client.ChatClient;
 import reactor.core.publisher.Flux;
 
@@ -44,6 +45,7 @@ public class RagAnswerService {
     private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final String TIMEOUT_ANSWER = "知识库回答生成超时，请稍后重试。";
+    private static final String RETRIEVAL_UNAVAILABLE_ANSWER = "知识检索暂时不可用，请稍后重试。";
     private static final String OVERLOADED_ANSWER = "当前知识问答较繁忙，请稍后重试。";
     private static final String ANSWER_INSTRUCTIONS = """
             你是 Java 面试知识库问答助手。
@@ -256,6 +258,15 @@ public class RagAnswerService {
             return recordAndReturn(question, sources,
                     cacheAndReturn(cacheKey, toAnswerResult(answer, true, sources, evidence.claims(), retrieval)), startedAt);
         } catch (RuntimeException exception) {
+            if (exception instanceof KnowledgeRetrievalUnavailableException) {
+                RetrievalOutcome unavailable = new RetrievalOutcome(
+                        List.of(), "UNAVAILABLE", true, exception.getClass().getSimpleName());
+                RagAnswerResult unavailableResult = toAnswerResult(
+                        RETRIEVAL_UNAVAILABLE_ANSWER, false, List.of(), List.of(), unavailable);
+                record(question, List.of(), RagRetrievalLogStatus.RETRIEVAL_UNAVAILABLE,
+                        false, startedAt, exception.getClass().getSimpleName());
+                return unavailableResult;
+            }
             if (exception instanceof RagAnswerTimeoutException) {
                 RagAnswerResult timeoutResult = toAnswerResult(
                         TIMEOUT_ANSWER, false, sources, List.of(), retrieval);
@@ -325,7 +336,18 @@ public class RagAnswerService {
                 return Flux.just(RagAnswerStreamEvent.complete(cachedResult));
             }
             String retrievalQuestion = rewriteQuestion(question, boundedHistory);
-            RetrievalOutcome retrieval = retrieve(retrievalQuestion);
+            RetrievalOutcome retrieval;
+            try {
+                retrieval = retrieve(retrievalQuestion);
+            } catch (KnowledgeRetrievalUnavailableException exception) {
+                RetrievalOutcome unavailable = new RetrievalOutcome(
+                        List.of(), "UNAVAILABLE", true, exception.getClass().getSimpleName());
+                RagAnswerResult result = toAnswerResult(
+                        RETRIEVAL_UNAVAILABLE_ANSWER, false, List.of(), List.of(), unavailable);
+                record(question, List.of(), RagRetrievalLogStatus.RETRIEVAL_UNAVAILABLE,
+                        false, startedAt, exception.getClass().getSimpleName());
+                return Flux.just(RagAnswerStreamEvent.complete(result));
+            }
             List<MarkdownSearchResult> sources = retrieval.sources();
             if (contextExpander != null) {
                 sources = contextExpander.expand(sources);

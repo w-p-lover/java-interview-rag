@@ -14,9 +14,16 @@ public class MarkdownSimilaritySearchService {
     private static final int MAX_TOP_K = 20;
 
     private final VectorStore vectorStore;
+    private final KnowledgeRetrievalDeadline deadline;
 
     public MarkdownSimilaritySearchService(VectorStore vectorStore) {
+        this(vectorStore, null);
+    }
+
+    public MarkdownSimilaritySearchService(VectorStore vectorStore,
+                                           KnowledgeRetrievalDeadline deadline) {
         this.vectorStore = Objects.requireNonNull(vectorStore, "向量存储不能为空");
+        this.deadline = deadline;
     }
 
     public List<MarkdownSearchResult> search(String query, int topK, double similarityThreshold) {
@@ -36,7 +43,10 @@ public class MarkdownSimilaritySearchService {
                 .topK(topK)
                 .similarityThreshold(similarityThreshold)
                 .build();
-        return vectorStore.similaritySearch(request).stream()
+        List<Document> documents = deadline == null
+                ? vectorStore.similaritySearch(request)
+                : deadline.execute("Dense 向量检索", () -> vectorStore.similaritySearch(request));
+        return documents.stream()
                 .map(this::toSearchResult)
                 .toList();
     }

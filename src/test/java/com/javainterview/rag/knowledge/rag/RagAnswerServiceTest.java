@@ -6,6 +6,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.MarkdownAdjacentChunkExpander;
 import com.javainterview.rag.knowledge.vector.MarkdownHybridSearchService;
+import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalUnavailableException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
@@ -346,6 +347,35 @@ class RagAnswerServiceTest {
         assertEquals("SPARSE_ONLY", result.retrievalStrategy());
         assertEquals(true, result.degraded());
         assertEquals("IllegalStateException", result.degradationReason());
+    }
+
+    @Test
+    void returnsRetrievalUnavailableWithoutCallingChatForSyncAndStream() {
+        MarkdownSimilaritySearchService denseSearchService = mock(MarkdownSimilaritySearchService.class);
+        MarkdownHybridSearchService hybridSearchService = mock(MarkdownHybridSearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        when(hybridSearchService.searchDetailed("HashMap", 5, 0.60))
+                .thenThrow(new KnowledgeRetrievalUnavailableException("Dense 与 Sparse 检索均不可用"));
+        RagAnswerService service = new RagAnswerService(denseSearchService, hybridSearchService,
+                null, chatClient, logStore);
+
+        RagAnswerResult sync = service.answer("HashMap");
+        List<RagAnswerStreamEvent> streamEvents = service.streamAnswer("HashMap").collectList().block();
+        RagAnswerStreamEvent streamed = streamEvents.get(streamEvents.size() - 1);
+
+        assertEquals("知识检索暂时不可用，请稍后重试。", sync.answer());
+        assertEquals(sync.answer(), streamed.content());
+        assertEquals("UNAVAILABLE", sync.retrievalStrategy());
+        assertEquals(true, sync.degraded());
+        assertEquals(List.of(), sync.sources());
+        assertEquals(List.of(), streamed.sources());
+        verifyNoInteractions(chatClient, denseSearchService);
+        var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
+        verify(logStore, org.mockito.Mockito.times(2)).record(logCaptor.capture());
+        assertTrue(logCaptor.getAllValues().stream().allMatch(log ->
+                log.status() == RagRetrievalLogStatus.RETRIEVAL_UNAVAILABLE
+                        && "KnowledgeRetrievalUnavailableException".equals(log.errorType())));
     }
 
     @Test

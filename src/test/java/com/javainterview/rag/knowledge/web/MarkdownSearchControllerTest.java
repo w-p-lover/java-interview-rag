@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.web;
 
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalTimeoutException;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -55,5 +56,19 @@ class MarkdownSearchControllerTest {
         mockMvc.perform(get("/api/knowledge/search").param("query", " "))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("检索问题不能为空"));
+    }
+
+    @Test
+    void returnsGatewayTimeoutWhenDenseRetrievalExceedsDeadline() throws Exception {
+        MarkdownSimilaritySearchService service = mock(MarkdownSimilaritySearchService.class);
+        when(service.search("HashMap", 5, 0.0))
+                .thenThrow(new KnowledgeRetrievalTimeoutException("Dense 向量检索", 5000));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new MarkdownSearchController(service))
+                .setControllerAdvice(new KnowledgeRetrievalExceptionHandler())
+                .build();
+
+        mockMvc.perform(get("/api/knowledge/search").param("query", "HashMap"))
+                .andExpect(status().isGatewayTimeout())
+                .andExpect(jsonPath("$.message").value("Dense 向量检索超过截止时间 5000ms"));
     }
 }

@@ -41,13 +41,18 @@ public final class MarkdownHybridSearchService {
             denseFailure = exception;
         }
         List<MarkdownSearchResult> sparseResults;
+        RuntimeException sparseFailure = null;
         try {
             sparseResults = sparseSearchService.search(query, candidateTopK);
         } catch (RuntimeException exception) {
-            if (denseFailure != null) {
-                exception.addSuppressed(denseFailure);
-            }
-            throw exception;
+            sparseResults = List.of();
+            sparseFailure = exception;
+        }
+        if (denseFailure != null && sparseFailure != null) {
+            KnowledgeRetrievalUnavailableException unavailable =
+                    new KnowledgeRetrievalUnavailableException("Dense 与 Sparse 检索均不可用", sparseFailure);
+            unavailable.addSuppressed(denseFailure);
+            throw unavailable;
         }
 
         Map<ChunkIdentity, Candidate> candidates = new LinkedHashMap<>();
@@ -70,11 +75,13 @@ public final class MarkdownHybridSearchService {
         List<MarkdownHybridSearchHit> hits = ranked.stream()
                 .map(Candidate::toHit)
                 .toList();
-        RetrievalStrategy strategy = denseFailure == null
-                ? RetrievalStrategy.HYBRID : RetrievalStrategy.SPARSE_ONLY;
+        RetrievalStrategy strategy = denseFailure != null
+                ? RetrievalStrategy.SPARSE_ONLY
+                : sparseFailure != null ? RetrievalStrategy.DENSE_ONLY : RetrievalStrategy.HYBRID;
+        RuntimeException degradation = denseFailure != null ? denseFailure : sparseFailure;
         return new MarkdownHybridSearchResult(query, topK, denseResults.size(), sparseResults.size(),
                 hits, (System.nanoTime() - startedAt) / 1_000_000, strategy,
-                denseFailure != null, denseFailure == null ? null : denseFailure.getClass().getSimpleName());
+                degradation != null, degradation == null ? null : degradation.getClass().getSimpleName());
     }
 
     private void validate(String query, int topK, double denseSimilarityThreshold) {
@@ -107,7 +114,7 @@ public final class MarkdownHybridSearchService {
             Objects.requireNonNull(query, "检索问题不能为空");
             hits = List.copyOf(Objects.requireNonNull(hits, "融合结果不能为空"));
             strategy = Objects.requireNonNull(strategy, "检索策略不能为空");
-            if (degraded != (strategy == RetrievalStrategy.SPARSE_ONLY)) {
+            if (degraded != (strategy != RetrievalStrategy.HYBRID)) {
                 throw new IllegalArgumentException("检索降级状态与策略不一致");
             }
             if (degraded && (degradationReason == null || degradationReason.isBlank())) {
@@ -125,6 +132,7 @@ public final class MarkdownHybridSearchService {
 
     public enum RetrievalStrategy {
         HYBRID,
+        DENSE_ONLY,
         SPARSE_ONLY
     }
 

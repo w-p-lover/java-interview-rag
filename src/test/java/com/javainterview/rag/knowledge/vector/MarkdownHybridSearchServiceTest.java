@@ -74,6 +74,46 @@ class MarkdownHybridSearchServiceTest {
     }
 
     @Test
+    void fallsBackToDenseWhenSparseSearchFails() {
+        MarkdownSimilaritySearchService dense = mock(MarkdownSimilaritySearchService.class);
+        MarkdownSparseSearchService sparse = mock(MarkdownSparseSearchService.class);
+        MarkdownHybridSearchService service = new MarkdownHybridSearchService(dense, sparse);
+        when(dense.search("HashMap", 8, 0.6)).thenReturn(List.of(result("dense-top", 0, 0.92)));
+        when(sparse.search("HashMap", 8))
+                .thenThrow(new KnowledgeRetrievalTimeoutException("Sparse 稀疏检索", 20));
+
+        MarkdownHybridSearchService.MarkdownHybridSearchResult response =
+                service.searchDetailed("HashMap", 2, 0.6);
+
+        assertEquals(MarkdownHybridSearchService.RetrievalStrategy.DENSE_ONLY, response.strategy());
+        assertTrue(response.degraded());
+        assertEquals("KnowledgeRetrievalTimeoutException", response.degradationReason());
+        assertEquals(1, response.denseCandidateCount());
+        assertEquals(0, response.sparseCandidateCount());
+        assertEquals("dense-top", response.results().get(0).content());
+    }
+
+    @Test
+    void reportsUnavailableWhenDenseAndSparseBothFail() {
+        MarkdownSimilaritySearchService dense = mock(MarkdownSimilaritySearchService.class);
+        MarkdownSparseSearchService sparse = mock(MarkdownSparseSearchService.class);
+        MarkdownHybridSearchService service = new MarkdownHybridSearchService(dense, sparse);
+        when(dense.search("HashMap", 8, 0.6))
+                .thenThrow(new KnowledgeRetrievalTimeoutException("Dense 向量检索", 20));
+        when(sparse.search("HashMap", 8))
+                .thenThrow(new IllegalStateException("Lucene unavailable"));
+
+        KnowledgeRetrievalUnavailableException exception = assertThrows(
+                KnowledgeRetrievalUnavailableException.class,
+                () -> service.searchDetailed("HashMap", 2, 0.6));
+
+        assertEquals("Dense 与 Sparse 检索均不可用", exception.getMessage());
+        assertEquals(1, exception.getSuppressed().length);
+        assertEquals(KnowledgeRetrievalTimeoutException.class,
+                exception.getSuppressed()[0].getClass());
+    }
+
+    @Test
     void rejectsInvalidHybridParameters() {
         MarkdownHybridSearchService service = new MarkdownHybridSearchService(
                 mock(MarkdownSimilaritySearchService.class), mock(MarkdownSparseSearchService.class));
