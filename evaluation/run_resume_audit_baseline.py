@@ -4,6 +4,7 @@ import argparse
 import datetime
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -31,11 +32,11 @@ FACT_TYPES = (
 )
 
 
-def request_json(base_url: str, timeout: float) -> dict:
+def request_json(base_url: str, path: str, method: str, timeout: float) -> dict:
     request = urllib.request.Request(
-        f"{base_url}/api/interviews/evaluations/resume-audits",
-        data=b"",
-        method="POST",
+        f"{base_url}{path}",
+        data=b"" if method == "POST" else None,
+        method=method,
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -43,6 +44,31 @@ def request_json(base_url: str, timeout: float) -> dict:
     except urllib.error.HTTPError as exception:
         detail = exception.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"HTTP {exception.code}: {detail}") from exception
+
+
+def wait_for_terminal_run(
+    base_url: str, run: dict, timeout: float, poll_interval: float
+) -> dict:
+    run_id = run.get("runId")
+    if not isinstance(run_id, str) or not run_id:
+        raise ValueError("评估启动响应缺少运行 ID")
+    print(f"评估运行 ID：{run_id}")
+    deadline = time.monotonic() + timeout
+    while run.get("status") not in {"SUCCEEDED", "PARTIAL_FAILED"}:
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"等待运行 {run_id} 完成超时")
+        time.sleep(poll_interval)
+        run = request_json(
+            base_url,
+            f"/api/interviews/evaluations/resume-audits/{run_id}",
+            "GET",
+            min(30.0, timeout),
+        )
+        print(
+            f"- {run.get('status')}: 成功 {run.get('succeededCaseCount', 0)}，"
+            f"失败 {run.get('failedCaseCount', 0)}，待处理 {run.get('pendingCaseCount', 0)}"
+        )
+    return run
 
 
 def validate_report(report: dict) -> list[str]:
@@ -112,7 +138,14 @@ def print_summary(report: dict) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="运行十一类固定简历证据审计真实模型基线")
     parser.add_argument("--base-url", default="http://127.0.0.1:18080", help="后端服务地址")
-    parser.add_argument("--timeout", type=float, default=900.0, help="整批 HTTP 请求超时秒数")
+    parser.add_argument("--timeout", type=float, default=900.0, help="等待运行终态的总秒数")
+    parser.add_argument("--poll-interval", type=float, default=2.0, help="状态查询间隔秒数")
+    parser.add_argument("--run-id", help="只恢复查询指定运行；不会新建运行")
+    parser.add_argument(
+        "--resume-failed",
+        action="store_true",
+        help="与 --run-id 一起使用，显式重试该运行中未成功的样本",
+    )
     parser.add_argument("--output", type=Path, help="可选的脱敏评估结果 JSON 输出路径")
     parser.add_argument(
         "--allow-chat-calls",
@@ -124,20 +157,43 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if not args.allow_chat_calls:
+    if args.timeout <= 0 or args.poll_interval <= 0:
+        print("--timeout 和 --poll-interval 必须大于 0。", file=sys.stderr)
+        return 2
+    if args.resume_failed and not args.run_id:
+        print("--resume-failed 必须与 --run-id 一起使用。", file=sys.stderr)
+        return 2
+    may_start_calls = args.run_id is None or args.resume_failed
+    if may_start_calls and not args.allow_chat_calls:
         print(
-            "未执行评估：该命令会产生 11 次真实 Chat 调用；"
+            "未执行评估：启动或恢复可能产生真实 Chat 调用；"
             "确认费用授权后请显式添加 --allow-chat-calls。",
             file=sys.stderr,
         )
         return 2
+    base_url = args.base_url.rstrip("/")
     try:
-        report = request_json(args.base_url.rstrip("/"), args.timeout)
+        if args.run_id:
+            path = f"/api/interviews/evaluations/resume-audits/{args.run_id}"
+            if args.resume_failed:
+                path += "/resume"
+            run = request_json(
+                base_url, path, "POST" if args.resume_failed else "GET", min(30.0, args.timeout)
+            )
+        else:
+            run = request_json(
+                base_url,
+                "/api/interviews/evaluations/resume-audits",
+                "POST",
+                min(30.0, args.timeout),
+            )
+        run = wait_for_terminal_run(base_url, run, args.timeout, args.poll_interval)
+        report = run.get("report")
+        if not isinstance(report, dict):
+            raise ValueError("评估已结束但聚合报告缺失")
     except TimeoutError as exception:
         print(
-            "评估客户端等待超时；服务端可能仍在继续执行剩余 Chat 调用。"
-            "请先查询 /api/interviews/resume-audits/requests 核对本次 Prompt 版本的请求数量，"
-            "不要直接重跑。",
+            f"{exception}；请使用 --run-id 恢复查询，不要新建运行。",
             file=sys.stderr,
         )
         return 1
@@ -166,6 +222,13 @@ def main() -> int:
 
     print_summary(report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
+    if run.get("status") == "PARTIAL_FAILED":
+        print(
+            f"评估存在失败样本；确认费用授权后可使用 --run-id {run['runId']} "
+            "--resume-failed --allow-chat-calls 只重试未成功样本。",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

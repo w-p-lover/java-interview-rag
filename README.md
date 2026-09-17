@@ -32,6 +32,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/knowledge/evaluations/answers` 在 `storage` profile 下逐题调用现有 RAG 回答服务，返回实际来源、期望来源命中情况、命中与未命中回答要点、逐题 claim 证据状态及聚合引用精确率/召回率、无依据陈述率和冲突率；当前 23 题固定集最多产生 23 次 Chat 调用并写入对应召回日志。
 - `POST /api/interviews/preparations` 在 `storage` profile 下接收目标岗位、简历文本和可选岗位描述，通过一次结构化模型调用返回候选人摘要、简历证据、岗位要求和面试关注领域；该接口不读取内部固定 RAG 评估题集，也不直接生成面试题。
 - `POST /api/interviews/resume-audits` 对简历执行一次可选的证据检查，按教育、任职、项目、技术、职责、时间和结果返回经 Java 逐字验真的确认事实，并分开返回待补信息、人工核对风险和修改建议；`/interview` 只在当前页面内存中保留结果，检查失败不阻止直接开始面试。简历审计默认总超时 420 秒，可由 `JAVA_INTERVIEW_RAG_RESUME_AUDIT_TIMEOUT` 覆盖；超时、鉴权失败和模型不可用返回安全 HTTP 502。
+- `POST /api/interviews/evaluations/resume-audits` 在 `storage` profile 下启动或复用十一类固定付费评估运行并立即返回运行 ID；`GET /api/interviews/evaluations/resume-audits/{runId}` 查询状态、逐样本脱敏结果和终态报告，`POST /{runId}/resume` 只重试未成功样本。相同数据集、角色、Prompt 与模型契约不会重复创建运行，运行表不保存简历正文。
 - `POST /api/interviews/job-matches` 只接收岗位描述和已确认简历事实，返回已有证据、部分覆盖、尚无证据和需要核对的岗位要求；岗位原文与简历证据均由 Java 服务端逐字验真，不接收或保存原始简历。
 - `GET /api/interviews/job-matches/requests?limit=20` 查询岗位匹配模型请求的脱敏元数据，包括模型、Prompt、token、耗时、状态和失败类型，不返回岗位描述、简历证据或匹配正文。
 - `POST /api/interviews/project-deep-dives` 只接收一条 `PROJECT` 类型的已确认事实，确定性生成基础、取舍、故障和扩展四类深挖题；默认不调用模型或向量检索，显式开启后只读检索知识库并把真实来源作为答题背景，不用资料补写项目经历。

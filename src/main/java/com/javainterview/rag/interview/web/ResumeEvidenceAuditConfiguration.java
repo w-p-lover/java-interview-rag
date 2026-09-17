@@ -1,9 +1,14 @@
 package com.javainterview.rag.interview.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javainterview.rag.interview.persistence.MySqlResumeEvidenceAuditEvaluationRunStore;
 import com.javainterview.rag.interview.persistence.MySqlResumeEvidenceAuditRequestLogStore;
+import com.javainterview.rag.interview.persistence.ResumeEvidenceAuditEvaluationRunMapper;
 import com.javainterview.rag.interview.persistence.ResumeEvidenceAuditRequestLogMapper;
 import com.javainterview.rag.interview.resume.FixedResumeEvidenceAuditDataset;
 import com.javainterview.rag.interview.resume.FixedResumeEvidenceAuditEvaluationService;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditEvaluationRunService;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditEvaluationRunStore;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogStore;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
@@ -28,6 +33,18 @@ public class ResumeEvidenceAuditConfiguration {
         executor.setMaxPoolSize(2);
         executor.setQueueCapacity(8);
         executor.setThreadNamePrefix("resume-audit-");
+        executor.setWaitForTasksToCompleteOnShutdown(false);
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "resumeEvidenceAuditEvaluationRunExecutor")
+    Executor resumeEvidenceAuditEvaluationRunExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(8);
+        executor.setThreadNamePrefix("resume-audit-evaluation-");
         executor.setWaitForTasksToCompleteOnShutdown(false);
         executor.initialize();
         return executor;
@@ -60,5 +77,22 @@ public class ResumeEvidenceAuditConfiguration {
             FixedResumeEvidenceAuditDataset dataset,
             ResumeEvidenceAuditService auditService) {
         return new FixedResumeEvidenceAuditEvaluationService(dataset, auditService);
+    }
+
+    @Bean
+    ResumeEvidenceAuditEvaluationRunStore resumeEvidenceAuditEvaluationRunStore(
+            ResumeEvidenceAuditEvaluationRunMapper mapper,
+            ObjectMapper objectMapper) {
+        return new MySqlResumeEvidenceAuditEvaluationRunStore(mapper, objectMapper);
+    }
+
+    @Bean
+    ResumeEvidenceAuditEvaluationRunService resumeEvidenceAuditEvaluationRunService(
+            FixedResumeEvidenceAuditEvaluationService evaluationService,
+            ResumeEvidenceAuditEvaluationRunStore runStore,
+            @org.springframework.beans.factory.annotation.Qualifier(
+                    "resumeEvidenceAuditEvaluationRunExecutor") Executor runExecutor) {
+        return new ResumeEvidenceAuditEvaluationRunService(
+                evaluationService, runStore, runExecutor);
     }
 }

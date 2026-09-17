@@ -1,14 +1,17 @@
 package com.javainterview.rag.interview.web;
 
-import com.javainterview.rag.interview.resume.FixedResumeEvidenceAuditEvaluationService;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditEvaluationRun;
+import com.javainterview.rag.interview.resume.ResumeEvidenceAuditEvaluationRunService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -16,58 +19,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ResumeEvidenceAuditEvaluationControllerTest {
 
     @Test
-    void returnsMetadataAndCountsWithoutResumeOrAuditText() throws Exception {
-        FixedResumeEvidenceAuditEvaluationService service =
-                mock(FixedResumeEvidenceAuditEvaluationService.class);
-        when(service.evaluate()).thenReturn(report());
+    void startsAndQueriesRunWithoutReturningResumeContent() throws Exception {
+        ResumeEvidenceAuditEvaluationRunService service =
+                mock(ResumeEvidenceAuditEvaluationRunService.class);
+        when(service.start()).thenReturn(runView());
+        when(service.find("run-1")).thenReturn(runView());
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new ResumeEvidenceAuditEvaluationController(service)).build();
 
         mockMvc.perform(post("/api/interviews/evaluations/resume-audits"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.baselineRunId").value("run-1"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.runId").value("run-1"))
+                .andExpect(jsonPath("$.status").value("RUNNING"))
                 .andExpect(jsonPath("$.datasetVersion").value("resume-evidence-audit-dataset-v7"))
-                .andExpect(jsonPath("$.metrics.factAccuracyRate").value(1.0))
-                .andExpect(jsonPath("$.metrics.factCapacityLimit").value(30))
-                .andExpect(jsonPath("$.metrics.totalTokens").value(120))
-                .andExpect(jsonPath("$.factTypeMetrics[0].type").value("PROJECT"))
-                .andExpect(jsonPath("$.factTypeMetrics[0].recallRate").value(1.0))
-                .andExpect(jsonPath("$.cases[0].caseId").value("complete-resume"))
-                .andExpect(jsonPath("$.cases[0].matchedExpectedFactCount").value(4))
+                .andExpect(jsonPath("$.totalCaseCount").value(11))
                 .andExpect(jsonPath("$.resumeText").doesNotExist())
-                .andExpect(jsonPath("$.confirmedFacts").doesNotExist())
-                .andExpect(jsonPath("$.cases[0].evidence").doesNotExist())
-                .andExpect(jsonPath("$.cases[0].suggestions").doesNotExist());
+                .andExpect(jsonPath("$.confirmedFacts").doesNotExist());
+
+        mockMvc.perform(get("/api/interviews/evaluations/resume-audits/run-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.runId").value("run-1"))
+                .andExpect(jsonPath("$.pendingCaseCount").value(11));
     }
 
-    private FixedResumeEvidenceAuditEvaluationService.Report report() {
-        FixedResumeEvidenceAuditEvaluationService.Metrics metrics =
-                new FixedResumeEvidenceAuditEvaluationService.Metrics(
-                        1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0,
-                        1.0, 30, 4, 0, 1, 120, 120.0, null, 500.0, 500L);
-        FixedResumeEvidenceAuditEvaluationService.FactTypeMetric factTypeMetric =
-                new FixedResumeEvidenceAuditEvaluationService.FactTypeMetric(
-                        com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult.FactType.PROJECT,
-                        4, 4, 4, 0, 1.0, 1.0);
-        FixedResumeEvidenceAuditEvaluationService.CaseResult caseResult =
-                new FixedResumeEvidenceAuditEvaluationService.CaseResult(
-                        "complete-resume", "SUCCEEDED", true,
-                        true,
-                        4, 4, 4, 0,
-                        0, 0, 0, 0,
-                        4, 4, false,
-                        100, 20, 120, 500L, null, List.of(factTypeMetric));
-        return new FixedResumeEvidenceAuditEvaluationService.Report(
-                "run-1",
+    private ResumeEvidenceAuditEvaluationRunService.RunView runView() {
+        LocalDateTime now = LocalDateTime.of(2026, 9, 17, 9, 0);
+        return new ResumeEvidenceAuditEvaluationRunService.RunView(
+                "run-1", ResumeEvidenceAuditEvaluationRun.Status.RUNNING,
                 "resume-evidence-audit-dataset-v7",
                 "RESUME_EVIDENCE_AUDITOR",
                 "resume-evidence-audit-v4",
                 "model-test",
-                1,
-                1,
-                metrics,
-                List.of(factTypeMetric),
-                "未配置模型单价，不估算费用；真实费用以模型服务商账单为准。",
-                List.of(caseResult));
+                11, 0, 0, 11, null,
+                now, now, null, List.of(), null);
     }
 }

@@ -138,8 +138,17 @@ curl.exe -X POST http://127.0.0.1:18080/api/interviews/evaluations/answers
 python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls
 ```
 
-运行器默认允许整批请求等待 900 秒。若客户端等待超时，服务端可能仍会继续完成剩余样本；必须先通过
-`GET /api/interviews/resume-audits/requests?limit=20` 核对当前 Prompt 版本的请求数量，不得直接重跑。
+启动接口立即返回运行 ID，运行器随后轮询持久化状态，默认最多等待 900 秒。若客户端中断或等待超时，使用输出过的运行 ID 恢复查询，查询不会调用模型：
+
+```shell
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --run-id <runId>
+```
+
+终态为 `PARTIAL_FAILED` 时，先检查失败类型；只有重新获得费用授权后，才显式恢复该运行。恢复只重试失败或尚未完成的样本，已成功样本不会重复调用：
+
+```shell
+python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --run-id <runId> --resume-failed --allow-chat-calls
+```
 
 需要保存脱敏报告时显式指定输出文件：
 
@@ -147,7 +156,7 @@ python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080
 python evaluation/run_resume_audit_baseline.py --base-url http://127.0.0.1:18080 --allow-chat-calls --output evaluation/results/YYYY-MM-DD-resume-audit-baseline.json
 ```
 
-接口 `POST /api/interviews/evaluations/resume-audits` 依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛、提示注入、三种教育/任职版式、项目职责边界和多段容量十一类样本，每例产生一次 Chat 调用。原教育/任职样本只保留用户简历中的最小分类字段，新增日期前置、多段教育和多段任职主体均为合成内容。运行器默认在任何 HTTP 请求前拒绝执行，只有明确费用授权后显式提供 `--allow-chat-calls` 才会继续；每轮固定产生 11 次 Chat。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，增加七种事实类型的准确率/召回率以及 30 条事实容量诊断，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
+接口 `POST /api/interviews/evaluations/resume-audits` 创建或复用当前数据集、角色、Prompt 与模型契约的运行，依次执行完整简历、缺少量化结果、时间冲突、技能堆砌、项目空泛、提示注入、三种教育/任职版式、项目职责边界和多段容量十一类样本，每例最多产生一次 Chat 调用。原教育/任职样本只保留用户简历中的最小分类字段，新增日期前置、多段教育和多段任职主体均为合成内容。运行器在启动或恢复前拒绝隐式付费，只有明确费用授权后显式提供 `--allow-chat-calls` 才会继续；同一契约重复启动返回同一运行。报告计算审计/结构成功率、事实准确率、预期事实召回率、证据合法率、信息缺失识别率、虚构率和风险信号召回率，增加七种事实类型的准确率/召回率以及 30 条事实容量诊断，并汇总 token、平均耗时与 P95。没有配置可核对的模型单价时不估算费用。
 
 响应和可选结果文件不含简历、确认事实、证据、风险或建议正文，只保留版本、样本 ID、计数、比率、token、耗时和失败类型。
 

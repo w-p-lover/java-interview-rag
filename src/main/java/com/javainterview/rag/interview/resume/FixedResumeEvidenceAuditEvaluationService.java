@@ -20,17 +20,48 @@ public class FixedResumeEvidenceAuditEvaluationService {
     }
 
     public Report evaluate() {
+        String runId = UUID.randomUUID().toString();
         List<CaseResult> caseResults = dataset.findAll().stream()
                 .map(this::evaluateCase)
                 .toList();
+        return report(runId, datasetVersion(), roleName(), promptVersion(), modelName(), caseResults);
+    }
+
+    List<FixedResumeEvidenceAuditDataset.Case> evaluationCases() {
+        return dataset.findAll();
+    }
+
+    String datasetVersion() {
+        return FixedResumeEvidenceAuditDataset.VERSION;
+    }
+
+    String roleName() {
+        return auditService.roleName();
+    }
+
+    String promptVersion() {
+        return auditService.promptVersion();
+    }
+
+    String modelName() {
+        return auditService.modelName();
+    }
+
+    Report report(
+            String runId,
+            String datasetVersion,
+            String role,
+            String promptVersion,
+            String modelName,
+            List<CaseResult> caseResults) {
         Metrics metrics = calculateMetrics(caseResults);
         List<FactTypeMetric> factTypeMetrics = aggregateFactTypeMetrics(caseResults);
         return new Report(
-                UUID.randomUUID().toString(),
-                FixedResumeEvidenceAuditDataset.VERSION,
-                auditService.roleName(),
-                auditService.promptVersion(),
-                auditService.modelName(),
+                runId,
+                datasetVersion,
+                role,
+                promptVersion,
+                modelName,
                 caseResults.size(),
                 (int) caseResults.stream().filter(CaseResult::passed).count(),
                 metrics,
@@ -39,7 +70,7 @@ public class FixedResumeEvidenceAuditEvaluationService {
                 caseResults);
     }
 
-    private CaseResult evaluateCase(FixedResumeEvidenceAuditDataset.Case evaluationCase) {
+    CaseResult evaluateCase(FixedResumeEvidenceAuditDataset.Case evaluationCase) {
         List<FactKey> expectedFacts = evaluationCase.expectedFacts().stream()
                 .map(fact -> new FactKey(fact.type(), fact.evidence()))
                 .distinct()
