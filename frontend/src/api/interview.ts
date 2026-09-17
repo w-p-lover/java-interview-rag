@@ -33,6 +33,18 @@ export interface InterviewQuestion {
   knowledgeSources: InterviewKnowledgeSource[];
 }
 
+export interface InterviewPreparationResult {
+  targetRole: string;
+  promptVersion: string;
+  profile: InterviewPreparationProfile;
+}
+
+export interface InterviewQuestionGenerationResult {
+  targetRole: string;
+  promptVersion: string;
+  questions: InterviewQuestion[];
+}
+
 export interface InterviewAnswerEvaluation {
   technicalScore: number;
   completenessScore: number;
@@ -239,6 +251,20 @@ export interface InterviewSessionStartPayload {
   maxQuestionCount: number;
 }
 
+export interface InterviewSessionCreatePayload {
+  targetRole: string;
+  profile: InterviewPreparationProfile;
+  questions: InterviewQuestion[];
+  maxQuestionCount: number;
+}
+
+export interface InterviewQuestionDraftPayload {
+  targetRole: string;
+  resumeText: string;
+  jobDescription?: string;
+  questionCount: number;
+}
+
 export interface ProjectDeepDiveSessionStartPayload {
   targetRole: string;
   project: ResumeEvidenceConfirmedFact;
@@ -426,6 +452,37 @@ export async function startInterviewSession(
   const response = await request.post<InterviewSession>("/interviews/sessions/start", payload, {
     timeout: 120_000,
   });
+  return response.data;
+}
+
+export async function prepareInterview(
+  payload: Pick<InterviewQuestionDraftPayload, "targetRole" | "resumeText" | "jobDescription">,
+): Promise<InterviewPreparationResult> {
+  const response = await request.post<InterviewPreparationResult>(
+    "/interviews/preparations",
+    payload,
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function generateInterviewQuestions(
+  targetRole: string,
+  profile: InterviewPreparationProfile,
+  questionCount: number,
+): Promise<InterviewQuestionGenerationResult> {
+  const response = await request.post<InterviewQuestionGenerationResult>(
+    "/interviews/questions",
+    { targetRole, profile, questionCount },
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function createInterviewSession(
+  payload: InterviewSessionCreatePayload,
+): Promise<InterviewSession> {
+  const response = await request.post<InterviewSession>("/interviews/sessions", payload);
   return response.data;
 }
 

@@ -11,14 +11,17 @@ import {
 import { computed, reactive, watch } from "vue";
 
 import type {
-  InterviewSessionStartPayload,
+  InterviewQuestionDraftPayload,
+  InterviewSessionCreatePayload,
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
+import InterviewQuestionDraftPanel from "@/components/interview/InterviewQuestionDraftPanel.vue";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
 import ProjectDeepDivePanel from "@/components/interview/ProjectDeepDivePanel.vue";
 import ResumeJobMatchPanel from "@/components/interview/ResumeJobMatchPanel.vue";
 import ResumeEvidenceAuditPanel from "@/components/interview/ResumeEvidenceAuditPanel.vue";
 import ResumeExpressionCoachPanel from "@/components/interview/ResumeExpressionCoachPanel.vue";
+import { useInterviewQuestionDraft } from "@/composables/useInterviewQuestionDraft";
 import { useResumeEvidenceAudit } from "@/composables/useResumeEvidenceAudit";
 import {
   INTERVIEW_DEMO_JOB_DESCRIPTION,
@@ -31,7 +34,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  start: [payload: InterviewSessionStartPayload];
+  start: [payload: InterviewSessionCreatePayload];
   startProjectDeepDive: [payload: ProjectDeepDiveSessionStartPayload];
 }>();
 
@@ -60,9 +63,24 @@ const {
   audit: runResumeAudit,
 } = useResumeEvidenceAudit(() => form.resumeText);
 
+const {
+  preparation: interviewPreparation,
+  generation: questionGeneration,
+  loading: draftLoading,
+  error: draftError,
+  canConfirm: canConfirmDraft,
+  generate: generateDraft,
+  invalidateIfChanged: invalidateDraftIfChanged,
+  updateQuestion,
+  updateObjective,
+  removeQuestion,
+  createSessionPayload,
+  clear: clearDraft,
+} = useInterviewQuestionDraft();
+
 const initialQuestionOptions = [3, 4, 5, 6, 7, 8];
 const canStart = computed(() => Boolean(form.targetRole.trim() && form.resumeText.trim()));
-const interactionBusy = computed(() => props.busy || auditLoading.value);
+const interactionBusy = computed(() => props.busy || auditLoading.value || draftLoading.value);
 const readyRequirementCount = computed(() => [form.targetRole, form.resumeText]
   .filter((value) => value.trim()).length);
 const readinessPercent = computed(() => readyRequirementCount.value * 50);
@@ -83,18 +101,36 @@ watch(
   },
 );
 
+watch(
+  () => [form.targetRole, form.resumeText, form.jobDescription, form.initialQuestionCount] as const,
+  () => invalidateDraftIfChanged(toDraftPayload()),
+);
+
 function handleSubmit(): void {
   if (!canStart.value || interactionBusy.value) {
     return;
   }
 
-  emit("start", {
+  void generateDraft(toDraftPayload(), toDraftPayload);
+}
+
+function toDraftPayload(): InterviewQuestionDraftPayload {
+  return {
     targetRole: form.targetRole.trim(),
     resumeText: form.resumeText.trim(),
     jobDescription: form.jobDescription?.trim() || undefined,
-    initialQuestionCount: form.initialQuestionCount,
-    maxQuestionCount: form.maxQuestionCount,
-  });
+    questionCount: form.initialQuestionCount,
+  };
+}
+
+function handleConfirmDraft(): void {
+  if (props.busy) {
+    return;
+  }
+  const payload = createSessionPayload(form.maxQuestionCount);
+  if (payload) {
+    emit("start", payload);
+  }
 }
 
 function handleProjectDeepDiveStart(payload: ProjectDeepDiveSessionStartPayload): void {
@@ -117,7 +153,9 @@ function loadDemoMaterials(): void {
 
 <template>
   <form class="setup" @submit.prevent="handleSubmit">
-    <header class="setup-heading">
+    <p v-if="draftError" class="draft-error" role="alert">{{ draftError }}</p>
+    <template v-if="!questionGeneration || !interviewPreparation">
+      <header class="setup-heading">
       <div class="heading-copy">
         <span class="setup-kicker">Interview room / 02</span>
         <h1>开始一场模拟面试</h1>
@@ -131,13 +169,14 @@ function loadDemoMaterials(): void {
           type="text"
           maxlength="100"
           required
+          :disabled="interactionBusy"
           autocomplete="organization-title"
           placeholder="例如：Java AI 应用开发工程师"
         />
       </label>
-    </header>
+      </header>
 
-    <div class="setup-layout">
+      <div class="setup-layout">
       <section class="materials" aria-labelledby="materials-title">
         <div class="section-heading-row">
           <div class="section-heading">
@@ -234,7 +273,7 @@ function loadDemoMaterials(): void {
         <div class="count-grid">
           <label>
             <span>首轮题数</span>
-            <select v-model="form.initialQuestionCount">
+            <select v-model="form.initialQuestionCount" :disabled="interactionBusy">
               <option v-for="count in initialQuestionOptions" :key="count" :value="count">
                 {{ count }} 道
               </option>
@@ -242,7 +281,7 @@ function loadDemoMaterials(): void {
           </label>
           <label>
             <span>最多题数</span>
-            <select v-model="form.maxQuestionCount">
+            <select v-model="form.maxQuestionCount" :disabled="interactionBusy">
               <option v-for="count in maxQuestionOptions" :key="count" :value="count">
                 {{ count }} 道
               </option>
@@ -291,14 +330,29 @@ function loadDemoMaterials(): void {
           :disabled="interactionBusy || !canStart"
         >
           <Play :size="17" aria-hidden="true" />
-          <span>{{ props.busy ? "正在提交…" : (auditLoading ? "正在检查简历…" : "开始面试") }}</span>
+          <span>{{ draftLoading ? "正在生成题目…" : (auditLoading ? "正在检查简历…" : "生成题目草稿") }}</span>
         </button>
 
         <p class="settings-note">
-          {{ auditLoading ? "检查完成后即可继续。" : (canStart ? "材料已就绪，可以开始。" : "上传简历后即可开始。") }}
+          {{ draftLoading ? "正在生成准备画像和首轮题目。" : (canStart ? "材料已就绪，可以生成题目。" : "上传简历后即可生成题目。") }}
         </p>
       </aside>
-    </div>
+      </div>
+    </template>
+
+    <InterviewQuestionDraftPanel
+      v-else
+      :preparation="interviewPreparation"
+      :generation="questionGeneration"
+      :busy="interactionBusy"
+      :can-confirm="canConfirmDraft"
+      @update-question="updateQuestion"
+      @update-objective="updateObjective"
+      @remove-question="removeQuestion"
+      @regenerate="handleSubmit"
+      @cancel="clearDraft"
+      @confirm="handleConfirmDraft"
+    />
   </form>
 </template>
 
@@ -306,6 +360,16 @@ function loadDemoMaterials(): void {
 .setup {
   display: grid;
   gap: var(--space-lg);
+}
+
+.draft-error {
+  margin: 0;
+  padding: var(--space-md);
+  border: var(--rule-thin) solid var(--color-error-rule);
+  border-radius: var(--radius-control);
+  color: var(--color-error);
+  background: var(--color-error-soft);
+  font-size: var(--text-sm);
 }
 
 .setup-heading {

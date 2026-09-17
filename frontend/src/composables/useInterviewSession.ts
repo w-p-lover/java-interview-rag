@@ -3,13 +3,13 @@ import axios from "axios";
 
 import {
   completeInterviewReviewTask,
+  createInterviewSession,
   generateInterviewReviewTasks,
   getInterviewReviewHistory,
   getInterviewReviewTasks,
   getInterviewSession,
   getInterviewSessionEvents,
   scheduleInterviewReviewTask,
-  startInterviewSession,
   startProjectDeepDiveSession as requestProjectDeepDiveSession,
   submitInterviewAnswerStream,
   submitInterviewReviewAttempt,
@@ -19,7 +19,7 @@ import {
   type InterviewReviewTaskQuery,
   type InterviewSession,
   type InterviewConversationEvent,
-  type InterviewSessionStartPayload,
+  type InterviewSessionCreatePayload,
   type ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
@@ -151,14 +151,14 @@ export function useInterviewSession() {
     recentSessionsLoading.value = false;
   }
 
-  async function start(payload: InterviewSessionStartPayload): Promise<void> {
+  async function start(payload: InterviewSessionCreatePayload): Promise<void> {
     loading.value = true;
     error.value = "";
     clearReviewTasks();
     conversationEvents.value = [];
     conversationStage.value = null;
     try {
-      const created = await startInterviewSession(payload);
+      const created = await createInterviewSession(payload);
       session.value = created;
       window.localStorage.setItem(SESSION_STORAGE_KEY, created.id);
       rememberRecentSession(created);

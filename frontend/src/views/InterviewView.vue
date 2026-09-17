@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import type {
   InterviewReviewTaskQuery,
-  InterviewSessionStartPayload,
+  InterviewSessionCreatePayload,
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
@@ -95,7 +95,7 @@ onMounted(async () => {
   focusReviewTask(highlightedReviewTaskId.value);
 });
 
-function handleStart(payload: InterviewSessionStartPayload): void {
+function handleStart(payload: InterviewSessionCreatePayload): void {
   void start(payload);
 }
 
