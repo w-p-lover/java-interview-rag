@@ -167,13 +167,13 @@ docker compose up -d mysql qdrant
 
 固定 RAG 评估集只用于比较检索、Prompt 和模型版本，不是用户侧面试题库。用户侧从 `POST /api/interviews/preparations` 开始：请求必须提供 `targetRole` 和 `resumeText`，`jobDescription` 可选。服务使用 `interview-preparation-v1` Prompt 要求模型只依据输入生成结构化画像，不推断不存在的经历，不生成面试题、评分或录用判断。响应中的 `resumeEvidence`、`jobRequirements` 与 `focusAreas` 将作为后续生成可追踪面试题前的可确认草稿。
 
-调用方确认画像后，可以把 `targetRole`、`profile` 与 3 到 8 的 `questionCount` 提交到 `POST /api/interviews/questions`。服务使用 `interview-question-v1` Prompt 生成指定数量的题目，每道题必须绑定画像中已经出现的 `TARGET_ROLE`、`RESUME`、`JOB_DESCRIPTION` 依据类型，并使用独立的 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库。可靠命中时返回实际 chunk；没有命中时题目仍由画像支撑，但 `knowledgeGrounded=false` 且知识来源为空，不伪造引用。
+调用方确认画像后，可以把 `targetRole`、`profile`、3 到 8 的 `questionCount`、整场题数上限、Skill、难度和准备 Prompt 版本提交到 `POST /api/interviews/questions`。`deterministic-multi-source-v1` 按题数固定分配 1 到 2 道 Skill 题，其余题目由 `interview-question-v1` 根据简历、JD 和目标岗位生成；支持 Java 核心、Spring、数据库、系统设计和 RAG/AI 五类 Skill 及三档难度。每题保存主来源与辅助来源，生成题使用独立 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库；可靠命中时返回实际 chunk，没有命中时不伪造引用。Skill、难度、题数、来源配额、每题来源、模型和 Prompt/策略版本会作为配置快照随正式会话持久化。
 
 `POST /api/interviews/sessions/start` 可以直接串联画像、指定数量的首轮出题和会话创建。会话只允许按当前题号顺序回答；每次提交先校验 `questionIndex` 和 `expectedVersion`，再调用模型生成结构化评价。评价只把题目已有的真实 chunk 视为可靠知识依据；没有来源时不会声称技术事实已经验证。模型认为存在关键遗漏时可以生成一条追问，服务再次检索真实知识来源并把追问追加到队列末尾，但不会超过 12 道整场上限，也不会追加完全重复的题目。
 
 简历证据检查确认项目事实后，可以调用 `POST /api/interviews/sessions/start-project-deep-dive` 创建 `PROJECT_DEEP_DIVE` 会话。服务不调用 Chat 出题，而是固定生成基础、取舍、故障和扩展四题，并把整场题数上限锁定为 4，因此评价器即使提出追问也不会追加第五题。四题继续复用现有证据化评分、乐观锁、报告和最近会话恢复链路；知识检索默认关闭，只有请求显式开启时才只读补充真实资料来源。
 
-当当前题目队列答完后，会话自动完成，并从已经保存的逐题评价确定性计算四项平均分、最多 5 条优势和最多 5 条薄弱项。页面刷新或应用重启后可以按 UUID 恢复。建表与扩展迁移分别为 `deploy/mysql/init/004_interview_session.sql` 和 `deploy/mysql/init/005_expand_interview_session.sql`；两份脚本已按顺序执行到独立数据库 `java_interview_rag`。受控真实验证已覆盖画像、首轮出题、逐题评分、动态追问、最终报告以及进行中和已完成会话的跨重启恢复；虚构测试会话已清理。
+当当前题目队列答完后，会话自动完成，并从已经保存的逐题评价确定性计算四项平均分、最多 5 条优势和最多 5 条薄弱项。页面刷新或应用重启后可以按 UUID 恢复。建表与扩展迁移包括 `004_interview_session.sql`、`005_expand_interview_session.sql` 和 `028_interview_session_configuration.sql`；`028` 已于 2026-09-18 在独立 MySQL 5.7.36 数据库执行并核对 `configuration_json`。受控真实验证已覆盖画像、首轮出题、逐题评分、动态追问、最终报告以及进行中和已完成会话的跨重启恢复；新的多来源组卷已完成确定性测试，尚未在本轮调用付费模型做真实题单验收。
 
 完成会话可以生成复习任务。服务逐题读取已经持久化的评价，只为 `gaps` 非空的回答生成任务，并从原题复制可追溯的知识来源元数据；任务 ID 和“会话 + 题号”唯一键共同保证重试幂等。`/interview` 在最后一题提交成功后调用 `POST` 生成，在恢复已完成会话时调用 `GET` 查询，生成失败可以在独立错误状态中重试且不影响最终报告。每条任务现在可直接提交独立 attempt：原 `InterviewSessionAnswer` 不修改，attempt 记录回答、评价、知识来源元数据、Prompt/rubric/model 版本和分数变化；复习模式不生成动态追问，序号冲突返回 409。会话历史接口基于这些持久化事实计算每题正式、首次、最近、最好分数和最近遗漏，并汇总已练题数、总次数与提升题数；前端不自行重算指标。迁移脚本 `deploy/mysql/init/006_interview_review_task.sql`、`007_complete_interview_review_task.sql`、`008_interview_review_attempt.sql` 与 `011_schedule_interview_review_task.sql` 按顺序提供持久化结构；任务可以从 `PENDING` 幂等推进到 `COMPLETED`，`completed_at` 只记录首次完成时间，`planned_review_date` 为可空日期。`011` 已在独立 MySQL 5.7.36 数据库执行并验证；重开、提醒、跨会话查询、写入型工具和模型自动工具调用仍属于后续闭环。
 

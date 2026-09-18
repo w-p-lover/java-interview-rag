@@ -7,6 +7,11 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewDifficulty;
+import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
+import com.javainterview.rag.interview.question.InterviewQuestionSource;
+import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
@@ -42,6 +47,7 @@ class MySqlInterviewSessionStoreTest {
         assertEquals("session-1", entity.getId());
         assertEquals("Java AI 应用开发工程师", entity.getTargetRole());
         assertEquals("STANDARD", entity.getSessionMode());
+        assertTrue(entity.getConfigurationJson().contains("legacy-v1"));
         assertTrue(entity.getProfileJson().contains("具备 Java 后端和 RAG 项目经验"));
         assertTrue(entity.getQuestionsJson().contains("如何保证向量更新一致性"));
         assertEquals(8, entity.getMaxQuestionCount());
@@ -104,6 +110,48 @@ class MySqlInterviewSessionStoreTest {
         InterviewSession restored = store.findById("session-1").orElseThrow();
 
         assertEquals(InterviewSessionMode.PROJECT_DEEP_DIVE, restored.mode());
+    }
+
+    @Test
+    void persistsAndRestoresConfirmedConfigurationSnapshot() {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper());
+        InterviewSession legacy = initialSession();
+        InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
+                "deterministic-multi-source-v1",
+                InterviewSessionMode.STANDARD,
+                InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.ADVANCED,
+                3,
+                8,
+                java.util.Map.of(
+                        InterviewQuestionSource.SKILL_FIXED, 1,
+                        InterviewQuestionSource.RESUME, 2),
+                List.of(
+                        new InterviewQuestionAllocation(0, InterviewQuestionSource.SKILL_FIXED,
+                                List.of(InterviewQuestionSource.TARGET_ROLE)),
+                        new InterviewQuestionAllocation(1, InterviewQuestionSource.RESUME,
+                                List.of(InterviewQuestionSource.RESUME)),
+                        new InterviewQuestionAllocation(2, InterviewQuestionSource.RESUME,
+                                List.of(InterviewQuestionSource.RESUME))),
+                "interview-preparation-v1",
+                "interview-question-v1",
+                "qwen-test");
+        InterviewSession configured = new InterviewSession(
+                legacy.id(), legacy.targetRole(), legacy.mode(), legacy.profile(), configuration,
+                legacy.questions(), legacy.maxQuestionCount(), legacy.answers(),
+                legacy.currentQuestionIndex(), legacy.status(), legacy.version(), legacy.report(),
+                legacy.createdAt(), legacy.updatedAt());
+
+        store.create(configured);
+
+        ArgumentCaptor<InterviewSessionEntity> captor = ArgumentCaptor.forClass(InterviewSessionEntity.class);
+        verify(mapper).insert(captor.capture());
+        InterviewSessionEntity entity = captor.getValue();
+        assertTrue(entity.getConfigurationJson().contains("deterministic-multi-source-v1"));
+        when(mapper.selectById(configured.id())).thenReturn(entity);
+        InterviewSession restored = store.findById(configured.id()).orElseThrow();
+        assertEquals(configuration, restored.configuration());
     }
 
     @Test

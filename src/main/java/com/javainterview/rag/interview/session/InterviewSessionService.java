@@ -34,12 +34,35 @@ public class InterviewSessionService {
 
     public InterviewSession start(String targetRole, InterviewPreparationProfile profile,
                                   List<InterviewQuestion> questions, int maxQuestionCount) {
-        return start(InterviewSessionMode.STANDARD, targetRole, profile, questions, maxQuestionCount);
+        if (questions == null) {
+            throw new IllegalArgumentException("面试题不能为空");
+        }
+        return start(InterviewSessionMode.STANDARD, targetRole, profile, questions, maxQuestionCount,
+                InterviewConfigurationSnapshot.legacy(
+                        InterviewSessionMode.STANDARD, questions.size(), maxQuestionCount));
+    }
+
+    public InterviewSession start(String targetRole, InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration) {
+        return start(InterviewSessionMode.STANDARD, targetRole, profile, questions,
+                maxQuestionCount, configuration);
     }
 
     public InterviewSession start(InterviewSessionMode mode, String targetRole,
                                   InterviewPreparationProfile profile,
                                   List<InterviewQuestion> questions, int maxQuestionCount) {
+        if (questions == null) {
+            throw new IllegalArgumentException("面试题不能为空");
+        }
+        return start(mode, targetRole, profile, questions, maxQuestionCount,
+                InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount));
+    }
+
+    public InterviewSession start(InterviewSessionMode mode, String targetRole,
+                                  InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration) {
         String normalizedTargetRole = requireText(targetRole, TARGET_ROLE_MAX_LENGTH,
                 "目标岗位不能为空", "目标岗位不能超过 100 个字符");
         if (mode == null) {
@@ -51,12 +74,20 @@ public class InterviewSessionService {
         if (questions == null) {
             throw new IllegalArgumentException("面试题不能为空");
         }
+        if (configuration == null) {
+            throw new IllegalArgumentException("面试配置快照不能为空");
+        }
+        if (configuration.initialQuestionCount() != questions.size()
+                || configuration.maxQuestionCount() != maxQuestionCount) {
+            throw new IllegalArgumentException("面试配置题数与确认题单不一致");
+        }
         LocalDateTime now = LocalDateTime.now();
         InterviewSession session = new InterviewSession(
                 UUID.randomUUID().toString(),
                 normalizedTargetRole,
                 mode,
                 profile,
+                configuration,
                 questions,
                 maxQuestionCount,
                 List.of(),

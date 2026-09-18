@@ -55,7 +55,9 @@ class InterviewSessionControllerTest {
                 evaluation(), null, LocalDateTime.of(2026, 7, 27, 11, 5));
         when(startService.start(
                 "Java AI 应用开发工程师", "简历正文", "岗位描述", 5, 8)).thenReturn(initial);
-        when(service.start(initial.targetRole(), initial.profile(), initial.questions(), 8)).thenReturn(initial);
+        when(service.start(
+                initial.targetRole(), initial.profile(), initial.questions(), 8,
+                initial.configuration())).thenReturn(initial);
         when(service.find("session-1")).thenReturn(initial);
         when(service.submitAnswer(
                 "session-1", 0, 0L,
@@ -109,11 +111,13 @@ class InterviewSessionControllerTest {
         mockMvc.perform(post("/api/interviews/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new InterviewSessionCreateRequest(
-                                initial.targetRole(), initial.profile(), initial.questions(), 8))))
+                                initial.targetRole(), initial.profile(), initial.questions(), 8,
+                                initial.configuration()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("session-1"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.currentQuestionIndex").value(0))
+                .andExpect(jsonPath("$.configuration.strategyVersion").value("legacy-v1"))
                 .andExpect(jsonPath("$.questions.length()").value(3));
 
         mockMvc.perform(get("/api/interviews/sessions/session-1"))

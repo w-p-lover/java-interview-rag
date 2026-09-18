@@ -1,8 +1,11 @@
 package com.javainterview.rag.interview.web;
 
+import com.javainterview.rag.interview.question.FixedInterviewQuestionCatalog;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
+import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -16,5 +19,18 @@ public class InterviewQuestionConfiguration {
             ChatClient ragAnswerChatClient,
             MarkdownSimilaritySearchService searchService) {
         return new InterviewQuestionGenerationService(ragAnswerChatClient, searchService);
+    }
+
+    @Bean
+    FixedInterviewQuestionCatalog fixedInterviewQuestionCatalog() {
+        return new FixedInterviewQuestionCatalog();
+    }
+
+    @Bean
+    InterviewQuestionPlanService interviewQuestionPlanService(
+            InterviewQuestionGenerationService generationService,
+            FixedInterviewQuestionCatalog fixedQuestionCatalog,
+            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
+        return new InterviewQuestionPlanService(generationService, fixedQuestionCatalog, modelName);
     }
 }

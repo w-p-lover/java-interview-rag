@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.session.InterviewSession;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
@@ -49,6 +50,7 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
         try {
             return InterviewSessionEntity.from(
                     session,
+                    objectMapper.writeValueAsString(session.configuration()),
                     objectMapper.writeValueAsString(session.profile()),
                     objectMapper.writeValueAsString(session.questions()),
                     objectMapper.writeValueAsString(session.answers()),
@@ -61,14 +63,23 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
 
     private InterviewSession toSession(InterviewSessionEntity entity) {
         try {
+            List<InterviewQuestion> questions = objectMapper.readValue(
+                    entity.getQuestionsJson(), QUESTION_LIST_TYPE);
+            InterviewSessionMode mode = entity.getSessionMode() == null
+                    ? InterviewSessionMode.STANDARD
+                    : InterviewSessionMode.valueOf(entity.getSessionMode());
+            InterviewConfigurationSnapshot configuration = entity.getConfigurationJson() == null
+                    ? InterviewConfigurationSnapshot.legacy(
+                    mode, questions.size(), entity.getMaxQuestionCount())
+                    : objectMapper.readValue(
+                    entity.getConfigurationJson(), InterviewConfigurationSnapshot.class);
             return new InterviewSession(
                     entity.getId(),
                     entity.getTargetRole(),
-                    entity.getSessionMode() == null
-                            ? InterviewSessionMode.STANDARD
-                            : InterviewSessionMode.valueOf(entity.getSessionMode()),
+                    mode,
                     objectMapper.readValue(entity.getProfileJson(), InterviewPreparationProfile.class),
-                    objectMapper.readValue(entity.getQuestionsJson(), QUESTION_LIST_TYPE),
+                    configuration,
+                    questions,
                     entity.getMaxQuestionCount(),
                     objectMapper.readValue(entity.getAnswersJson(), ANSWER_LIST_TYPE),
                     entity.getCurrentQuestionIndex(),

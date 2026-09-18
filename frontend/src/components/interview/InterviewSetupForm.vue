@@ -12,6 +12,8 @@ import { computed, reactive, watch } from "vue";
 
 import type {
   InterviewQuestionDraftPayload,
+  InterviewDifficulty,
+  InterviewSkill,
   InterviewSessionCreatePayload,
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
@@ -44,6 +46,8 @@ interface InterviewSetupFormData {
   jobDescription: string;
   initialQuestionCount: number;
   maxQuestionCount: number;
+  skill: InterviewSkill;
+  difficulty: InterviewDifficulty;
 }
 
 const form = reactive<InterviewSetupFormData>({
@@ -52,6 +56,8 @@ const form = reactive<InterviewSetupFormData>({
   jobDescription: "",
   initialQuestionCount: 5,
   maxQuestionCount: 8,
+  skill: "JAVA_CORE",
+  difficulty: "INTERMEDIATE",
 });
 
 const {
@@ -79,6 +85,18 @@ const {
 } = useInterviewQuestionDraft();
 
 const initialQuestionOptions = [3, 4, 5, 6, 7, 8];
+const skillOptions: Array<{ value: InterviewSkill; label: string }> = [
+  { value: "JAVA_CORE", label: "Java 核心" },
+  { value: "SPRING", label: "Spring" },
+  { value: "DATABASE", label: "数据库" },
+  { value: "SYSTEM_DESIGN", label: "系统设计" },
+  { value: "RAG_AI", label: "RAG / AI" },
+];
+const difficultyOptions: Array<{ value: InterviewDifficulty; label: string }> = [
+  { value: "BASIC", label: "基础" },
+  { value: "INTERMEDIATE", label: "进阶" },
+  { value: "ADVANCED", label: "高级场景" },
+];
 const canStart = computed(() => Boolean(form.targetRole.trim() && form.resumeText.trim()));
 const interactionBusy = computed(() => props.busy || auditLoading.value || draftLoading.value);
 const readyRequirementCount = computed(() => [form.targetRole, form.resumeText]
@@ -102,7 +120,15 @@ watch(
 );
 
 watch(
-  () => [form.targetRole, form.resumeText, form.jobDescription, form.initialQuestionCount] as const,
+  () => [
+    form.targetRole,
+    form.resumeText,
+    form.jobDescription,
+    form.initialQuestionCount,
+    form.maxQuestionCount,
+    form.skill,
+    form.difficulty,
+  ] as const,
   () => invalidateDraftIfChanged(toDraftPayload()),
 );
 
@@ -120,6 +146,9 @@ function toDraftPayload(): InterviewQuestionDraftPayload {
     resumeText: form.resumeText.trim(),
     jobDescription: form.jobDescription?.trim() || undefined,
     questionCount: form.initialQuestionCount,
+    maxQuestionCount: form.maxQuestionCount,
+    skill: form.skill,
+    difficulty: form.difficulty,
   };
 }
 
@@ -148,6 +177,8 @@ function loadDemoMaterials(): void {
   form.jobDescription = INTERVIEW_DEMO_JOB_DESCRIPTION;
   form.initialQuestionCount = 5;
   form.maxQuestionCount = 8;
+  form.skill = "RAG_AI";
+  form.difficulty = "INTERMEDIATE";
 }
 </script>
 
@@ -271,6 +302,26 @@ function loadDemoMaterials(): void {
         </div>
 
         <div class="count-grid">
+          <label>
+            <span>专项 Skill</span>
+            <select v-model="form.skill" :disabled="interactionBusy">
+              <option v-for="option in skillOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>难度</span>
+            <select v-model="form.difficulty" :disabled="interactionBusy">
+              <option
+                v-for="option in difficultyOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </label>
           <label>
             <span>首轮题数</span>
             <select v-model="form.initialQuestionCount" :disabled="interactionBusy">

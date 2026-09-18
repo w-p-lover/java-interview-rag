@@ -4,12 +4,18 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewDifficulty;
+import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
+import com.javainterview.rag.interview.question.InterviewQuestionSource;
+import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class ProjectDeepDiveSessionStartService {
@@ -39,7 +45,32 @@ public class ProjectDeepDiveSessionStartService {
                 targetRole,
                 profile,
                 questions,
-                QUESTION_COUNT);
+                QUESTION_COUNT,
+                configuration(result));
+    }
+
+    private InterviewConfigurationSnapshot configuration(ProjectDeepDiveResult result) {
+        List<InterviewQuestionAllocation> allocations = java.util.stream.IntStream
+                .range(0, QUESTION_COUNT)
+                .mapToObj(index -> new InterviewQuestionAllocation(
+                        index,
+                        InterviewQuestionSource.PROJECT,
+                        result.questions().get(index).knowledgeGrounded()
+                                ? List.of(InterviewQuestionSource.RESUME, InterviewQuestionSource.KNOWLEDGE)
+                                : List.of(InterviewQuestionSource.RESUME)))
+                .toList();
+        return new InterviewConfigurationSnapshot(
+                result.strategyVersion(),
+                InterviewSessionMode.PROJECT_DEEP_DIVE,
+                InterviewSkill.GENERAL,
+                InterviewDifficulty.ADVANCED,
+                QUESTION_COUNT,
+                QUESTION_COUNT,
+                Map.of(InterviewQuestionSource.PROJECT, QUESTION_COUNT),
+                allocations,
+                "resume-evidence-confirmed",
+                result.strategyVersion(),
+                "deterministic");
     }
 
     private InterviewPreparationProfile profile(ProjectDeepDiveResult.Project project) {

@@ -14,6 +14,7 @@ public record InterviewSession(
         String targetRole,
         InterviewSessionMode mode,
         InterviewPreparationProfile profile,
+        InterviewConfigurationSnapshot configuration,
         List<InterviewQuestion> questions,
         int maxQuestionCount,
         List<InterviewSessionAnswer> answers,
@@ -33,12 +34,20 @@ public record InterviewSession(
         targetRole = requireText(targetRole, "目标岗位不能为空");
         mode = Objects.requireNonNull(mode, "面试会话模式不能为空");
         profile = Objects.requireNonNull(profile, "面试准备画像不能为空");
+        configuration = Objects.requireNonNull(configuration, "面试配置快照不能为空");
+        if (configuration.mode() != mode) {
+            throw new IllegalArgumentException("面试配置模式与会话模式不一致");
+        }
         questions = List.copyOf(Objects.requireNonNull(questions, "面试题不能为空"));
         if (questions.size() < MIN_QUESTION_COUNT || questions.size() > MAX_QUESTION_COUNT) {
             throw new IllegalArgumentException("面试会话题数必须在 3 到 12 之间");
         }
         if (maxQuestionCount < questions.size() || maxQuestionCount > MAX_QUESTION_COUNT) {
             throw new IllegalArgumentException("面试题数上限必须在当前题数到 12 之间");
+        }
+        if (configuration.initialQuestionCount() > questions.size()
+                || configuration.maxQuestionCount() != maxQuestionCount) {
+            throw new IllegalArgumentException("面试配置题数与会话题数不一致");
         }
         answers = List.copyOf(Objects.requireNonNull(answers, "面试回答不能为空"));
         if (currentQuestionIndex < 0 || currentQuestionIndex > questions.size()) {
@@ -74,6 +83,25 @@ public record InterviewSession(
         }
     }
 
+    public InterviewSession(String id,
+                            String targetRole,
+                            InterviewSessionMode mode,
+                            InterviewPreparationProfile profile,
+                            List<InterviewQuestion> questions,
+                            int maxQuestionCount,
+                            List<InterviewSessionAnswer> answers,
+                            int currentQuestionIndex,
+                            InterviewSessionStatus status,
+                            long version,
+                            InterviewSessionReport report,
+                            LocalDateTime createdAt,
+                            LocalDateTime updatedAt) {
+        this(id, targetRole, mode, profile,
+                InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount),
+                questions, maxQuestionCount, answers, currentQuestionIndex, status, version,
+                report, createdAt, updatedAt);
+    }
+
     public InterviewSession answer(String answer,
                                    InterviewAnswerEvaluation evaluation,
                                    InterviewQuestion followUpQuestion,
@@ -105,6 +133,7 @@ public record InterviewSession(
                 targetRole,
                 mode,
                 profile,
+                configuration,
                 updatedQuestions,
                 maxQuestionCount,
                 updatedAnswers,

@@ -10,9 +10,12 @@ import { computed, type DeepReadonly } from "vue";
 
 import type {
   InterviewFocusSource,
+  InterviewDifficulty,
   InterviewPreparationResult,
   InterviewQuestion,
   InterviewQuestionGenerationResult,
+  InterviewQuestionSource,
+  InterviewSkill,
 } from "@/api/interview";
 
 const props = defineProps<{
@@ -38,6 +41,42 @@ const sourceLabels: Record<InterviewFocusSource, string> = {
   RESUME: "简历",
   JOB_DESCRIPTION: "岗位描述",
 };
+
+const questionSourceLabels: Record<InterviewQuestionSource, string> = {
+  SKILL_FIXED: "Skill 固定题",
+  TARGET_ROLE: "目标岗位",
+  RESUME: "简历事实",
+  JOB_DESCRIPTION: "岗位描述",
+  KNOWLEDGE: "知识资料",
+  PROJECT: "项目事实",
+  LEGACY: "历史题单",
+};
+
+const skillLabels: Record<InterviewSkill, string> = {
+  JAVA_CORE: "Java 核心",
+  SPRING: "Spring",
+  DATABASE: "数据库",
+  SYSTEM_DESIGN: "系统设计",
+  RAG_AI: "RAG / AI",
+  GENERAL: "综合",
+};
+
+const difficultyLabels: Record<InterviewDifficulty, string> = {
+  BASIC: "基础",
+  INTERMEDIATE: "进阶",
+  ADVANCED: "高级场景",
+};
+
+function questionSourceLabel(index: number): string {
+  const allocation = props.generation.configuration.questionAllocations[index];
+  if (!allocation) {
+    return "未记录";
+  }
+  const supporting = allocation.supportingSources
+    .filter((source) => source !== allocation.primarySource)
+    .map((source) => questionSourceLabels[source]);
+  return [questionSourceLabels[allocation.primarySource], ...supporting].join(" / ");
+}
 
 function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string {
   if (!question.knowledgeGrounded || !question.knowledgeSources.length) {
@@ -66,6 +105,11 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
       <div>
         <strong>{{ preparation.targetRole }}</strong>
         <p>{{ preparation.profile.candidateSummary }}</p>
+        <div class="configuration-summary">
+          <span>{{ skillLabels[generation.configuration.skill] }}</span>
+          <span>{{ difficultyLabels[generation.configuration.difficulty] }}</span>
+          <span>{{ generation.configuration.strategyVersion }}</span>
+        </div>
       </div>
     </div>
 
@@ -110,6 +154,10 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
         />
 
         <dl class="question-meta">
+          <div>
+            <dt>题目来源</dt>
+            <dd>{{ questionSourceLabel(index) }}</dd>
+          </div>
           <div>
             <dt>出题依据</dt>
             <dd>{{ question.basisSources.map((source) => sourceLabels[source]).join(" / ") }}</dd>
@@ -212,6 +260,22 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
   gap: var(--space-xs);
 }
 
+.configuration-summary {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: var(--space-xs) !important;
+  margin-top: var(--space-xs);
+}
+
+.configuration-summary span {
+  padding: var(--space-2xs) var(--space-xs);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
 .profile-summary strong {
   color: var(--color-ink);
 }
@@ -291,7 +355,7 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
 
 .question-meta {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
   margin: 0;
   padding-top: var(--space-sm);

@@ -4,6 +4,7 @@ import {
   generateInterviewQuestions,
   prepareInterview,
   type InterviewQuestion,
+  type InterviewQuestionAllocation,
   type InterviewQuestionDraftPayload,
   type InterviewQuestionGenerationResult,
   type InterviewPreparationResult,
@@ -19,6 +20,9 @@ function fingerprint(payload: InterviewQuestionDraftPayload): string {
     payload.resumeText.trim(),
     payload.jobDescription?.trim() || "",
     payload.questionCount,
+    payload.maxQuestionCount,
+    payload.skill,
+    payload.difficulty,
   ]);
 }
 
@@ -52,6 +56,10 @@ export function useInterviewQuestionDraft() {
         nextPreparation.targetRole,
         nextPreparation.profile,
         payload.questionCount,
+        payload.maxQuestionCount,
+        payload.skill,
+        payload.difficulty,
+        nextPreparation.promptVersion,
       );
       if (fingerprint(payload) !== fingerprint(currentPayload())) {
         return;
@@ -92,6 +100,18 @@ export function useInterviewQuestionDraft() {
       ...generation.value,
       questions: generation.value.questions.map((question, questionIndex) =>
         questionIndex === index ? nextQuestion : question),
+      configuration: {
+        ...generation.value.configuration,
+        questionAllocations: generation.value.configuration.questionAllocations.map((allocation) =>
+          allocation.questionIndex === index
+            ? {
+                ...allocation,
+                supportingSources: allocation.supportingSources.filter(
+                  (source) => source !== "KNOWLEDGE",
+                ),
+              }
+            : allocation),
+      },
     };
   }
 
@@ -99,9 +119,16 @@ export function useInterviewQuestionDraft() {
     if (!generation.value || generation.value.questions.length <= MIN_CONFIRMED_QUESTION_COUNT) {
       return;
     }
+    const remainingAllocations = generation.value.configuration.questionAllocations
+      .filter((allocation) => allocation.questionIndex !== index)
+      .map((allocation, questionIndex) => ({ ...allocation, questionIndex }));
     generation.value = {
       ...generation.value,
       questions: generation.value.questions.filter((_, questionIndex) => questionIndex !== index),
+      configuration: updateConfiguration(
+        generation.value.configuration,
+        remainingAllocations,
+      ),
     };
   }
 
@@ -130,6 +157,10 @@ export function useInterviewQuestionDraft() {
         knowledgeQuery: question.knowledgeQuery.trim(),
       })),
       maxQuestionCount: Math.max(maxQuestionCount, generation.value.questions.length),
+      configuration: {
+        ...generation.value.configuration,
+        maxQuestionCount: Math.max(maxQuestionCount, generation.value.questions.length),
+      },
     };
   }
 
@@ -154,5 +185,24 @@ export function useInterviewQuestionDraft() {
     removeQuestion,
     createSessionPayload,
     clear,
+  };
+}
+
+function updateConfiguration(
+  configuration: InterviewQuestionGenerationResult["configuration"],
+  allocations: InterviewQuestionAllocation[],
+): InterviewQuestionGenerationResult["configuration"] {
+  const sourceQuotas = allocations.reduce<InterviewQuestionGenerationResult["configuration"]["sourceQuotas"]>(
+    (quotas, allocation) => ({
+      ...quotas,
+      [allocation.primarySource]: (quotas[allocation.primarySource] ?? 0) + 1,
+    }),
+    {},
+  );
+  return {
+    ...configuration,
+    initialQuestionCount: allocations.length,
+    sourceQuotas,
+    questionAllocations: allocations,
   };
 }

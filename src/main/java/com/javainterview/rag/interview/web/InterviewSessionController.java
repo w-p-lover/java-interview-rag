@@ -70,8 +70,13 @@ public class InterviewSessionController {
         }
         int maxQuestionCount = request.maxQuestionCount() == null
                 ? Math.max(request.questions().size(), 8) : request.maxQuestionCount();
+        if (request.configuration() == null) {
+            return sessionService.start(
+                    request.targetRole(), request.profile(), request.questions(), maxQuestionCount);
+        }
         return sessionService.start(
-                request.targetRole(), request.profile(), request.questions(), maxQuestionCount);
+                request.targetRole(), request.profile(), request.questions(), maxQuestionCount,
+                request.configuration());
     }
 
     @GetMapping("/{sessionId}")

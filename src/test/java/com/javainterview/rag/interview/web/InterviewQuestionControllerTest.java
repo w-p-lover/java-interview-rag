@@ -3,8 +3,15 @@ package com.javainterview.rag.interview.web;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewDifficulty;
+import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationResult;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
+import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
+import com.javainterview.rag.interview.question.InterviewQuestionSource;
+import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
+import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -12,8 +19,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,6 +34,7 @@ class InterviewQuestionControllerTest {
     @Test
     void returnsGeneratedQuestionsWithTraceableKnowledgeSources() throws Exception {
         InterviewQuestionGenerationService service = mock(InterviewQuestionGenerationService.class);
+        InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
         InterviewPreparationProfile profile = new InterviewPreparationProfile(
                 "具备 Java RAG 项目经验。",
                 List.of("使用 Qdrant 实现向量检索"),
@@ -56,7 +66,8 @@ class InterviewQuestionControllerTest {
                         "interview-question-v1",
                         List.of(question, question, question)
                 ));
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewQuestionController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewQuestionController(service, planService)).build();
 
         mockMvc.perform(post("/api/interviews/questions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -89,9 +100,11 @@ class InterviewQuestionControllerTest {
     @Test
     void returnsBadRequestForInvalidQuestionInput() throws Exception {
         InterviewQuestionGenerationService service = mock(InterviewQuestionGenerationService.class);
+        InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
         when(service.generate(eq(" "), org.mockito.ArgumentMatchers.any(InterviewPreparationProfile.class), eq(3)))
                 .thenThrow(new IllegalArgumentException("目标岗位不能为空"));
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new InterviewQuestionController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewQuestionController(service, planService)).build();
 
         mockMvc.perform(post("/api/interviews/questions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -113,5 +126,78 @@ class InterviewQuestionControllerTest {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("目标岗位不能为空"));
+    }
+
+    @Test
+    void returnsConfiguredMultiSourceQuestionPlan() throws Exception {
+        InterviewQuestionGenerationService service = mock(InterviewQuestionGenerationService.class);
+        InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
+        InterviewQuestion question = new InterviewQuestion(
+                "HashMap 如何扩容？", "集合基础",
+                List.of(InterviewFocusSource.TARGET_ROLE), "HashMap 扩容", false, List.of());
+        InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
+                "deterministic-multi-source-v1",
+                InterviewSessionMode.STANDARD,
+                InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.INTERMEDIATE,
+                3,
+                8,
+                Map.of(
+                        InterviewQuestionSource.SKILL_FIXED, 1,
+                        InterviewQuestionSource.RESUME, 2),
+                List.of(
+                        new InterviewQuestionAllocation(0, InterviewQuestionSource.SKILL_FIXED,
+                                List.of(InterviewQuestionSource.TARGET_ROLE)),
+                        new InterviewQuestionAllocation(1, InterviewQuestionSource.RESUME,
+                                List.of(InterviewQuestionSource.RESUME)),
+                        new InterviewQuestionAllocation(2, InterviewQuestionSource.RESUME,
+                                List.of(InterviewQuestionSource.RESUME))),
+                "interview-preparation-v1",
+                "interview-question-v1",
+                "qwen-test");
+        when(planService.generate(
+                eq("Java 后端工程师"),
+                any(InterviewPreparationProfile.class),
+                eq(3),
+                eq(8),
+                eq(InterviewSkill.JAVA_CORE),
+                eq(InterviewDifficulty.INTERMEDIATE),
+                eq("interview-preparation-v1")))
+                .thenReturn(new InterviewQuestionGenerationResult(
+                        "Java 后端工程师",
+                        "interview-question-v1",
+                        List.of(question, question, question),
+                        configuration));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewQuestionController(service, planService)).build();
+
+        mockMvc.perform(post("/api/interviews/questions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "targetRole":"Java 后端工程师",
+                                  "questionCount":3,
+                                  "maxQuestionCount":8,
+                                  "skill":"JAVA_CORE",
+                                  "difficulty":"INTERMEDIATE",
+                                  "preparationPromptVersion":"interview-preparation-v1",
+                                  "profile":{
+                                    "candidateSummary":"Java 后端候选人",
+                                    "resumeEvidence":["Spring Boot 项目"],
+                                    "jobRequirements":[],
+                                    "focusAreas":[{
+                                      "topic":"Java",
+                                      "reason":"目标岗位要求 Java",
+                                      "sources":["TARGET_ROLE","RESUME"]
+                                    }]
+                                  }
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.configuration.skill").value("JAVA_CORE"))
+                .andExpect(jsonPath("$.configuration.difficulty").value("INTERMEDIATE"))
+                .andExpect(jsonPath("$.configuration.sourceQuotas.SKILL_FIXED").value(1))
+                .andExpect(jsonPath("$.configuration.questionAllocations[0].primarySource")
+                        .value("SKILL_FIXED"));
     }
 }

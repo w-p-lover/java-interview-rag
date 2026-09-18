@@ -20,6 +20,7 @@ public class InterviewSessionEntity {
     private String id;
     private String targetRole;
     private String sessionMode;
+    private String configurationJson;
     private String profileJson;
     private String questionsJson;
     private Integer maxQuestionCount;
@@ -31,13 +32,15 @@ public class InterviewSessionEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static InterviewSessionEntity from(InterviewSession session, String profileJson,
+    public static InterviewSessionEntity from(InterviewSession session, String configurationJson,
+                                              String profileJson,
                                               String questionsJson, String answersJson,
                                               String reportJson) {
         InterviewSessionEntity entity = new InterviewSessionEntity();
         entity.id = session.id();
         entity.targetRole = session.targetRole();
         entity.sessionMode = session.mode().name();
+        entity.configurationJson = configurationJson;
         entity.profileJson = profileJson;
         entity.questionsJson = questionsJson;
         entity.maxQuestionCount = session.maxQuestionCount();
@@ -49,6 +52,12 @@ public class InterviewSessionEntity {
         entity.createdAt = session.createdAt();
         entity.updatedAt = session.updatedAt();
         return entity;
+    }
+
+    public static InterviewSessionEntity from(InterviewSession session, String profileJson,
+                                              String questionsJson, String answersJson,
+                                              String reportJson) {
+        return from(session, null, profileJson, questionsJson, answersJson, reportJson);
     }
 
 }

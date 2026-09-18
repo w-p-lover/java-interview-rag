@@ -33,6 +33,30 @@ export interface InterviewQuestion {
   knowledgeSources: InterviewKnowledgeSource[];
 }
 
+export type InterviewSkill = "JAVA_CORE" | "SPRING" | "DATABASE" | "SYSTEM_DESIGN" | "RAG_AI" | "GENERAL";
+export type InterviewDifficulty = "BASIC" | "INTERMEDIATE" | "ADVANCED";
+export type InterviewQuestionSource = "SKILL_FIXED" | "TARGET_ROLE" | "RESUME" | "JOB_DESCRIPTION" | "KNOWLEDGE" | "PROJECT" | "LEGACY";
+
+export interface InterviewQuestionAllocation {
+  questionIndex: number;
+  primarySource: InterviewQuestionSource;
+  supportingSources: InterviewQuestionSource[];
+}
+
+export interface InterviewConfigurationSnapshot {
+  strategyVersion: string;
+  mode: InterviewSessionMode;
+  skill: InterviewSkill;
+  difficulty: InterviewDifficulty;
+  initialQuestionCount: number;
+  maxQuestionCount: number;
+  sourceQuotas: Partial<Record<InterviewQuestionSource, number>>;
+  questionAllocations: InterviewQuestionAllocation[];
+  preparationPromptVersion: string;
+  questionPromptVersion: string;
+  modelName: string;
+}
+
 export interface InterviewPreparationResult {
   targetRole: string;
   promptVersion: string;
@@ -43,6 +67,7 @@ export interface InterviewQuestionGenerationResult {
   targetRole: string;
   promptVersion: string;
   questions: InterviewQuestion[];
+  configuration: InterviewConfigurationSnapshot;
 }
 
 export interface InterviewAnswerEvaluation {
@@ -92,6 +117,7 @@ export interface InterviewSession {
   targetRole: string;
   mode: InterviewSessionMode;
   profile: InterviewPreparationProfile;
+  configuration: InterviewConfigurationSnapshot;
   questions: InterviewQuestion[];
   maxQuestionCount: number;
   answers: InterviewSessionAnswer[];
@@ -256,6 +282,7 @@ export interface InterviewSessionCreatePayload {
   profile: InterviewPreparationProfile;
   questions: InterviewQuestion[];
   maxQuestionCount: number;
+  configuration: InterviewConfigurationSnapshot;
 }
 
 export interface InterviewQuestionDraftPayload {
@@ -263,6 +290,9 @@ export interface InterviewQuestionDraftPayload {
   resumeText: string;
   jobDescription?: string;
   questionCount: number;
+  maxQuestionCount: number;
+  skill: InterviewSkill;
+  difficulty: InterviewDifficulty;
 }
 
 export interface ProjectDeepDiveSessionStartPayload {
@@ -470,10 +500,22 @@ export async function generateInterviewQuestions(
   targetRole: string,
   profile: InterviewPreparationProfile,
   questionCount: number,
+  maxQuestionCount: number,
+  skill: InterviewSkill,
+  difficulty: InterviewDifficulty,
+  preparationPromptVersion: string,
 ): Promise<InterviewQuestionGenerationResult> {
   const response = await request.post<InterviewQuestionGenerationResult>(
     "/interviews/questions",
-    { targetRole, profile, questionCount },
+    {
+      targetRole,
+      profile,
+      questionCount,
+      maxQuestionCount,
+      skill,
+      difficulty,
+      preparationPromptVersion,
+    },
     { timeout: 120_000 },
   );
   return response.data;

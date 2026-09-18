@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationResult;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
+import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
@@ -22,14 +23,31 @@ import java.util.Map;
 public class InterviewQuestionController {
 
     private final InterviewQuestionGenerationService questionGenerationService;
+    private final InterviewQuestionPlanService questionPlanService;
 
-    public InterviewQuestionController(InterviewQuestionGenerationService questionGenerationService) {
+    public InterviewQuestionController(InterviewQuestionGenerationService questionGenerationService,
+                                       InterviewQuestionPlanService questionPlanService) {
         this.questionGenerationService = questionGenerationService;
+        this.questionPlanService = questionPlanService;
     }
 
     @PostMapping
     @Operation(summary = "生成面试题")
     public InterviewQuestionGenerationResult generate(@RequestBody InterviewQuestionGenerationRequest request) {
+        if (request.skill() != null || request.difficulty() != null
+                || request.maxQuestionCount() != null || request.preparationPromptVersion() != null) {
+            int questionCount = request.questionCount() == null ? 5 : request.questionCount();
+            int maxQuestionCount = request.maxQuestionCount() == null
+                    ? Math.max(questionCount, 8) : request.maxQuestionCount();
+            return questionPlanService.generate(
+                    request.targetRole(),
+                    request.profile(),
+                    questionCount,
+                    maxQuestionCount,
+                    request.skill(),
+                    request.difficulty(),
+                    request.preparationPromptVersion());
+        }
         if (request.questionCount() == null) {
             return questionGenerationService.generate(request.targetRole(), request.profile());
         }
