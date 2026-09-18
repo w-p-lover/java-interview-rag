@@ -168,6 +168,35 @@ class InterviewQuestionGenerationServiceTest {
                         () -> service.generate("Java 后端", profile(), 9)).getMessage());
     }
 
+    @Test
+    void keepsGeneratedQuestionsWhenOneKnowledgeLookupFails() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        List<InterviewQuestionDraft> drafts = java.util.stream.IntStream.range(0, 3)
+                .mapToObj(index -> new InterviewQuestionDraft(
+                        "题目 " + index,
+                        "考察目标 " + index,
+                        List.of(InterviewFocusSource.RESUME),
+                        "知识查询 " + index))
+                .toList();
+        when(chatClient.prompt(anyString()).call().entity(InterviewQuestionDraftSet.class))
+                .thenReturn(new InterviewQuestionDraftSet(drafts));
+        when(searchService.search("知识查询 0", 3, 0.60))
+                .thenThrow(new IllegalStateException("检索服务不可用"));
+        when(searchService.search("知识查询 1", 3, 0.60)).thenReturn(List.of());
+        when(searchService.search("知识查询 2", 3, 0.60)).thenReturn(List.of());
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        InterviewQuestionGenerationResult result = service.generate("Java 后端", profile(), 3);
+
+        assertEquals(3, result.questions().size());
+        assertEquals("题目 0", result.questions().get(0).question());
+        assertFalse(result.questions().get(0).knowledgeGrounded());
+        assertEquals(List.of(InterviewQuestionSource.KNOWLEDGE), result.unavailableSources());
+        verify(searchService).search("知识查询 2", 3, 0.60);
+    }
+
     private InterviewPreparationProfile profile() {
         return new InterviewPreparationProfile(
                 "具备 Java 后端和 RAG 项目经验。",

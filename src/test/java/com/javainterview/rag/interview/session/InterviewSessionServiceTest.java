@@ -146,6 +146,23 @@ class InterviewSessionServiceTest {
                         () -> service.submitAnswer("session-1", 0, 0L, " ")).getMessage());
     }
 
+    @Test
+    void rejectsPartialDraftWithFewerThanThreeQuestions() {
+        InterviewSessionStore store = mock(InterviewSessionStore.class);
+        InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);
+        InterviewSessionService service = new InterviewSessionService(store, evaluator);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.start(
+                        "Java 后端工程师",
+                        profile(),
+                        questions().subList(0, 2),
+                        8));
+
+        assertEquals("面试会话题数必须在 3 到 12 之间", exception.getMessage());
+        verifyNoInteractions(store, evaluator);
+    }
+
     private InterviewSession sessionWithAnswers(int answerCount) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 27, 10, 0);
         InterviewSession session = new InterviewSession(

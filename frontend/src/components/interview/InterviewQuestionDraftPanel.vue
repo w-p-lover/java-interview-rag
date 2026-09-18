@@ -9,6 +9,7 @@ import {
 import { computed, type DeepReadonly } from "vue";
 
 import type {
+  InterviewDraftStatus,
   InterviewFocusSource,
   InterviewDifficulty,
   InterviewPreparationResult,
@@ -21,6 +22,13 @@ import type {
 const props = defineProps<{
   preparation: DeepReadonly<InterviewPreparationResult>;
   generation: DeepReadonly<InterviewQuestionGenerationResult>;
+  draftStatus: InterviewDraftStatus;
+  targetQuestionCount: number;
+  actualQuestionCount: number;
+  unavailableSources: readonly InterviewQuestionSource[];
+  failureMessage: string | null;
+  reused: boolean;
+  replacingQuestionIndex: number | null;
   busy: boolean;
   canConfirm: boolean;
 }>();
@@ -29,12 +37,16 @@ const emit = defineEmits<{
   updateQuestion: [index: number, value: string];
   updateObjective: [index: number, value: string];
   removeQuestion: [index: number];
+  replaceQuestion: [index: number];
   regenerate: [];
   cancel: [];
   confirm: [];
 }>();
 
 const canRemove = computed(() => props.generation.questions.length > 3);
+const unavailableSourceLabel = computed(() => props.unavailableSources
+  .map((source) => questionSourceLabels[source])
+  .join(" / "));
 
 const sourceLabels: Record<InterviewFocusSource, string> = {
   TARGET_ROLE: "目标岗位",
@@ -97,7 +109,12 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
         <span class="draft-kicker">Question draft</span>
         <h2 id="question-draft-title">确认本场题单</h2>
       </div>
-      <span class="question-count">{{ generation.questions.length }} 道</span>
+      <div class="draft-heading-meta">
+        <span v-if="reused" class="reused-label">已复用</span>
+        <span class="question-count">
+          {{ actualQuestionCount }} / {{ targetQuestionCount }} 道
+        </span>
+      </div>
     </header>
 
     <div class="profile-summary">
@@ -113,6 +130,12 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
       </div>
     </div>
 
+    <div v-if="draftStatus === 'PARTIAL'" class="partial-status" role="status">
+      <strong>当前草稿未达到完整来源结果</strong>
+      <span>{{ failureMessage || "已保留当前可用题目，可以替换或重新生成。" }}</span>
+      <span v-if="unavailableSourceLabel">不可用来源：{{ unavailableSourceLabel }}</span>
+    </div>
+
     <ol class="question-list">
       <li
         v-for="(question, index) in generation.questions"
@@ -121,16 +144,28 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
       >
         <div class="question-toolbar">
           <span>Q{{ String(index + 1).padStart(2, "0") }}</span>
-          <button
-            type="button"
-            class="icon-action"
-            :disabled="busy || !canRemove"
-            :aria-label="`删除第 ${index + 1} 题`"
-            title="删除题目"
-            @click="emit('removeQuestion', index)"
-          >
-            <Trash2 :size="17" aria-hidden="true" />
-          </button>
+          <div class="question-toolbar-actions">
+            <button
+              type="button"
+              class="icon-action replace-action"
+              :disabled="busy"
+              :aria-label="`替换第 ${index + 1} 题`"
+              :title="replacingQuestionIndex === index ? '正在替换' : '替换题目'"
+              @click="emit('replaceQuestion', index)"
+            >
+              <RefreshCw :size="17" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              class="icon-action delete-action"
+              :disabled="busy || !canRemove"
+              :aria-label="`删除第 ${index + 1} 题`"
+              title="删除题目"
+              @click="emit('removeQuestion', index)"
+            >
+              <Trash2 :size="17" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <label :for="`draft-question-${index}`">题目</label>
@@ -208,6 +243,13 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
   align-items: center;
 }
 
+.draft-heading-meta,
+.question-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .draft-heading {
   justify-content: space-between;
   gap: var(--space-lg);
@@ -231,12 +273,17 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
 
 .draft-kicker,
 .question-count,
+.reused-label,
 .question-toolbar > span {
   color: var(--color-accent);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.reused-label {
+  color: var(--color-success-rule);
 }
 
 .question-count {
@@ -284,6 +331,20 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
   color: var(--color-muted);
   font-size: var(--text-sm);
   line-height: 1.6;
+}
+
+.partial-status {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-left: var(--space-2xs) solid var(--color-signal-rule);
+  color: var(--color-muted);
+  background: var(--color-signal-soft);
+  font-size: var(--text-sm);
+}
+
+.partial-status strong {
+  color: var(--color-ink);
 }
 
 .question-list {
@@ -347,10 +408,16 @@ function knowledgeSourceLabel(question: DeepReadonly<InterviewQuestion>): string
   background: transparent;
 }
 
-.icon-action:not(:disabled):hover {
+.delete-action:not(:disabled):hover {
   border-color: var(--color-error-rule);
   color: var(--color-error);
   background: var(--color-error-soft);
+}
+
+.replace-action:not(:disabled):hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 .question-meta {

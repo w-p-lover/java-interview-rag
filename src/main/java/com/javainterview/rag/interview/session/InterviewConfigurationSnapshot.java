@@ -30,8 +30,8 @@ public record InterviewConfigurationSnapshot(
         mode = Objects.requireNonNull(mode, "面试模式不能为空");
         skill = Objects.requireNonNull(skill, "面试 Skill 不能为空");
         difficulty = Objects.requireNonNull(difficulty, "面试难度不能为空");
-        if (initialQuestionCount < 3 || initialQuestionCount > 8) {
-            throw new IllegalArgumentException("首轮题数必须在 3 到 8 之间");
+        if (initialQuestionCount < 1 || initialQuestionCount > 8) {
+            throw new IllegalArgumentException("草稿题数必须在 1 到 8 之间");
         }
         if (maxQuestionCount < initialQuestionCount || maxQuestionCount > 12) {
             throw new IllegalArgumentException("整场题数上限必须在首轮题数到 12 之间");

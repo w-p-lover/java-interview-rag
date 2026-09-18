@@ -68,6 +68,22 @@ export interface InterviewQuestionGenerationResult {
   promptVersion: string;
   questions: InterviewQuestion[];
   configuration: InterviewConfigurationSnapshot;
+  unavailableSources: InterviewQuestionSource[];
+}
+
+export type InterviewDraftStatus = "COMPLETE" | "PARTIAL";
+
+export interface InterviewDraftResult {
+  draftId: string;
+  reused: boolean;
+  targetQuestionCount: number;
+  actualQuestionCount: number;
+  status: InterviewDraftStatus;
+  unavailableSources: InterviewQuestionSource[];
+  failureCode: string | null;
+  failureMessage: string | null;
+  preparation: InterviewPreparationResult;
+  generation: InterviewQuestionGenerationResult;
 }
 
 export interface InterviewAnswerEvaluation {
@@ -293,6 +309,7 @@ export interface InterviewQuestionDraftPayload {
   maxQuestionCount: number;
   skill: InterviewSkill;
   difficulty: InterviewDifficulty;
+  regenerate?: boolean;
 }
 
 export interface ProjectDeepDiveSessionStartPayload {
@@ -516,6 +533,30 @@ export async function generateInterviewQuestions(
       difficulty,
       preparationPromptVersion,
     },
+    { timeout: 120_000 },
+  );
+  return response.data;
+}
+
+export async function generateInterviewDraft(
+  payload: InterviewQuestionDraftPayload,
+): Promise<InterviewDraftResult> {
+  const response = await request.post<InterviewDraftResult>(
+    "/interviews/drafts",
+    payload,
+    { timeout: 240_000 },
+  );
+  return response.data;
+}
+
+export async function replaceInterviewDraftQuestion(
+  draftId: string,
+  questionIndex: number,
+  generation: InterviewQuestionGenerationResult,
+): Promise<InterviewDraftResult> {
+  const response = await request.post<InterviewDraftResult>(
+    `/interviews/drafts/${draftId}/questions/${questionIndex}/replace`,
+    { generation },
     { timeout: 120_000 },
   );
   return response.data;

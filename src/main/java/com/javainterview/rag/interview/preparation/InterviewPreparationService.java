@@ -9,7 +9,7 @@ public class InterviewPreparationService {
     private static final int TARGET_ROLE_MAX_LENGTH = 100;
     private static final int RESUME_MAX_LENGTH = 50_000;
     private static final int JOB_DESCRIPTION_MAX_LENGTH = 30_000;
-    private static final String PROMPT_VERSION = "interview-preparation-v1";
+    public static final String PROMPT_VERSION = "interview-preparation-v1";
     private static final String INSTRUCTIONS = """
             你是 Java 求职面试准备助手。请根据目标岗位、简历和可选岗位描述生成结构化面试准备画像。
             必须遵守以下规则：

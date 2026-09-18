@@ -9,7 +9,8 @@ public record InterviewQuestionGenerationResult(
         String targetRole,
         String promptVersion,
         List<InterviewQuestion> questions,
-        InterviewConfigurationSnapshot configuration
+        InterviewConfigurationSnapshot configuration,
+        List<InterviewQuestionSource> unavailableSources
 ) {
 
     private static final int MAX_QUESTION_COUNT = 8;
@@ -22,6 +23,15 @@ public record InterviewQuestionGenerationResult(
             throw new IllegalArgumentException("首轮面试题数量必须在 1 到 8 之间");
         }
         configuration = Objects.requireNonNull(configuration, "面试配置快照不能为空");
+        unavailableSources = List.copyOf(Objects.requireNonNull(
+                unavailableSources, "不可用题目来源不能为空"));
+    }
+
+    public InterviewQuestionGenerationResult(String targetRole,
+                                             String promptVersion,
+                                             List<InterviewQuestion> questions,
+                                             InterviewConfigurationSnapshot configuration) {
+        this(targetRole, promptVersion, questions, configuration, List.of());
     }
 
     public InterviewQuestionGenerationResult(String targetRole,
@@ -31,7 +41,8 @@ public record InterviewQuestionGenerationResult(
                 InterviewConfigurationSnapshot.legacy(
                         com.javainterview.rag.interview.session.InterviewSessionMode.STANDARD,
                         questions == null ? 0 : questions.size(),
-                        questions == null ? 0 : Math.max(questions.size(), 8)));
+                        questions == null ? 0 : Math.max(questions.size(), 8)),
+                List.of());
     }
 
     private static String requireText(String value, String message) {

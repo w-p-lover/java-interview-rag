@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class InterviewQuestionPlanServiceTest {
@@ -92,6 +93,118 @@ class InterviewQuestionPlanServiceTest {
 
         assertEquals("请选择具体的面试 Skill", exception.getMessage());
         verifyNoInteractions(generationService);
+    }
+
+    @Test
+    void keepsFixedQuestionsWhenProfileQuestionGenerationFails() {
+        InterviewQuestionGenerationService generationService = mock(InterviewQuestionGenerationService.class);
+        InterviewPreparationProfile profile = profile();
+        when(generationService.generate("Java 后端工程师", profile, 3))
+                .thenThrow(new IllegalStateException("模型暂不可用"));
+        InterviewQuestionPlanService service = new InterviewQuestionPlanService(
+                generationService, new FixedInterviewQuestionCatalog(), "qwen-test");
+
+        InterviewQuestionPlanOutcome result = service.generatePlan(
+                "Java 后端工程师",
+                profile,
+                5,
+                8,
+                InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.INTERMEDIATE,
+                "interview-preparation-v1");
+
+        assertEquals("QUESTION_GENERATION_UNAVAILABLE", result.failureCode());
+        assertEquals(2, result.generation().questions().size());
+        assertEquals(2, result.generation().configuration().initialQuestionCount());
+        assertEquals(Map.of(InterviewQuestionSource.SKILL_FIXED, 2),
+                result.generation().configuration().sourceQuotas());
+        assertEquals(List.of(InterviewQuestionSource.RESUME, InterviewQuestionSource.JOB_DESCRIPTION),
+                result.generation().unavailableSources());
+    }
+
+    @Test
+    void replacesOnlySelectedFixedQuestionWithoutCallingModelAgain() {
+        InterviewQuestionGenerationService generationService = mock(InterviewQuestionGenerationService.class);
+        InterviewPreparationProfile profile = profile();
+        List<InterviewQuestion> generatedQuestions = List.of(
+                generatedQuestion("简历题 1", false),
+                generatedQuestion("简历题 2", false),
+                generatedQuestion("简历题 3", false));
+        when(generationService.generate("Java 后端工程师", profile, 3))
+                .thenReturn(new InterviewQuestionGenerationResult(
+                        "Java 后端工程师", "interview-question-v1", generatedQuestions));
+        InterviewQuestionPlanService service = new InterviewQuestionPlanService(
+                generationService, new FixedInterviewQuestionCatalog(), "qwen-test");
+        InterviewQuestionGenerationResult current = service.generate(
+                "Java 后端工程师", profile, 5, 8,
+                InterviewSkill.JAVA_CORE, InterviewDifficulty.INTERMEDIATE,
+                "interview-preparation-v1");
+
+        InterviewQuestionGenerationResult updated = service.replaceQuestion(
+                "Java 后端工程师", profile, current, 0);
+
+        assertEquals("CompletableFuture 组合多个任务时如何处理线程池和异常传播？",
+                updated.questions().get(0).question());
+        assertEquals(current.questions().subList(1, 5), updated.questions().subList(1, 5));
+        assertEquals(InterviewQuestionSource.SKILL_FIXED,
+                updated.configuration().questionAllocations().get(0).primarySource());
+        verify(generationService, never()).generateReplacement(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test
+    void replacesOneGeneratedQuestionAndUpdatesItsSourceAllocation() {
+        InterviewQuestionGenerationService generationService = mock(InterviewQuestionGenerationService.class);
+        InterviewPreparationProfile profile = profile();
+        List<InterviewQuestion> generatedQuestions = List.of(
+                generatedQuestion("简历题 1", false),
+                generatedQuestion("简历题 2", false),
+                generatedQuestion("简历题 3", false));
+        when(generationService.generate("Java 后端工程师", profile, 3))
+                .thenReturn(new InterviewQuestionGenerationResult(
+                        "Java 后端工程师", "interview-question-v1", generatedQuestions));
+        InterviewQuestion replacement = new InterviewQuestion(
+                "岗位描述替换题",
+                "验证岗位要求",
+                List.of(InterviewFocusSource.JOB_DESCRIPTION),
+                "岗位要求",
+                false,
+                List.of());
+        when(generationService.generateReplacement(
+                org.mockito.ArgumentMatchers.eq("Java 后端工程师"),
+                org.mockito.ArgumentMatchers.eq(profile),
+                org.mockito.ArgumentMatchers.eq(InterviewFocusSource.RESUME),
+                org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(new InterviewQuestionGenerationResult(
+                        "Java 后端工程师", "interview-question-v1", List.of(replacement)));
+        InterviewQuestionPlanService service = new InterviewQuestionPlanService(
+                generationService, new FixedInterviewQuestionCatalog(), "qwen-test");
+        InterviewQuestionGenerationResult current = service.generate(
+                "Java 后端工程师", profile, 5, 8,
+                InterviewSkill.JAVA_CORE, InterviewDifficulty.INTERMEDIATE,
+                "interview-preparation-v1");
+
+        InterviewQuestionGenerationResult updated = service.replaceQuestion(
+                "Java 后端工程师", profile, current, 1);
+
+        assertEquals("岗位描述替换题", updated.questions().get(1).question());
+        assertEquals(current.questions().get(0), updated.questions().get(0));
+        assertEquals(current.questions().subList(2, 5), updated.questions().subList(2, 5));
+        assertEquals(InterviewQuestionSource.JOB_DESCRIPTION,
+                updated.configuration().questionAllocations().get(1).primarySource());
+        assertEquals(Map.of(
+                        InterviewQuestionSource.SKILL_FIXED, 2,
+                        InterviewQuestionSource.RESUME, 2,
+                        InterviewQuestionSource.JOB_DESCRIPTION, 1),
+                updated.configuration().sourceQuotas());
+        verify(generationService).generateReplacement(
+                "Java 后端工程师",
+                profile,
+                InterviewFocusSource.RESUME,
+                current.questions().stream().map(InterviewQuestion::question).toList());
     }
 
     private InterviewPreparationProfile profile() {

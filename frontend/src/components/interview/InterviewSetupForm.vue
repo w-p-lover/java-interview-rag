@@ -70,12 +70,16 @@ const {
 } = useResumeEvidenceAudit(() => form.resumeText);
 
 const {
+  draft: interviewDraft,
   preparation: interviewPreparation,
   generation: questionGeneration,
   loading: draftLoading,
+  replacingQuestionIndex,
+  busy: draftBusy,
   error: draftError,
   canConfirm: canConfirmDraft,
   generate: generateDraft,
+  replaceQuestion,
   invalidateIfChanged: invalidateDraftIfChanged,
   updateQuestion,
   updateObjective,
@@ -98,7 +102,7 @@ const difficultyOptions: Array<{ value: InterviewDifficulty; label: string }> = 
   { value: "ADVANCED", label: "高级场景" },
 ];
 const canStart = computed(() => Boolean(form.targetRole.trim() && form.resumeText.trim()));
-const interactionBusy = computed(() => props.busy || auditLoading.value || draftLoading.value);
+const interactionBusy = computed(() => props.busy || auditLoading.value || draftBusy.value);
 const readyRequirementCount = computed(() => [form.targetRole, form.resumeText]
   .filter((value) => value.trim()).length);
 const readinessPercent = computed(() => readyRequirementCount.value * 50);
@@ -137,7 +141,14 @@ function handleSubmit(): void {
     return;
   }
 
-  void generateDraft(toDraftPayload(), toDraftPayload);
+  void generateDraft(toDraftPayload(), toDraftPayload, false);
+}
+
+function handleRegenerate(): void {
+  if (!canStart.value || interactionBusy.value) {
+    return;
+  }
+  void generateDraft(toDraftPayload(), toDraftPayload, true);
 }
 
 function toDraftPayload(): InterviewQuestionDraftPayload {
@@ -392,15 +403,23 @@ function loadDemoMaterials(): void {
     </template>
 
     <InterviewQuestionDraftPanel
-      v-else
+      v-else-if="interviewDraft"
       :preparation="interviewPreparation"
       :generation="questionGeneration"
+      :draft-status="interviewDraft.status"
+      :target-question-count="interviewDraft.targetQuestionCount"
+      :actual-question-count="interviewDraft.actualQuestionCount"
+      :unavailable-sources="interviewDraft.unavailableSources"
+      :failure-message="interviewDraft.failureMessage"
+      :reused="interviewDraft.reused"
+      :replacing-question-index="replacingQuestionIndex"
       :busy="interactionBusy"
       :can-confirm="canConfirmDraft"
       @update-question="updateQuestion"
       @update-objective="updateObjective"
       @remove-question="removeQuestion"
-      @regenerate="handleSubmit"
+      @replace-question="replaceQuestion"
+      @regenerate="handleRegenerate"
       @cancel="clearDraft"
       @confirm="handleConfirmDraft"
     />

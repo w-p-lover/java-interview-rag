@@ -1,13 +1,13 @@
 import { computed, readonly, shallowRef } from "vue";
 
 import {
-  generateInterviewQuestions,
-  prepareInterview,
+  generateInterviewDraft,
+  replaceInterviewDraftQuestion,
+  type InterviewDraftResult,
   type InterviewQuestion,
   type InterviewQuestionAllocation,
   type InterviewQuestionDraftPayload,
   type InterviewQuestionGenerationResult,
-  type InterviewPreparationResult,
   type InterviewSessionCreatePayload,
 } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
@@ -27,45 +27,35 @@ function fingerprint(payload: InterviewQuestionDraftPayload): string {
 }
 
 export function useInterviewQuestionDraft() {
-  const preparation = shallowRef<InterviewPreparationResult | null>(null);
-  const generation = shallowRef<InterviewQuestionGenerationResult | null>(null);
+  const draft = shallowRef<InterviewDraftResult | null>(null);
   const loading = shallowRef(false);
+  const replacingQuestionIndex = shallowRef<number | null>(null);
   const error = shallowRef("");
   const generatedFrom = shallowRef("");
 
+  const preparation = computed(() => draft.value?.preparation ?? null);
+  const generation = computed(() => draft.value?.generation ?? null);
   const questions = computed(() => generation.value?.questions ?? []);
+  const busy = computed(() => loading.value || replacingQuestionIndex.value !== null);
   const canConfirm = computed(() => questions.value.length >= MIN_CONFIRMED_QUESTION_COUNT
     && questions.value.every((question) => Boolean(question.question.trim() && question.objective.trim())));
 
   async function generate(
     payload: InterviewQuestionDraftPayload,
     currentPayload: () => InterviewQuestionDraftPayload,
+    regenerate = false,
   ): Promise<void> {
-    if (loading.value) {
+    if (busy.value) {
       return;
     }
     loading.value = true;
     error.value = "";
     try {
-      const nextPreparation = await prepareInterview({
-        targetRole: payload.targetRole,
-        resumeText: payload.resumeText,
-        jobDescription: payload.jobDescription,
-      });
-      const nextGeneration = await generateInterviewQuestions(
-        nextPreparation.targetRole,
-        nextPreparation.profile,
-        payload.questionCount,
-        payload.maxQuestionCount,
-        payload.skill,
-        payload.difficulty,
-        nextPreparation.promptVersion,
-      );
+      const nextDraft = await generateInterviewDraft({ ...payload, regenerate });
       if (fingerprint(payload) !== fingerprint(currentPayload())) {
         return;
       }
-      preparation.value = nextPreparation;
-      generation.value = nextGeneration;
+      draft.value = nextDraft;
       generatedFrom.value = fingerprint(payload);
     } catch (requestError) {
       if (fingerprint(payload) === fingerprint(currentPayload())) {
@@ -73,6 +63,25 @@ export function useInterviewQuestionDraft() {
       }
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function replaceQuestion(index: number): Promise<void> {
+    if (!draft.value || !generation.value || busy.value) {
+      return;
+    }
+    replacingQuestionIndex.value = index;
+    error.value = "";
+    try {
+      draft.value = await replaceInterviewDraftQuestion(
+        draft.value.draftId,
+        index,
+        generation.value,
+      );
+    } catch (requestError) {
+      error.value = resolveApiError(requestError, "替换面试题失败");
+    } finally {
+      replacingQuestionIndex.value = null;
     }
   }
 
@@ -96,7 +105,7 @@ export function useInterviewQuestionDraft() {
           knowledgeGrounded: false,
           knowledgeSources: [],
         };
-    generation.value = {
+    updateGeneration({
       ...generation.value,
       questions: generation.value.questions.map((question, questionIndex) =>
         questionIndex === index ? nextQuestion : question),
@@ -112,7 +121,7 @@ export function useInterviewQuestionDraft() {
               }
             : allocation),
       },
-    };
+    });
   }
 
   function removeQuestion(index: number): void {
@@ -122,25 +131,25 @@ export function useInterviewQuestionDraft() {
     const remainingAllocations = generation.value.configuration.questionAllocations
       .filter((allocation) => allocation.questionIndex !== index)
       .map((allocation, questionIndex) => ({ ...allocation, questionIndex }));
-    generation.value = {
+    updateGeneration({
       ...generation.value,
       questions: generation.value.questions.filter((_, questionIndex) => questionIndex !== index),
       configuration: updateConfiguration(
         generation.value.configuration,
         remainingAllocations,
       ),
-    };
+    });
   }
 
   function updateObjective(index: number, objective: string): void {
     if (!generation.value || !generation.value.questions[index]) {
       return;
     }
-    generation.value = {
+    updateGeneration({
       ...generation.value,
       questions: generation.value.questions.map((question, questionIndex) =>
         questionIndex === index ? { ...question, objective } : question),
-    };
+    });
   }
 
   function createSessionPayload(maxQuestionCount: number): InterviewSessionCreatePayload | null {
@@ -164,21 +173,38 @@ export function useInterviewQuestionDraft() {
     };
   }
 
+  function updateGeneration(nextGeneration: InterviewQuestionGenerationResult): void {
+    if (!draft.value) {
+      return;
+    }
+    draft.value = {
+      ...draft.value,
+      reused: false,
+      actualQuestionCount: nextGeneration.questions.length,
+      status: nextGeneration.questions.length === draft.value.targetQuestionCount
+        && !nextGeneration.unavailableSources.length ? "COMPLETE" : "PARTIAL",
+      generation: nextGeneration,
+    };
+  }
+
   function clear(): void {
-    preparation.value = null;
-    generation.value = null;
+    draft.value = null;
     generatedFrom.value = "";
     error.value = "";
   }
 
   return {
-    preparation: readonly(preparation),
-    generation: readonly(generation),
+    draft: readonly(draft),
+    preparation,
+    generation,
     questions,
     loading: readonly(loading),
+    replacingQuestionIndex: readonly(replacingQuestionIndex),
+    busy,
     error: readonly(error),
     canConfirm,
     generate,
+    replaceQuestion,
     invalidateIfChanged,
     updateQuestion,
     updateObjective,
