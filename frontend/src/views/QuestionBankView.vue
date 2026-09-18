@@ -27,7 +27,7 @@ const canStartRandom = computed(() => validSessionCapacity.value && Boolean(curr
   && eligibleQuestions.value.filter((question) => question.followUps.length >= config.followUpCount).length >= config.questionCount);
 const skillOptions: Array<{ value: InterviewSkill; label: string }> = [
   { value: "JAVA_CORE", label: "Java 核心" }, { value: "SPRING", label: "Spring" }, { value: "DATABASE", label: "数据库" },
-  { value: "SYSTEM_DESIGN", label: "系统设计" }, { value: "RAG_AI", label: "RAG / AI" }, { value: "GENERAL", label: "综合" },
+  { value: "SYSTEM_DESIGN", label: "系统设计" }, { value: "RAG_AI", label: "RAG / AI" },
 ];
 const difficultyOptions: Array<{ value: InterviewDifficulty; label: string }> = [
   { value: "BASIC", label: "基础" }, { value: "INTERMEDIATE", label: "进阶" }, { value: "ADVANCED", label: "高级场景" },
