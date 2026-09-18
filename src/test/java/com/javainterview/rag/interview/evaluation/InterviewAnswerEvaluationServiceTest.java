@@ -1,5 +1,6 @@
 package com.javainterview.rag.interview.evaluation;
 
+import com.javainterview.rag.interview.bank.QuestionBankContext;
 import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
@@ -186,6 +187,40 @@ class InterviewAnswerEvaluationServiceTest {
         verify(chatClient).prompt(promptCaptor.capture());
         assertTrue(promptCaptor.getValue().contains("历史复习回答 1"));
         assertTrue(promptCaptor.getValue().contains("不得生成追问"));
+        org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
+    @Test
+    void evaluatesQuestionBankSnapshotWithoutGeneratingDynamicFollowUp() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString()).call().entity(InterviewAnswerEvaluationDraft.class))
+                .thenReturn(new InterviewAnswerEvaluationDraft(
+                        88, 84, 86,
+                        List.of("说明了版本切换顺序"), List.of(), "补充失败告警。",
+                        List.of("新版本成功后"),
+                        List.of(new InterviewAnswerEvaluationDraft.KnowledgeEvidenceDraft(
+                                1, "新版本成功后再清理旧版本")),
+                        true, "不应生成", "不应生成", "不应检索"));
+        clearInvocations(chatClient);
+        InterviewQuestion bankQuestion = new InterviewQuestion(
+                "如何保证向量更新一致性？", "向量生命周期",
+                List.of(InterviewFocusSource.TARGET_ROLE), "向量更新一致性", true,
+                List.of(source("新版本成功后再清理旧版本。", 0.88)),
+                new QuestionBankContext("bank-question-1", "先写新版本，再切换并清理旧版本。",
+                        List.of("稳定版本标识", "失败补偿"), "按切换顺序和恢复方案评分", false, null));
+        InterviewAnswerEvaluationService service =
+                new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
+
+        InterviewAnswerAssessment result = service.evaluate(
+                profile(), bankQuestion, "新版本成功后再清理旧版本，并保留失败重试记录。");
+
+        assertEquals(null, result.followUpQuestion());
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient).prompt(promptCaptor.capture());
+        assertTrue(promptCaptor.getValue().contains("题库固定题单，不得生成动态追问"));
+        assertTrue(promptCaptor.getValue().contains("稳定版本标识；失败补偿"));
+        assertTrue(promptCaptor.getValue().contains("按切换顺序和恢复方案评分"));
         org.mockito.Mockito.verifyNoInteractions(searchService);
     }
 

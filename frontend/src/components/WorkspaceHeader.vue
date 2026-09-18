@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { Activity, BookOpen, Command, Database, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
+import { Activity, BookOpen, BookOpenCheck, Command, Database, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,12 +8,19 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview" | "review" | "observability";
+  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "observability";
 }>(), {
   mode: "knowledge",
 });
 
 const commands = computed<WorkspaceCommand[]>(() => {
+  if (props.mode === "question-bank") {
+    return [
+      { id: "bank-configuration", label: "出题配置", description: "选择资料、Skill 和题量" },
+      { id: "bank-tasks", label: "出题任务", description: "查看生成进度与恢复失败任务" },
+      { id: "bank-questions", label: "题目列表", description: "筛选、审核并选择面试题目" },
+    ];
+  }
   if (props.mode === "interview") {
     return [
       { id: "interview-setup", label: "准备面试", description: "上传简历并设置题目数量" },
@@ -102,6 +109,10 @@ onUnmounted(() => {
         <RouterLink to="/interview" class="nav-link" aria-label="打开面试训练">
           <BookOpen :size="16" aria-hidden="true" />
           <span>面试训练</span>
+        </RouterLink>
+        <RouterLink to="/question-bank" class="nav-link" aria-label="打开知识题库" title="知识题库">
+          <BookOpenCheck :size="16" aria-hidden="true" />
+          <span>知识题库</span>
         </RouterLink>
         <RouterLink to="/review" class="nav-link" aria-label="打开统一复习中心">
           <ListChecks :size="16" aria-hidden="true" />
@@ -302,6 +313,7 @@ onUnmounted(() => {
 
   .header-links {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     margin-top: 0;
   }
@@ -342,13 +354,15 @@ onUnmounted(() => {
 
 @media (max-width: 42rem) {
   .header-inner {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--space-xs);
     width: calc(100% - (var(--space-md) * 2));
   }
 
   .header-links {
-    justify-content: end;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
     gap: 0;
   }
 
@@ -370,6 +384,11 @@ onUnmounted(() => {
 
   .brand small {
     display: none;
+  }
+
+  .search-trigger {
+    grid-column: 2;
+    grid-row: 1;
   }
 
 }

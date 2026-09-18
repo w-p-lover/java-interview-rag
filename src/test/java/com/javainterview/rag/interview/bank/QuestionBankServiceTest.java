@@ -1,0 +1,122 @@
+package com.javainterview.rag.interview.bank;
+
+import com.javainterview.rag.interview.question.InterviewDifficulty;
+import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewSessionService;
+import com.javainterview.rag.interview.session.InterviewSessionStore;
+import com.javainterview.rag.knowledge.document.KnowledgeDocumentSnapshot;
+import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.knowledge.document.MarkdownSection;
+import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+class QuestionBankServiceTest {
+    @Test
+    void rejectsSessionWhenFixedFollowUpCapacityIsInsufficient() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        BankSources sources = new BankSources(registry, 600);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        when(registry.findVersionsBySource("java.md")).thenReturn(List.of(
+                new com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary(
+                        "java.md", "v1", 4, LocalDateTime.now(),
+                        new com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline(1, 1, List.of()))));
+        when(registry.findSnapshot("java.md", "v1")).thenReturn(Optional.of(snapshot()));
+        when(sessionStore.findByRequestId("bank:req-1")).thenReturn(Optional.empty());
+        when(store.listQuestions("java.md")).thenReturn(List.of(question("q-1", List.of())));
+
+        QuestionBankService service = new QuestionBankService(
+                store, sources, mock(InterviewSessionService.class), sessionStore, "test");
+
+        assertThrows(RuntimeException.class, () -> service.startSession(new QuestionBankService.SessionRequest(
+                "req-1", "java.md", List.of(), 3, 1, InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.BASIC, null)));
+    }
+
+    @Test
+    void rejectsFormalSessionWithFewerThanThreeMainQuestions() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        InterviewSessionService sessionService = mock(InterviewSessionService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        when(sessionStore.findByRequestId("bank:req-small")).thenReturn(Optional.empty());
+        QuestionBankService service = new QuestionBankService(
+                store, new BankSources(registry, 600), sessionService, sessionStore, "test");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                service.startSession(new QuestionBankService.SessionRequest(
+                        "req-small", "java.md", List.of(), 2, 0, InterviewSkill.JAVA_CORE,
+                        InterviewDifficulty.BASIC, null)));
+
+        assertEquals("主问题数必须在 3 到 8 之间，固定追问数在 0 到 2 之间", exception.getMessage());
+        verifyNoInteractions(sessionService);
+    }
+
+    @Test
+    void createsFormalSessionFromReviewedQuestionSnapshotsAndRecordsUsage() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        BankSources sources = new BankSources(registry, 600);
+        InterviewSessionService sessionService = mock(InterviewSessionService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        List<BankQuestion> selected = List.of(
+                question("q-1", List.of()), question("q-2", List.of()), question("q-3", List.of()));
+        when(registry.findVersionsBySource("java.md")).thenReturn(List.of(
+                new com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary(
+                        "java.md", "v1", 4, LocalDateTime.now(),
+                        new com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline(1, 1, List.of()))));
+        when(registry.findSnapshot("java.md", "v1")).thenReturn(Optional.of(snapshot()));
+        when(sessionStore.findByRequestId("bank:req-2")).thenReturn(Optional.empty());
+        selected.forEach(question -> when(store.findQuestion(question.id())).thenReturn(Optional.of(question)));
+        when(sessionService.start(eq("知识资料专项面试"), any(), anyList(), eq(3), any(), eq("bank:req-2")))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    List<com.javainterview.rag.interview.question.InterviewQuestion> questions = invocation.getArgument(2);
+                    var session = mock(com.javainterview.rag.interview.session.InterviewSession.class);
+                    when(session.id()).thenReturn("session-1");
+                    when(session.questions()).thenReturn(questions);
+                    return session;
+                });
+        QuestionBankService service = new QuestionBankService(
+                store, sources, sessionService, sessionStore, "test");
+
+        var result = service.startSession(new QuestionBankService.SessionRequest(
+                "req-2", "java.md", List.of("q-1", "q-2", "q-3"), 3, 0,
+                InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC, "Java"));
+
+        assertEquals("session-1", result.id());
+        verify(sessionService).start(eq("知识资料专项面试"), any(), anyList(), eq(3), any(), eq("bank:req-2"));
+        verify(store).recordUsage("session-1", "q-1", 0);
+        verify(store).recordUsage("session-1", "q-2", 1);
+        verify(store).recordUsage("session-1", "q-3", 2);
+    }
+
+    private KnowledgeDocumentSnapshot snapshot() {
+        MarkdownDocument document = MarkdownDocument.create("java.md", "# Java\n\n正文");
+        return new KnowledgeDocumentSnapshot(document, List.of(
+                new MarkdownSection("java.md", 0, 1, List.of("Java"), "正文")));
+    }
+
+    private BankQuestion question(String id, List<BankQuestion.FollowUp> followUps) {
+        MarkdownSearchResult evidence = new MarkdownSearchResult("正文", "java.md", "v1", 0, List.of("Java"), null);
+        return new BankQuestion(id, null, "java.md", "v1", InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.BASIC, "Java", "题目 " + id, "目标", "答案", List.of("要点"),
+                "评分", followUps, List.of(evidence), BankQuestion.Status.ACTIVE, 0,
+                0, null, LocalDateTime.now(), LocalDateTime.now());
+    }
+}

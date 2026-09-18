@@ -1,6 +1,7 @@
 package com.javainterview.rag.interview.question;
 
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
+import com.javainterview.rag.interview.bank.QuestionBankContext;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 
 import java.util.List;
@@ -12,8 +13,15 @@ public record InterviewQuestion(
         List<InterviewFocusSource> basisSources,
         String knowledgeQuery,
         boolean knowledgeGrounded,
-        List<MarkdownSearchResult> knowledgeSources
+        List<MarkdownSearchResult> knowledgeSources,
+        QuestionBankContext bankContext
 ) {
+
+    public InterviewQuestion(String question, String objective, List<InterviewFocusSource> basisSources,
+                              String knowledgeQuery, boolean knowledgeGrounded,
+                              List<MarkdownSearchResult> knowledgeSources) {
+        this(question, objective, basisSources, knowledgeQuery, knowledgeGrounded, knowledgeSources, null);
+    }
 
     public InterviewQuestion {
         question = requireText(question, "面试题不能为空");

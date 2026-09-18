@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import("@/views/InterviewView.vue"),
     },
     {
+      path: "/question-bank",
+      name: "question-bank",
+      component: () => import("@/views/QuestionBankView.vue"),
+    },
+    {
       path: "/review",
       name: "review-center",
       component: () => import("@/views/ReviewCenterView.vue"),
