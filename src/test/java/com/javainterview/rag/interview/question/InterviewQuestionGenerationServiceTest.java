@@ -23,6 +23,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.atLeast;
 
 class InterviewQuestionGenerationServiceTest {
 
@@ -195,6 +197,124 @@ class InterviewQuestionGenerationServiceTest {
         assertFalse(result.questions().get(0).knowledgeGrounded());
         assertEquals(List.of(InterviewQuestionSource.KNOWLEDGE), result.unavailableSources());
         verify(searchService).search("知识查询 2", 3, 0.60);
+    }
+
+    @Test
+    void generatesSixtyPercentResumeAndFortyPercentDirectionQuestionsWithHistory() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString())).thenAnswer(invocation -> {
+            String prompt = invocation.getArgument(0);
+            int count = prompt.contains("必须恰好生成 3 道题") ? 3 : 2;
+            InterviewFocusSource source = prompt.contains("只生成基于简历明确事实")
+                    ? InterviewFocusSource.RESUME : InterviewFocusSource.TARGET_ROLE;
+            List<InterviewQuestionDraft> drafts = java.util.stream.IntStream.range(0, count)
+                    .mapToObj(index -> new InterviewQuestionDraft(
+                            source + "题" + index,
+                            "考察目标" + index,
+                            List.of(source),
+                            "查询" + source + index))
+                    .toList();
+            ChatClient.ChatClientRequestSpec spec = mock(ChatClient.ChatClientRequestSpec.class);
+            ChatClient.CallResponseSpec call = mock(ChatClient.CallResponseSpec.class);
+            when(spec.call()).thenReturn(call);
+            when(call.entity(InterviewQuestionDraftSet.class))
+                    .thenReturn(new InterviewQuestionDraftSet(drafts));
+            return spec;
+        });
+        when(searchService.search(anyString(),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.eq(0.60)))
+                .thenReturn(List.of());
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        InterviewQuestionSourceGenerationResult result = service.generateBySources(
+                "Java 后端工程师",
+                profile(),
+                5,
+                List.of(new HistoricalInterviewQuestion("旧题", "RESUME", "旧知识点")));
+
+        assertEquals(5, result.questions().size());
+        assertEquals(3, result.questions().stream()
+                .filter(question -> question.basisSources().contains(InterviewFocusSource.RESUME)).count());
+        assertEquals(2, result.questions().stream()
+                .filter(question -> question.basisSources().contains(InterviewFocusSource.TARGET_ROLE)).count());
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient, times(2)).prompt(promptCaptor.capture());
+        assertTrue(promptCaptor.getAllValues().stream().allMatch(prompt -> prompt.contains("旧知识点")));
+    }
+
+    @Test
+    void retriesAllQuestionsFromDirectionWhenResumeBranchFails() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString())).thenAnswer(invocation -> {
+            String prompt = invocation.getArgument(0);
+            if (prompt.contains("只生成基于简历明确事实")) {
+                throw new IllegalStateException("简历题生成失败");
+            }
+            int count = prompt.contains("必须恰好生成 5 道题") ? 5 : 2;
+            List<InterviewQuestionDraft> drafts = java.util.stream.IntStream.range(0, count)
+                    .mapToObj(index -> new InterviewQuestionDraft(
+                            "方向题" + index, "方向目标" + index,
+                            List.of(InterviewFocusSource.TARGET_ROLE), "方向查询" + index))
+                    .toList();
+            ChatClient.ChatClientRequestSpec spec = mock(ChatClient.ChatClientRequestSpec.class);
+            ChatClient.CallResponseSpec call = mock(ChatClient.CallResponseSpec.class);
+            when(spec.call()).thenReturn(call);
+            when(call.entity(InterviewQuestionDraftSet.class))
+                    .thenReturn(new InterviewQuestionDraftSet(drafts));
+            return spec;
+        });
+        when(searchService.search(anyString(),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.eq(0.60)))
+                .thenReturn(List.of());
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        InterviewQuestionSourceGenerationResult result = service.generateBySources(
+                "Java 后端工程师", profile(), 5, List.of());
+
+        assertEquals(5, result.questions().size());
+        assertEquals(List.of(InterviewQuestionSource.RESUME), result.unavailableSources());
+        assertTrue(result.questions().stream().allMatch(question ->
+                question.basisSources().equals(List.of(InterviewFocusSource.TARGET_ROLE))));
+        verify(chatClient, atLeast(2)).prompt(anyString());
+    }
+
+    @Test
+    void preservesKnowledgeDegradationWhenResumeBranchFallsBackToDirection() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString())).thenAnswer(invocation -> {
+            String prompt = invocation.getArgument(0);
+            if (prompt.contains("只生成基于简历明确事实")) {
+                throw new IllegalStateException("简历题生成失败");
+            }
+            int count = prompt.contains("必须恰好生成 5 道题") ? 5 : 2;
+            List<InterviewQuestionDraft> drafts = java.util.stream.IntStream.range(0, count)
+                    .mapToObj(index -> new InterviewQuestionDraft(
+                            "方向题" + index, "方向目标" + index,
+                            List.of(InterviewFocusSource.TARGET_ROLE), "方向查询" + index))
+                    .toList();
+            ChatClient.ChatClientRequestSpec spec = mock(ChatClient.ChatClientRequestSpec.class);
+            ChatClient.CallResponseSpec call = mock(ChatClient.CallResponseSpec.class);
+            when(spec.call()).thenReturn(call);
+            when(call.entity(InterviewQuestionDraftSet.class))
+                    .thenReturn(new InterviewQuestionDraftSet(drafts));
+            return spec;
+        });
+        when(searchService.search(anyString(),
+                org.mockito.ArgumentMatchers.eq(3), org.mockito.ArgumentMatchers.eq(0.60)))
+                .thenThrow(new IllegalStateException("知识检索不可用"));
+        InterviewQuestionGenerationService service =
+                new InterviewQuestionGenerationService(chatClient, searchService);
+
+        InterviewQuestionSourceGenerationResult result = service.generateBySources(
+                "Java 后端工程师", profile(), 5, List.of());
+
+        assertEquals(List.of(InterviewQuestionSource.RESUME, InterviewQuestionSource.KNOWLEDGE),
+                result.unavailableSources());
     }
 
     private InterviewPreparationProfile profile() {

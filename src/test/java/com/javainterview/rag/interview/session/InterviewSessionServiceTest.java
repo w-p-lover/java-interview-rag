@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -161,6 +162,67 @@ class InterviewSessionServiceTest {
 
         assertEquals("面试会话题数必须在 3 到 12 之间", exception.getMessage());
         verifyNoInteractions(store, evaluator);
+    }
+
+    @Test
+    void reusesPersistedSessionForTheSameCreateRequestId() {
+        InterviewSessionStore store = mock(InterviewSessionStore.class);
+        InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);
+        InterviewSessionService service = new InterviewSessionService(store, evaluator);
+        InterviewSession existing = sessionWithAnswers(0);
+        when(store.findByRequestId("request-1")).thenReturn(Optional.of(existing));
+
+        InterviewSession result = service.start(
+                InterviewSessionMode.STANDARD,
+                "Java AI 应用开发工程师",
+                profile(),
+                questions(),
+                8,
+                InterviewConfigurationSnapshot.legacy(InterviewSessionMode.STANDARD, 3, 8),
+                "request-1");
+
+        assertEquals(existing, result);
+        verify(store, never()).create(any());
+        verify(store, never()).createIfAbsent(any(), any());
+    }
+
+    @Test
+    void returnsConcurrentWinnerWhenRequestIdUniqueKeyAlreadyExists() {
+        InterviewSessionStore store = mock(InterviewSessionStore.class);
+        InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);
+        InterviewSessionService service = new InterviewSessionService(store, evaluator);
+        InterviewSession winner = sessionWithAnswers(0);
+        when(store.findByRequestId("request-2")).thenReturn(Optional.empty());
+        when(store.createIfAbsent(any(InterviewSession.class), eq("request-2")))
+                .thenReturn(Optional.of(winner));
+
+        InterviewSession result = service.start(
+                InterviewSessionMode.STANDARD,
+                "Java AI 应用开发工程师",
+                profile(),
+                questions(),
+                8,
+                InterviewConfigurationSnapshot.legacy(InterviewSessionMode.STANDARD, 3, 8),
+                "request-2");
+
+        assertEquals(winner, result);
+        verify(store).createIfAbsent(any(InterviewSession.class), eq("request-2"));
+        verify(store, never()).create(any());
+    }
+
+    @Test
+    void rejectsMissingRequestIdForFormalDraftConfirmation() {
+        InterviewSessionStore store = mock(InterviewSessionStore.class);
+        InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);
+        InterviewSessionService service = new InterviewSessionService(store, evaluator);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                service.start("Java 后端工程师", profile(), questions(), 8,
+                        InterviewConfigurationSnapshot.legacy(
+                                InterviewSessionMode.STANDARD, questions().size(), 8), " "));
+
+        assertEquals("创建请求 ID 不能为空", exception.getMessage());
+        verifyNoInteractions(store);
     }
 
     private InterviewSession sessionWithAnswers(int answerCount) {

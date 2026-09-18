@@ -76,7 +76,7 @@ public class InterviewSessionController {
         }
         return sessionService.start(
                 request.targetRole(), request.profile(), request.questions(), maxQuestionCount,
-                request.configuration());
+                request.configuration(), request.requestId());
     }
 
     @GetMapping("/{sessionId}")

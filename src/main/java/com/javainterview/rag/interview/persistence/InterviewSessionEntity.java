@@ -18,6 +18,7 @@ public class InterviewSessionEntity {
 
     @TableId(type = IdType.INPUT)
     private String id;
+    private String requestId;
     private String targetRole;
     private String sessionMode;
     private String configurationJson;
@@ -32,12 +33,14 @@ public class InterviewSessionEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static InterviewSessionEntity from(InterviewSession session, String configurationJson,
+    public static InterviewSessionEntity from(InterviewSession session, String requestId,
+                                              String configurationJson,
                                               String profileJson,
                                               String questionsJson, String answersJson,
                                               String reportJson) {
         InterviewSessionEntity entity = new InterviewSessionEntity();
         entity.id = session.id();
+        entity.requestId = requestId;
         entity.targetRole = session.targetRole();
         entity.sessionMode = session.mode().name();
         entity.configurationJson = configurationJson;
@@ -57,7 +60,7 @@ public class InterviewSessionEntity {
     public static InterviewSessionEntity from(InterviewSession session, String profileJson,
                                               String questionsJson, String answersJson,
                                               String reportJson) {
-        return from(session, null, profileJson, questionsJson, answersJson, reportJson);
+        return from(session, null, null, profileJson, questionsJson, answersJson, reportJson);
     }
 
 }

@@ -11,6 +11,7 @@ import com.javainterview.rag.interview.question.InterviewQuestionGenerationResul
 import com.javainterview.rag.interview.question.InterviewQuestionPlanOutcome;
 import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewSessionStore;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -38,12 +40,13 @@ class InterviewDraftServiceTest {
     void reusesIdenticalDraftAndExplicitRegenerateRunsAgain() {
         InterviewPreparationService preparationService = mock(InterviewPreparationService.class);
         InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
         InterviewPreparationResult preparation = preparation();
         when(planService.modelName()).thenReturn("qwen-test");
         when(preparationService.prepare(anyString(), anyString(), anyString())).thenReturn(preparation);
-        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString()))
+        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString(), anyList()))
                 .thenReturn(new InterviewQuestionPlanOutcome(generation(), null, null));
-        InterviewDraftService service = new InterviewDraftService(preparationService, planService);
+        InterviewDraftService service = new InterviewDraftService(preparationService, planService, sessionStore);
 
         InterviewDraftResult first = generate(service, false);
         InterviewDraftResult reused = generate(service, false);
@@ -56,20 +59,21 @@ class InterviewDraftServiceTest {
         verify(preparationService, times(2)).prepare(
                 "Java 后端工程师", "Spring Boot 项目", "要求 MySQL");
         verify(planService, times(2)).generatePlan(
-                anyString(), any(), anyInt(), anyInt(), any(), any(), anyString());
+                anyString(), any(), anyInt(), anyInt(), any(), any(), anyString(), anyList());
     }
 
     @Test
     void removesFailedComputationSoTheSameInputCanRetry() {
         InterviewPreparationService preparationService = mock(InterviewPreparationService.class);
         InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
         when(planService.modelName()).thenReturn("qwen-test");
         when(preparationService.prepare(anyString(), anyString(), anyString()))
                 .thenThrow(new IllegalStateException("模型暂不可用"))
                 .thenReturn(preparation());
-        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString()))
+        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString(), anyList()))
                 .thenReturn(new InterviewQuestionPlanOutcome(generation(), null, null));
-        InterviewDraftService service = new InterviewDraftService(preparationService, planService);
+        InterviewDraftService service = new InterviewDraftService(preparationService, planService, sessionStore);
 
         assertThrows(IllegalStateException.class, () -> generate(service, false));
         InterviewDraftResult retried = generate(service, false);
@@ -83,6 +87,7 @@ class InterviewDraftServiceTest {
     void sharesOneInFlightComputationForConcurrentIdenticalRequests() throws Exception {
         InterviewPreparationService preparationService = mock(InterviewPreparationService.class);
         InterviewQuestionPlanService planService = mock(InterviewQuestionPlanService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
         CountDownLatch preparationStarted = new CountDownLatch(1);
         CountDownLatch allowPreparationToFinish = new CountDownLatch(1);
         when(planService.modelName()).thenReturn("qwen-test");
@@ -92,9 +97,9 @@ class InterviewDraftServiceTest {
                     allowPreparationToFinish.await(2, TimeUnit.SECONDS);
                     return preparation();
                 });
-        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString()))
+        when(planService.generatePlan(anyString(), any(), anyInt(), anyInt(), any(), any(), anyString(), anyList()))
                 .thenReturn(new InterviewQuestionPlanOutcome(generation(), null, null));
-        InterviewDraftService service = new InterviewDraftService(preparationService, planService);
+        InterviewDraftService service = new InterviewDraftService(preparationService, planService, sessionStore);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<InterviewDraftResult> first = executor.submit(() -> generate(service, false));

@@ -9,6 +9,8 @@ import com.javainterview.rag.interview.question.InterviewQuestionPlanOutcome;
 import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
 import com.javainterview.rag.interview.question.InterviewQuestionSource;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.HistoricalInterviewQuestion;
+import com.javainterview.rag.interview.session.InterviewSessionStore;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -33,23 +35,28 @@ public class InterviewDraftService {
 
     private final InterviewPreparationService preparationService;
     private final InterviewQuestionPlanService questionPlanService;
+    private final InterviewSessionStore sessionStore;
     private final Clock clock;
     private final Object cacheLock = new Object();
     private final LinkedHashMap<String, DraftEntry> entriesById = new LinkedHashMap<>(16, 0.75f, true);
     private final Map<String, String> draftIdByFingerprint = new HashMap<>();
 
     public InterviewDraftService(InterviewPreparationService preparationService,
-                                 InterviewQuestionPlanService questionPlanService) {
-        this(preparationService, questionPlanService, Clock.systemUTC());
+                                 InterviewQuestionPlanService questionPlanService,
+                                 InterviewSessionStore sessionStore) {
+        this(preparationService, questionPlanService, sessionStore, Clock.systemUTC());
     }
 
     InterviewDraftService(InterviewPreparationService preparationService,
                           InterviewQuestionPlanService questionPlanService,
+                          InterviewSessionStore sessionStore,
                           Clock clock) {
         this.preparationService = java.util.Objects.requireNonNull(
                 preparationService, "面试准备服务不能为空");
         this.questionPlanService = java.util.Objects.requireNonNull(
                 questionPlanService, "面试组卷服务不能为空");
+        this.sessionStore = java.util.Objects.requireNonNull(
+                sessionStore, "面试会话存储不能为空");
         this.clock = java.util.Objects.requireNonNull(clock, "时钟不能为空");
     }
 
@@ -94,6 +101,8 @@ public class InterviewDraftService {
         try {
             InterviewPreparationResult preparation = preparationService.prepare(
                     normalizedTargetRole, normalizedResumeText, normalizedJobDescription);
+            List<HistoricalInterviewQuestion> historicalQuestions =
+                    sessionStore.findRecentQuestions(skill, 30);
             InterviewQuestionPlanOutcome plan = questionPlanService.generatePlan(
                     preparation.targetRole(),
                     preparation.profile(),
@@ -101,7 +110,8 @@ public class InterviewDraftService {
                     maxQuestionCount,
                     skill,
                     difficulty,
-                    preparation.promptVersion());
+                    preparation.promptVersion(),
+                    historicalQuestions);
             InterviewDraftResult result = result(
                     entry.draftId,
                     questionCount,

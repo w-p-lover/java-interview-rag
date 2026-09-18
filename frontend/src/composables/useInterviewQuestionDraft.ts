@@ -32,6 +32,7 @@ export function useInterviewQuestionDraft() {
   const replacingQuestionIndex = shallowRef<number | null>(null);
   const error = shallowRef("");
   const generatedFrom = shallowRef("");
+  const sessionRequestId = shallowRef("");
 
   const preparation = computed(() => draft.value?.preparation ?? null);
   const generation = computed(() => draft.value?.generation ?? null);
@@ -56,6 +57,7 @@ export function useInterviewQuestionDraft() {
         return;
       }
       draft.value = nextDraft;
+      sessionRequestId.value = crypto.randomUUID();
       generatedFrom.value = fingerprint(payload);
     } catch (requestError) {
       if (fingerprint(payload) === fingerprint(currentPayload())) {
@@ -156,7 +158,11 @@ export function useInterviewQuestionDraft() {
     if (!preparation.value || !generation.value || !canConfirm.value) {
       return null;
     }
+    if (!sessionRequestId.value) {
+      sessionRequestId.value = crypto.randomUUID();
+    }
     return {
+      requestId: sessionRequestId.value,
       targetRole: preparation.value.targetRole,
       profile: preparation.value.profile,
       questions: generation.value.questions.map((question) => ({
@@ -189,6 +195,7 @@ export function useInterviewQuestionDraft() {
 
   function clear(): void {
     draft.value = null;
+    sessionRequestId.value = "";
     generatedFrom.value = "";
     error.value = "";
   }

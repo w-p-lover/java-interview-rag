@@ -294,6 +294,7 @@ export interface InterviewSessionStartPayload {
 }
 
 export interface InterviewSessionCreatePayload {
+  requestId: string;
   targetRole: string;
   profile: InterviewPreparationProfile;
   questions: InterviewQuestion[];

@@ -3,6 +3,7 @@ package com.javainterview.rag.interview.question;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class FixedInterviewQuestionCatalog {
 
@@ -27,6 +28,46 @@ public class FixedInterviewQuestionCatalog {
             throw new IllegalArgumentException("固定题数量超出当前 Skill 可用范围");
         }
         return candidates.subList(0, count);
+    }
+
+    public List<InterviewQuestion> fallback(InterviewSkill skill,
+                                            InterviewDifficulty difficulty,
+                                            int count,
+                                            List<String> excludedQuestions) {
+        if (count < 1 || count > 8) {
+            throw new IllegalArgumentException("兜底题数量必须在 1 到 8 之间");
+        }
+        List<InterviewQuestion> candidates = select(skill, difficulty, 3);
+        List<String> excluded = excludedQuestions == null ? List.of() : excludedQuestions;
+        List<InterviewQuestion> result = new ArrayList<>();
+        candidates.stream()
+                .filter(question -> !excluded.contains(question.question()))
+                .limit(count)
+                .forEach(result::add);
+        int sequence = 1;
+        while (result.size() < count) {
+            String skillLabel = switch (skill) {
+                case JAVA_CORE -> "Java 核心";
+                case SPRING -> "Spring";
+                case DATABASE -> "数据库";
+                case SYSTEM_DESIGN -> "系统设计";
+                case RAG_AI -> "RAG 与 AI 工程";
+                case GENERAL -> throw new IllegalArgumentException("请选择具体的面试 Skill");
+            };
+            String difficultyLabel = switch (difficulty) {
+                case BASIC -> "基础原理与简单应用";
+                case INTERMEDIATE -> "原理理解与项目实践";
+                case ADVANCED -> "架构取舍、故障恢复与验证";
+            };
+            String text = "请结合一个具体场景，说明你对" + skillLabel + "中"
+                    + difficultyLabel + "的理解与实践（方向 " + sequence + "）。";
+            sequence++;
+            if (excluded.contains(text)) {
+                continue;
+            }
+            result.add(question(text, difficultyLabel, skillLabel + " " + difficultyLabel));
+        }
+        return List.copyOf(result);
     }
 
     private List<InterviewQuestion> javaCore(InterviewDifficulty difficulty) {

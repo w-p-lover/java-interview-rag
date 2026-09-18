@@ -11,13 +11,22 @@ public record InterviewSessionCreateRequest(
         InterviewPreparationProfile profile,
         List<InterviewQuestion> questions,
         Integer maxQuestionCount,
-        InterviewConfigurationSnapshot configuration
+        InterviewConfigurationSnapshot configuration,
+        String requestId
 ) {
 
     public InterviewSessionCreateRequest(String targetRole,
                                          InterviewPreparationProfile profile,
                                          List<InterviewQuestion> questions,
                                          Integer maxQuestionCount) {
-        this(targetRole, profile, questions, maxQuestionCount, null);
+        this(targetRole, profile, questions, maxQuestionCount, null, null);
+    }
+
+    public InterviewSessionCreateRequest(String targetRole,
+                                         InterviewPreparationProfile profile,
+                                         List<InterviewQuestion> questions,
+                                         Integer maxQuestionCount,
+                                         InterviewConfigurationSnapshot configuration) {
+        this(targetRole, profile, questions, maxQuestionCount, configuration, null);
     }
 }

@@ -11,12 +11,15 @@ import com.javainterview.rag.interview.question.InterviewDifficulty;
 import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
 import com.javainterview.rag.interview.question.InterviewQuestionSource;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.InterviewQuestionPlanService;
 import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DuplicateKeyException;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 class MySqlInterviewSessionStoreTest {
 
@@ -181,6 +185,69 @@ class MySqlInterviewSessionStoreTest {
 
         when(mapper.updateState(any(InterviewSessionEntity.class), eq(1L))).thenReturn(0);
         assertFalse(store.update(updated, 1L));
+    }
+
+    @Test
+    void persistsRequestIdAndRestoresConcurrentWinner() throws Exception {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        ObjectMapper objectMapper = objectMapper();
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper);
+        InterviewSession session = initialSession();
+        doThrow(new DuplicateKeyException("request_id 重复"))
+                .when(mapper).insert(any(InterviewSessionEntity.class));
+        InterviewSessionEntity existing = InterviewSessionEntity.from(
+                session, "request-1",
+                objectMapper.writeValueAsString(session.configuration()),
+                objectMapper.writeValueAsString(session.profile()),
+                objectMapper.writeValueAsString(session.questions()),
+                objectMapper.writeValueAsString(session.answers()),
+                null);
+        when(mapper.selectByRequestId("request-1")).thenReturn(existing);
+
+        InterviewSession result = store.createIfAbsent(session, "request-1").orElseThrow();
+
+        assertEquals(session, result);
+        ArgumentCaptor<InterviewSessionEntity> captor = ArgumentCaptor.forClass(InterviewSessionEntity.class);
+        verify(mapper).insert(captor.capture());
+        assertEquals("request-1", captor.getValue().getRequestId());
+    }
+
+    @Test
+    void loadsRecentHistoricalQuestionsForTheSameSkill() throws Exception {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        ObjectMapper objectMapper = objectMapper();
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper);
+        InterviewSession legacy = initialSession();
+        InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
+                InterviewQuestionPlanService.STRATEGY_VERSION,
+                InterviewSessionMode.STANDARD,
+                InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.INTERMEDIATE,
+                3, 8,
+                java.util.Map.of(InterviewQuestionSource.RESUME, 3),
+                List.of(
+                        new InterviewQuestionAllocation(0, InterviewQuestionSource.RESUME, List.of()),
+                        new InterviewQuestionAllocation(1, InterviewQuestionSource.RESUME, List.of()),
+                        new InterviewQuestionAllocation(2, InterviewQuestionSource.RESUME, List.of())),
+                "interview-preparation-v1", "interview-question-v1", "qwen-test");
+        InterviewSession configured = new InterviewSession(
+                legacy.id(), legacy.targetRole(), legacy.mode(), legacy.profile(), configuration,
+                legacy.questions(), legacy.maxQuestionCount(), legacy.answers(),
+                legacy.currentQuestionIndex(), legacy.status(), legacy.version(), legacy.report(),
+                legacy.createdAt(), legacy.updatedAt());
+        InterviewSessionEntity entity = InterviewSessionEntity.from(
+                configured, null,
+                objectMapper.writeValueAsString(configuration),
+                objectMapper.writeValueAsString(configured.profile()),
+                objectMapper.writeValueAsString(configured.questions()),
+                objectMapper.writeValueAsString(configured.answers()), null);
+        when(mapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(entity));
+
+        var history = store.findRecentQuestions(InterviewSkill.JAVA_CORE, 10);
+
+        assertEquals(3, history.size());
+        assertEquals("RESUME", history.get(0).type());
+        assertEquals("向量生命周期", history.get(0).topicSummary());
     }
 
     private ObjectMapper objectMapper() {

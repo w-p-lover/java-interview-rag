@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 public class InterviewSessionService {
@@ -46,7 +47,17 @@ public class InterviewSessionService {
                                   List<InterviewQuestion> questions, int maxQuestionCount,
                                   InterviewConfigurationSnapshot configuration) {
         return start(InterviewSessionMode.STANDARD, targetRole, profile, questions,
-                maxQuestionCount, configuration);
+                maxQuestionCount, configuration, null);
+    }
+
+    public InterviewSession start(String targetRole, InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration,
+                                  String requestId) {
+        String normalizedRequestId = requireText(requestId, 100,
+                "创建请求 ID 不能为空", "创建请求 ID 不能超过 100 个字符");
+        return start(InterviewSessionMode.STANDARD, targetRole, profile, questions,
+                maxQuestionCount, configuration, normalizedRequestId);
     }
 
     public InterviewSession start(InterviewSessionMode mode, String targetRole,
@@ -56,13 +67,21 @@ public class InterviewSessionService {
             throw new IllegalArgumentException("面试题不能为空");
         }
         return start(mode, targetRole, profile, questions, maxQuestionCount,
-                InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount));
+                InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount), null);
     }
 
     public InterviewSession start(InterviewSessionMode mode, String targetRole,
                                   InterviewPreparationProfile profile,
                                   List<InterviewQuestion> questions, int maxQuestionCount,
                                   InterviewConfigurationSnapshot configuration) {
+        return start(mode, targetRole, profile, questions, maxQuestionCount, configuration, null);
+    }
+
+    public InterviewSession start(InterviewSessionMode mode, String targetRole,
+                                  InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration,
+                                  String requestId) {
         String normalizedTargetRole = requireText(targetRole, TARGET_ROLE_MAX_LENGTH,
                 "目标岗位不能为空", "目标岗位不能超过 100 个字符");
         if (mode == null) {
@@ -76,6 +95,14 @@ public class InterviewSessionService {
         }
         if (configuration == null) {
             throw new IllegalArgumentException("面试配置快照不能为空");
+        }
+        String normalizedRequestId = requestId == null || requestId.isBlank()
+                ? null : requireText(requestId, 100, "创建请求 ID 不能为空", "创建请求 ID 不能超过 100 个字符");
+        if (normalizedRequestId != null) {
+            Optional<InterviewSession> existing = store.findByRequestId(normalizedRequestId);
+            if (existing.isPresent()) {
+                return existing.get();
+            }
         }
         if (configuration.initialQuestionCount() != questions.size()
                 || configuration.maxQuestionCount() != maxQuestionCount) {
@@ -98,7 +125,14 @@ public class InterviewSessionService {
                 now,
                 now
         );
-        store.create(session);
+        Optional<InterviewSession> existing = normalizedRequestId == null
+                ? Optional.empty() : store.createIfAbsent(session, normalizedRequestId);
+        if (existing != null && existing.isPresent()) {
+            return existing.get();
+        }
+        if (normalizedRequestId == null) {
+            store.create(session);
+        }
         return session;
     }
 

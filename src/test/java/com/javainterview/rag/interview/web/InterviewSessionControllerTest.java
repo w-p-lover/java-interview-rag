@@ -57,7 +57,7 @@ class InterviewSessionControllerTest {
                 "Java AI 应用开发工程师", "简历正文", "岗位描述", 5, 8)).thenReturn(initial);
         when(service.start(
                 initial.targetRole(), initial.profile(), initial.questions(), 8,
-                initial.configuration())).thenReturn(initial);
+                initial.configuration(), "request-1")).thenReturn(initial);
         when(service.find("session-1")).thenReturn(initial);
         when(service.submitAnswer(
                 "session-1", 0, 0L,
@@ -112,7 +112,7 @@ class InterviewSessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new InterviewSessionCreateRequest(
                                 initial.targetRole(), initial.profile(), initial.questions(), 8,
-                                initial.configuration()))))
+                                initial.configuration(), "request-1"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("session-1"))
                 .andExpect(jsonPath("$.status").value("IN_PROGRESS"))

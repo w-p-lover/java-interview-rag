@@ -5,16 +5,19 @@ import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 public class InterviewQuestionPlanService {
 
-    public static final String STRATEGY_VERSION = "deterministic-multi-source-v1";
+    public static final String STRATEGY_VERSION = "interview-guide-multi-source-v2";
 
     private final InterviewQuestionGenerationService generationService;
     private final FixedInterviewQuestionCatalog fixedQuestionCatalog;
@@ -24,8 +27,7 @@ public class InterviewQuestionPlanService {
                                         FixedInterviewQuestionCatalog fixedQuestionCatalog,
                                         String modelName) {
         this.generationService = Objects.requireNonNull(generationService, "面试出题服务不能为空");
-        this.fixedQuestionCatalog = Objects.requireNonNull(
-                fixedQuestionCatalog, "固定题目录不能为空");
+        this.fixedQuestionCatalog = Objects.requireNonNull(fixedQuestionCatalog, "固定题目录不能为空");
         this.modelName = requireText(modelName, "模型名称不能为空");
     }
 
@@ -37,7 +39,7 @@ public class InterviewQuestionPlanService {
                                                        InterviewDifficulty difficulty,
                                                        String preparationPromptVersion) {
         return generatePlan(targetRole, profile, questionCount, maxQuestionCount, skill,
-                difficulty, preparationPromptVersion).generation();
+                difficulty, preparationPromptVersion, List.of()).generation();
     }
 
     public InterviewQuestionPlanOutcome generatePlan(String targetRole,
@@ -47,6 +49,18 @@ public class InterviewQuestionPlanService {
                                                      InterviewSkill skill,
                                                      InterviewDifficulty difficulty,
                                                      String preparationPromptVersion) {
+        return generatePlan(targetRole, profile, questionCount, maxQuestionCount, skill,
+                difficulty, preparationPromptVersion, List.of());
+    }
+
+    public InterviewQuestionPlanOutcome generatePlan(String targetRole,
+                                                     InterviewPreparationProfile profile,
+                                                     int questionCount,
+                                                     int maxQuestionCount,
+                                                     InterviewSkill skill,
+                                                     InterviewDifficulty difficulty,
+                                                     String preparationPromptVersion,
+                                                     List<HistoricalInterviewQuestion> historicalQuestions) {
         validateConfiguration(questionCount, maxQuestionCount, skill, difficulty);
         if (profile == null) {
             throw new IllegalArgumentException("面试准备画像不能为空");
@@ -54,50 +68,46 @@ public class InterviewQuestionPlanService {
         String normalizedTargetRole = requireTargetRole(targetRole);
         String normalizedPreparationPromptVersion = requireText(
                 preparationPromptVersion, "准备画像 Prompt 版本不能为空");
-        int fixedCount = fixedQuestionCount(questionCount);
-        int generatedCount = questionCount - fixedCount;
-        List<PlannedQuestion> fixedQuestions = fixedQuestions(skill, difficulty, fixedCount);
-        try {
-            InterviewQuestionGenerationResult generated = generationService.generate(
-                    normalizedTargetRole, profile, Math.max(3, generatedCount));
-            List<PlannedQuestion> generatedQuestions = generated.questions().stream()
-                    .limit(generatedCount)
-                    .map(this::fromGeneratedQuestion)
-                    .toList();
-            List<PlannedQuestion> plannedQuestions = interleave(fixedQuestions, generatedQuestions);
-            return new InterviewQuestionPlanOutcome(
-                    toGenerationResult(
-                            generated.targetRole(),
-                            generated.promptVersion(),
-                            plannedQuestions,
-                            questionCount,
-                            maxQuestionCount,
-                            skill,
-                            difficulty,
-                            normalizedPreparationPromptVersion,
-                            generated.unavailableSources()),
-                    null,
-                    null);
-        } catch (RuntimeException exception) {
-            List<InterviewQuestionSource> unavailableSources = profile.focusAreas().stream()
-                    .flatMap(area -> area.sources().stream())
-                    .map(this::toQuestionSource)
-                    .distinct()
-                    .toList();
-            return new InterviewQuestionPlanOutcome(
-                    toGenerationResult(
-                            normalizedTargetRole,
-                            InterviewQuestionGenerationService.PROMPT_VERSION,
-                            fixedQuestions,
-                            fixedQuestions.size(),
-                            maxQuestionCount,
-                            skill,
-                            difficulty,
-                            normalizedPreparationPromptVersion,
-                            unavailableSources),
-                    "QUESTION_GENERATION_UNAVAILABLE",
-                    "画像题暂时生成失败，已保留可用的 Skill 固定题");
+        List<HistoricalInterviewQuestion> history = historicalQuestions == null
+                ? List.of() : List.copyOf(historicalQuestions);
+
+        InterviewQuestionSourceGenerationResult generated = generationService.generateBySources(
+                normalizedTargetRole, profile, questionCount, history);
+        List<PlannedQuestion> planned = deduplicate(generated.questions().stream()
+                .map(this::fromGeneratedQuestion)
+                .toList(), history);
+        int missingCount = questionCount - planned.size();
+        if (missingCount > 0) {
+            List<String> excluded = new ArrayList<>();
+            history.stream().map(HistoricalInterviewQuestion::question).forEach(excluded::add);
+            planned.stream().map(item -> item.question().question()).forEach(excluded::add);
+            fixedQuestionCatalog.fallback(skill, difficulty, missingCount, excluded).stream()
+                    .map(question -> new PlannedQuestion(
+                            question,
+                            InterviewQuestionSource.SKILL_FIXED,
+                            List.of(InterviewQuestionSource.TARGET_ROLE),
+                            false))
+                    .forEach(planned::add);
         }
+        List<InterviewQuestionSource> unavailableSources = generated.unavailableSources();
+        String failureCode = unavailableSources.stream()
+                .anyMatch(source -> source != InterviewQuestionSource.KNOWLEDGE)
+                ? "QUESTION_SOURCE_DEGRADED" : null;
+        String failureMessage = failureCode == null ? null
+                : "部分出题来源不可用，已按 Skill 方向和固定题补足题量";
+        return new InterviewQuestionPlanOutcome(
+                toGenerationResult(
+                        normalizedTargetRole,
+                        generated.promptVersion(),
+                        planned,
+                        questionCount,
+                        maxQuestionCount,
+                        skill,
+                        difficulty,
+                        normalizedPreparationPromptVersion,
+                        unavailableSources),
+                failureCode,
+                failureMessage);
     }
 
     public InterviewQuestionGenerationResult replaceQuestion(
@@ -124,10 +134,8 @@ public class InterviewQuestionPlanService {
             }
             InterviewQuestionAllocation currentAllocation = configuration.questionAllocations().get(index);
             updated.add(new PlannedQuestion(
-                    current.questions().get(index),
-                    currentAllocation.primarySource(),
-                    currentAllocation.supportingSources(),
-                    false));
+                    current.questions().get(index), currentAllocation.primarySource(),
+                    currentAllocation.supportingSources(), false));
         }
         List<InterviewQuestionSource> unavailableSources = new ArrayList<>(current.unavailableSources());
         if (replacement.knowledgeUnavailable()
@@ -135,15 +143,9 @@ public class InterviewQuestionPlanService {
             unavailableSources.add(InterviewQuestionSource.KNOWLEDGE);
         }
         return toGenerationResult(
-                current.targetRole(),
-                current.promptVersion(),
-                updated,
-                updated.size(),
-                configuration.maxQuestionCount(),
-                configuration.skill(),
-                configuration.difficulty(),
-                configuration.preparationPromptVersion(),
-                unavailableSources);
+                current.targetRole(), current.promptVersion(), updated, updated.size(),
+                configuration.maxQuestionCount(), configuration.skill(), configuration.difficulty(),
+                configuration.preparationPromptVersion(), unavailableSources);
     }
 
     public void validateConfiguration(int questionCount,
@@ -151,28 +153,36 @@ public class InterviewQuestionPlanService {
                                       InterviewSkill skill,
                                       InterviewDifficulty difficulty) {
         validateCounts(questionCount, maxQuestionCount);
-        fixedQuestionCatalog.select(skill, difficulty, fixedQuestionCount(questionCount));
+        fixedQuestionCatalog.select(skill, difficulty, 1);
     }
 
     public String modelName() {
         return modelName;
     }
 
+    private List<PlannedQuestion> deduplicate(List<PlannedQuestion> questions,
+                                              List<HistoricalInterviewQuestion> history) {
+        LinkedHashSet<String> excluded = new LinkedHashSet<>();
+        history.stream().map(HistoricalInterviewQuestion::question)
+                .map(this::normalizeQuestion).forEach(excluded::add);
+        Map<String, PlannedQuestion> unique = new LinkedHashMap<>();
+        for (PlannedQuestion question : questions) {
+            String normalized = normalizeQuestion(question.question().question());
+            if (!excluded.contains(normalized)) {
+                unique.putIfAbsent(normalized, question);
+            }
+        }
+        return new ArrayList<>(unique.values());
+    }
+
     private PlannedQuestion nextFixedQuestion(InterviewQuestionGenerationResult current,
                                               InterviewSkill skill,
                                               InterviewDifficulty difficulty) {
-        List<String> existingQuestions = current.questions().stream()
-                .map(InterviewQuestion::question)
-                .toList();
-        InterviewQuestion replacement = fixedQuestionCatalog.select(skill, difficulty, 3).stream()
-                .filter(candidate -> !existingQuestions.contains(candidate.question()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("当前 Skill 没有可用的替换题"));
-        return new PlannedQuestion(
-                replacement,
-                InterviewQuestionSource.SKILL_FIXED,
-                List.of(InterviewQuestionSource.TARGET_ROLE),
-                false);
+        List<String> existingQuestions = current.questions().stream().map(InterviewQuestion::question).toList();
+        InterviewQuestion replacement = fixedQuestionCatalog.fallback(
+                skill, difficulty, 1, existingQuestions).get(0);
+        return new PlannedQuestion(replacement, InterviewQuestionSource.SKILL_FIXED,
+                List.of(InterviewQuestionSource.TARGET_ROLE), false);
     }
 
     private PlannedQuestion nextGeneratedQuestion(String targetRole,
@@ -185,29 +195,12 @@ public class InterviewQuestionPlanService {
             default -> InterviewFocusSource.TARGET_ROLE;
         };
         InterviewQuestionGenerationResult replacement = generationService.generateReplacement(
-                targetRole,
-                profile,
-                preferredSource,
+                targetRole, profile, preferredSource,
                 current.questions().stream().map(InterviewQuestion::question).toList());
         PlannedQuestion planned = fromGeneratedQuestion(replacement.questions().get(0));
         return new PlannedQuestion(
-                planned.question(),
-                planned.primarySource(),
-                planned.supportingSources(),
+                planned.question(), planned.primarySource(), planned.supportingSources(),
                 replacement.unavailableSources().contains(InterviewQuestionSource.KNOWLEDGE));
-    }
-
-    private List<PlannedQuestion> fixedQuestions(InterviewSkill skill,
-                                                 InterviewDifficulty difficulty,
-                                                 int fixedCount) {
-        return fixedQuestionCatalog.select(skill, difficulty, fixedCount)
-                .stream()
-                .map(question -> new PlannedQuestion(
-                        question,
-                        InterviewQuestionSource.SKILL_FIXED,
-                        List.of(InterviewQuestionSource.TARGET_ROLE),
-                        false))
-                .toList();
     }
 
     private InterviewQuestionGenerationResult toGenerationResult(
@@ -229,23 +222,13 @@ public class InterviewQuestionPlanService {
             sourceQuotas.merge(planned.primarySource(), 1, Integer::sum);
         }
         InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
-                STRATEGY_VERSION,
-                InterviewSessionMode.STANDARD,
-                skill,
-                difficulty,
-                initialQuestionCount,
-                maxQuestionCount,
-                sourceQuotas,
-                allocations,
-                preparationPromptVersion,
-                questionPromptVersion,
-                modelName);
+                STRATEGY_VERSION, InterviewSessionMode.STANDARD, skill, difficulty,
+                initialQuestionCount, maxQuestionCount, sourceQuotas, allocations,
+                preparationPromptVersion, questionPromptVersion, modelName);
         return new InterviewQuestionGenerationResult(
-                targetRole,
-                questionPromptVersion,
+                targetRole, questionPromptVersion,
                 plannedQuestions.stream().map(PlannedQuestion::question).toList(),
-                configuration,
-                unavailableSources);
+                configuration, unavailableSources);
     }
 
     private void validateDraftConfiguration(InterviewQuestionGenerationResult current) {
@@ -280,25 +263,11 @@ public class InterviewQuestionPlanService {
         };
     }
 
-    private List<PlannedQuestion> interleave(List<PlannedQuestion> fixed,
-                                             List<PlannedQuestion> generated) {
-        List<PlannedQuestion> result = new ArrayList<>(fixed.size() + generated.size());
-        result.add(fixed.get(0));
-        int generatedIndex = 0;
-        while (generatedIndex < generated.size()) {
-            if (fixed.size() > 1 && generatedIndex == 2) {
-                result.add(fixed.get(1));
-            }
-            result.add(generated.get(generatedIndex++));
-        }
-        if (fixed.size() > 1 && !result.contains(fixed.get(1))) {
-            result.add(fixed.get(1));
-        }
-        return List.copyOf(result);
-    }
-
-    private int fixedQuestionCount(int questionCount) {
-        return questionCount >= 5 ? 2 : 1;
+    private String normalizeQuestion(String question) {
+        String normalized = Normalizer.normalize(question, Normalizer.Form.NFKC)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[\\p{Punct}\\p{IsPunctuation}\\s]+", "");
+        return normalized.isBlank() ? question.strip().toLowerCase(Locale.ROOT) : normalized;
     }
 
     private void validateCounts(int questionCount, int maxQuestionCount) {
@@ -310,19 +279,19 @@ public class InterviewQuestionPlanService {
         }
     }
 
-    private String requireText(String value, String message) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(message);
-        }
-        return value.strip();
-    }
-
     private String requireTargetRole(String targetRole) {
         String normalized = requireText(targetRole, "目标岗位不能为空");
         if (normalized.length() > 100) {
             throw new IllegalArgumentException("目标岗位不能超过 100 个字符");
         }
         return normalized;
+    }
+
+    private String requireText(String value, String message) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.strip();
     }
 
     private record PlannedQuestion(
