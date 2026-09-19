@@ -35,6 +35,7 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
         try {
             mapper.insertIfAbsent(InterviewReviewTaskEntity.from(
                     task,
+                    objectMapper.writeValueAsString(task.weakDimensions()),
                     objectMapper.writeValueAsString(task.gaps()),
                     objectMapper.writeValueAsString(task.knowledgeSources())
             ));
@@ -92,6 +93,11 @@ public class MySqlInterviewReviewTaskStore implements InterviewReviewTaskStore {
                     entity.getQuestionIndex(),
                     entity.getQuestion(),
                     entity.getObjective(),
+                    entity.getRubricVersion() == null || entity.getRubricVersion().isBlank()
+                            ? "interview-answer-rubric-v2" : entity.getRubricVersion(),
+                    entity.getWeakDimensionsJson() == null
+                            ? List.of()
+                            : objectMapper.readValue(entity.getWeakDimensionsJson(), GAP_LIST_TYPE),
                     objectMapper.readValue(entity.getGapsJson(), GAP_LIST_TYPE),
                     entity.getImprovementSuggestion(),
                     Boolean.TRUE.equals(entity.getKnowledgeGrounded()),

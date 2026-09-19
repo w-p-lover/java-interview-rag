@@ -5,6 +5,11 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewDifficulty;
+import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
+import com.javainterview.rag.interview.question.InterviewQuestionSource;
+import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
@@ -16,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +55,8 @@ class InterviewReviewTaskServiceTest {
         assertEquals(tasks.get(0).id(), tasks.get(2).id());
         assertEquals(tasks.get(1).id(), tasks.get(3).id());
         assertEquals(List.of("缺少失败补偿细节"), tasks.get(0).gaps());
+        assertEquals("interview-skill-rubric-v1", tasks.get(0).rubricVersion());
+        assertEquals(List.of("边界、评估与恢复"), tasks.get(0).weakDimensions());
         assertEquals("rag/vector-lifecycle.md", tasks.get(0).knowledgeSources().get(0).source());
         assertFalse(tasks.get(1).knowledgeGrounded());
         assertEquals(List.of(), tasks.get(1).knowledgeSources());
@@ -143,6 +151,21 @@ class InterviewReviewTaskServiceTest {
                 "Java AI 应用开发工程师",
                 InterviewSessionMode.STANDARD,
                 profile(),
+                new InterviewConfigurationSnapshot(
+                        "test-strategy-v1",
+                        InterviewSessionMode.STANDARD,
+                        InterviewSkill.RAG_AI,
+                        InterviewDifficulty.INTERMEDIATE,
+                        3,
+                        3,
+                        Map.of(InterviewQuestionSource.LEGACY, 3),
+                        List.of(
+                                new InterviewQuestionAllocation(0, InterviewQuestionSource.LEGACY, List.of()),
+                                new InterviewQuestionAllocation(1, InterviewQuestionSource.LEGACY, List.of()),
+                                new InterviewQuestionAllocation(2, InterviewQuestionSource.LEGACY, List.of())),
+                        "test-preparation-v1",
+                        "test-question-v1",
+                        "test-model"),
                 questions(),
                 3,
                 List.of(),

@@ -5,6 +5,8 @@ import com.javainterview.rag.interview.evaluation.InterviewAnswerPreviousAttempt
 import com.javainterview.rag.interview.evaluation.InterviewAnswerAssessment;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluation;
 import com.javainterview.rag.interview.evaluation.InterviewAnswerEvaluator;
+import com.javainterview.rag.interview.evaluation.InterviewSkillRubric;
+import com.javainterview.rag.interview.evaluation.InterviewSkillRubricCatalog;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
@@ -29,6 +31,7 @@ public class InterviewReviewTaskService {
     private final InterviewReviewTaskStore taskStore;
     private final InterviewReviewAttemptStore attemptStore;
     private final InterviewAnswerEvaluator answerEvaluator;
+    private final InterviewSkillRubricCatalog rubricCatalog = new InterviewSkillRubricCatalog();
 
     public InterviewReviewTaskService(InterviewSessionStore sessionStore,
                                       InterviewReviewTaskStore taskStore) {
@@ -154,7 +157,8 @@ public class InterviewReviewTaskService {
                 .map(attempt -> new InterviewAnswerPreviousAttempt(attempt.answer(), attempt.evaluation()))
                 .toList();
         InterviewAnswerAssessment assessment = answerEvaluator.evaluateForReview(
-                session.profile(), question, normalizedAnswer, previousAttempts);
+                session.profile(), question, normalizedAnswer, previousAttempts,
+                session.configuration().skill());
         Integer previousScore = existing.isEmpty()
                 ? null : existing.get(existing.size() - 1).evaluation().overallScore();
         int score = assessment.evaluation().overallScore();
@@ -299,17 +303,21 @@ public class InterviewReviewTaskService {
         List<InterviewReviewKnowledgeSource> knowledgeSources = question.knowledgeSources().stream()
                 .map(InterviewReviewKnowledgeSource::from)
                 .toList();
+        InterviewSkillRubric rubric = rubricCatalog.forSkill(session.configuration().skill());
         return new InterviewReviewTask(
                 taskId,
                 session.id(),
                 answer.questionIndex(),
                 question.question(),
                 question.objective(),
+                rubric.version(),
+                rubric.weakDimensions(answer.evaluation()),
                 answer.evaluation().gaps(),
                 answer.evaluation().improvementSuggestion(),
                 question.knowledgeGrounded(),
                 knowledgeSources,
                 InterviewReviewTaskStatus.PENDING,
+                null,
                 generatedAt,
                 null
         );

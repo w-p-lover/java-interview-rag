@@ -162,9 +162,10 @@ public class InterviewSessionService {
         }
         InterviewQuestion currentQuestion = existing.questions().get(existing.currentQuestionIndex());
         InterviewAnswerAssessment assessment = conversationContext == null
-                ? answerEvaluator.evaluate(existing.profile(), currentQuestion, normalizedAnswer)
+                ? answerEvaluator.evaluate(existing.profile(), currentQuestion, normalizedAnswer,
+                existing.configuration().skill())
                 : answerEvaluator.evaluateWithContext(existing.profile(), currentQuestion,
-                normalizedAnswer, conversationContext);
+                normalizedAnswer, conversationContext, existing.configuration().skill());
         InterviewQuestion followUpQuestion = existing.questions().size() < existing.maxQuestionCount()
                 ? assessment.followUpQuestion() : null;
         InterviewSession updated = existing.answer(

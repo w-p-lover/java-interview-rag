@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,8 @@ class InterviewSessionServiceTest {
         when(store.findById("session-1"))
                 .thenReturn(Optional.of(initial))
                 .thenReturn(Optional.of(afterTwoAnswers));
-        when(evaluator.evaluate(any(), any(), any())).thenReturn(assessment(null));
+        when(evaluator.evaluate(any(), any(), any(), eq(InterviewSkill.GENERAL)))
+                .thenReturn(assessment(null));
         when(store.update(any(InterviewSession.class), eq(0L))).thenReturn(true);
         when(store.update(any(InterviewSession.class), eq(2L))).thenReturn(true);
 
@@ -81,6 +83,8 @@ class InterviewSessionServiceTest {
         assertNotNull(completed.report());
         assertEquals(3, completed.report().answeredQuestions());
         assertEquals(80.0, completed.report().overallAverageScore());
+        verify(evaluator, org.mockito.Mockito.times(2))
+                .evaluate(any(), any(), any(), eq(InterviewSkill.GENERAL));
     }
 
     @Test
@@ -91,7 +95,8 @@ class InterviewSessionServiceTest {
         InterviewSession initial = sessionWithAnswers(0);
         InterviewQuestion followUp = question("如果向量清理失败，你会怎样补偿？", "失败补偿");
         when(store.findById("session-1")).thenReturn(Optional.of(initial));
-        when(evaluator.evaluate(any(), any(), eq("回答"))).thenReturn(assessment(followUp));
+        when(evaluator.evaluate(any(), any(), eq("回答"), eq(InterviewSkill.GENERAL)))
+                .thenReturn(assessment(followUp));
         when(store.update(any(InterviewSession.class), eq(0L))).thenReturn(true);
 
         InterviewSession updated = service.submitAnswer("session-1", 0, 0L, "回答");
@@ -124,7 +129,8 @@ class InterviewSessionServiceTest {
         assertEquals("回答请求已过期，请刷新后重试", staleException.getMessage());
         verifyNoInteractions(evaluator);
 
-        when(evaluator.evaluate(any(), any(), eq("并发回答"))).thenReturn(assessment(null));
+        when(evaluator.evaluate(any(), any(), eq("并发回答"), eq(InterviewSkill.GENERAL)))
+                .thenReturn(assessment(null));
         when(store.update(any(InterviewSession.class), eq(0L))).thenReturn(false);
         InterviewSessionConflictException conflictException = assertThrows(
                 InterviewSessionConflictException.class,

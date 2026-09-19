@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.evaluation;
 
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.springframework.ai.chat.client.ChatClient;
@@ -16,7 +17,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     private static final int FOLLOW_UP_TOP_K = 3;
     private static final double FOLLOW_UP_SIMILARITY_THRESHOLD = 0.60;
     private static final String PROMPT_VERSION = "interview-answer-evaluation-v3";
-    private static final String RUBRIC_VERSION = "interview-answer-rubric-v2";
+    private static final String RUBRIC_VERSION = "interview-answer-rubric-v3";
     private static final String INSTRUCTIONS = """
             你是 Java 技术面试评价助手。请只根据面试准备画像、当前题目、候选人回答和给定知识资料输出结构化评价。
             必须遵守以下规则：
@@ -36,6 +37,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     private final ChatClient chatClient;
     private final MarkdownSimilaritySearchService searchService;
     private final String modelName;
+    private final InterviewSkillRubricCatalog rubricCatalog = new InterviewSkillRubricCatalog();
 
     public InterviewAnswerEvaluationService(ChatClient chatClient,
                                             MarkdownSimilaritySearchService searchService) {
@@ -59,7 +61,17 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         if (answer == null || answer.isBlank()) {
             throw new IllegalArgumentException("回答不能为空");
         }
-        return evaluate(profile, question, answer, List.of(), question.bankContext() == null);
+        return evaluate(profile, question, answer, List.of(), question.bankContext() == null,
+                rubricCatalog.forSkill(InterviewSkill.GENERAL));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
+                                              InterviewQuestion question,
+                                              String answer,
+                                              InterviewSkill skill) {
+        return evaluate(profile, question, answer, List.of(), question.bankContext() == null,
+                rubricCatalog.forSkill(skill));
     }
 
     @Override
@@ -68,7 +80,19 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                          String answer,
                                                          String conversationContext) {
         Objects.requireNonNull(conversationContext, "会话上下文不能为空");
-        return evaluate(profile, question, answer, List.of(), question.bankContext() == null, conversationContext);
+        return evaluate(profile, question, answer, List.of(), question.bankContext() == null,
+                conversationContext, rubricCatalog.forSkill(InterviewSkill.GENERAL));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
+                                                         InterviewQuestion question,
+                                                         String answer,
+                                                         String conversationContext,
+                                                         InterviewSkill skill) {
+        Objects.requireNonNull(conversationContext, "会话上下文不能为空");
+        return evaluate(profile, question, answer, List.of(), question.bankContext() == null,
+                conversationContext, rubricCatalog.forSkill(skill));
     }
 
     @Override
@@ -78,7 +102,20 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
             String answer,
             List<InterviewAnswerPreviousAttempt> previousAttempts) {
         Objects.requireNonNull(previousAttempts, "历史回答不能为空");
-        return evaluate(profile, question, answer, previousAttempts, false);
+        return evaluate(profile, question, answer, previousAttempts, false,
+                rubricCatalog.forSkill(InterviewSkill.GENERAL));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts,
+            InterviewSkill skill) {
+        Objects.requireNonNull(previousAttempts, "历史回答不能为空");
+        return evaluate(profile, question, answer, previousAttempts, false,
+                rubricCatalog.forSkill(skill));
     }
 
     @Override
@@ -88,7 +125,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
             String answer,
             String baselineRunId,
             String baselineCaseId) {
-        return evaluate(profile, question, answer, List.of(), false);
+        return evaluate(profile, question, answer, List.of(), false,
+                rubricCatalog.forSkill(InterviewSkill.GENERAL));
     }
 
     @Override
@@ -110,8 +148,10 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                 InterviewQuestion question,
                                                 String answer,
                                                 List<InterviewAnswerPreviousAttempt> previousAttempts,
-                                                boolean allowFollowUp) {
-        return evaluate(profile, question, answer, previousAttempts, allowFollowUp, "（暂无会话上下文）");
+                                                boolean allowFollowUp,
+                                                InterviewSkillRubric rubric) {
+        return evaluate(profile, question, answer, previousAttempts, allowFollowUp,
+                "（暂无会话上下文）", rubric);
     }
 
     private InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
@@ -119,7 +159,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                 String answer,
                                                 List<InterviewAnswerPreviousAttempt> previousAttempts,
                                                 boolean allowFollowUp,
-                                                String conversationContext) {
+                                                String conversationContext,
+                                                InterviewSkillRubric rubric) {
         Objects.requireNonNull(profile, "面试准备画像不能为空");
         Objects.requireNonNull(question, "面试题不能为空");
         if (answer == null || answer.isBlank()) {
@@ -127,7 +168,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         }
         InterviewAnswerEvaluationDraft draft = chatClient.prompt(
                         buildPrompt(profile, question, answer, previousAttempts, allowFollowUp,
-                                conversationContext))
+                                conversationContext, rubric))
                 .call()
                 .entity(InterviewAnswerEvaluationDraft.class);
         if (draft == null) {
@@ -164,7 +205,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                String answer,
                                List<InterviewAnswerPreviousAttempt> previousAttempts,
                                boolean allowFollowUp,
-                               String conversationContext) {
+                               String conversationContext,
+                               InterviewSkillRubric rubric) {
         String sources = question.knowledgeSources().isEmpty()
                 ? "（无可靠知识资料）"
                 : IntStream.range(0, question.knowledgeSources().size())
@@ -186,6 +228,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                 .mapToObj(index -> formatPreviousAttempt(index + 1, previousAttempts.get(index)))
                 .collect(Collectors.joining("\n\n"));
         return INSTRUCTIONS
+                + rubric.promptSection()
                 + followUpInstruction
                 + bankRubric
                 + "\n候选人摘要：" + profile.candidateSummary()

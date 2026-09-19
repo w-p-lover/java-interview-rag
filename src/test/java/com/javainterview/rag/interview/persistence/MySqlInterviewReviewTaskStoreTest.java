@@ -34,6 +34,8 @@ class MySqlInterviewReviewTaskStoreTest {
         verify(mapper).insertIfAbsent(captor.capture());
         InterviewReviewTaskEntity entity = captor.getValue();
         assertEquals("[\"缺少失败补偿细节\"]", entity.getGapsJson());
+        assertEquals("interview-skill-rubric-v1", entity.getRubricVersion());
+        assertEquals("[\"边界、评估与恢复\"]", entity.getWeakDimensionsJson());
         assertFalse(entity.getKnowledgeSourcesJson().contains("知识正文"));
         assertEquals(LocalDate.of(2026, 8, 8), entity.getPlannedReviewDate());
 
@@ -50,6 +52,7 @@ class MySqlInterviewReviewTaskStoreTest {
         InterviewReviewTask task = task();
         InterviewReviewTaskEntity entity = InterviewReviewTaskEntity.from(
                 task,
+                objectMapper.writeValueAsString(task.weakDimensions()),
                 objectMapper.writeValueAsString(task.gaps()),
                 objectMapper.writeValueAsString(task.knowledgeSources()));
         when(mapper.findBySessionId(
@@ -65,6 +68,30 @@ class MySqlInterviewReviewTaskStoreTest {
     }
 
     @Test
+    void restoresLegacyRowsWithoutRubricColumns() throws Exception {
+        InterviewReviewTaskMapper mapper = mock(InterviewReviewTaskMapper.class);
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+        MySqlInterviewReviewTaskStore store = new MySqlInterviewReviewTaskStore(mapper, objectMapper);
+        InterviewReviewTask legacyTask = new InterviewReviewTask(
+                "task-1", "session-1", 0,
+                "如何保证向量更新一致性？", "向量生命周期",
+                List.of("缺少失败补偿细节"), "补充异常分支和恢复方式。", true,
+                List.of(new InterviewReviewKnowledgeSource(
+                        "rag/vector-lifecycle.md", "version-1", 2,
+                        List.of("向量生命周期", "更新"), 0.82)),
+                InterviewReviewTaskStatus.PENDING, LocalDate.of(2026, 8, 8),
+                LocalDateTime.of(2026, 7, 29, 9, 3), null);
+        InterviewReviewTaskEntity entity = InterviewReviewTaskEntity.from(
+                legacyTask, "[]", objectMapper.writeValueAsString(legacyTask.gaps()),
+                objectMapper.writeValueAsString(legacyTask.knowledgeSources()));
+        entity.setRubricVersion(null);
+        entity.setWeakDimensionsJson(null);
+        when(mapper.findBySessionId("session-1", null, null, null)).thenReturn(List.of(entity));
+
+        assertEquals(List.of(legacyTask), store.findBySessionId("session-1", null, null, null));
+    }
+
+    @Test
     void completesAndRestoresReviewTaskBySessionAndTaskId() throws Exception {
         InterviewReviewTaskMapper mapper = mock(InterviewReviewTaskMapper.class);
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
@@ -74,6 +101,7 @@ class MySqlInterviewReviewTaskStoreTest {
                 InterviewReviewTaskStatus.COMPLETED, completedAt);
         InterviewReviewTaskEntity completedEntity = InterviewReviewTaskEntity.from(
                 completedTask,
+                objectMapper.writeValueAsString(completedTask.weakDimensions()),
                 objectMapper.writeValueAsString(completedTask.gaps()),
                 objectMapper.writeValueAsString(completedTask.knowledgeSources()));
         when(mapper.findBySessionAndId("session-1", "task-1"))
@@ -104,6 +132,8 @@ class MySqlInterviewReviewTaskStoreTest {
                 0,
                 "如何保证向量更新一致性？",
                 "向量生命周期",
+                "interview-skill-rubric-v1",
+                List.of("边界、评估与恢复"),
                 List.of("缺少失败补偿细节"),
                 "补充异常分支和恢复方式。",
                 true,

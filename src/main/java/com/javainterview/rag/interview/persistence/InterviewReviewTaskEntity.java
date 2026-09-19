@@ -23,6 +23,8 @@ public class InterviewReviewTaskEntity {
     private Integer questionIndex;
     private String question;
     private String objective;
+    private String rubricVersion;
+    private String weakDimensionsJson;
     private String gapsJson;
     private String improvementSuggestion;
     private Boolean knowledgeGrounded;
@@ -33,6 +35,7 @@ public class InterviewReviewTaskEntity {
     private LocalDateTime completedAt;
 
     public static InterviewReviewTaskEntity from(InterviewReviewTask task,
+                                                 String weakDimensionsJson,
                                                  String gapsJson,
                                                  String knowledgeSourcesJson) {
         InterviewReviewTaskEntity entity = new InterviewReviewTaskEntity();
@@ -41,6 +44,8 @@ public class InterviewReviewTaskEntity {
         entity.questionIndex = task.questionIndex();
         entity.question = task.question();
         entity.objective = task.objective();
+        entity.rubricVersion = task.rubricVersion();
+        entity.weakDimensionsJson = weakDimensionsJson;
         entity.gapsJson = gapsJson;
         entity.improvementSuggestion = task.improvementSuggestion();
         entity.knowledgeGrounded = task.knowledgeGrounded();

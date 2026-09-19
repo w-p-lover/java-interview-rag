@@ -167,6 +167,8 @@ export interface InterviewReviewTask {
   questionIndex: number;
   question: string;
   objective: string;
+  rubricVersion: string;
+  weakDimensions: string[];
   gaps: string[];
   improvementSuggestion: string;
   knowledgeGrounded: boolean;

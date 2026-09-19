@@ -5,6 +5,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import org.junit.jupiter.api.Test;
@@ -110,7 +111,8 @@ class InterviewAnswerEvaluationServiceTest {
                 new InterviewAnswerEvaluationService(chatClient, searchService);
 
         InterviewAnswerAssessment result = service.evaluate(
-                profile(), groundedQuestion(), "先写入新版本，再删除旧版本。");
+                profile(), groundedQuestion(), "先写入新版本，再删除旧版本。",
+                InterviewSkill.RAG_AI);
 
         assertEquals(81, result.evaluation().overallScore());
         assertTrue(result.evaluation().knowledgeGrounded());
@@ -130,6 +132,8 @@ class InterviewAnswerEvaluationServiceTest {
         assertTrue(prompt.contains("来源：rag/vector-lifecycle.md"));
         assertTrue(prompt.contains("回答证据只能逐字引用当前回答"));
         assertTrue(prompt.contains("知识证据只能逐字引用对应编号资料"));
+        assertTrue(prompt.contains("Skill=RAG_AI"));
+        assertTrue(prompt.contains("边界、评估与恢复"));
     }
 
     @Test
@@ -181,7 +185,7 @@ class InterviewAnswerEvaluationServiceTest {
 
         assertEquals(null, result.followUpQuestion());
         assertEquals("interview-answer-evaluation-v3", service.promptVersion());
-        assertEquals("interview-answer-rubric-v2", service.rubricVersion());
+        assertEquals("interview-answer-rubric-v3", service.rubricVersion());
         assertEquals("model-test", service.modelName());
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(chatClient).prompt(promptCaptor.capture());

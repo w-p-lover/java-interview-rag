@@ -16,17 +16,20 @@ import java.util.List;
 public interface InterviewReviewTaskMapper extends BaseMapper<InterviewReviewTaskEntity> {
 
     @Insert("INSERT INTO t_interview_review_task "
-            + "(id, session_id, question_index, question, objective, gaps_json, "
-            + "improvement_suggestion, knowledge_grounded, knowledge_sources_json, status, "
+            + "(id, session_id, question_index, question, objective, rubric_version, "
+            + "weak_dimensions_json, gaps_json, improvement_suggestion, "
+            + "knowledge_grounded, knowledge_sources_json, status, "
             + "planned_review_date, created_at) "
             + "VALUES (#{entity.id}, #{entity.sessionId}, #{entity.questionIndex}, #{entity.question}, "
-            + "#{entity.objective}, #{entity.gapsJson}, #{entity.improvementSuggestion}, "
+            + "#{entity.objective}, #{entity.rubricVersion}, #{entity.weakDimensionsJson}, "
+            + "#{entity.gapsJson}, #{entity.improvementSuggestion}, "
             + "#{entity.knowledgeGrounded}, #{entity.knowledgeSourcesJson}, #{entity.status}, "
             + "#{entity.plannedReviewDate,jdbcType=DATE}, #{entity.createdAt}) "
             + "ON DUPLICATE KEY UPDATE id = id")
     int insertIfAbsent(@Param("entity") InterviewReviewTaskEntity entity);
 
-    @Select("<script>SELECT id, session_id, question_index, question, objective, gaps_json, "
+    @Select("<script>SELECT id, session_id, question_index, question, objective, rubric_version, "
+            + "weak_dimensions_json, gaps_json, "
             + "improvement_suggestion, knowledge_grounded, knowledge_sources_json, status, created_at, "
             + "completed_at, planned_review_date "
             + "FROM t_interview_review_task WHERE session_id = #{sessionId} "
@@ -40,7 +43,8 @@ public interface InterviewReviewTaskMapper extends BaseMapper<InterviewReviewTas
             @Param("plannedDateFrom") LocalDate plannedDateFrom,
             @Param("plannedDateTo") LocalDate plannedDateTo);
 
-    @Select("<script>SELECT id, session_id, question_index, question, objective, gaps_json, "
+    @Select("<script>SELECT id, session_id, question_index, question, objective, rubric_version, "
+            + "weak_dimensions_json, gaps_json, "
             + "improvement_suggestion, knowledge_grounded, knowledge_sources_json, status, created_at, "
             + "completed_at, planned_review_date FROM t_interview_review_task "
             + "WHERE session_id IN "
@@ -56,7 +60,8 @@ public interface InterviewReviewTaskMapper extends BaseMapper<InterviewReviewTas
                  @Param("taskId") String taskId,
                  @Param("completedAt") LocalDateTime completedAt);
 
-    @Select("SELECT id, session_id, question_index, question, objective, gaps_json, "
+    @Select("SELECT id, session_id, question_index, question, objective, rubric_version, "
+            + "weak_dimensions_json, gaps_json, "
             + "improvement_suggestion, knowledge_grounded, knowledge_sources_json, status, created_at, "
             + "completed_at, planned_review_date FROM t_interview_review_task "
             + "WHERE session_id = #{sessionId} AND id = #{taskId}")

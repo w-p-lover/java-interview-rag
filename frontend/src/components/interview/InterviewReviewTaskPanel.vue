@@ -130,6 +130,16 @@ function handleSchedule(taskId: string, plannedReviewDate: string | null): void 
             <h3>{{ task.question }}</h3>
           </div>
 
+          <div v-if="task.weakDimensions.length" class="review-dimensions">
+            <div>
+              <strong>专项薄弱维度</strong>
+              <small>{{ task.rubricVersion }}</small>
+            </div>
+            <ul>
+              <li v-for="dimension in task.weakDimensions" :key="dimension">{{ dimension }}</li>
+            </ul>
+          </div>
+
           <div class="review-gaps">
             <strong>这次遗漏</strong>
             <ul>
@@ -237,6 +247,7 @@ function handleSchedule(taskId: string, plannedReviewDate: string | null): void 
 
 .review-header > div,
 .review-question,
+.review-dimensions,
 .review-gaps,
 .review-suggestion,
 .source-ledger,
@@ -324,6 +335,40 @@ h2 {
   font-size: var(--text-lg);
   letter-spacing: 0;
   line-height: 1.35;
+}
+
+.review-dimensions {
+  padding-block: var(--space-sm);
+  border-block: var(--rule-thin) solid var(--color-rule);
+}
+
+.review-dimensions > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.review-dimensions strong {
+  color: var(--color-ink-2);
+  font-size: var(--text-sm);
+}
+
+.review-dimensions small {
+  color: var(--color-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.review-dimensions ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-xs) var(--space-lg);
+  margin: 0;
+  padding-left: var(--space-lg);
+  color: var(--color-accent-strong);
+  font-size: var(--text-sm);
+  font-weight: 700;
 }
 
 .review-gaps strong,

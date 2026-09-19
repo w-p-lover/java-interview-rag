@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.evaluation;
 
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -30,12 +31,32 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
     }
 
     @Override
+    public InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
+                                              InterviewQuestion question,
+                                              String answer,
+                                              InterviewSkill skill) {
+        return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
+                () -> delegate.evaluate(profile, question, answer, skill));
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
                                                          InterviewQuestion question,
                                                          String answer,
                                                          String conversationContext) {
         return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
                 () -> delegate.evaluateWithContext(profile, question, answer, conversationContext));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
+                                                         InterviewQuestion question,
+                                                         String answer,
+                                                         String conversationContext,
+                                                         InterviewSkill skill) {
+        return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
+                () -> delegate.evaluateWithContext(
+                        profile, question, answer, conversationContext, skill));
     }
 
     @Override
@@ -46,6 +67,18 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
             List<InterviewAnswerPreviousAttempt> previousAttempts) {
         return observe(InterviewAnswerEvaluationLog.Mode.REVIEW,
                 () -> delegate.evaluateForReview(profile, question, answer, previousAttempts));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts,
+            InterviewSkill skill) {
+        return observe(InterviewAnswerEvaluationLog.Mode.REVIEW,
+                () -> delegate.evaluateForReview(
+                        profile, question, answer, previousAttempts, skill));
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.preparation.InterviewFocusArea;
 import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionAnswer;
@@ -43,7 +44,8 @@ class InterviewReviewAttemptServiceTest {
         when(taskStore.findBySessionAndId("session-1", "task-1")).thenReturn(Optional.of(task));
         when(attemptStore.findByReviewTaskId("session-1", "task-1")).thenReturn(List.of());
         when(evaluator.evaluateForReview(eq(session.profile()), eq(session.questions().get(0)),
-                eq("补充了失败补偿"), any())).thenReturn(new InterviewAnswerAssessment(
+                eq("补充了失败补偿"), any(), eq(InterviewSkill.GENERAL)))
+                .thenReturn(new InterviewAnswerAssessment(
                 evaluation(90), null));
         when(evaluator.promptVersion()).thenReturn("prompt-v2");
         when(evaluator.rubricVersion()).thenReturn("rubric-v1");
