@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { Activity, BookOpen, BookOpenCheck, Command, Database, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
+import { Activity, BookOpen, BookOpenCheck, Command, Database, FileUser, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,7 +8,7 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "observability";
+  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "resumes" | "observability";
 }>(), {
   mode: "knowledge",
 });
@@ -48,6 +48,13 @@ const commands = computed<WorkspaceCommand[]>(() => {
       { id: "review-overview", label: "复习概览", description: "查看今日、逾期和已有练习数量" },
       { id: "review-filters", label: "筛选队列", description: "切换面试、知识和计划日期" },
       { id: "review-list", label: "复习任务", description: "打开具体复习训练" },
+    ];
+  }
+  if (props.mode === "resumes") {
+    return [
+      { id: "resume-upload", label: "保存版本", description: "上传新简历或追加不可变版本" },
+      { id: "resume-records", label: "简历记录", description: "选择目标岗位下的简历记录" },
+      { id: "resume-versions", label: "版本历史", description: "查看并切换当前简历版本" },
     ];
   }
   return [
@@ -117,6 +124,10 @@ onUnmounted(() => {
         <RouterLink to="/review" class="nav-link" aria-label="打开统一复习中心">
           <ListChecks :size="16" aria-hidden="true" />
           <span>复习中心</span>
+        </RouterLink>
+        <RouterLink to="/resumes" class="nav-link" aria-label="打开简历中心">
+          <FileUser :size="16" aria-hidden="true" />
+          <span>简历中心</span>
         </RouterLink>
         <RouterLink to="/observability" class="nav-link" aria-label="打开运行观测">
           <Activity :size="16" aria-hidden="true" />

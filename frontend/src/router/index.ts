@@ -24,6 +24,11 @@ const router = createRouter({
       component: () => import("@/views/ReviewCenterView.vue"),
     },
     {
+      path: "/resumes",
+      name: "resume-center",
+      component: () => import("@/views/ResumeCenterView.vue"),
+    },
+    {
       path: "/observability",
       name: "observability",
       component: () => import("@/views/ObservabilityView.vue"),
