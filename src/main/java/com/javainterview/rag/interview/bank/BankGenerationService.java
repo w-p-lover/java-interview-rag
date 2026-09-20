@@ -2,13 +2,16 @@ package com.javainterview.rag.interview.bank;
 
 import com.javainterview.rag.interview.question.InterviewDifficulty;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.InterviewSkillTrainingCatalog;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +26,7 @@ public class BankGenerationService {
     private final Executor executor;
     private final String modelName;
     private final Set<String> scheduled = ConcurrentHashMap.newKeySet();
+    private final InterviewSkillTrainingCatalog trainingCatalog = new InterviewSkillTrainingCatalog();
 
     public BankGenerationService(QuestionBankStore store, BankSources sources,
                                   BankQuestionGenerator generator, Executor executor,
@@ -145,11 +149,28 @@ public class BankGenerationService {
                 return;
             }
             List<MarkdownSearchResult> context = sources.evidence(processing.source(), processing.documentVersion());
-            List<String> existingQuestions = store.listQuestions(processing.source()).stream()
+            List<BankQuestion> existing = store.listQuestions(processing.source()).stream()
                     .filter(question -> question.documentVersion().equals(processing.documentVersion())
                             && question.difficulty() == processing.difficulty())
-                    .map(BankQuestion::question).toList();
-            var generated = generator.generate(processing, context, remaining, existingQuestions);
+                    .toList();
+            List<String> existingQuestions = existing.stream().map(BankQuestion::question).toList();
+            Map<String, Integer> remainingQuotas = new LinkedHashMap<>(trainingCatalog.plan(
+                    processing.skill(), processing.questionCount(), null).quotaMap());
+            existing.stream()
+                    .filter(question -> processing.id().equals(question.generationTaskId()))
+                    .forEach(question -> remainingQuotas.computeIfPresent(
+                            question.category(), (category, count) -> count - 1));
+            if (remainingQuotas.values().stream().anyMatch(count -> count < 0)) {
+                throw new IllegalStateException("已保存题目的分类数量超过生成配额");
+            }
+            remainingQuotas.entrySet().removeIf(entry -> entry.getValue() == 0);
+            if (remainingQuotas.values().stream().mapToInt(Integer::intValue).sum() != remaining) {
+                throw new IllegalStateException("已保存题目的分类与生成进度不一致");
+            }
+            Map<String, Integer> generationQuotas = java.util.Collections.unmodifiableMap(
+                    new LinkedHashMap<>(remainingQuotas));
+            var generated = generator.generate(
+                    processing, context, generationQuotas, existingQuestions);
             if (generated == null || generated.questions() == null || generated.questions().isEmpty()) {
                 throw new IllegalStateException("模型未返回题库题目");
             }
@@ -167,6 +188,11 @@ public class BankGenerationService {
                 }
                 BankQuestion question;
                 try {
+                    String category = draft.category() == null ? "" : draft.category().strip();
+                    if (remainingQuotas.getOrDefault(category, 0) < 1) {
+                        skipped++;
+                        continue;
+                    }
                     question = validateDraft(current, draft, context);
                     if (!seen.add(BankQuestionKeys.normalize(question.question()))) {
                         skipped++;
@@ -178,6 +204,9 @@ public class BankGenerationService {
                 }
                 if (!store.saveGenerated(question, current)) {
                     skipped++;
+                } else {
+                    remainingQuotas.computeIfPresent(
+                            question.category(), (category, count) -> count - 1);
                 }
             }
             complete(id, attempt, skipped);

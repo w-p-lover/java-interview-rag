@@ -5,21 +5,31 @@ import type { InterviewDifficulty, InterviewSkill } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
 import {
   changeBankQuestionStatus, createBankQuestion, createBankSession, deleteBankQuestion,
+  getSkillTrainingPlan,
   listBankGenerationTasks, listBankQuestions, resumeBankGeneration, submitBankGeneration,
   updateBankQuestion,
   type BankQuestion, type BankQuestionContent, type BankQuestionStatus, type GenerationTask,
+  type SkillTrainingPlan,
 } from "@/api/questionBank";
 
-export function useQuestionBank(initialSource = "") {
+export function useQuestionBank(
+  initialSource = "",
+  initialSkill: InterviewSkill = "JAVA_CORE",
+  initialFocusDimension = "",
+) {
   const documents = shallowRef<KnowledgeDocumentCatalogItem[]>([]);
   const source = shallowRef(initialSource);
   const config = reactive({
-    skill: "JAVA_CORE" as InterviewSkill,
+    skill: initialSkill,
     difficulty: "INTERMEDIATE" as InterviewDifficulty,
     questionCount: 3,
     followUpCount: 0,
   });
   const filters = reactive({ status: "" as BankQuestionStatus | "", difficulty: "" as InterviewDifficulty | "", category: "", keyword: "" });
+  const focusDimension = shallowRef(initialFocusDimension);
+  const trainingPlan = shallowRef<SkillTrainingPlan | null>(null);
+  const trainingPlanLoading = shallowRef(false);
+  const trainingPlanError = shallowRef("");
   const questions = shallowRef<BankQuestion[]>([]);
   const tasks = shallowRef<GenerationTask[]>([]);
   const selectedIds = shallowRef<string[]>([]);
@@ -43,12 +53,22 @@ export function useQuestionBank(initialSource = "") {
     && config.questionCount * (1 + config.followUpCount) <= 8);
   const canStartSelected = computed(() => validSessionCapacity.value && selectedQuestions.value.length === config.questionCount
     && selectedQuestions.value.every((question) => question.followUps.length >= config.followUpCount));
+  const canStartRandom = computed(() => {
+    if (!validSessionCapacity.value || !currentDocument.value) return false;
+    const candidates = eligibleQuestions.value.filter((question) => question.followUps.length >= config.followUpCount);
+    if (filters.category.trim()) return candidates.length >= config.questionCount;
+    const plan = trainingPlan.value;
+    if (!plan) return false;
+    return plan.categories.every((quota) =>
+      candidates.filter((question) => question.category === quota.category).length >= quota.questionCount);
+  });
 
   let disposed = false;
   let sessionMode: "selected" | "random" | null = null;
   let sourceEpoch = 0;
   let questionController: AbortController | null = null;
   let taskController: AbortController | null = null;
+  let trainingPlanController: AbortController | null = null;
   let pollTimer: ReturnType<typeof setTimeout> | undefined;
   let filterTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -117,6 +137,31 @@ export function useQuestionBank(initialSource = "") {
       if (!controller.signal.aborted && !disposed) taskError.value = resolveApiError(error, "读取出题任务失败");
     } finally {
       if (taskController === controller && !controller.signal.aborted) schedulePoll();
+    }
+  }
+
+  async function loadTrainingPlan(): Promise<void> {
+    trainingPlanController?.abort();
+    if (disposed) return;
+    const controller = new AbortController();
+    trainingPlanController = controller;
+    trainingPlanLoading.value = true;
+    trainingPlanError.value = "";
+    try {
+      const result = await getSkillTrainingPlan(
+        config.skill,
+        config.questionCount,
+        focusDimension.value.trim() || undefined,
+        controller.signal,
+      );
+      if (!controller.signal.aborted && !disposed) trainingPlan.value = result;
+    } catch (error) {
+      if (!controller.signal.aborted && !disposed) {
+        trainingPlan.value = null;
+        trainingPlanError.value = resolveApiError(error, "读取分类配额失败");
+      }
+    } finally {
+      if (trainingPlanController === controller && !disposed) trainingPlanLoading.value = false;
     }
   }
 
@@ -204,6 +249,8 @@ export function useQuestionBank(initialSource = "") {
     const result = await perform("session", "创建专项面试失败", () => createBankSession({
       ...config, requestId: sessionRequestId.value, source: source.value,
       questionIds: random ? [] : [...selectedIds.value], category: filters.category.trim() || undefined,
+      focusDimension: random && !filters.category.trim()
+        ? focusDimension.value.trim() || undefined : undefined,
     }));
     return result?.id ?? null;
   }
@@ -236,6 +283,15 @@ export function useQuestionBank(initialSource = "") {
     sessionRequestId.value = "";
     selectedIds.value = selectedIds.value.filter((id) => eligibleQuestions.value.some((question) => question.id === id));
   }, { flush: "sync" });
+  watch(() => config.skill, (value, previous) => {
+    if (previous && value !== previous) focusDimension.value = "";
+  }, { flush: "sync" });
+  watch(() => [config.skill, config.questionCount, focusDimension.value], () => {
+    void loadTrainingPlan();
+  }, { immediate: true });
+  watch(() => filters.category, (category) => {
+    if (category.trim() && focusDimension.value) focusDimension.value = "";
+  });
 
   watch(() => [filters.status, filters.difficulty, filters.category, filters.keyword], () => {
     questionController?.abort();
@@ -253,13 +309,16 @@ export function useQuestionBank(initialSource = "") {
     clearTimeout(filterTimer);
     questionController?.abort();
     taskController?.abort();
+    trainingPlanController?.abort();
   });
 
   return {
     documents, source, config, filters, questions, tasks, selectedIds, currentDocument,
     loading, documentsLoading, documentError, listError, taskError, actionError, actionKey,
     busy, activeTasks, generationSubmitted, generationPending, eligibleQuestions, selectedQuestions,
-    validSessionCapacity, canStartSelected, isEligible, loadDocuments, loadQuestions, loadTasks,
+    focusDimension, trainingPlan, trainingPlanLoading, trainingPlanError,
+    validSessionCapacity, canStartSelected, canStartRandom, isEligible,
+    loadDocuments, loadQuestions, loadTasks, loadTrainingPlan,
     generate, resumeTask, saveQuestion, setStatus, removeQuestion, toggleSelection, startSession,
   };
 }

@@ -6,41 +6,57 @@ import { ArrowRight, Plus, RefreshCw, Shuffle, Sparkles } from "@lucide/vue";
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import QuestionBankEditor from "@/components/interview/QuestionBankEditor.vue";
 import QuestionBankList from "@/components/interview/QuestionBankList.vue";
+import QuestionBankTrainingPlan from "@/components/interview/QuestionBankTrainingPlan.vue";
 import { useQuestionBank } from "@/composables/useQuestionBank";
 import type { BankQuestion, BankQuestionContent, GenerationTask } from "@/api/questionBank";
 import type { InterviewDifficulty, InterviewSkill } from "@/api/interview";
 
 const route = useRoute();
 const router = useRouter();
-const bank = useQuestionBank(typeof route.query.source === "string" ? route.query.source : "");
+const skillOptions: Array<{ value: InterviewSkill; label: string }> = [
+  { value: "JAVA_CORE", label: "Java 核心" }, { value: "SPRING", label: "Spring" }, { value: "DATABASE", label: "数据库" },
+  { value: "SYSTEM_DESIGN", label: "系统设计" }, { value: "RAG_AI", label: "RAG / AI" },
+];
+const initialSkill = skillOptions.some((option) => option.value === route.query.skill)
+  ? route.query.skill as InterviewSkill : "JAVA_CORE";
+const bank = useQuestionBank(
+  typeof route.query.source === "string" ? route.query.source : "",
+  initialSkill,
+  typeof route.query.focusDimension === "string" ? route.query.focusDimension : "",
+);
 const {
   source, config, filters, documents, currentDocument, questions, tasks, selectedIds,
   loading, documentsLoading, documentError, listError, taskError, actionError, actionKey,
   busy, generationSubmitted, generationPending, eligibleQuestions, selectedQuestions,
-  validSessionCapacity, canStartSelected,
+  focusDimension, trainingPlan, trainingPlanLoading, trainingPlanError,
+  validSessionCapacity, canStartSelected, canStartRandom,
 } = bank;
 const editing = shallowRef<BankQuestion | null>(null);
 const editorOpen = shallowRef(false);
 const editorError = shallowRef("");
 const eligibleIds = computed(() => eligibleQuestions.value.map((question) => question.id));
-const canStartRandom = computed(() => validSessionCapacity.value && Boolean(currentDocument.value)
-  && eligibleQuestions.value.filter((question) => question.followUps.length >= config.followUpCount).length >= config.questionCount);
-const skillOptions: Array<{ value: InterviewSkill; label: string }> = [
-  { value: "JAVA_CORE", label: "Java 核心" }, { value: "SPRING", label: "Spring" }, { value: "DATABASE", label: "数据库" },
-  { value: "SYSTEM_DESIGN", label: "系统设计" }, { value: "RAG_AI", label: "RAG / AI" },
-];
 const difficultyOptions: Array<{ value: InterviewDifficulty; label: string }> = [
   { value: "BASIC", label: "基础" }, { value: "INTERMEDIATE", label: "进阶" }, { value: "ADVANCED", label: "高级场景" },
 ];
 const taskLabels: Record<GenerationTask["status"], string> = { QUEUED: "已排队", PROCESSING: "生成中", COMPLETED: "已完成", FAILED: "失败" };
 
-watch(source, (value) => {
+watch([source, () => config.skill, focusDimension], ([nextSource, skill, focus]) => {
   editorOpen.value = false;
   editing.value = null;
-  void router.replace({ query: { ...route.query, source: value || undefined } });
+  void router.replace({ query: {
+    ...route.query,
+    source: nextSource || undefined,
+    skill,
+    focusDimension: focus || undefined,
+  } });
 });
-watch(() => route.query.source, (value) => {
-  if (typeof value === "string" && value !== source.value) source.value = value;
+watch(() => [route.query.source, route.query.skill, route.query.focusDimension], ([nextSource, nextSkill, nextFocus]) => {
+  if (typeof nextSource === "string" && nextSource !== source.value) source.value = nextSource;
+  if (skillOptions.some((option) => option.value === nextSkill) && nextSkill !== config.skill) {
+    config.skill = nextSkill as InterviewSkill;
+  }
+  const normalizedFocus = typeof nextFocus === "string" ? nextFocus : "";
+  if (normalizedFocus !== focusDimension.value) focusDimension.value = normalizedFocus;
 });
 
 async function openEditor(question: BankQuestion | null): Promise<void> {
@@ -86,6 +102,7 @@ function refresh(): void {
       <div class="field"><label for="bank-difficulty">出题 / 面试难度</label><select id="bank-difficulty" v-model="config.difficulty" :disabled="busy"><option v-for="option in difficultyOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></div>
       <div class="field"><label for="bank-count">首轮题量</label><select id="bank-count" v-model="config.questionCount" :disabled="busy"><option v-for="count in 8" :key="count" :value="count">{{ count }} 道</option></select></div>
       <div class="field"><label for="bank-follow-count">每题固定追问</label><select id="bank-follow-count" v-model="config.followUpCount" :disabled="busy"><option v-for="count in [0, 1, 2]" :key="count" :value="count">{{ count }} 道</option></select></div>
+      <QuestionBankTrainingPlan v-model:focus="focusDimension" :plan="trainingPlan" :loading="trainingPlanLoading" :busy="busy" />
       <div class="configuration-footer">
         <span v-if="currentDocument" class="document-version">当前版本 {{ currentDocument.version }}</span>
         <RouterLink v-else-if="!documentsLoading && !documents.length" to="/" class="document-link">导入知识资料</RouterLink>
@@ -96,6 +113,7 @@ function refresh(): void {
       </div>
     </section>
     <p v-if="documentError" class="error-message" role="alert">{{ documentError }}</p>
+    <p v-if="trainingPlanError" class="error-message" role="alert">{{ trainingPlanError }}</p>
     <p v-if="actionError && !editorError" class="error-message" role="alert">{{ actionError }}</p>
 
     <section id="bank-tasks" class="task-section" aria-labelledby="bank-tasks-title" tabindex="-1">

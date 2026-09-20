@@ -8,9 +8,11 @@ import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.MarkdownSection;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -77,12 +80,12 @@ class BankGenerationServiceTest {
                     current.savedCount() + 1, current.skippedCount(), current.attemptId(), null));
             return true;
         });
-        when(generator.generate(any(), any(), anyInt(), any())).thenReturn(
+        when(generator.generate(any(), any(), anyMap(), any())).thenReturn(
                 new BankQuestionGenerator.GeneratedSet(List.of(
-                        generated("题目一", List.of(0), "正文证据"),
-                        generated("无证据题", List.of(), ""))),
+                        generated("原理与实现", "题目一", List.of(0), "正文证据"),
+                        generated("未配置分类", "分类错误题", List.of(0), "正文证据"))),
                 new BankQuestionGenerator.GeneratedSet(List.of(
-                        generated("题目二", List.of(0), "正文证据"))));
+                        generated("并发与边界", "题目二", List.of(0), "正文证据"))));
         BankGenerationService service = new BankGenerationService(
                 store, sources, generator, Runnable::run, "test-model");
 
@@ -99,6 +102,13 @@ class BankGenerationServiceTest {
         assertEquals(2, resumed.savedCount());
         assertEquals(List.of("题目一", "题目二"),
                 savedQuestions.stream().map(BankQuestion::question).toList());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Integer>> quotas = ArgumentCaptor.forClass(Map.class);
+        verify(generator, org.mockito.Mockito.times(2))
+                .generate(any(), any(), quotas.capture(), any());
+        assertEquals(Map.of("原理与实现", 1, "并发与边界", 1),
+                quotas.getAllValues().get(0));
+        assertEquals(Map.of("并发与边界", 1), quotas.getAllValues().get(1));
     }
 
     @Test
@@ -138,9 +148,9 @@ class BankGenerationServiceTest {
     }
 
     private BankQuestionGenerator.GeneratedQuestion generated(
-            String question, List<Integer> evidenceOrders, String quote) {
+            String category, String question, List<Integer> evidenceOrders, String quote) {
         return new BankQuestionGenerator.GeneratedQuestion(
-                "Java", question, "考察目标", "参考答案", List.of("答案要点"),
+                category, question, "考察目标", "参考答案", List.of("答案要点"),
                 "评分标准", List.of(), evidenceOrders, quote);
     }
 }

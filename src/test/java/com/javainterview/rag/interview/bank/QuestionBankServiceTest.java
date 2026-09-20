@@ -13,7 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,7 +47,7 @@ class QuestionBankServiceTest {
 
         assertThrows(RuntimeException.class, () -> service.startSession(new QuestionBankService.SessionRequest(
                 "req-1", "java.md", List.of(), 3, 1, InterviewSkill.JAVA_CORE,
-                InterviewDifficulty.BASIC, null)));
+                InterviewDifficulty.BASIC, null, null)));
     }
 
     @Test
@@ -61,7 +63,7 @@ class QuestionBankServiceTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 service.startSession(new QuestionBankService.SessionRequest(
                         "req-small", "java.md", List.of(), 2, 0, InterviewSkill.JAVA_CORE,
-                        InterviewDifficulty.BASIC, null)));
+                        InterviewDifficulty.BASIC, null, null)));
 
         assertEquals("主问题数必须在 3 到 8 之间，固定追问数在 0 到 2 之间", exception.getMessage());
         verifyNoInteractions(sessionService);
@@ -97,13 +99,61 @@ class QuestionBankServiceTest {
 
         var result = service.startSession(new QuestionBankService.SessionRequest(
                 "req-2", "java.md", List.of("q-1", "q-2", "q-3"), 3, 0,
-                InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC, "Java"));
+                InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC, "Java", null));
 
         assertEquals("session-1", result.id());
         verify(sessionService).start(eq("知识资料专项面试"), any(), anyList(), eq(3), any(), eq("bank:req-2"));
         verify(store).recordUsage("session-1", "q-1", 0);
         verify(store).recordUsage("session-1", "q-2", 1);
         verify(store).recordUsage("session-1", "q-3", 2);
+    }
+
+    @Test
+    void createsFocusedRandomSessionFromSkillCategoryQuotas() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        BankSources sources = new BankSources(registry, 600);
+        InterviewSessionService sessionService = mock(InterviewSessionService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        when(registry.findVersionsBySource("java.md")).thenReturn(List.of(
+                new com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary(
+                        "java.md", "v1", 4, LocalDateTime.now(),
+                        new com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline(1, 1, List.of()))));
+        when(registry.findSnapshot("java.md", "v1")).thenReturn(Optional.of(snapshot()));
+        when(sessionStore.findByRequestId("bank:req-focused")).thenReturn(Optional.empty());
+        when(store.listQuestions("java.md")).thenReturn(List.of(
+                question("q-tech", InterviewSkill.RAG_AI, InterviewDifficulty.INTERMEDIATE,
+                        "检索生成正确性"),
+                question("q-boundary-1", InterviewSkill.RAG_AI, InterviewDifficulty.INTERMEDIATE,
+                        "边界、评估与恢复"),
+                question("q-boundary-2", InterviewSkill.RAG_AI, InterviewDifficulty.INTERMEDIATE,
+                        "边界、评估与恢复"),
+                question("q-evidence", InterviewSkill.RAG_AI, InterviewDifficulty.INTERMEDIATE,
+                        "证据与取舍表达")));
+        when(sessionService.start(eq("知识资料专项面试"), any(), anyList(), eq(3), any(),
+                eq("bank:req-focused"))).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            List<com.javainterview.rag.interview.question.InterviewQuestion> questions = invocation.getArgument(2);
+            var session = mock(com.javainterview.rag.interview.session.InterviewSession.class);
+            when(session.id()).thenReturn("session-focused");
+            when(session.questions()).thenReturn(questions);
+            return session;
+        });
+        QuestionBankService service = new QuestionBankService(
+                store, sources, sessionService, sessionStore, "test");
+
+        var session = service.startSession(new QuestionBankService.SessionRequest(
+                "req-focused", "java.md", List.of(), 3, 0,
+                InterviewSkill.RAG_AI, InterviewDifficulty.INTERMEDIATE, null,
+                "边界、评估与恢复"));
+
+        assertEquals("session-focused", session.id());
+        Map<String, Long> selectedCategories = session.questions().stream()
+                .map(question -> question.bankContext().questionId())
+                .map(id -> id.startsWith("q-boundary") ? "边界、评估与恢复" : "检索生成正确性")
+                .collect(Collectors.groupingBy(value -> value, Collectors.counting()));
+        assertEquals(Map.of("检索生成正确性", 1L, "边界、评估与恢复", 2L),
+                selectedCategories);
     }
 
     private KnowledgeDocumentSnapshot snapshot() {
@@ -113,9 +163,20 @@ class QuestionBankServiceTest {
     }
 
     private BankQuestion question(String id, List<BankQuestion.FollowUp> followUps) {
+        return question(id, InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC, "Java", followUps);
+    }
+
+    private BankQuestion question(String id, InterviewSkill skill,
+                                  InterviewDifficulty difficulty, String category) {
+        return question(id, skill, difficulty, category, List.of());
+    }
+
+    private BankQuestion question(String id, InterviewSkill skill,
+                                  InterviewDifficulty difficulty, String category,
+                                  List<BankQuestion.FollowUp> followUps) {
         MarkdownSearchResult evidence = new MarkdownSearchResult("正文", "java.md", "v1", 0, List.of("Java"), null);
-        return new BankQuestion(id, null, "java.md", "v1", InterviewSkill.JAVA_CORE,
-                InterviewDifficulty.BASIC, "Java", "题目 " + id, "目标", "答案", List.of("要点"),
+        return new BankQuestion(id, null, "java.md", "v1", skill,
+                difficulty, category, "题目 " + id, "目标", "答案", List.of("要点"),
                 "评分", followUps, List.of(evidence), BankQuestion.Status.ACTIVE, 0,
                 0, null, LocalDateTime.now(), LocalDateTime.now());
     }

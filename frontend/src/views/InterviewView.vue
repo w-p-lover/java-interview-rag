@@ -240,6 +240,7 @@ function handleAssistantScheduled(): void {
           :attempt-error="reviewAttemptError"
           :history="reviewHistory"
           :highlighted-task-id="highlightedReviewTaskId"
+          :skill="session.configuration.skill"
           @retry="handleReviewRetry"
           @complete="handleReviewComplete"
           @filter="handleReviewFilter"

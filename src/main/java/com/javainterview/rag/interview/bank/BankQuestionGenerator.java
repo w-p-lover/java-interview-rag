@@ -4,6 +4,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class BankQuestionGenerator {
-    public static final String PROMPT_VERSION = "knowledge-question-bank-v1";
+    public static final String PROMPT_VERSION = "knowledge-question-bank-v2";
     private final ChatClient chatClient;
     private final ExecutorService modelExecutor;
     private final long timeoutMillis;
@@ -29,7 +30,13 @@ public class BankQuestionGenerator {
     }
 
     public GeneratedSet generate(BankGenerationTask task, List<MarkdownSearchResult> evidence,
-                                  int count, List<String> excludedQuestions) {
+                                  Map<String, Integer> categoryQuotas,
+                                  List<String> excludedQuestions) {
+        if (categoryQuotas == null || categoryQuotas.isEmpty()
+                || categoryQuotas.values().stream().anyMatch(count -> count == null || count < 1)) {
+            throw new IllegalArgumentException("题库生成分类配额不能为空");
+        }
+        int count = categoryQuotas.values().stream().mapToInt(Integer::intValue).sum();
         String sources = IntStream.range(0, evidence.size())
                 .mapToObj(index -> "[片段 " + evidence.get(index).chunkOrder() + "]\n"
                         + String.join(" / ", evidence.get(index).headingPath()) + "\n"
@@ -45,9 +52,13 @@ public class BankQuestionGenerator {
                 evidenceQuote 必须逐字摘录其中一个片段的连续原文，不得改写或跨片段拼接。
                 followUps 中每项包含 question、referenceAnswer、非空 keyPoints、scoringRubric。
                 题目必须互不重复，不得重复已有题面或仅替换标点。
+                category 必须严格使用下方分类配额中的名称，并按要求返回精确题数。
                 """
                 + "\nSkill：" + task.skill() + "；难度：" + task.difficulty()
                 + "；生成题数：" + count + "；每题固定追问数：" + task.followUpCount()
+                + "\n分类配额：\n" + categoryQuotas.entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .collect(Collectors.joining("\n"))
                 + "\n已有题目：\n<existing-questions>\n" + String.join("\n", excludedQuestions)
                 + "\n</existing-questions>\n资料：\n<knowledge-data>\n" + sources
                 + "\n</knowledge-data>";

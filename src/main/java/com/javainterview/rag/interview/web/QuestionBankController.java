@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.bank.QuestionBankService;
 import com.javainterview.rag.interview.bank.QuestionBankStore;
 import com.javainterview.rag.interview.question.InterviewDifficulty;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.InterviewSkillTrainingProfile;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -111,6 +112,15 @@ public class QuestionBankController {
     @Operation(summary = "从已审核题库创建专项面试")
     public InterviewSession start(@RequestBody QuestionBankService.SessionRequest request) {
         return bank.startSession(request);
+    }
+
+    @GetMapping("/training-plan")
+    @Operation(summary = "读取 Skill 分类配额")
+    public InterviewSkillTrainingProfile.TrainingPlan trainingPlan(
+            @RequestParam InterviewSkill skill,
+            @RequestParam int questionCount,
+            @RequestParam(required = false) String focusDimension) {
+        return bank.trainingPlan(skill, questionCount, focusDimension);
     }
 
     private long expectedVersion(Long value) {

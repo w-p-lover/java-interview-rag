@@ -78,6 +78,22 @@ export interface BankGenerationPayload {
 export interface BankSessionPayload extends BankGenerationPayload {
   questionIds: string[];
   category?: string;
+  focusDimension?: string;
+}
+
+export interface SkillTrainingCategoryQuota {
+  category: string;
+  objective: string;
+  questionCount: number;
+  focused: boolean;
+}
+
+export interface SkillTrainingPlan {
+  version: string;
+  skill: InterviewSkill;
+  questionCount: number;
+  focusDimension: string | null;
+  categories: SkillTrainingCategoryQuota[];
 }
 
 const base = "/interviews/question-bank";
@@ -117,4 +133,16 @@ export async function resumeBankGeneration(taskId: string): Promise<GenerationTa
 
 export async function createBankSession(payload: BankSessionPayload): Promise<InterviewSession> {
   return (await request.post<InterviewSession>(`${base}/sessions`, payload)).data;
+}
+
+export async function getSkillTrainingPlan(
+  skill: InterviewSkill,
+  questionCount: number,
+  focusDimension?: string,
+  signal?: AbortSignal,
+): Promise<SkillTrainingPlan> {
+  return (await request.get<SkillTrainingPlan>(`${base}/training-plan`, {
+    params: { skill, questionCount, focusDimension },
+    signal,
+  })).data;
 }

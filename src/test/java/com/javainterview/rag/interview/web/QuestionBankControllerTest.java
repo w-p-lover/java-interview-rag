@@ -6,6 +6,7 @@ import com.javainterview.rag.interview.bank.QuestionBankService;
 import com.javainterview.rag.interview.bank.QuestionBankStore;
 import com.javainterview.rag.interview.question.InterviewDifficulty;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.InterviewSkillTrainingCatalog;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,6 +36,9 @@ class QuestionBankControllerTest {
                 InterviewDifficulty.INTERMEDIATE, 3, 1)).thenReturn(task);
         when(bank.startSession(any())).thenThrow(
                 new InterviewSessionConflictException("可用题目不足"));
+        when(bank.trainingPlan(InterviewSkill.JAVA_CORE, 3, "并发与边界"))
+                .thenReturn(new InterviewSkillTrainingCatalog().plan(
+                        InterviewSkill.JAVA_CORE, 3, "并发与边界"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new QuestionBankController(bank, generation, store)).build();
 
@@ -58,6 +63,16 @@ class QuestionBankControllerTest {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("可用题目不足"));
+
+        mockMvc.perform(get("/api/interviews/question-bank/training-plan")
+                        .param("skill", "JAVA_CORE")
+                        .param("questionCount", "3")
+                        .param("focusDimension", "并发与边界"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value("interview-skill-training-v1"))
+                .andExpect(jsonPath("$.focusDimension").value("并发与边界"))
+                .andExpect(jsonPath("$.categories[1].category").value("并发与边界"))
+                .andExpect(jsonPath("$.categories[1].questionCount").value(2));
     }
 
     private BankGenerationTask task() {
@@ -65,6 +80,6 @@ class QuestionBankControllerTest {
         return new BankGenerationTask("task-1", "request-1", "java.md", "v1",
                 InterviewSkill.JAVA_CORE, InterviewDifficulty.INTERMEDIATE, 3, 1,
                 BankGenerationTask.Status.QUEUED, 0, 0, null,
-                "knowledge-question-bank-v1", "test-model", null, 0, now, now);
+                "knowledge-question-bank-v2", "test-model", null, 0, now, now);
     }
 }

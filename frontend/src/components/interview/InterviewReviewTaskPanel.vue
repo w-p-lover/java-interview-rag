@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { Target } from "@lucide/vue";
 import { computed } from "vue";
+import type { RouteLocationRaw } from "vue-router";
 
 import type {
   InterviewReviewSessionHistory,
   InterviewReviewTask,
   InterviewReviewTaskQuery,
+  InterviewSkill,
 } from "@/api/interview";
 import InterviewReviewAttemptPanel from "@/components/interview/InterviewReviewAttemptPanel.vue";
 import InterviewReviewHistorySummary from "@/components/interview/InterviewReviewHistorySummary.vue";
@@ -26,10 +29,23 @@ const props = defineProps<{
   attemptError: string;
   history: InterviewReviewSessionHistory | null;
   highlightedTaskId?: string;
+  skill: InterviewSkill;
 }>();
 
 const historiesByTaskId = computed(() => new Map(
   (props.history?.tasks ?? []).map((history) => [history.reviewTaskId, history]),
+));
+const trainingRoutes = computed(() => new Map<string, RouteLocationRaw>(
+  props.tasks.flatMap((task) => {
+    const source = task.knowledgeSources[0]?.source;
+    const focusDimension = task.weakDimensions[0];
+    return props.skill !== "GENERAL" && source && focusDimension
+      ? [[task.id, {
+        name: "question-bank",
+        query: { source, skill: props.skill, focusDimension },
+      } as RouteLocationRaw]]
+      : [];
+  }),
 ));
 
 const emit = defineEmits<{
@@ -151,6 +167,15 @@ function handleSchedule(taskId: string, plannedReviewDate: string | null): void 
             <strong>下次回答前</strong>
             <p>{{ task.improvementSuggestion }}</p>
           </div>
+
+          <RouterLink
+            v-if="trainingRoutes.get(task.id)"
+            class="training-link"
+            :to="trainingRoutes.get(task.id)!"
+          >
+            <Target :size="17" aria-hidden="true" />
+            按此弱项训练
+          </RouterLink>
 
           <InterviewReviewScheduleControl
             v-if="task.status === 'PENDING'"
@@ -497,6 +522,28 @@ button {
   background: var(--color-surface);
   font-weight: 700;
   white-space: nowrap;
+}
+
+.training-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  gap: var(--space-xs);
+  min-height: 2.75rem;
+  padding-inline: var(--space-md);
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.training-link:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
 }
 
 @media (max-width: 62rem) {

@@ -8,6 +8,8 @@ import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.question.InterviewQuestionAllocation;
 import com.javainterview.rag.interview.question.InterviewQuestionSource;
 import com.javainterview.rag.interview.question.InterviewSkill;
+import com.javainterview.rag.interview.question.InterviewSkillTrainingCatalog;
+import com.javainterview.rag.interview.question.InterviewSkillTrainingProfile;
 import com.javainterview.rag.interview.session.InterviewConfigurationSnapshot;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
@@ -32,6 +34,7 @@ public class QuestionBankService {
     private final InterviewSessionService sessionService;
     private final InterviewSessionStore sessionStore;
     private final String modelName;
+    private final InterviewSkillTrainingCatalog trainingCatalog = new InterviewSkillTrainingCatalog();
 
     public QuestionBankService(QuestionBankStore store, BankSources sources,
                                InterviewSessionService sessionService,
@@ -153,6 +156,13 @@ public class QuestionBankService {
         return new InterviewSessionConflictException("题目已被更新，请刷新后重试；当前编辑内容仍可保留");
     }
 
+    public InterviewSkillTrainingProfile.TrainingPlan trainingPlan(
+            InterviewSkill skill,
+            int questionCount,
+            String focusDimension) {
+        return trainingCatalog.plan(skill, questionCount, focusDimension);
+    }
+
     @Transactional
     public InterviewSession startSession(SessionRequest request) {
         String requestId = "bank:" + BankQuestion.text(request.requestId(), 80, "创建请求 ID");
@@ -169,6 +179,14 @@ public class QuestionBankService {
         if (request.skill() == null || request.skill() == InterviewSkill.GENERAL || request.difficulty() == null) {
             throw new IllegalArgumentException("请选择具体 Skill 和难度");
         }
+        boolean hasCategory = request.category() != null && !request.category().isBlank();
+        boolean hasFocus = request.focusDimension() != null && !request.focusDimension().isBlank();
+        if (hasCategory && hasFocus) {
+            throw new IllegalArgumentException("显式分类筛选与薄弱维度训练不能同时使用");
+        }
+        if (request.questionIds() != null && !request.questionIds().isEmpty() && hasFocus) {
+            throw new IllegalArgumentException("人工选题不支持薄弱维度自动配额");
+        }
         int total = request.questionCount() * (request.followUpCount() + 1);
         if (total < 3 || total > 8) {
             throw new IllegalArgumentException("主问题与固定追问合计必须在 3 到 8 题之间");
@@ -183,23 +201,26 @@ public class QuestionBankService {
             selected = request.questionIds().stream().map(this::requireQuestion).toList();
         } else {
             List<BankQuestion> candidates = new ArrayList<>(list(source, BankQuestion.Status.ACTIVE,
-                    request.difficulty(), request.category(), null).stream()
+                    request.difficulty(), hasCategory ? request.category() : null, null).stream()
                     .filter(question -> question.skill() == request.skill()
                             && question.followUps().size() >= request.followUpCount()).toList());
-            if (candidates.size() < request.questionCount()) {
-                throw new InterviewSessionConflictException("可用题目不足：需要 " + request.questionCount()
-                        + " 道当前版本已审核题，且每题至少 " + request.followUpCount()
-                        + " 个固定追问；目前只有 " + candidates.size() + " 道");
+            if (hasCategory) {
+                if (candidates.size() < request.questionCount()) {
+                    throw insufficientTotal(request, candidates.size());
+                }
+                Collections.shuffle(candidates);
+                selected = candidates.subList(0, request.questionCount());
+            } else {
+                selected = selectByTrainingPlan(candidates, trainingPlan(
+                        request.skill(), request.questionCount(), request.focusDimension()));
             }
-            Collections.shuffle(candidates);
-            selected = candidates.subList(0, request.questionCount());
         }
         List<InterviewQuestion> questions = new ArrayList<>();
         for (BankQuestion question : selected) {
             requireCurrent(question);
             if (!source.equals(question.source()) || question.status() != BankQuestion.Status.ACTIVE
                     || question.skill() != request.skill() || question.difficulty() != request.difficulty()
-                    || (request.category() != null && !request.category().isBlank()
+                    || (hasCategory
                     && !request.category().strip().equals(question.category()))) {
                 throw new InterviewSessionConflictException("选题必须来自同一资料、Skill、难度和分类的已审核题目");
             }
@@ -221,15 +242,18 @@ public class QuestionBankService {
             throw new InterviewSessionConflictException("所选主问题或固定追问存在重复，请编辑题库后重试");
         }
         InterviewPreparationProfile profile = new InterviewPreparationProfile(
-                "知识资料专项训练，不包含简历或岗位事实",
+                hasFocus ? "知识资料薄弱维度专项训练，不包含简历或岗位事实"
+                        : "知识资料专项训练，不包含简历或岗位事实",
                 List.of("本场只考察已审核知识题库，不推断候选人项目经历"), List.of(),
-                List.of(new InterviewFocusArea(request.skill().name(), "基于当前资料的已审核题目",
+                List.of(new InterviewFocusArea(request.skill().name(), hasFocus
+                        ? "基于当前资料强化“" + request.focusDimension().strip() + "”"
+                        : "基于当前资料的已审核题目",
                         List.of(InterviewFocusSource.TARGET_ROLE))));
         var allocations = IntStream.range(0, questions.size())
                 .mapToObj(index -> new InterviewQuestionAllocation(index,
                         InterviewQuestionSource.KNOWLEDGE, List.of())).toList();
         InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
-                "knowledge-question-bank-v1", InterviewSessionMode.STANDARD, request.skill(),
+                "knowledge-question-bank-v2", InterviewSessionMode.STANDARD, request.skill(),
                 request.difficulty(), questions.size(), questions.size(),
                 Map.of(InterviewQuestionSource.KNOWLEDGE, questions.size()), allocations,
                 "knowledge-bank-profile-v1", BankQuestionGenerator.PROMPT_VERSION, modelName);
@@ -248,6 +272,32 @@ public class QuestionBankService {
         }
     }
 
+    private List<BankQuestion> selectByTrainingPlan(
+            List<BankQuestion> candidates,
+            InterviewSkillTrainingProfile.TrainingPlan plan) {
+        Map<String, List<BankQuestion>> byCategory = candidates.stream()
+                .collect(java.util.stream.Collectors.groupingBy(BankQuestion::category));
+        List<BankQuestion> selected = new ArrayList<>();
+        for (InterviewSkillTrainingProfile.CategoryQuota quota : plan.categories()) {
+            List<BankQuestion> categoryQuestions = new ArrayList<>(
+                    byCategory.getOrDefault(quota.category(), List.of()));
+            if (categoryQuestions.size() < quota.questionCount()) {
+                throw new InterviewSessionConflictException("分类“" + quota.category()
+                        + "”可用题目不足：需要 " + quota.questionCount()
+                        + " 道，目前只有 " + categoryQuestions.size() + " 道");
+            }
+            Collections.shuffle(categoryQuestions);
+            selected.addAll(categoryQuestions.subList(0, quota.questionCount()));
+        }
+        return List.copyOf(selected);
+    }
+
+    private InterviewSessionConflictException insufficientTotal(SessionRequest request, int actualCount) {
+        return new InterviewSessionConflictException("可用题目不足：需要 " + request.questionCount()
+                + " 道当前版本已审核题，且每题至少 " + request.followUpCount()
+                + " 个固定追问；目前只有 " + actualCount + " 道");
+    }
+
     private InterviewQuestion toInterviewQuestion(BankQuestion source, String question,
                                                    String answer, List<String> keyPoints,
                                                    String rubric, boolean followUp, Integer parentIndex) {
@@ -262,5 +312,6 @@ public class QuestionBankService {
 
     public record SessionRequest(String requestId, String source, List<String> questionIds,
                                    int questionCount, int followUpCount, InterviewSkill skill,
-                                   InterviewDifficulty difficulty, String category) { }
+                                   InterviewDifficulty difficulty, String category,
+                                   String focusDimension) { }
 }
