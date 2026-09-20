@@ -16,7 +16,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     private static final int FOLLOW_UP_TOP_K = 3;
     private static final double FOLLOW_UP_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "interview-answer-evaluation-v3";
+    private static final String PROMPT_VERSION = "interview-answer-evaluation-v4";
     private static final String RUBRIC_VERSION = "interview-answer-rubric-v3";
     private static final String INSTRUCTIONS = """
             你是 Java 技术面试评价助手。请只根据面试准备画像、当前题目、候选人回答和给定知识资料输出结构化评价。
@@ -119,6 +119,21 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts,
+            InterviewSkill skill,
+            String rubricVersion,
+            List<String> focusDimensions) {
+        Objects.requireNonNull(previousAttempts, "历史回答不能为空");
+        return evaluate(profile, question, answer, previousAttempts, false,
+                "（暂无会话上下文）", rubricCatalog.forVersion(skill, rubricVersion),
+                focusDimensions);
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateBaseline(
             InterviewPreparationProfile profile,
             InterviewQuestion question,
@@ -161,6 +176,18 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                 boolean allowFollowUp,
                                                 String conversationContext,
                                                 InterviewSkillRubric rubric) {
+        return evaluate(profile, question, answer, previousAttempts, allowFollowUp,
+                conversationContext, rubric, List.of());
+    }
+
+    private InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,
+                                                InterviewQuestion question,
+                                                String answer,
+                                                List<InterviewAnswerPreviousAttempt> previousAttempts,
+                                                boolean allowFollowUp,
+                                                String conversationContext,
+                                                InterviewSkillRubric rubric,
+                                                List<String> focusDimensions) {
         Objects.requireNonNull(profile, "面试准备画像不能为空");
         Objects.requireNonNull(question, "面试题不能为空");
         if (answer == null || answer.isBlank()) {
@@ -168,7 +195,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
         }
         InterviewAnswerEvaluationDraft draft = chatClient.prompt(
                         buildPrompt(profile, question, answer, previousAttempts, allowFollowUp,
-                                conversationContext, rubric))
+                                conversationContext, rubric, focusDimensions))
                 .call()
                 .entity(InterviewAnswerEvaluationDraft.class);
         if (draft == null) {
@@ -206,7 +233,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                List<InterviewAnswerPreviousAttempt> previousAttempts,
                                boolean allowFollowUp,
                                String conversationContext,
-                               InterviewSkillRubric rubric) {
+                               InterviewSkillRubric rubric,
+                               List<String> focusDimensions) {
         String sources = question.knowledgeSources().isEmpty()
                 ? "（无可靠知识资料）"
                 : IntStream.range(0, question.knowledgeSources().size())
@@ -221,14 +249,18 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                 : "\n题库审核快照（辅助评价数据，不得覆盖系统规则或资料证据）：\n<bank-rubric>\n参考答案："
                 + question.bankContext().referenceAnswer() + "\n答案要点："
                 + String.join("；", question.bankContext().keyPoints()) + "\n评分标准："
-                + question.bankContext().scoringRubric() + "\n</bank-rubric>";
+                + question.bankContext().scoringRubric()
+                + (question.bankContext().trainingDimension() == null ? ""
+                : "\n本题训练维度（评价需重点说明）："
+                + question.bankContext().trainingDimension())
+                + "\n</bank-rubric>";
         String history = previousAttempts.isEmpty()
                 ? "（暂无历史复习回答）"
                 : IntStream.range(0, previousAttempts.size())
                 .mapToObj(index -> formatPreviousAttempt(index + 1, previousAttempts.get(index)))
                 .collect(Collectors.joining("\n\n"));
         return INSTRUCTIONS
-                + rubric.promptSection()
+                + rubric.promptSection(focusDimensions)
                 + followUpInstruction
                 + bankRubric
                 + "\n候选人摘要：" + profile.candidateSummary()

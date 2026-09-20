@@ -44,7 +44,8 @@ class InterviewReviewAttemptServiceTest {
         when(taskStore.findBySessionAndId("session-1", "task-1")).thenReturn(Optional.of(task));
         when(attemptStore.findByReviewTaskId("session-1", "task-1")).thenReturn(List.of());
         when(evaluator.evaluateForReview(eq(session.profile()), eq(session.questions().get(0)),
-                eq("补充了失败补偿"), any(), eq(InterviewSkill.GENERAL)))
+                eq("补充了失败补偿"), any(), eq(InterviewSkill.GENERAL),
+                eq("interview-skill-rubric-v1"), eq(List.of("完整性与边界"))))
                 .thenReturn(new InterviewAnswerAssessment(
                 evaluation(90), null));
         when(evaluator.promptVersion()).thenReturn("prompt-v2");
@@ -152,11 +153,13 @@ class InterviewReviewAttemptServiceTest {
     private InterviewReviewTask task() {
         return new InterviewReviewTask(
                 "task-1", "session-1", 0, "如何保证向量更新一致性？", "向量生命周期",
+                "interview-skill-rubric-v1", List.of("完整性与边界"),
                 List.of("缺少失败补偿细节"), "补充异常分支和恢复方式。", true,
                 List.of(new InterviewReviewKnowledgeSource(
                         "rag/vector-lifecycle.md", "version-1", 2,
                         List.of("向量生命周期"), 0.82)),
                 InterviewReviewTaskStatus.PENDING,
+                null,
                 LocalDateTime.of(2026, 7, 29, 9, 3), null);
     }
 

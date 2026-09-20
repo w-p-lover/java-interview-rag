@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -156,6 +157,56 @@ class QuestionBankServiceTest {
                 selectedCategories);
     }
 
+    @Test
+    void snapshotsTrainingDimensionForFixedFollowUps() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        BankSources sources = new BankSources(registry, 600);
+        InterviewSessionService sessionService = mock(InterviewSessionService.class);
+        InterviewSessionStore sessionStore = mock(InterviewSessionStore.class);
+        when(registry.findVersionsBySource("java.md")).thenReturn(List.of(
+                new com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary(
+                        "java.md", "v1", 4, LocalDateTime.now(),
+                        new com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline(1, 1, List.of()))));
+        when(registry.findSnapshot("java.md", "v1")).thenReturn(Optional.of(snapshot()));
+        when(sessionStore.findByRequestId("bank:req-follow-up-focus")).thenReturn(Optional.empty());
+        when(store.listQuestions("java.md")).thenReturn(List.of(
+                question("q-principle", InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC,
+                        "原理与实现", List.of(followUp("原理"))),
+                question("q-boundary-1", InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC,
+                        "并发与边界", List.of(followUp("边界一"))),
+                question("q-boundary-2", InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC,
+                        "并发与边界", List.of(followUp("边界二"))),
+                question("q-expression", InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC,
+                        "结论与推理表达", List.of(followUp("表达")))));
+        when(sessionService.start(eq("知识资料专项面试"), any(), anyList(), eq(6), any(),
+                eq("bank:req-follow-up-focus"))).thenAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            List<com.javainterview.rag.interview.question.InterviewQuestion> questions = invocation.getArgument(2);
+            var session = mock(com.javainterview.rag.interview.session.InterviewSession.class);
+            when(session.id()).thenReturn("session-follow-up-focus");
+            when(session.questions()).thenReturn(questions);
+            return session;
+        });
+        QuestionBankService service = new QuestionBankService(
+                store, sources, sessionService, sessionStore, "test");
+
+        var session = service.startSession(new QuestionBankService.SessionRequest(
+                "req-follow-up-focus", "java.md", List.of(), 3, 1,
+                InterviewSkill.JAVA_CORE, InterviewDifficulty.BASIC, null, "并发与边界"));
+
+        var fixedFollowUps = session.questions().stream()
+                .filter(question -> question.bankContext().fixedFollowUp())
+                .toList();
+        assertEquals(3, fixedFollowUps.size());
+        assertTrue(fixedFollowUps.stream().allMatch(question ->
+                question.bankContext().trainingDimension().equals(
+                        session.questions().get(question.bankContext().parentQuestionIndex())
+                                .bankContext().trainingDimension())));
+        assertTrue(fixedFollowUps.stream().allMatch(question ->
+                question.objective().contains("固定追问维度：")));
+    }
+
     private KnowledgeDocumentSnapshot snapshot() {
         MarkdownDocument document = MarkdownDocument.create("java.md", "# Java\n\n正文");
         return new KnowledgeDocumentSnapshot(document, List.of(
@@ -179,5 +230,11 @@ class QuestionBankServiceTest {
                 difficulty, category, "题目 " + id, "目标", "答案", List.of("要点"),
                 "评分", followUps, List.of(evidence), BankQuestion.Status.ACTIVE, 0,
                 0, null, LocalDateTime.now(), LocalDateTime.now());
+    }
+
+    private BankQuestion.FollowUp followUp(String label) {
+        return new BankQuestion.FollowUp(
+                label + "失败时如何恢复？", "记录状态后重试",
+                List.of("失败状态", "幂等重试"), "按恢复边界评分");
     }
 }

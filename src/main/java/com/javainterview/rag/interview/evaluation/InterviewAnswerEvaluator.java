@@ -55,6 +55,17 @@ public interface InterviewAnswerEvaluator {
         return evaluateForReview(profile, question, answer, previousAttempts);
     }
 
+    default InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts,
+            InterviewSkill skill,
+            String rubricVersion,
+            List<String> focusDimensions) {
+        return evaluateForReview(profile, question, answer, previousAttempts, skill);
+    }
+
     default InterviewAnswerAssessment evaluateBaseline(
             InterviewPreparationProfile profile,
             InterviewQuestion question,

@@ -8,6 +8,7 @@ import InterviewEvaluationEvidence from "@/components/interview/InterviewEvaluat
 const props = defineProps<{
   taskId: string;
   attempts: InterviewReviewAttempt[];
+  focusDimensions: string[];
   loading: boolean;
   submitting: boolean;
   error: string;
@@ -63,7 +64,8 @@ function formatDelta(value: number | null): string {
     <div class="attempt-heading">
       <div>
         <strong>再次作答</strong>
-        <p>结合遗漏项，重新组织一次回答。</p>
+        <p v-if="focusDimensions.length">本次重点：{{ focusDimensions.join("、") }}</p>
+        <p v-else>结合遗漏项，重新组织一次回答。</p>
       </div>
       <span>{{ attempts.length ? `已回答 ${attempts.length} 次` : "尚未作答" }}</span>
     </div>

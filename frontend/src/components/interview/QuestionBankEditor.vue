@@ -54,7 +54,7 @@ function save(): void {
         <button type="button" class="secondary-action" :disabled="busy || form.followUps.length >= 2" @click="form.followUps.push({ question: '', referenceAnswer: '', keyPoints: '', scoringRubric: '' })"><Plus :size="16" aria-hidden="true" />添加追问</button>
       </div>
       <fieldset v-for="(item, index) in form.followUps" :key="index" class="follow-up" :disabled="busy">
-        <legend>追问 {{ index + 1 }}</legend>
+        <legend>追问 {{ index + 1 }} · {{ form.category.trim() || "未设置分类" }}</legend>
         <button type="button" class="icon-action remove-follow-up" :aria-label="`删除追问 ${index + 1}`" title="删除追问" @click="form.followUps.splice(index, 1)"><Trash2 :size="16" aria-hidden="true" /></button>
         <div class="field"><label :for="`bank-follow-question-${index}`">追问题面</label><textarea :id="`bank-follow-question-${index}`" v-model="item.question" required rows="2" maxlength="2000"></textarea></div>
         <div class="field"><label :for="`bank-follow-answer-${index}`">追问参考答案</label><textarea :id="`bank-follow-answer-${index}`" v-model="item.referenceAnswer" required rows="3" maxlength="8000"></textarea></div>

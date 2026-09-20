@@ -184,7 +184,7 @@ class InterviewAnswerEvaluationServiceTest {
                                 "补充失败补偿。", true))));
 
         assertEquals(null, result.followUpQuestion());
-        assertEquals("interview-answer-evaluation-v3", service.promptVersion());
+        assertEquals("interview-answer-evaluation-v4", service.promptVersion());
         assertEquals("interview-answer-rubric-v3", service.rubricVersion());
         assertEquals("model-test", service.modelName());
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
@@ -192,6 +192,32 @@ class InterviewAnswerEvaluationServiceTest {
         assertTrue(promptCaptor.getValue().contains("历史复习回答 1"));
         assertTrue(promptCaptor.getValue().contains("不得生成追问"));
         org.mockito.Mockito.verifyNoInteractions(searchService);
+    }
+
+    @Test
+    void evaluatesReviewUsingPersistedRubricVersionAndFocusDimensions() {
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        when(chatClient.prompt(anyString()).call().entity(InterviewAnswerEvaluationDraft.class))
+                .thenReturn(new InterviewAnswerEvaluationDraft(
+                        88, 82, 86,
+                        List.of("说明了失败恢复"), List.of(), "补充验证证据。",
+                        List.of("失败后保留旧版本"),
+                        List.of(new InterviewAnswerEvaluationDraft.KnowledgeEvidenceDraft(
+                                1, "新版本成功后再清理旧版本")),
+                        false, "", "", ""));
+        clearInvocations(chatClient);
+        InterviewAnswerEvaluationService service =
+                new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
+
+        service.evaluateForReview(
+                profile(), groundedQuestion(), "失败后保留旧版本，再重试发布。", List.of(),
+                InterviewSkill.RAG_AI, "interview-skill-rubric-v1", List.of("边界、评估与恢复"));
+
+        ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(chatClient).prompt(promptCaptor.capture());
+        assertTrue(promptCaptor.getValue().contains("保存的专项评分规则：interview-skill-rubric-v1"));
+        assertTrue(promptCaptor.getValue().contains("本次复习重点：边界、评估与恢复"));
     }
 
     @Test
@@ -212,7 +238,8 @@ class InterviewAnswerEvaluationServiceTest {
                 List.of(InterviewFocusSource.TARGET_ROLE), "向量更新一致性", true,
                 List.of(source("新版本成功后再清理旧版本。", 0.88)),
                 new QuestionBankContext("bank-question-1", "先写新版本，再切换并清理旧版本。",
-                        List.of("稳定版本标识", "失败补偿"), "按切换顺序和恢复方案评分", false, null));
+                        List.of("稳定版本标识", "失败补偿"), "按切换顺序和恢复方案评分",
+                        false, null, "边界、评估与恢复"));
         InterviewAnswerEvaluationService service =
                 new InterviewAnswerEvaluationService(chatClient, searchService, "model-test");
 
@@ -225,6 +252,7 @@ class InterviewAnswerEvaluationServiceTest {
         assertTrue(promptCaptor.getValue().contains("题库固定题单，不得生成动态追问"));
         assertTrue(promptCaptor.getValue().contains("稳定版本标识；失败补偿"));
         assertTrue(promptCaptor.getValue().contains("按切换顺序和恢复方案评分"));
+        assertTrue(promptCaptor.getValue().contains("本题训练维度（评价需重点说明）：边界、评估与恢复"));
         org.mockito.Mockito.verifyNoInteractions(searchService);
     }
 

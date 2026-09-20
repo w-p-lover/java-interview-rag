@@ -253,7 +253,7 @@ public class QuestionBankService {
                 .mapToObj(index -> new InterviewQuestionAllocation(index,
                         InterviewQuestionSource.KNOWLEDGE, List.of())).toList();
         InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
-                "knowledge-question-bank-v2", InterviewSessionMode.STANDARD, request.skill(),
+                "knowledge-question-bank-v3", InterviewSessionMode.STANDARD, request.skill(),
                 request.difficulty(), questions.size(), questions.size(),
                 Map.of(InterviewQuestionSource.KNOWLEDGE, questions.size()), allocations,
                 "knowledge-bank-profile-v1", BankQuestionGenerator.PROMPT_VERSION, modelName);
@@ -301,9 +301,13 @@ public class QuestionBankService {
     private InterviewQuestion toInterviewQuestion(BankQuestion source, String question,
                                                    String answer, List<String> keyPoints,
                                                    String rubric, boolean followUp, Integer parentIndex) {
-        return new InterviewQuestion(question, source.topicSummary(),
+        String objective = followUp
+                ? source.topicSummary() + " · 固定追问维度：" + source.category()
+                : source.topicSummary();
+        return new InterviewQuestion(question, objective,
                 List.of(InterviewFocusSource.TARGET_ROLE), question, true, source.evidence(),
-                new QuestionBankContext(source.id(), answer, keyPoints, rubric, followUp, parentIndex));
+                new QuestionBankContext(source.id(), answer, keyPoints, rubric,
+                        followUp, parentIndex, source.category()));
     }
 
     public record EditFields(String category, String question, String topicSummary,

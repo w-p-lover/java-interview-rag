@@ -82,6 +82,20 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateForReview(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            List<InterviewAnswerPreviousAttempt> previousAttempts,
+            InterviewSkill skill,
+            String rubricVersion,
+            List<String> focusDimensions) {
+        return observe(InterviewAnswerEvaluationLog.Mode.REVIEW,
+                () -> delegate.evaluateForReview(profile, question, answer,
+                        previousAttempts, skill, rubricVersion, focusDimensions));
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateBaseline(
             InterviewPreparationProfile profile,
             InterviewQuestion question,

@@ -8,6 +8,13 @@ public class InterviewSkillRubricCatalog {
 
     public static final String VERSION = "interview-skill-rubric-v1";
 
+    public InterviewSkillRubric forVersion(InterviewSkill skill, String version) {
+        if (!VERSION.equals(version)) {
+            throw new IllegalArgumentException("复习任务评分规则版本不受支持：" + version);
+        }
+        return forSkill(skill);
+    }
+
     public InterviewSkillRubric forSkill(InterviewSkill skill) {
         Objects.requireNonNull(skill, "面试 Skill 不能为空");
         return switch (skill) {

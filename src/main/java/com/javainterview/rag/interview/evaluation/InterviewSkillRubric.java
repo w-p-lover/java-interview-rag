@@ -49,11 +49,30 @@ public record InterviewSkillRubric(
     }
 
     public String promptSection() {
+        return promptSection(List.of());
+    }
+
+    public String promptSection(List<String> focusDimensions) {
+        List<String> normalizedFocuses = List.copyOf(
+                Objects.requireNonNull(focusDimensions, "复习重点不能为空").stream()
+                        .map(value -> requireText(value, "复习重点不能为空"))
+                        .distinct()
+                        .toList());
+        List<String> supportedFocuses = List.of(
+                technicalFocus, completenessFocus, communicationFocus);
+        if (!supportedFocuses.containsAll(normalizedFocuses)) {
+            throw new IllegalArgumentException("复习重点不属于保存的专项评分规则");
+        }
+        String reviewFocus = normalizedFocuses.isEmpty() ? ""
+                : "\n保存的专项评分规则：" + version
+                + "\n本次复习重点：" + String.join("、", normalizedFocuses)
+                + "。评价时必须明确说明这些维度是否改善，其他维度仍按同一规则正常评分。";
         return "\n本场专项评分规则（" + version + "，Skill=" + skill.name() + "）："
                 + "\n- technicalScore / " + technicalFocus + "：" + technicalCriteria
                 + "\n- completenessScore / " + completenessFocus + "：" + completenessCriteria
                 + "\n- communicationScore / " + communicationFocus + "：" + communicationCriteria
-                + "\nstrengths、gaps 和改进建议必须优先使用以上专项维度说明依据。";
+                + "\nstrengths、gaps 和改进建议必须优先使用以上专项维度说明依据。"
+                + reviewFocus;
     }
 
     private String lowestScoreFocus(InterviewAnswerEvaluation evaluation) {

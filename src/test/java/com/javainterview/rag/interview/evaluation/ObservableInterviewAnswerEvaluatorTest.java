@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.evaluation;
 
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
+import com.javainterview.rag.interview.question.InterviewSkill;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -10,6 +11,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,6 +70,30 @@ class ObservableInterviewAnswerEvaluatorTest {
         assertEquals(InterviewAnswerEvaluationLog.Status.FAILED, captor.getValue().status());
         assertEquals("IllegalStateException", captor.getValue().errorType());
         assertEquals(null, captor.getValue().overallScore());
+    }
+
+    @Test
+    void forwardsPersistedReviewRubricAndFocusDimensions() {
+        InterviewAnswerEvaluator delegate = mock(InterviewAnswerEvaluator.class);
+        InterviewAnswerEvaluationLogStore store = mock(InterviewAnswerEvaluationLogStore.class);
+        InterviewPreparationProfile profile = mock(InterviewPreparationProfile.class);
+        InterviewQuestion question = mock(InterviewQuestion.class);
+        InterviewAnswerAssessment assessment = new InterviewAnswerAssessment(evaluation(86), null);
+        when(delegate.promptVersion()).thenReturn("prompt-v4");
+        when(delegate.rubricVersion()).thenReturn("rubric-v3");
+        when(delegate.modelName()).thenReturn("model-test");
+        when(delegate.evaluateForReview(eq(profile), eq(question), eq("改进后的回答"), eq(List.of()),
+                eq(InterviewSkill.RAG_AI), eq("interview-skill-rubric-v1"),
+                eq(List.of("边界、评估与恢复")))).thenReturn(assessment);
+        ObservableInterviewAnswerEvaluator evaluator = new ObservableInterviewAnswerEvaluator(delegate, store);
+
+        InterviewAnswerAssessment result = evaluator.evaluateForReview(
+                profile, question, "改进后的回答", List.of(), InterviewSkill.RAG_AI,
+                "interview-skill-rubric-v1", List.of("边界、评估与恢复"));
+
+        assertEquals(assessment, result);
+        verify(delegate).evaluateForReview(profile, question, "改进后的回答", List.of(),
+                InterviewSkill.RAG_AI, "interview-skill-rubric-v1", List.of("边界、评估与恢复"));
     }
 
     @Test

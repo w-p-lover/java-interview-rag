@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class BankQuestionGenerator {
-    public static final String PROMPT_VERSION = "knowledge-question-bank-v2";
+    public static final String PROMPT_VERSION = "knowledge-question-bank-v3";
     private final ChatClient chatClient;
     private final ExecutorService modelExecutor;
     private final long timeoutMillis;
@@ -51,6 +51,7 @@ public class BankQuestionGenerator {
                 evidenceChunkOrders 返回 1 到 3 个原始片段编号，不是数组位置；
                 evidenceQuote 必须逐字摘录其中一个片段的连续原文，不得改写或跨片段拼接。
                 followUps 中每项包含 question、referenceAnswer、非空 keyPoints、scoringRubric。
+                每个固定追问必须继续考察所属主问题的 category，不得切换到其他分类维度。
                 题目必须互不重复，不得重复已有题面或仅替换标点。
                 category 必须严格使用下方分类配额中的名称，并按要求返回精确题数。
                 """

@@ -156,9 +156,13 @@ public class InterviewReviewTaskService {
         List<InterviewAnswerPreviousAttempt> previousAttempts = existing.stream()
                 .map(attempt -> new InterviewAnswerPreviousAttempt(attempt.answer(), attempt.evaluation()))
                 .toList();
-        InterviewAnswerAssessment assessment = answerEvaluator.evaluateForReview(
-                session.profile(), question, normalizedAnswer, previousAttempts,
-                session.configuration().skill());
+        InterviewAnswerAssessment assessment = task.weakDimensions().isEmpty()
+                ? answerEvaluator.evaluateForReview(
+                        session.profile(), question, normalizedAnswer, previousAttempts,
+                        session.configuration().skill())
+                : answerEvaluator.evaluateForReview(
+                        session.profile(), question, normalizedAnswer, previousAttempts,
+                        session.configuration().skill(), task.rubricVersion(), task.weakDimensions());
         Integer previousScore = existing.isEmpty()
                 ? null : existing.get(existing.size() - 1).evaluation().overallScore();
         int score = assessment.evaluation().overallScore();

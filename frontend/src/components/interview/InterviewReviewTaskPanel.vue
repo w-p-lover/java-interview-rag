@@ -206,6 +206,7 @@ function handleSchedule(taskId: string, plannedReviewDate: string | null): void 
           <InterviewReviewAttemptPanel
             :task-id="task.id"
             :attempts="attemptsByTaskId[task.id] ?? []"
+            :focus-dimensions="task.weakDimensions"
             :loading="attemptsLoadingTaskId === '*' || attemptsLoadingTaskId === task.id"
             :submitting="submittingAttemptTaskId === task.id"
             :error="attemptError"

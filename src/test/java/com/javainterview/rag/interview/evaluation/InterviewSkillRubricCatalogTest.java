@@ -7,6 +7,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InterviewSkillRubricCatalogTest {
 
@@ -31,5 +33,18 @@ class InterviewSkillRubricCatalogTest {
 
         assertEquals(List.of("并发与边界", "结论与推理表达"),
                 catalog.forSkill(InterviewSkill.JAVA_CORE).weakDimensions(evaluation));
+    }
+
+    @Test
+    void resolvesPersistedVersionAndRejectsUnknownReviewFocus() {
+        InterviewSkillRubric rubric = catalog.forVersion(
+                InterviewSkill.RAG_AI, "interview-skill-rubric-v1");
+
+        assertTrue(rubric.promptSection(List.of("边界、评估与恢复"))
+                .contains("本次复习重点：边界、评估与恢复"));
+        assertThrows(IllegalArgumentException.class,
+                () -> rubric.promptSection(List.of("不存在的维度")));
+        assertThrows(IllegalArgumentException.class,
+                () -> catalog.forVersion(InterviewSkill.RAG_AI, "interview-skill-rubric-v0"));
     }
 }
