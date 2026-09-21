@@ -10,6 +10,8 @@ public interface ResumeCenterStore {
 
     Optional<ResumeRecord> findRecord(String id);
 
+    Optional<ResumeVersion> findVersion(String id);
+
     List<ResumeVersion> findVersions(String resumeId);
 
     Optional<ResumeVersion> findVersionByHash(String contentHash);

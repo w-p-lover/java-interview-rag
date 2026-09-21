@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { CheckCircle2, RotateCcw } from "@lucide/vue";
+import { CheckCircle2, FileCheck2, RotateCcw } from "@lucide/vue";
 
 import type { InterviewSessionMode } from "@/api/interview";
 
 defineProps<{
   targetRole: string;
+  resumeVersionId: string | null;
   mode: InterviewSessionMode;
   status: "IN_PROGRESS" | "COMPLETED";
   currentQuestionIndex: number;
@@ -23,6 +24,9 @@ const emit = defineEmits<{
     <div class="session-bar__main">
       <span class="session-bar__role">
         {{ mode === "PROJECT_DEEP_DIVE" ? "项目深挖" : "模拟面试" }} · {{ targetRole }}
+      </span>
+      <span v-if="resumeVersionId" class="session-bar__resume" :title="resumeVersionId">
+        <FileCheck2 :size="13" aria-hidden="true" />简历版本 {{ resumeVersionId.slice(0, 8) }}
       </span>
       <strong>
         <CheckCircle2 v-if="status === 'COMPLETED'" :size="16" aria-hidden="true" />
@@ -59,6 +63,7 @@ const emit = defineEmits<{
 }
 
 .session-bar__role,
+.session-bar__resume,
 .session-bar__main strong,
 button {
   white-space: nowrap;
@@ -70,6 +75,8 @@ button {
   font-size: var(--text-xs);
   text-overflow: ellipsis;
 }
+
+.session-bar__resume { display: inline-flex; align-items: center; gap: var(--space-3xs); width: fit-content; color: var(--color-accent-strong); font-family: var(--font-mono); font-size: var(--text-xs); }
 
 .session-bar__main strong {
   display: inline-flex;

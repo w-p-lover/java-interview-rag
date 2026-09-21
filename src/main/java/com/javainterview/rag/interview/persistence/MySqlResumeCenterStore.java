@@ -35,6 +35,11 @@ public class MySqlResumeCenterStore implements ResumeCenterStore {
     }
 
     @Override
+    public Optional<ResumeVersion> findVersion(String id) {
+        return Optional.ofNullable(mapper.findVersion(id)).map(this::version);
+    }
+
+    @Override
     public List<ResumeVersion> findVersions(String resumeId) {
         return mapper.findVersions(resumeId).stream().map(this::version).toList();
     }

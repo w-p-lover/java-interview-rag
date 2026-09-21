@@ -12,6 +12,7 @@ import java.util.Objects;
 public record InterviewSession(
         String id,
         String targetRole,
+        String resumeVersionId,
         InterviewSessionMode mode,
         InterviewPreparationProfile profile,
         InterviewConfigurationSnapshot configuration,
@@ -32,6 +33,9 @@ public record InterviewSession(
     public InterviewSession {
         id = requireText(id, "面试会话 ID 不能为空");
         targetRole = requireText(targetRole, "目标岗位不能为空");
+        if (resumeVersionId != null) {
+            resumeVersionId = requireText(resumeVersionId, "简历版本 ID 不能为空");
+        }
         mode = Objects.requireNonNull(mode, "面试会话模式不能为空");
         profile = Objects.requireNonNull(profile, "面试准备画像不能为空");
         configuration = Objects.requireNonNull(configuration, "面试配置快照不能为空");
@@ -96,10 +100,48 @@ public record InterviewSession(
                             InterviewSessionReport report,
                             LocalDateTime createdAt,
                             LocalDateTime updatedAt) {
-        this(id, targetRole, mode, profile,
+        this(id, targetRole, null, mode, profile,
                 InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount),
                 questions, maxQuestionCount, answers, currentQuestionIndex, status, version,
                 report, createdAt, updatedAt);
+    }
+
+    public InterviewSession(String id,
+                            String targetRole,
+                            String resumeVersionId,
+                            InterviewSessionMode mode,
+                            InterviewPreparationProfile profile,
+                            List<InterviewQuestion> questions,
+                            int maxQuestionCount,
+                            List<InterviewSessionAnswer> answers,
+                            int currentQuestionIndex,
+                            InterviewSessionStatus status,
+                            long version,
+                            InterviewSessionReport report,
+                            LocalDateTime createdAt,
+                            LocalDateTime updatedAt) {
+        this(id, targetRole, resumeVersionId, mode, profile,
+                InterviewConfigurationSnapshot.legacy(mode, questions.size(), maxQuestionCount),
+                questions, maxQuestionCount, answers, currentQuestionIndex, status, version,
+                report, createdAt, updatedAt);
+    }
+
+    public InterviewSession(String id,
+                            String targetRole,
+                            InterviewSessionMode mode,
+                            InterviewPreparationProfile profile,
+                            InterviewConfigurationSnapshot configuration,
+                            List<InterviewQuestion> questions,
+                            int maxQuestionCount,
+                            List<InterviewSessionAnswer> answers,
+                            int currentQuestionIndex,
+                            InterviewSessionStatus status,
+                            long version,
+                            InterviewSessionReport report,
+                            LocalDateTime createdAt,
+                            LocalDateTime updatedAt) {
+        this(id, targetRole, null, mode, profile, configuration, questions, maxQuestionCount,
+                answers, currentQuestionIndex, status, version, report, createdAt, updatedAt);
     }
 
     public InterviewSession answer(String answer,
@@ -131,6 +173,7 @@ public record InterviewSession(
         return new InterviewSession(
                 id,
                 targetRole,
+                resumeVersionId,
                 mode,
                 profile,
                 configuration,

@@ -154,7 +154,10 @@ export function useInterviewQuestionDraft() {
     });
   }
 
-  function createSessionPayload(maxQuestionCount: number): InterviewSessionCreatePayload | null {
+  function createSessionPayload(
+    maxQuestionCount: number,
+    resumeVersionId?: string,
+  ): InterviewSessionCreatePayload | null {
     if (!preparation.value || !generation.value || !canConfirm.value) {
       return null;
     }
@@ -176,6 +179,7 @@ export function useInterviewQuestionDraft() {
         ...generation.value.configuration,
         maxQuestionCount: Math.max(maxQuestionCount, generation.value.questions.length),
       },
+      resumeVersionId: resumeVersionId || undefined,
     };
   }
 

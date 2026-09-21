@@ -117,6 +117,11 @@ class ResumeCenterServiceTest {
         }
 
         @Override
+        public Optional<ResumeVersion> findVersion(String id) {
+            return versions.values().stream().filter(version -> version.id().equals(id)).findFirst();
+        }
+
+        @Override
         public List<ResumeVersion> findVersions(String resumeId) {
             return versions.values().stream()
                     .filter(version -> version.resumeId().equals(resumeId))

@@ -148,6 +148,7 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
             return new InterviewSession(
                     entity.getId(),
                     entity.getTargetRole(),
+                    entity.getResumeVersionId(),
                     mode,
                     objectMapper.readValue(entity.getProfileJson(), InterviewPreparationProfile.class),
                     configuration,

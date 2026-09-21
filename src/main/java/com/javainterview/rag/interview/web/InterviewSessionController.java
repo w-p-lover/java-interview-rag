@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewConversationContext;
 import com.javainterview.rag.interview.session.InterviewConversationEvent;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
+import com.javainterview.rag.interview.resume.ResumeCenterStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
@@ -35,13 +36,16 @@ public class InterviewSessionController {
     private final InterviewSessionService sessionService;
     private final InterviewSessionStartService startService;
     private final ProjectDeepDiveSessionStartService projectDeepDiveStartService;
+    private final ResumeCenterStore resumeCenterStore;
 
     public InterviewSessionController(InterviewSessionService sessionService,
                                       InterviewSessionStartService startService,
-                                      ProjectDeepDiveSessionStartService projectDeepDiveStartService) {
+                                      ProjectDeepDiveSessionStartService projectDeepDiveStartService,
+                                      ResumeCenterStore resumeCenterStore) {
         this.sessionService = sessionService;
         this.startService = startService;
         this.projectDeepDiveStartService = projectDeepDiveStartService;
+        this.resumeCenterStore = resumeCenterStore;
     }
 
     @PostMapping("/start-project-deep-dive")
@@ -68,15 +72,24 @@ public class InterviewSessionController {
         if (request.questions() == null) {
             throw new IllegalArgumentException("面试题不能为空");
         }
+        validateResumeVersion(request.resumeVersionId());
         int maxQuestionCount = request.maxQuestionCount() == null
                 ? Math.max(request.questions().size(), 8) : request.maxQuestionCount();
         if (request.configuration() == null) {
+            if (request.resumeVersionId() != null && !request.resumeVersionId().isBlank()) {
+                throw new IllegalArgumentException("绑定简历版本需要面试配置快照");
+            }
             return sessionService.start(
                     request.targetRole(), request.profile(), request.questions(), maxQuestionCount);
         }
+        if (request.resumeVersionId() == null || request.resumeVersionId().isBlank()) {
+            return sessionService.start(
+                    request.targetRole(), request.profile(), request.questions(), maxQuestionCount,
+                    request.configuration(), request.requestId());
+        }
         return sessionService.start(
-                request.targetRole(), request.profile(), request.questions(), maxQuestionCount,
-                request.configuration(), request.requestId());
+                request.targetRole(), request.resumeVersionId().strip(), request.profile(),
+                request.questions(), maxQuestionCount, request.configuration(), request.requestId());
     }
 
     @GetMapping("/{sessionId}")
@@ -174,5 +187,18 @@ public class InterviewSessionController {
     @ResponseStatus(HttpStatus.CONFLICT)
     public Map<String, String> handleSessionConflict(InterviewSessionConflictException exception) {
         return Map.of("message", exception.getMessage());
+    }
+
+    private void validateResumeVersion(String resumeVersionId) {
+        if (resumeVersionId == null || resumeVersionId.isBlank()) {
+            return;
+        }
+        String normalizedId = resumeVersionId.strip();
+        if (normalizedId.length() > 36) {
+            throw new IllegalArgumentException("简历版本 ID 不能超过 36 个字符");
+        }
+        if (resumeCenterStore.findVersion(normalizedId).isEmpty()) {
+            throw new NoSuchElementException("绑定的简历版本不存在");
+        }
     }
 }

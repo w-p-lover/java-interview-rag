@@ -9,6 +9,8 @@ import com.javainterview.rag.interview.preparation.InterviewFocusSource;
 import com.javainterview.rag.interview.preparation.InterviewPreparationProfile;
 import com.javainterview.rag.interview.question.InterviewQuestion;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
+import com.javainterview.rag.interview.resume.ResumeCenterStore;
+import com.javainterview.rag.interview.resume.ResumeVersion;
 import com.javainterview.rag.interview.session.InterviewSession;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
@@ -39,6 +41,7 @@ class InterviewSessionControllerTest {
         InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
         ProjectDeepDiveSessionStartService projectDeepDiveStartService =
                 mock(ProjectDeepDiveSessionStartService.class);
+        ResumeCenterStore resumeCenterStore = mock(ResumeCenterStore.class);
         InterviewSession initial = session();
         List<InterviewQuestion> deepDiveQuestions = List.of(
                 question("项目背景是什么？", "项目基础"),
@@ -72,7 +75,8 @@ class InterviewSessionControllerTest {
         when(projectDeepDiveStartService.start(
                 "Java AI 应用开发工程师", deepDiveRequest)).thenReturn(deepDive);
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
+                new InterviewSessionController(
+                        service, startService, projectDeepDiveStartService, resumeCenterStore)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         mockMvc.perform(post("/api/interviews/sessions/start")
@@ -147,6 +151,7 @@ class InterviewSessionControllerTest {
         InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
         ProjectDeepDiveSessionStartService projectDeepDiveStartService =
                 mock(ProjectDeepDiveSessionStartService.class);
+        ResumeCenterStore resumeCenterStore = mock(ResumeCenterStore.class);
         when(service.start(" ", profile(), questions(), 8))
                 .thenThrow(new IllegalArgumentException("目标岗位不能为空"));
         when(service.find("missing"))
@@ -154,7 +159,8 @@ class InterviewSessionControllerTest {
         when(service.submitAnswer("completed", 3, 3L, "额外回答"))
                 .thenThrow(new InterviewSessionConflictException("面试会话已经完成"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
+                new InterviewSessionController(
+                        service, startService, projectDeepDiveStartService, resumeCenterStore)).build();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
         mockMvc.perform(post("/api/interviews/sessions")
@@ -183,12 +189,14 @@ class InterviewSessionControllerTest {
         InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
         ProjectDeepDiveSessionStartService projectDeepDiveStartService =
                 mock(ProjectDeepDiveSessionStartService.class);
+        ResumeCenterStore resumeCenterStore = mock(ResumeCenterStore.class);
         InterviewSession answered = session().answer(
                 "说明向量更新流程。", evaluation(), null, LocalDateTime.of(2026, 7, 27, 11, 5));
         when(service.find("session-1")).thenReturn(answered);
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new InterviewSessionController(service, startService, projectDeepDiveStartService)).build();
+                new InterviewSessionController(
+                        service, startService, projectDeepDiveStartService, resumeCenterStore)).build();
 
         mockMvc.perform(get("/api/interviews/sessions/session-1/events"))
                 .andExpect(status().isOk())
@@ -196,6 +204,52 @@ class InterviewSessionControllerTest {
                 .andExpect(jsonPath("$[1].type").value("EVALUATION_STARTED"))
                 .andExpect(jsonPath("$[2].type").value("EVALUATION_COMPLETED"))
                 .andExpect(jsonPath("$[3].type").value("FOLLOW_UP_GENERATED"));
+    }
+
+    @Test
+    void bindsExistingResumeVersionAndRejectsMissingVersion() throws Exception {
+        InterviewSessionService service = mock(InterviewSessionService.class);
+        InterviewSessionStartService startService = mock(InterviewSessionStartService.class);
+        ProjectDeepDiveSessionStartService projectDeepDiveStartService =
+                mock(ProjectDeepDiveSessionStartService.class);
+        ResumeCenterStore resumeCenterStore = mock(ResumeCenterStore.class);
+        InterviewSession initial = session();
+        InterviewSession bound = new InterviewSession(
+                initial.id(), initial.targetRole(), "resume-version-1", initial.mode(),
+                initial.profile(), initial.configuration(), initial.questions(),
+                initial.maxQuestionCount(), initial.answers(), initial.currentQuestionIndex(),
+                initial.status(), initial.version(), initial.report(), initial.createdAt(),
+                initial.updatedAt());
+        ResumeVersion version = new ResumeVersion(
+                "resume-version-1", "resume-1", 1, "a".repeat(64), "resume.txt",
+                "text/plain", 10, null, LocalDateTime.of(2026, 9, 21, 8, 0));
+        when(resumeCenterStore.findVersion("resume-version-1"))
+                .thenReturn(java.util.Optional.of(version));
+        when(resumeCenterStore.findVersion("missing-version"))
+                .thenReturn(java.util.Optional.empty());
+        when(service.start(
+                initial.targetRole(), "resume-version-1", initial.profile(), initial.questions(),
+                8, initial.configuration(), "request-bound")).thenReturn(bound);
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new InterviewSessionController(
+                        service, startService, projectDeepDiveStartService, resumeCenterStore)).build();
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+
+        mockMvc.perform(post("/api/interviews/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new InterviewSessionCreateRequest(
+                                initial.targetRole(), initial.profile(), initial.questions(), 8,
+                                initial.configuration(), "request-bound", "resume-version-1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resumeVersionId").value("resume-version-1"));
+
+        mockMvc.perform(post("/api/interviews/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new InterviewSessionCreateRequest(
+                                initial.targetRole(), initial.profile(), initial.questions(), 8,
+                                initial.configuration(), "request-missing", "missing-version"))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("绑定的简历版本不存在"));
     }
 
     private InterviewSession session() {

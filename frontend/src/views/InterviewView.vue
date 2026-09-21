@@ -191,6 +191,7 @@ function handleAssistantScheduled(): void {
     <template v-else>
       <InterviewSessionBar
         :target-role="session.targetRole"
+        :resume-version-id="session.resumeVersionId"
         :mode="session.mode"
         :status="session.status"
         :current-question-index="session.currentQuestionIndex"

@@ -213,6 +213,28 @@ class MySqlInterviewSessionStoreTest {
     }
 
     @Test
+    void persistsAndRestoresBoundResumeVersion() {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper());
+        InterviewSession original = initialSession();
+        InterviewSession bound = new InterviewSession(
+                original.id(), original.targetRole(), "resume-version-1", original.mode(),
+                original.profile(), original.configuration(), original.questions(),
+                original.maxQuestionCount(), original.answers(), original.currentQuestionIndex(),
+                original.status(), original.version(), original.report(), original.createdAt(),
+                original.updatedAt());
+
+        store.create(bound);
+
+        ArgumentCaptor<InterviewSessionEntity> captor = ArgumentCaptor.forClass(InterviewSessionEntity.class);
+        verify(mapper).insert(captor.capture());
+        InterviewSessionEntity entity = captor.getValue();
+        assertEquals("resume-version-1", entity.getResumeVersionId());
+        when(mapper.selectById(bound.id())).thenReturn(entity);
+        assertEquals("resume-version-1", store.findById(bound.id()).orElseThrow().resumeVersionId());
+    }
+
+    @Test
     void loadsRecentHistoricalQuestionsForTheSameSkill() throws Exception {
         InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
         ObjectMapper objectMapper = objectMapper();

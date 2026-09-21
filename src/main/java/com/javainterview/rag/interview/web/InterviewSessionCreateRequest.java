@@ -12,14 +12,15 @@ public record InterviewSessionCreateRequest(
         List<InterviewQuestion> questions,
         Integer maxQuestionCount,
         InterviewConfigurationSnapshot configuration,
-        String requestId
+        String requestId,
+        String resumeVersionId
 ) {
 
     public InterviewSessionCreateRequest(String targetRole,
                                          InterviewPreparationProfile profile,
                                          List<InterviewQuestion> questions,
                                          Integer maxQuestionCount) {
-        this(targetRole, profile, questions, maxQuestionCount, null, null);
+        this(targetRole, profile, questions, maxQuestionCount, null, null, null);
     }
 
     public InterviewSessionCreateRequest(String targetRole,
@@ -27,6 +28,15 @@ public record InterviewSessionCreateRequest(
                                          List<InterviewQuestion> questions,
                                          Integer maxQuestionCount,
                                          InterviewConfigurationSnapshot configuration) {
-        this(targetRole, profile, questions, maxQuestionCount, configuration, null);
+        this(targetRole, profile, questions, maxQuestionCount, configuration, null, null);
+    }
+
+    public InterviewSessionCreateRequest(String targetRole,
+                                         InterviewPreparationProfile profile,
+                                         List<InterviewQuestion> questions,
+                                         Integer maxQuestionCount,
+                                         InterviewConfigurationSnapshot configuration,
+                                         String requestId) {
+        this(targetRole, profile, questions, maxQuestionCount, configuration, requestId, null);
     }
 }

@@ -56,7 +56,18 @@ public class InterviewSessionService {
                                   String requestId) {
         String normalizedRequestId = requireText(requestId, 100,
                 "创建请求 ID 不能为空", "创建请求 ID 不能超过 100 个字符");
-        return start(InterviewSessionMode.STANDARD, targetRole, profile, questions,
+        return start(InterviewSessionMode.STANDARD, targetRole, null, profile, questions,
+                maxQuestionCount, configuration, normalizedRequestId);
+    }
+
+    public InterviewSession start(String targetRole, String resumeVersionId,
+                                  InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration,
+                                  String requestId) {
+        String normalizedRequestId = requireText(requestId, 100,
+                "创建请求 ID 不能为空", "创建请求 ID 不能超过 100 个字符");
+        return start(InterviewSessionMode.STANDARD, targetRole, resumeVersionId, profile, questions,
                 maxQuestionCount, configuration, normalizedRequestId);
     }
 
@@ -82,8 +93,21 @@ public class InterviewSessionService {
                                   List<InterviewQuestion> questions, int maxQuestionCount,
                                   InterviewConfigurationSnapshot configuration,
                                   String requestId) {
+        return start(mode, targetRole, null, profile, questions, maxQuestionCount,
+                configuration, requestId);
+    }
+
+    public InterviewSession start(InterviewSessionMode mode, String targetRole,
+                                  String resumeVersionId,
+                                  InterviewPreparationProfile profile,
+                                  List<InterviewQuestion> questions, int maxQuestionCount,
+                                  InterviewConfigurationSnapshot configuration,
+                                  String requestId) {
         String normalizedTargetRole = requireText(targetRole, TARGET_ROLE_MAX_LENGTH,
                 "目标岗位不能为空", "目标岗位不能超过 100 个字符");
+        String normalizedResumeVersionId = resumeVersionId == null || resumeVersionId.isBlank()
+                ? null : requireText(resumeVersionId, 36,
+                "简历版本 ID 不能为空", "简历版本 ID 不能超过 36 个字符");
         if (mode == null) {
             throw new IllegalArgumentException("面试会话模式不能为空");
         }
@@ -112,6 +136,7 @@ public class InterviewSessionService {
         InterviewSession session = new InterviewSession(
                 UUID.randomUUID().toString(),
                 normalizedTargetRole,
+                normalizedResumeVersionId,
                 mode,
                 profile,
                 configuration,

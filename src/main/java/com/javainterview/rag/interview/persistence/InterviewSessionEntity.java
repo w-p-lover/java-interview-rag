@@ -20,6 +20,7 @@ public class InterviewSessionEntity {
     private String id;
     private String requestId;
     private String targetRole;
+    private String resumeVersionId;
     private String sessionMode;
     private String configurationJson;
     private String profileJson;
@@ -42,6 +43,7 @@ public class InterviewSessionEntity {
         entity.id = session.id();
         entity.requestId = requestId;
         entity.targetRole = session.targetRole();
+        entity.resumeVersionId = session.resumeVersionId();
         entity.sessionMode = session.mode().name();
         entity.configurationJson = configurationJson;
         entity.profileJson = profileJson;

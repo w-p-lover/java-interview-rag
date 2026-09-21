@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "@lucide/vue";
-import { computed, reactive, watch } from "vue";
+import { computed, onMounted, reactive, shallowRef, watch } from "vue";
 
 import type {
   InterviewQuestionDraftPayload,
@@ -17,6 +17,8 @@ import type {
   InterviewSessionCreatePayload,
   ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
+import { getResumeDetail, listResumes } from "@/api/resumeCenter";
+import { resolveApiError } from "@/api/request";
 import InterviewQuestionDraftPanel from "@/components/interview/InterviewQuestionDraftPanel.vue";
 import InterviewTextFileField from "@/components/interview/InterviewTextFileField.vue";
 import ProjectDeepDivePanel from "@/components/interview/ProjectDeepDivePanel.vue";
@@ -48,6 +50,7 @@ interface InterviewSetupFormData {
   maxQuestionCount: number;
   skill: InterviewSkill;
   difficulty: InterviewDifficulty;
+  resumeVersionId: string;
 }
 
 const form = reactive<InterviewSetupFormData>({
@@ -58,7 +61,11 @@ const form = reactive<InterviewSetupFormData>({
   maxQuestionCount: 8,
   skill: "JAVA_CORE",
   difficulty: "INTERMEDIATE",
+  resumeVersionId: "",
 });
+
+const savedResumeOptions = shallowRef<Array<{ id: string; label: string }>>([]);
+const savedResumesError = shallowRef("");
 
 const {
   result: auditResult,
@@ -167,7 +174,7 @@ function handleConfirmDraft(): void {
   if (props.busy) {
     return;
   }
-  const payload = createSessionPayload(form.maxQuestionCount);
+  const payload = createSessionPayload(form.maxQuestionCount, form.resumeVersionId || undefined);
   if (payload) {
     emit("start", payload);
   }
@@ -191,6 +198,19 @@ function loadDemoMaterials(): void {
   form.skill = "RAG_AI";
   form.difficulty = "INTERMEDIATE";
 }
+
+onMounted(async () => {
+  try {
+    const records = await listResumes();
+    const details = await Promise.all(records.map((record) => getResumeDetail(record.id)));
+    savedResumeOptions.value = details.flatMap((detail) => detail.versions.map((version) => ({
+      id: version.id,
+      label: `${detail.name} · v${version.versionNumber}${version.id === detail.currentVersionId ? "（当前）" : ""} · ${detail.targetRole}`,
+    })));
+  } catch (requestError) {
+    savedResumesError.value = resolveApiError(requestError, "已保存简历版本暂时无法读取");
+  }
+});
 </script>
 
 <template>
@@ -350,6 +370,22 @@ function loadDemoMaterials(): void {
             </select>
           </label>
         </div>
+
+        <label class="resume-binding">
+          <span>绑定简历版本</span>
+          <select v-model="form.resumeVersionId" :disabled="interactionBusy || !savedResumeOptions.length">
+            <option value="">不绑定已保存版本</option>
+            <option v-for="option in savedResumeOptions" :key="option.id" :value="option.id">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <p v-if="savedResumesError" class="settings-note settings-error" role="status">
+          {{ savedResumesError }}
+        </p>
+        <p v-else-if="savedResumeOptions.length" class="settings-note">
+          只记录本场使用的版本 ID；简历正文仍以当前输入框为准。
+        </p>
 
         <dl class="material-state">
           <div>
@@ -727,6 +763,11 @@ select {
 .settings-note {
   color: var(--color-muted);
 }
+
+.resume-binding { display: grid; gap: var(--space-xs); margin-top: var(--space-md); }
+.resume-binding > span { color: var(--color-muted); font-size: var(--text-xs); }
+.resume-binding select { width: 100%; min-height: 2.75rem; padding-inline: var(--space-sm); border: var(--rule-thin) solid var(--color-rule-2); border-radius: var(--radius-control); color: var(--color-ink); background: var(--color-surface); font-size: var(--text-sm); }
+.settings-error { color: var(--color-error); }
 
 .material-state dd {
   display: inline-flex;

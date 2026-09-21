@@ -131,6 +131,7 @@ export type InterviewSessionMode = "STANDARD" | "PROJECT_DEEP_DIVE";
 export interface InterviewSession {
   id: string;
   targetRole: string;
+  resumeVersionId: string | null;
   mode: InterviewSessionMode;
   profile: InterviewPreparationProfile;
   configuration: InterviewConfigurationSnapshot;
@@ -302,6 +303,7 @@ export interface InterviewSessionCreatePayload {
   questions: InterviewQuestion[];
   maxQuestionCount: number;
   configuration: InterviewConfigurationSnapshot;
+  resumeVersionId?: string;
 }
 
 export interface InterviewQuestionDraftPayload {
