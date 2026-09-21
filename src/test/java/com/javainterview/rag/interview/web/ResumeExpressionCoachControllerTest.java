@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.resume.ResumeExpressionCoachResult;
 import com.javainterview.rag.interview.resume.ResumeExpressionCoachService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +30,8 @@ class ResumeExpressionCoachControllerTest {
                                 com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult.FactType.RESPONSIBILITY,
                                 "负责订单服务开发。", "负责订单服务开发。")), List.of()))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeExpressionCoachController(service)).build();
+                new ResumeExpressionCoachController(
+                        service, mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-expression")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -47,7 +49,8 @@ class ResumeExpressionCoachControllerTest {
         ResumeExpressionCoachService service = mock(ResumeExpressionCoachService.class);
         when(service.coach(any())).thenThrow(new IllegalStateException("表达候选包含未在事实证据中出现的数字"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeExpressionCoachController(service)).build();
+                new ResumeExpressionCoachController(
+                        service, mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-expression")
                         .contentType(MediaType.APPLICATION_JSON)

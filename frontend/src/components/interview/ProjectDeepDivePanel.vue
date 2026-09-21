@@ -19,6 +19,7 @@ import { useProjectDeepDive } from "@/composables/useProjectDeepDive";
 const props = defineProps<{
   auditResult: ResumeEvidenceAuditResult | null;
   targetRole: string;
+  resumeVersionId: string;
   busy: boolean;
 }>();
 
@@ -65,6 +66,7 @@ const {
   () => selectedProject.value,
   () => includeKnowledge.value,
   () => props.auditResult?.requestId ?? "",
+  () => props.resumeVersionId,
 );
 
 const dimensionMeta: Record<ProjectDeepDiveDimension, { label: string; index: string }> = {
@@ -172,7 +174,7 @@ function handleStart(): void {
     <template v-if="result && !loading">
       <p v-if="isStale" class="deep-dive-stale" role="status">
         <RefreshCw :size="15" aria-hidden="true" />
-        <span>项目、审计结果或资料选项已变化；请重新生成后再参考。</span>
+        <span>这是该版本最近保存的结果，当前项目或资料选项可能不同；请重新生成后更新。</span>
       </p>
 
       <ol class="question-list" aria-label="项目深挖题">

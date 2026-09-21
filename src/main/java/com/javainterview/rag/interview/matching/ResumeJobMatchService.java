@@ -70,12 +70,16 @@ public class ResumeJobMatchService {
         }
     }
 
-    String roleName() {
+    public String roleName() {
         return ROLE_NAME;
     }
 
-    String promptVersion() {
+    public String promptVersion() {
         return PROMPT_VERSION;
+    }
+
+    public String modelName() {
+        return modelName;
     }
 
     private ValidatedInput validate(ResumeJobMatchRequest request) {

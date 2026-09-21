@@ -54,6 +54,10 @@ public class ProjectDeepDiveService {
                 questions);
     }
 
+    public String strategyVersion() {
+        return STRATEGY_VERSION;
+    }
+
     private ProjectDeepDiveRequest.ConfirmedProject validate(ProjectDeepDiveRequest request) {
         if (request == null || request.project() == null) {
             throw new IllegalArgumentException("已确认项目事实不能为空");

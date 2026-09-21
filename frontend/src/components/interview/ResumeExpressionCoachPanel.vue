@@ -15,6 +15,7 @@ import { useResumeExpressionCoach } from "@/composables/useResumeExpressionCoach
 const props = defineProps<{
   targetRole: string;
   auditResult: ResumeEvidenceAuditResult | null;
+  resumeVersionId: string;
 }>();
 
 const {
@@ -27,6 +28,7 @@ const {
 } = useResumeExpressionCoach(
   () => props.targetRole,
   () => props.auditResult,
+  () => props.resumeVersionId,
 );
 
 const copiedCandidateId = shallowRef("");
@@ -99,7 +101,7 @@ function emitCoach(): void {
     <template v-if="result && !loading">
       <p v-if="isStale" class="expression-stale" role="status">
         <RefreshCw :size="15" aria-hidden="true" />
-        <span>目标岗位或简历审计结果已变化；请重新生成后再参考。</span>
+        <span>这是该版本最近保存的结果，当前输入可能不同；请重新生成后更新。</span>
       </p>
       <div class="expression-candidates" aria-label="简历表达候选">
         <article v-for="(candidate, index) in candidates" :key="candidate.id" class="expression-candidate">

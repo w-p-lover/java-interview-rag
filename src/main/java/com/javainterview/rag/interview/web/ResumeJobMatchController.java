@@ -5,6 +5,8 @@ import com.javainterview.rag.interview.matching.ResumeJobMatchResult;
 import com.javainterview.rag.interview.matching.ResumeJobMatchService;
 import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLog;
 import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLogQueryService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.context.annotation.Profile;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @Profile("storage")
@@ -28,17 +31,28 @@ public class ResumeJobMatchController {
 
     private final ResumeJobMatchService matchService;
     private final ResumeJobMatchRequestLogQueryService logQueryService;
+    private final ResumeAnalysisResultService analysisResultService;
 
     public ResumeJobMatchController(ResumeJobMatchService matchService,
-                                    ResumeJobMatchRequestLogQueryService logQueryService) {
+                                    ResumeJobMatchRequestLogQueryService logQueryService,
+                                    ResumeAnalysisResultService analysisResultService) {
         this.matchService = matchService;
         this.logQueryService = logQueryService;
+        this.analysisResultService = analysisResultService;
     }
 
     @PostMapping
     @Operation(summary = "分析岗位匹配", description = "只使用岗位描述和已确认简历事实，不接收原始简历")
     public ResumeJobMatchResult match(@RequestBody ResumeJobMatchRequest request) {
-        return matchService.match(request);
+        if (request == null || request.resumeVersionId() == null || request.resumeVersionId().isBlank()) {
+            return matchService.match(request);
+        }
+        return analysisResultService.execute(
+                request.resumeVersionId(), ResumeAnalysisType.JOB_MATCH,
+                new JobMatchFingerprint(
+                        request.targetRole(), request.jobDescription(), request.confirmedFacts()),
+                matchService.promptVersion(), matchService.modelName(),
+                () -> matchService.match(request));
     }
 
     @GetMapping("/requests")
@@ -54,9 +68,20 @@ public class ResumeJobMatchController {
         return Map.of("message", exception.getMessage());
     }
 
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleMissingVersion(NoSuchElementException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public Map<String, String> handleMatchFailure(IllegalStateException exception) {
         return Map.of("message", exception.getMessage());
     }
+
+    private record JobMatchFingerprint(
+            String targetRole,
+            String jobDescription,
+            java.util.List<ResumeJobMatchRequest.ConfirmedFact> confirmedFacts) { }
 }

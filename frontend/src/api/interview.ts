@@ -429,6 +429,24 @@ export interface ProjectDeepDiveResult {
   questions: readonly ProjectDeepDiveQuestion[];
 }
 
+export type ResumeAnalysisType =
+  | "EVIDENCE_AUDIT"
+  | "JOB_MATCH"
+  | "EXPRESSION_COACH"
+  | "PROJECT_DEEP_DIVE";
+
+export interface ResumeAnalysisResultEnvelope<T> {
+  id: string;
+  resumeVersionId: string;
+  analysisType: ResumeAnalysisType;
+  inputFingerprint: string;
+  contractVersion: string;
+  modelName: string;
+  result: T;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface InterviewPdfPageExtraction {
   pageNumber: number;
   contentType: "TEXT" | "TEXT_WITH_IMAGES" | "IMAGE_ONLY" | "EMPTY";
@@ -451,10 +469,11 @@ export async function extractInterviewPdfText(file: File): Promise<InterviewDocu
 
 export async function auditResumeEvidence(
   resumeText: string,
+  resumeVersionId?: string,
 ): Promise<ResumeEvidenceAuditResult> {
   const response = await request.post<ResumeEvidenceAuditResult>(
     "/interviews/resume-audits",
-    { resumeText },
+    { resumeText, resumeVersionId },
     // 后端简历审计默认允许 420 秒；客户端略放宽，避免先于服务端断开。
     { timeout: 450_000 },
   );
@@ -465,10 +484,11 @@ export async function analyzeResumeJobMatch(
   targetRole: string,
   jobDescription: string,
   confirmedFacts: readonly ResumeEvidenceConfirmedFact[],
+  resumeVersionId?: string,
 ): Promise<ResumeJobMatchResult> {
   const response = await request.post<ResumeJobMatchResult>(
     "/interviews/job-matches",
-    { targetRole, jobDescription, confirmedFacts },
+    { targetRole, jobDescription, confirmedFacts, resumeVersionId },
     { timeout: 120_000 },
   );
   return response.data;
@@ -477,10 +497,11 @@ export async function analyzeResumeJobMatch(
 export async function generateResumeExpression(
   targetRole: string,
   confirmedFacts: readonly ResumeEvidenceConfirmedFact[],
+  resumeVersionId?: string,
 ): Promise<ResumeExpressionCoachResult> {
   const response = await request.post<ResumeExpressionCoachResult>(
     "/interviews/resume-expression",
-    { targetRole, confirmedFacts },
+    { targetRole, confirmedFacts, resumeVersionId },
     { timeout: 120_000 },
   );
   return response.data;
@@ -489,11 +510,24 @@ export async function generateResumeExpression(
 export async function generateProjectDeepDive(
   project: ResumeEvidenceConfirmedFact,
   includeKnowledge: boolean,
+  resumeVersionId?: string,
 ): Promise<ProjectDeepDiveResult> {
   const response = await request.post<ProjectDeepDiveResult>(
     "/interviews/project-deep-dives",
-    { project, includeKnowledge },
+    { project, includeKnowledge, resumeVersionId },
     { timeout: 30_000 },
+  );
+  return response.data;
+}
+
+export async function getResumeAnalysisResult<T>(
+  resumeVersionId: string,
+  analysisType: ResumeAnalysisType,
+  signal?: AbortSignal,
+): Promise<ResumeAnalysisResultEnvelope<T>> {
+  const response = await request.get<ResumeAnalysisResultEnvelope<T>>(
+    `/resumes/versions/${encodeURIComponent(resumeVersionId)}/analyses/${analysisType}`,
+    { signal },
   );
   return response.data;
 }

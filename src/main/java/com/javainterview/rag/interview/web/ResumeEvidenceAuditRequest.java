@@ -5,5 +5,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "简历证据审计请求")
 public record ResumeEvidenceAuditRequest(
         @Schema(description = "待审计的简历原文", requiredMode = Schema.RequiredMode.REQUIRED)
-        String resumeText) {
+        String resumeText,
+        @Schema(description = "需要关联的不可变简历版本 ID")
+        String resumeVersionId) {
+
+    public ResumeEvidenceAuditRequest(String resumeText) {
+        this(resumeText, null);
+    }
 }

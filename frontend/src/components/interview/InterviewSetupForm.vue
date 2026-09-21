@@ -74,7 +74,10 @@ const {
   canAudit,
   isStale: auditStale,
   audit: runResumeAudit,
-} = useResumeEvidenceAudit(() => form.resumeText);
+} = useResumeEvidenceAudit(
+  () => form.resumeText,
+  () => form.resumeVersionId,
+);
 
 const {
   draft: interviewDraft,
@@ -282,6 +285,7 @@ onMounted(async () => {
         <ResumeExpressionCoachPanel
           :target-role="form.targetRole"
           :audit-result="auditStale ? null : auditResult"
+          :resume-version-id="form.resumeVersionId"
         />
 
         <InterviewTextFileField
@@ -299,11 +303,13 @@ onMounted(async () => {
           :target-role="form.targetRole"
           :job-description="form.jobDescription"
           :audit-result="auditStale ? null : auditResult"
+          :resume-version-id="form.resumeVersionId"
         />
 
         <ProjectDeepDivePanel
           :audit-result="auditStale ? null : auditResult"
           :target-role="form.targetRole"
+          :resume-version-id="form.resumeVersionId"
           :busy="interactionBusy"
           @start="handleProjectDeepDiveStart"
         />
@@ -384,7 +390,7 @@ onMounted(async () => {
           {{ savedResumesError }}
         </p>
         <p v-else-if="savedResumeOptions.length" class="settings-note">
-          只记录本场使用的版本 ID；简历正文仍以当前输入框为准。
+          分析成功结果与本场会话都会关联该版本；简历正文仍以当前输入框为准。
         </p>
 
         <dl class="material-state">

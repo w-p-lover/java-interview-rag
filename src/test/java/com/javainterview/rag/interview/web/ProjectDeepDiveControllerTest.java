@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.web;
 
 import com.javainterview.rag.interview.deepdive.ProjectDeepDiveResult;
 import com.javainterview.rag.interview.deepdive.ProjectDeepDiveService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -32,7 +33,8 @@ class ProjectDeepDiveControllerTest {
                         "Java Interview RAG 项目背景",
                         false,
                         List.of()))));
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProjectDeepDiveController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProjectDeepDiveController(
+                service, mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/project-deep-dives")
                         .contentType("application/json")
@@ -57,7 +59,8 @@ class ProjectDeepDiveControllerTest {
     void mapsInvalidProjectFactToBadRequest() throws Exception {
         ProjectDeepDiveService service = mock(ProjectDeepDiveService.class);
         when(service.generate(any())).thenThrow(new IllegalArgumentException("项目深挖只能使用 PROJECT 类型的已确认事实"));
-        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProjectDeepDiveController(service)).build();
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProjectDeepDiveController(
+                service, mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/project-deep-dives")
                         .contentType("application/json")

@@ -20,6 +20,7 @@ const props = defineProps<{
   targetRole: string;
   jobDescription: string;
   auditResult: ResumeEvidenceAuditResult | null;
+  resumeVersionId: string;
 }>();
 
 const {
@@ -33,6 +34,7 @@ const {
   () => props.targetRole,
   () => props.jobDescription,
   () => props.auditResult,
+  () => props.resumeVersionId,
 );
 
 const statusMeta: Record<ResumeJobMatchStatus, { label: string; tone: string }> = {
@@ -93,7 +95,7 @@ function emitMatch(): void {
     </header>
 
     <p class="match-privacy">
-      分析请求只发送岗位描述和审计确认的逐字证据；结果不保存原始简历。
+      请求只发送岗位描述和审计确认的逐字证据；绑定版本时保存结果，不保存原始简历。
     </p>
 
     <p v-if="!props.auditResult" class="match-empty">
@@ -117,7 +119,7 @@ function emitMatch(): void {
     <template v-if="result && !loading">
       <p v-if="isStale" class="match-stale" role="status">
         <RefreshCw :size="15" aria-hidden="true" />
-        <span>目标岗位、岗位描述或简历审计结果已变化；请重新分析后再参考。</span>
+        <span>这是该版本最近保存的结果，当前输入可能不同；请重新分析后更新。</span>
       </p>
       <p class="match-summary">{{ result.summary }}</p>
       <div class="match-groups" aria-label="岗位要求匹配结果">

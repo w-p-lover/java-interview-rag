@@ -4,6 +4,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLog;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.web.client.ResourceAccessException;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,8 @@ class ResumeEvidenceAuditControllerTest {
                         List.of("项目范围需要核对"),
                         List.of("补充可核验的质量指标")));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeEvidenceAuditController(service, logQueryService)).build();
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-audits")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,7 +70,8 @@ class ResumeEvidenceAuditControllerTest {
         when(service.audit("虚构证据"))
                 .thenThrow(new IllegalStateException("模型返回的简历事实证据不在原始简历中"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeEvidenceAuditController(service, logQueryService)).build();
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-audits")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -89,7 +92,8 @@ class ResumeEvidenceAuditControllerTest {
                 mock(ResumeEvidenceAuditRequestLogQueryService.class);
         when(service.audit("真实简历")).thenThrow(new NonTransientAiException("模型服务返回 HTTP 401"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeEvidenceAuditController(service, logQueryService)).build();
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-audits")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -107,7 +111,8 @@ class ResumeEvidenceAuditControllerTest {
         when(service.audit("真实简历"))
                 .thenThrow(new ResourceAccessException("模型服务连接失败"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeEvidenceAuditController(service, logQueryService)).build();
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/resume-audits")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -137,7 +142,8 @@ class ResumeEvidenceAuditControllerTest {
                         null,
                         LocalDateTime.of(2026, 8, 14, 10, 30))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeEvidenceAuditController(service, logQueryService)).build();
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(get("/api/interviews/resume-audits/requests"))
                 .andExpect(status().isOk())

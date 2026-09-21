@@ -12,8 +12,17 @@ public record ResumeJobMatchRequest(
         @Schema(description = "岗位描述原文", requiredMode = Schema.RequiredMode.REQUIRED)
         String jobDescription,
         @Schema(description = "已由简历证据审计确认的事实", requiredMode = Schema.RequiredMode.REQUIRED)
-        List<ConfirmedFact> confirmedFacts
+        List<ConfirmedFact> confirmedFacts,
+        @Schema(description = "需要关联的不可变简历版本 ID")
+        String resumeVersionId
 ) {
+
+    public ResumeJobMatchRequest(
+            String targetRole,
+            String jobDescription,
+            List<ConfirmedFact> confirmedFacts) {
+        this(targetRole, jobDescription, confirmedFacts, null);
+    }
 
     public record ConfirmedFact(
             ResumeEvidenceAuditResult.FactType type,

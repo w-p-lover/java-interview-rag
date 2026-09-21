@@ -4,6 +4,7 @@ import com.javainterview.rag.interview.matching.ResumeJobMatchResult;
 import com.javainterview.rag.interview.matching.ResumeJobMatchService;
 import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLogQueryService;
 import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLog;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,7 +32,8 @@ class ResumeJobMatchControllerTest {
                         ResumeJobMatchResult.MatchStatus.MATCHED,
                         "使用 Spring Boot 开发订单服务", "已有直接项目证据。"))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeJobMatchController(service, logQueryService)).build();
+                new ResumeJobMatchController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(post("/api/interviews/job-matches")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -54,7 +56,8 @@ class ResumeJobMatchControllerTest {
                 .thenThrow(new IllegalArgumentException("岗位描述不能为空"))
                 .thenThrow(new IllegalStateException("模型返回的简历证据不在已确认事实中"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeJobMatchController(service, logQueryService)).build();
+                new ResumeJobMatchController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         String request = "{\"targetRole\":\"Java 后端工程师\",\"jobDescription\":\"x\",\"confirmedFacts\":[]}";
         mockMvc.perform(post("/api/interviews/job-matches")
@@ -76,7 +79,8 @@ class ResumeJobMatchControllerTest {
                 ResumeJobMatchRequestLog.Status.SUCCEEDED, 100, 20, 120, 500, null,
                 LocalDateTime.of(2026, 8, 31, 10, 30))));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ResumeJobMatchController(service, logQueryService)).build();
+                new ResumeJobMatchController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/interviews/job-matches/requests"))

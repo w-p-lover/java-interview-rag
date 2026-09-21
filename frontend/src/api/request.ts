@@ -20,4 +20,8 @@ export function resolveApiError(error: unknown, action = "请求处理失败"): 
   return `${action}，请稍后重试。`;
 }
 
+export function isApiNotFound(error: unknown): boolean {
+  return error instanceof AxiosError && error.response?.status === 404;
+}
+
 export default request;

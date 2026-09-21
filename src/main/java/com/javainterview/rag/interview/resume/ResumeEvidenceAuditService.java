@@ -157,15 +157,15 @@ public class ResumeEvidenceAuditService {
         }
     }
 
-    String roleName() {
+    public String roleName() {
         return ROLE_NAME;
     }
 
-    String promptVersion() {
+    public String promptVersion() {
         return PROMPT_VERSION;
     }
 
-    String modelName() {
+    public String modelName() {
         return modelName;
     }
 

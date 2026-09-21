@@ -37,9 +37,15 @@ public class ResumeExpressionCoachService {
             """;
 
     private final ChatClient chatClient;
+    private final String modelName;
 
     public ResumeExpressionCoachService(ChatClient chatClient) {
+        this(chatClient, "unknown");
+    }
+
+    public ResumeExpressionCoachService(ChatClient chatClient, String modelName) {
         this.chatClient = Objects.requireNonNull(chatClient, "简历表达教练聊天客户端不能为空");
+        this.modelName = ResumeRecord.text(modelName, 100, "简历表达教练模型名称");
     }
 
     public ResumeExpressionCoachResult coach(ResumeExpressionCoachRequest request) {
@@ -56,12 +62,16 @@ public class ResumeExpressionCoachService {
         return toVerifiedResult(input, draft);
     }
 
-    String roleName() {
+    public String roleName() {
         return ROLE_NAME;
     }
 
-    String promptVersion() {
+    public String promptVersion() {
         return PROMPT_VERSION;
+    }
+
+    public String modelName() {
+        return modelName;
     }
 
     private ValidatedInput validate(ResumeExpressionCoachRequest request) {

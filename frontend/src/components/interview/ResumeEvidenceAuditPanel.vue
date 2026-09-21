@@ -113,7 +113,7 @@ function exportAuditResult(): void {
     </header>
 
     <p class="audit-privacy">
-      检查结果仅保留在当前页面；未出现在事实列表中，不代表候选人不具备该能力。
+      选择已保存版本时，成功结果会关联该版本；未出现在事实列表中，不代表候选人不具备该能力。
     </p>
 
     <div v-if="loading" class="audit-loading" aria-live="polite" aria-busy="true">

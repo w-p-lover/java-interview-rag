@@ -5,6 +5,8 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQuery
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditResult;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService.ResumeEvidenceAuditTimeoutException;
+import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
+import com.javainterview.rag.interview.resume.ResumeAnalysisType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.ai.retry.NonTransientAiException;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestController
 @Profile("storage")
@@ -32,12 +35,15 @@ public class ResumeEvidenceAuditController {
 
     private final ResumeEvidenceAuditService auditService;
     private final ResumeEvidenceAuditRequestLogQueryService logQueryService;
+    private final ResumeAnalysisResultService analysisResultService;
 
     public ResumeEvidenceAuditController(
             ResumeEvidenceAuditService auditService,
-            ResumeEvidenceAuditRequestLogQueryService logQueryService) {
+            ResumeEvidenceAuditRequestLogQueryService logQueryService,
+            ResumeAnalysisResultService analysisResultService) {
         this.auditService = auditService;
         this.logQueryService = logQueryService;
+        this.analysisResultService = analysisResultService;
     }
 
     @PostMapping
@@ -46,7 +52,13 @@ public class ResumeEvidenceAuditController {
         if (request == null) {
             throw new IllegalArgumentException("简历证据审计请求不能为空");
         }
-        return auditService.audit(request.resumeText());
+        if (request.resumeVersionId() == null || request.resumeVersionId().isBlank()) {
+            return auditService.audit(request.resumeText());
+        }
+        return analysisResultService.execute(
+                request.resumeVersionId(), ResumeAnalysisType.EVIDENCE_AUDIT,
+                request.resumeText(), auditService.promptVersion(), auditService.modelName(),
+                () -> auditService.audit(request.resumeText()));
     }
 
     @GetMapping("/requests")
@@ -59,6 +71,12 @@ public class ResumeEvidenceAuditController {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleInvalidArgument(IllegalArgumentException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleMissingVersion(NoSuchElementException exception) {
         return Map.of("message", exception.getMessage());
     }
 

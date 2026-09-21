@@ -8,8 +8,14 @@ public record ProjectDeepDiveRequest(
         @Schema(description = "已由简历证据审计确认的项目事实", requiredMode = Schema.RequiredMode.REQUIRED)
         ConfirmedProject project,
         @Schema(description = "是否只读检索知识库补充技术背景")
-        boolean includeKnowledge
+        boolean includeKnowledge,
+        @Schema(description = "需要关联的不可变简历版本 ID")
+        String resumeVersionId
 ) {
+
+    public ProjectDeepDiveRequest(ConfirmedProject project, boolean includeKnowledge) {
+        this(project, includeKnowledge, null);
+    }
 
     public record ConfirmedProject(
             ResumeEvidenceAuditResult.FactType type,
