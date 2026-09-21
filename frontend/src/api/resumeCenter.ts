@@ -1,4 +1,5 @@
 import request from "@/api/request";
+import type { ResumeEvidenceConfirmedFact } from "@/api/interview";
 
 export interface ResumeVersion {
   readonly id: string;
@@ -50,6 +51,20 @@ export interface ResumeSaveResult {
   duplicate: boolean;
 }
 
+export interface ResumeEvidenceFactChange {
+  readonly before: ResumeEvidenceConfirmedFact;
+  readonly after: ResumeEvidenceConfirmedFact;
+}
+
+export interface ResumeEvidenceAuditComparison {
+  readonly baseVersionId: string;
+  readonly targetVersionId: string;
+  readonly unchangedFacts: readonly ResumeEvidenceConfirmedFact[];
+  readonly changedFacts: readonly ResumeEvidenceFactChange[];
+  readonly addedFacts: readonly ResumeEvidenceConfirmedFact[];
+  readonly removedFacts: readonly ResumeEvidenceConfirmedFact[];
+}
+
 const base = "/resumes";
 
 export async function listResumes(signal?: AbortSignal): Promise<ResumeSummary[]> {
@@ -78,5 +93,16 @@ export async function switchResumeCurrentVersion(
   return (await request.patch<ResumeDetail>(
     `${base}/${encodeURIComponent(resumeId)}/current-version`,
     { versionId, expectedVersion },
+  )).data;
+}
+
+export async function compareResumeEvidenceAudits(
+  baseVersionId: string,
+  targetVersionId: string,
+  signal?: AbortSignal,
+): Promise<ResumeEvidenceAuditComparison> {
+  return (await request.get<ResumeEvidenceAuditComparison>(
+    `${base}/versions/${encodeURIComponent(baseVersionId)}/analyses/compare/evidence-audit`,
+    { params: { targetVersionId }, signal },
   )).data;
 }

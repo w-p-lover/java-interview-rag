@@ -31,6 +31,8 @@ class ResumeAnalysisResultServiceTest {
     void setUp() {
         when(resumeCenterStore.findVersion("version-1")).thenReturn(Optional.of(version("version-1", 1)));
         when(resumeCenterStore.findVersion("version-2")).thenReturn(Optional.of(version("version-2", 2)));
+        when(resumeCenterStore.findVersion("other-version"))
+                .thenReturn(Optional.of(version("other-version", "resume-2", 1)));
         service = new ResumeAnalysisResultService(resumeCenterStore, resultStore, objectMapper);
     }
 
@@ -93,9 +95,67 @@ class ResumeAnalysisResultServiceTest {
                 .result().get("questionCount").asInt());
     }
 
+    @Test
+    void comparesOnlyConfirmedFactsAcrossVersions() {
+        service.execute("version-1", ResumeAnalysisType.EVIDENCE_AUDIT,
+                "v1", "audit-v1", "model-v1", () -> audit(
+                        List.of(
+                                fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY,
+                                        "使用 Spring Boot 3", "Spring Boot 3"),
+                                fact(ResumeEvidenceAuditResult.FactType.RESULT,
+                                        "接口耗时降低 30%", "接口耗时降低 30%"),
+                                fact(ResumeEvidenceAuditResult.FactType.PROJECT,
+                                        "负责旧项目", "负责旧项目")),
+                        List.of("旧版待补信息")));
+        service.execute("version-2", ResumeAnalysisType.EVIDENCE_AUDIT,
+                "v2", "audit-v1", "model-v1", () -> audit(
+                        List.of(
+                                fact(ResumeEvidenceAuditResult.FactType.TECHNOLOGY,
+                                        "使用 Spring Boot 3", "Spring Boot 3"),
+                                fact(ResumeEvidenceAuditResult.FactType.RESULT,
+                                        "接口耗时降低 40%", "接口耗时降低 40%"),
+                                fact(ResumeEvidenceAuditResult.FactType.RESPONSIBILITY,
+                                        "负责 RAG 评估", "负责 RAG 评估")),
+                        List.of("新版不同待补信息")));
+
+        ResumeAnalysisResultService.EvidenceAuditComparison comparison =
+                service.compareEvidenceAudits("version-1", "version-2");
+
+        assertEquals(1, comparison.unchangedFacts().size());
+        assertEquals("接口耗时降低 30%", comparison.changedFacts().get(0).before().statement());
+        assertEquals("接口耗时降低 40%", comparison.changedFacts().get(0).after().statement());
+        assertEquals("负责 RAG 评估", comparison.addedFacts().get(0).statement());
+        assertEquals("负责旧项目", comparison.removedFacts().get(0).statement());
+    }
+
+    @Test
+    void rejectsComparingVersionsFromDifferentResumeRecords() {
+        assertThrows(IllegalArgumentException.class,
+                () -> service.compareEvidenceAudits("version-1", "other-version"));
+    }
+
+    private ResumeEvidenceAuditResult audit(
+            List<ResumeEvidenceAuditResult.ConfirmedFact> facts,
+            List<String> missingInformation) {
+        return new ResumeEvidenceAuditResult(
+                "request-1", "RESUME_EVIDENCE_AUDITOR", "audit-v1",
+                facts, missingInformation, List.of("风险"), List.of("建议"));
+    }
+
+    private ResumeEvidenceAuditResult.ConfirmedFact fact(
+            ResumeEvidenceAuditResult.FactType type,
+            String statement,
+            String evidence) {
+        return new ResumeEvidenceAuditResult.ConfirmedFact(type, statement, evidence);
+    }
+
     private ResumeVersion version(String id, int number) {
+        return version(id, "resume-1", number);
+    }
+
+    private ResumeVersion version(String id, String resumeId, int number) {
         return new ResumeVersion(
-                id, "resume-1", number, String.valueOf(number).repeat(64),
+                id, resumeId, number, String.valueOf(number).repeat(64),
                 "resume-v" + number + ".txt", "text/plain", 10,
                 null, LocalDateTime.of(2026, 9, 21, 9, number));
     }

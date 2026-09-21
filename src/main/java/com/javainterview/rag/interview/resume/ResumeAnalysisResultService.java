@@ -7,9 +7,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
@@ -18,6 +22,7 @@ import java.util.function.Supplier;
 public class ResumeAnalysisResultService {
 
     public static final String LOCAL_MODEL = "LOCAL";
+    private static final double FACT_CHANGE_THRESHOLD = 0.72d;
 
     private final ResumeCenterStore resumeCenterStore;
     private final ResumeAnalysisResultStore resultStore;
@@ -72,11 +77,159 @@ public class ResumeAnalysisResultService {
                 .orElseThrow(() -> new NoSuchElementException("当前简历版本没有该类型的分析结果"));
     }
 
+    public EvidenceAuditComparison compareEvidenceAudits(
+            String baseVersionId,
+            String targetVersionId) {
+        ResumeVersion baseVersion = requireVersionEntity(baseVersionId);
+        ResumeVersion targetVersion = requireVersionEntity(targetVersionId);
+        if (baseVersion.id().equals(targetVersion.id())) {
+            throw new IllegalArgumentException("请选择两个不同的简历版本");
+        }
+        if (!baseVersion.resumeId().equals(targetVersion.resumeId())) {
+            throw new IllegalArgumentException("只能比较同一条简历记录的不同版本");
+        }
+
+        ResumeEvidenceAuditResult base = evidenceAudit(baseVersion.id(), "基准");
+        ResumeEvidenceAuditResult target = evidenceAudit(targetVersion.id(), "目标");
+        return compare(baseVersion.id(), targetVersion.id(),
+                base.confirmedFacts(), target.confirmedFacts());
+    }
+
     private String requireVersion(String resumeVersionId) {
+        return requireVersionEntity(resumeVersionId).id();
+    }
+
+    private ResumeVersion requireVersionEntity(String resumeVersionId) {
         String normalized = ResumeRecord.text(resumeVersionId, 36, "简历版本 ID");
-        resumeCenterStore.findVersion(normalized)
+        return resumeCenterStore.findVersion(normalized)
                 .orElseThrow(() -> new NoSuchElementException("简历版本不存在"));
-        return normalized;
+    }
+
+    private ResumeEvidenceAuditResult evidenceAudit(String resumeVersionId, String label) {
+        ResumeAnalysisResult result = resultStore.findLatest(
+                        resumeVersionId, ResumeAnalysisType.EVIDENCE_AUDIT)
+                .orElseThrow(() -> new NoSuchElementException(
+                        label + "简历版本没有证据审计结果"));
+        try {
+            return objectMapper.readValue(result.resultJson(), ResumeEvidenceAuditResult.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("简历证据审计结果反序列化失败", exception);
+        }
+    }
+
+    private EvidenceAuditComparison compare(
+            String baseVersionId,
+            String targetVersionId,
+            List<ResumeEvidenceAuditResult.ConfirmedFact> baseFacts,
+            List<ResumeEvidenceAuditResult.ConfirmedFact> targetFacts) {
+        boolean[] matchedBase = new boolean[baseFacts.size()];
+        boolean[] matchedTarget = new boolean[targetFacts.size()];
+        List<ResumeEvidenceAuditResult.ConfirmedFact> unchanged = new ArrayList<>();
+
+        for (int baseIndex = 0; baseIndex < baseFacts.size(); baseIndex++) {
+            for (int targetIndex = 0; targetIndex < targetFacts.size(); targetIndex++) {
+                if (!matchedTarget[targetIndex]
+                        && exactFact(baseFacts.get(baseIndex), targetFacts.get(targetIndex))) {
+                    matchedBase[baseIndex] = true;
+                    matchedTarget[targetIndex] = true;
+                    unchanged.add(targetFacts.get(targetIndex));
+                    break;
+                }
+            }
+        }
+
+        // 同类型事实只有在新旧文本足够接近时才判为变化，避免把独立事实强行配对。
+        List<FactCandidate> candidates = new ArrayList<>();
+        for (int baseIndex = 0; baseIndex < baseFacts.size(); baseIndex++) {
+            if (matchedBase[baseIndex]) continue;
+            for (int targetIndex = 0; targetIndex < targetFacts.size(); targetIndex++) {
+                if (matchedTarget[targetIndex]) continue;
+                ResumeEvidenceAuditResult.ConfirmedFact before = baseFacts.get(baseIndex);
+                ResumeEvidenceAuditResult.ConfirmedFact after = targetFacts.get(targetIndex);
+                if (before.type() != after.type()) continue;
+                double score = factSimilarity(before, after);
+                if (score >= FACT_CHANGE_THRESHOLD) {
+                    candidates.add(new FactCandidate(baseIndex, targetIndex, score));
+                }
+            }
+        }
+        candidates.sort(Comparator.comparingDouble(FactCandidate::score).reversed()
+                .thenComparingInt(FactCandidate::baseIndex)
+                .thenComparingInt(FactCandidate::targetIndex));
+
+        List<FactChange> changed = new ArrayList<>();
+        for (FactCandidate candidate : candidates) {
+            if (matchedBase[candidate.baseIndex()] || matchedTarget[candidate.targetIndex()]) continue;
+            matchedBase[candidate.baseIndex()] = true;
+            matchedTarget[candidate.targetIndex()] = true;
+            changed.add(new FactChange(
+                    baseFacts.get(candidate.baseIndex()),
+                    targetFacts.get(candidate.targetIndex())));
+        }
+
+        List<ResumeEvidenceAuditResult.ConfirmedFact> removed = new ArrayList<>();
+        for (int index = 0; index < baseFacts.size(); index++) {
+            if (!matchedBase[index]) removed.add(baseFacts.get(index));
+        }
+        List<ResumeEvidenceAuditResult.ConfirmedFact> added = new ArrayList<>();
+        for (int index = 0; index < targetFacts.size(); index++) {
+            if (!matchedTarget[index]) added.add(targetFacts.get(index));
+        }
+        return new EvidenceAuditComparison(
+                baseVersionId, targetVersionId,
+                List.copyOf(unchanged), List.copyOf(changed),
+                List.copyOf(added), List.copyOf(removed));
+    }
+
+    private boolean exactFact(
+            ResumeEvidenceAuditResult.ConfirmedFact left,
+            ResumeEvidenceAuditResult.ConfirmedFact right) {
+        return left.type() == right.type()
+                && normalizeFactText(left.statement()).equals(normalizeFactText(right.statement()))
+                && normalizeFactText(left.evidence()).equals(normalizeFactText(right.evidence()));
+    }
+
+    private double factSimilarity(
+            ResumeEvidenceAuditResult.ConfirmedFact before,
+            ResumeEvidenceAuditResult.ConfirmedFact after) {
+        double statementScore = textSimilarity(before.statement(), after.statement());
+        double evidenceScore = textSimilarity(before.evidence(), after.evidence());
+        return Math.max(statementScore, evidenceScore) * 0.7d
+                + Math.min(statementScore, evidenceScore) * 0.3d;
+    }
+
+    private double textSimilarity(String left, String right) {
+        String normalizedLeft = normalizeFactText(left);
+        String normalizedRight = normalizeFactText(right);
+        if (normalizedLeft.equals(normalizedRight)) return 1.0d;
+        int maxLength = Math.max(normalizedLeft.length(), normalizedRight.length());
+        if (maxLength == 0) return 1.0d;
+        return 1.0d - ((double) editDistance(normalizedLeft, normalizedRight) / maxLength);
+    }
+
+    private String normalizeFactText(String value) {
+        return Normalizer.normalize(value, Normalizer.Form.NFKC)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[\\p{P}\\p{Z}\\s]+", "");
+    }
+
+    private int editDistance(String left, String right) {
+        int[] previous = new int[right.length() + 1];
+        int[] current = new int[right.length() + 1];
+        for (int index = 0; index <= right.length(); index++) previous[index] = index;
+        for (int leftIndex = 1; leftIndex <= left.length(); leftIndex++) {
+            current[0] = leftIndex;
+            for (int rightIndex = 1; rightIndex <= right.length(); rightIndex++) {
+                int substitution = left.charAt(leftIndex - 1) == right.charAt(rightIndex - 1) ? 0 : 1;
+                current[rightIndex] = Math.min(
+                        Math.min(current[rightIndex - 1] + 1, previous[rightIndex] + 1),
+                        previous[rightIndex - 1] + substitution);
+            }
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+        return previous[right.length()];
     }
 
     private ResultView view(ResumeAnalysisResult result) {
@@ -128,4 +281,20 @@ public class ResumeAnalysisResultService {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) { }
+
+    public record EvidenceAuditComparison(
+            String baseVersionId,
+            String targetVersionId,
+            List<ResumeEvidenceAuditResult.ConfirmedFact> unchangedFacts,
+            List<FactChange> changedFacts,
+            List<ResumeEvidenceAuditResult.ConfirmedFact> addedFacts,
+            List<ResumeEvidenceAuditResult.ConfirmedFact> removedFacts
+    ) { }
+
+    public record FactChange(
+            ResumeEvidenceAuditResult.ConfirmedFact before,
+            ResumeEvidenceAuditResult.ConfirmedFact after
+    ) { }
+
+    private record FactCandidate(int baseIndex, int targetIndex, double score) { }
 }

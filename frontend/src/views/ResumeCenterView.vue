@@ -4,6 +4,7 @@ import { RefreshCw } from "@lucide/vue";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import ResumeRecordList from "@/components/resume/ResumeRecordList.vue";
+import ResumeFactComparison from "@/components/resume/ResumeFactComparison.vue";
 import ResumeUploadForm from "@/components/resume/ResumeUploadForm.vue";
 import ResumeVersionHistory from "@/components/resume/ResumeVersionHistory.vue";
 import { useResumeCenter } from "@/composables/useResumeCenter";
@@ -43,6 +44,7 @@ function select(id: string): void {
       <ResumeRecordList :records="center.records.value" :selected-id="center.selectedId.value" :loading="center.loading.value" @select="select" />
       <ResumeVersionHistory :detail="center.detail.value" :loading="center.detailLoading.value" :switching-version-id="center.switchingVersionId.value" @switch="center.switchCurrent" />
     </div>
+    <ResumeFactComparison :detail="center.detail.value" />
   </main>
 </template>
 
