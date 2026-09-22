@@ -50,6 +50,7 @@ class QuestionBankControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("task-1"))
+                .andExpect(jsonPath("$.recoveryCount").value(0))
                 .andExpect(jsonPath("$.status").value("QUEUED"));
         verify(generation).submit("request-1", "java.md", InterviewSkill.JAVA_CORE,
                 InterviewDifficulty.INTERMEDIATE, 3, 1);
@@ -80,6 +81,7 @@ class QuestionBankControllerTest {
         return new BankGenerationTask("task-1", "request-1", "java.md", "v1",
                 InterviewSkill.JAVA_CORE, InterviewDifficulty.INTERMEDIATE, 3, 1,
                 BankGenerationTask.Status.QUEUED, 0, 0, null,
+                null, null, null, 0,
                 "knowledge-question-bank-v2", "test-model", null, 0, now, now);
     }
 }

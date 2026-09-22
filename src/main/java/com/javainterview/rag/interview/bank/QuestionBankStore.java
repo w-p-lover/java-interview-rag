@@ -1,5 +1,6 @@
 package com.javainterview.rag.interview.bank;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +17,9 @@ public interface QuestionBankStore {
     List<BankGenerationTask> listTasks(String source);
     List<BankGenerationTask> unfinishedTasks();
     boolean updateTask(BankGenerationTask task, long expectedVersion);
+    boolean heartbeat(String taskId, String attemptId, String workerId, LocalDateTime heartbeatAt);
+    boolean recoverStale(BankGenerationTask replacement, long expectedVersion,
+                         String expectedAttemptId, LocalDateTime staleBefore);
     boolean saveGenerated(BankQuestion question, BankGenerationTask expectedTask);
     void recordUsage(String sessionId, String questionId, int questionIndex);
 }

@@ -123,7 +123,7 @@ function refresh(): void {
       <ul v-else class="task-list">
         <li v-for="task in tasks" :key="task.id" class="task-row">
           <div class="task-main"><strong class="task-status" :data-status="task.status">{{ taskLabels[task.status] }}</strong><span>{{ task.savedCount }} / {{ task.questionCount }} 道已保存<template v-if="task.skippedCount"> · 跳过 {{ task.skippedCount }} 道</template></span><span>{{ difficultyOptions.find(option => option.value === task.difficulty)?.label }} · 追问 {{ task.followUpCount }} 道</span></div>
-          <div class="task-details"><span>{{ task.createdAt.replace('T', ' ').slice(0, 16) }} · 版本 {{ task.documentVersion }}</span><span v-if="task.errorCode" class="task-failure">{{ task.errorCode }}</span></div>
+          <div class="task-details"><span>{{ task.createdAt.replace('T', ' ').slice(0, 16) }} · 版本 {{ task.documentVersion }}</span><span v-if="task.recoveryCount">已自动恢复 {{ task.recoveryCount }} 次</span><span v-if="task.status === 'PROCESSING' && task.lastHeartbeatAt">最近心跳 {{ task.lastHeartbeatAt.replace('T', ' ').slice(11, 19) }}</span><span v-if="task.errorCode" class="task-failure">{{ task.errorCode === 'RECOVERY_EXHAUSTED' ? 'Worker 连续失联，已停止自动恢复' : task.errorCode }}</span></div>
           <button v-if="task.status === 'FAILED'" type="button" class="secondary-action resume-action" :disabled="busy || task.documentVersion !== currentDocument?.version" :title="task.documentVersion !== currentDocument?.version ? '资料版本失效' : '恢复未完成题目'" @click="bank.resumeTask(task)"><RefreshCw :size="16" aria-hidden="true" />{{ actionKey === `resume:${task.id}` ? '正在恢复…' : '恢复' }}</button>
         </li>
       </ul>

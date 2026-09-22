@@ -6,6 +6,9 @@ import com.javainterview.rag.interview.question.InterviewSkillTrainingCatalog;
 import com.javainterview.rag.interview.session.InterviewSessionConflictException;
 import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -18,32 +21,56 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public class BankGenerationService {
+    private static final Logger log = LoggerFactory.getLogger(BankGenerationService.class);
+
     private final QuestionBankStore store;
     private final BankSources sources;
     private final BankQuestionGenerator generator;
     private final Executor executor;
     private final String modelName;
-    private final Set<String> scheduled = ConcurrentHashMap.newKeySet();
+    private final ScheduledExecutorService recoveryScheduler;
+    private final BankGenerationRecoveryPolicy recoveryPolicy;
+    private final String workerId = "question-bank-" + UUID.randomUUID();
+    private final Map<String, String> scheduled = new ConcurrentHashMap<>();
+    private final Map<String, ScheduledFuture<?>> heartbeats = new ConcurrentHashMap<>();
     private final InterviewSkillTrainingCatalog trainingCatalog = new InterviewSkillTrainingCatalog();
+    private volatile ScheduledFuture<?> recoveryScan;
 
     public BankGenerationService(QuestionBankStore store, BankSources sources,
                                   BankQuestionGenerator generator, Executor executor,
-                                  String modelName) {
+                                  String modelName, ScheduledExecutorService recoveryScheduler,
+                                  BankGenerationRecoveryPolicy recoveryPolicy) {
         this.store = store;
         this.sources = sources;
         this.generator = generator;
         this.executor = executor;
         this.modelName = modelName;
+        this.recoveryScheduler = recoveryScheduler;
+        this.recoveryPolicy = recoveryPolicy;
     }
 
     @PostConstruct
     public void recoverInterrupted() {
-        // 不在应用启动时重放付费生成；成功题目保留，用户可显式恢复缺口。
-        store.unfinishedTasks().forEach(task -> store.updateTask(task.progress(
-                BankGenerationTask.Status.FAILED, task.savedCount(), task.skippedCount(),
-                task.attemptId(), "APPLICATION_RESTARTED"), task.version()));
+        store.unfinishedTasks().stream()
+                .filter(task -> task.status() == BankGenerationTask.Status.QUEUED)
+                .forEach(this::schedule);
+        recoveryScan = recoveryScheduler.scheduleWithFixedDelay(this::scanStaleTasksSafely,
+                recoveryPolicy.heartbeatIntervalMillis(), recoveryPolicy.heartbeatIntervalMillis(),
+                TimeUnit.MILLISECONDS);
+    }
+
+    @PreDestroy
+    public void stopRecovery() {
+        if (recoveryScan != null) {
+            recoveryScan.cancel(false);
+        }
+        heartbeats.values().forEach(heartbeat -> heartbeat.cancel(false));
+        heartbeats.clear();
     }
 
     public BankGenerationTask submit(String requestId, String source, InterviewSkill skill,
@@ -62,6 +89,7 @@ public class BankGenerationService {
         BankGenerationTask requested = new BankGenerationTask(UUID.randomUUID().toString(),
                 requestId, source, snapshot.document().version(), skill, difficulty,
                 questionCount, followUpCount, BankGenerationTask.Status.QUEUED, 0, 0, null,
+                null, null, null, 0,
                 BankQuestionGenerator.PROMPT_VERSION, modelName, null, 0, now, now);
         BankGenerationTask task = store.findTaskByRequestId(requestId).orElse(null);
         if (task == null) {
@@ -103,8 +131,7 @@ public class BankGenerationService {
                     throw new InterviewSessionConflictException(
                             "当前资料版本已有题目生成任务正在执行，请等待完成后再恢复");
                 });
-        BankGenerationTask queued = task.progress(BankGenerationTask.Status.QUEUED,
-                task.savedCount(), task.skippedCount(), null, null);
+        BankGenerationTask queued = task.queueForResume(false, LocalDateTime.now());
         if (store.updateTask(queued, task.version())) {
             schedule(queued);
         }
@@ -119,30 +146,31 @@ public class BankGenerationService {
     }
 
     private void schedule(BankGenerationTask task) {
-        if (!scheduled.add(task.id())) {
+        String dispatchId = UUID.randomUUID().toString();
+        if (scheduled.putIfAbsent(task.id(), dispatchId) != null) {
             return;
         }
         try {
-            executor.execute(() -> execute(task.id()));
+            executor.execute(() -> execute(task.id(), dispatchId));
         } catch (RuntimeException exception) {
-            scheduled.remove(task.id());
+            scheduled.remove(task.id(), dispatchId);
             store.updateTask(task.progress(BankGenerationTask.Status.FAILED,
                     task.savedCount(), task.skippedCount(), null, "QUEUE_FULL"), task.version());
         }
     }
 
-    private void execute(String id) {
+    private void execute(String id, String dispatchId) {
         String attempt = UUID.randomUUID().toString();
         try {
             BankGenerationTask queued = find(id);
             if (queued.status() != BankGenerationTask.Status.QUEUED) {
                 return;
             }
-            BankGenerationTask processing = queued.progress(BankGenerationTask.Status.PROCESSING,
-                    queued.savedCount(), queued.skippedCount(), attempt, null);
+            BankGenerationTask processing = queued.startAttempt(attempt, workerId, LocalDateTime.now());
             if (!store.updateTask(processing, queued.version())) {
                 return;
             }
+            startHeartbeat(processing);
             int remaining = processing.questionCount() - processing.savedCount();
             if (remaining <= 0) {
                 complete(id, attempt, 0);
@@ -223,7 +251,61 @@ public class BankGenerationService {
                         current.savedCount(), current.skippedCount(), attempt, code), current.version());
             }
         } finally {
-            scheduled.remove(id);
+            stopHeartbeat(attempt);
+            scheduled.remove(id, dispatchId);
+        }
+    }
+
+    void scanStaleTasks() {
+        LocalDateTime staleBefore = LocalDateTime.now()
+                .minusNanos(TimeUnit.MILLISECONDS.toNanos(recoveryPolicy.staleTimeoutMillis()));
+        for (BankGenerationTask task : store.unfinishedTasks()) {
+            if (task.status() == BankGenerationTask.Status.QUEUED) {
+                schedule(task);
+                continue;
+            }
+            if (task.status() != BankGenerationTask.Status.PROCESSING
+                    || task.lastHeartbeatAt() != null && task.lastHeartbeatAt().isAfter(staleBefore)) {
+                continue;
+            }
+            BankGenerationTask replacement = task.recoveryCount() >= recoveryPolicy.maxRecoveryCount()
+                    ? task.progress(BankGenerationTask.Status.FAILED, task.savedCount(), task.skippedCount(),
+                    task.attemptId(), "RECOVERY_EXHAUSTED")
+                    : task.queueForResume(true, LocalDateTime.now());
+            if (!store.recoverStale(replacement, task.version(), task.attemptId(), staleBefore)) {
+                continue;
+            }
+            stopHeartbeat(task.attemptId());
+            scheduled.remove(task.id());
+            if (replacement.status() == BankGenerationTask.Status.QUEUED) {
+                schedule(replacement);
+            }
+        }
+    }
+
+    private void scanStaleTasksSafely() {
+        try {
+            scanStaleTasks();
+        } catch (RuntimeException exception) {
+            log.warn("题库任务失联扫描失败，将在下个周期重试", exception);
+        }
+    }
+
+    private void startHeartbeat(BankGenerationTask task) {
+        ScheduledFuture<?> heartbeat = recoveryScheduler.scheduleWithFixedDelay(
+                () -> store.heartbeat(task.id(), task.attemptId(), task.workerId(), LocalDateTime.now()),
+                recoveryPolicy.heartbeatIntervalMillis(), recoveryPolicy.heartbeatIntervalMillis(),
+                TimeUnit.MILLISECONDS);
+        heartbeats.put(task.attemptId(), heartbeat);
+    }
+
+    private void stopHeartbeat(String attemptId) {
+        if (attemptId == null) {
+            return;
+        }
+        ScheduledFuture<?> heartbeat = heartbeats.remove(attemptId);
+        if (heartbeat != null) {
+            heartbeat.cancel(false);
         }
     }
 

@@ -10,6 +10,7 @@ import com.javainterview.rag.interview.session.InterviewSessionConflictException
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,14 +60,14 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
     @Override
     public Optional<BankGenerationTask> findTaskByRequestId(String requestId) {
         return Optional.ofNullable(tasks.findByRequestId(requestId))
-                .map(entity -> read(entity.getTaskJson(), BankGenerationTask.class));
+                .map(this::task);
     }
 
     @Override
     public Optional<BankGenerationTask> findActiveTask(String source, String documentVersion) {
         String activeKey = BankQuestionKeys.activeTaskKey(source, documentVersion);
         return Optional.ofNullable(tasks.findByActiveKey(activeKey))
-                .map(entity -> read(entity.getTaskJson(), BankGenerationTask.class));
+                .map(this::task);
     }
 
     @Override
@@ -77,7 +78,7 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
         } catch (DuplicateKeyException exception) {
             BankGenerationTaskEntity existing = tasks.findByRequestId(task.requestId());
             if (existing != null) {
-                return read(existing.getTaskJson(), BankGenerationTask.class);
+                return task(existing);
             }
             if (tasks.findByActiveKey(BankQuestionKeys.activeTaskKey(
                     task.source(), task.documentVersion())) != null) {
@@ -90,19 +91,19 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
     @Override
     public Optional<BankGenerationTask> findTask(String id) {
         return Optional.ofNullable(tasks.selectById(id))
-                .map(entity -> read(entity.getTaskJson(), BankGenerationTask.class));
+                .map(this::task);
     }
 
     @Override
     public List<BankGenerationTask> listTasks(String source) {
         return tasks.list(source).stream()
-                .map(entity -> read(entity.getTaskJson(), BankGenerationTask.class)).toList();
+                .map(this::task).toList();
     }
 
     @Override
     public List<BankGenerationTask> unfinishedTasks() {
         return tasks.unfinished().stream()
-                .map(entity -> read(entity.getTaskJson(), BankGenerationTask.class)).toList();
+                .map(this::task).toList();
     }
 
     @Override
@@ -111,6 +112,26 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
             return tasks.updateVersioned(entity(task), expectedVersion) == 1;
         } catch (DuplicateKeyException exception) {
             if (isActive(task.status())) {
+                throw activeTaskConflict();
+            }
+            throw exception;
+        }
+    }
+
+    @Override
+    public boolean heartbeat(String taskId, String attemptId, String workerId,
+                             LocalDateTime heartbeatAt) {
+        return tasks.heartbeat(taskId, attemptId, workerId, heartbeatAt) == 1;
+    }
+
+    @Override
+    public boolean recoverStale(BankGenerationTask replacement, long expectedVersion,
+                                String expectedAttemptId, LocalDateTime staleBefore) {
+        try {
+            return tasks.recoverStale(entity(replacement), expectedVersion,
+                    expectedAttemptId, staleBefore) == 1;
+        } catch (DuplicateKeyException exception) {
+            if (isActive(replacement.status())) {
                 throw activeTaskConflict();
             }
             throw exception;
@@ -172,6 +193,18 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
         return entity;
     }
 
+    private BankGenerationTask task(BankGenerationTaskEntity entity) {
+        BankGenerationTask value = read(entity.getTaskJson(), BankGenerationTask.class);
+        return new BankGenerationTask(value.id(), value.requestId(), value.source(),
+                value.documentVersion(), value.skill(), value.difficulty(), value.questionCount(),
+                value.followUpCount(), BankGenerationTask.Status.valueOf(entity.getStatus()),
+                value.savedCount(), value.skippedCount(), entity.getAttemptId(), entity.getWorkerId(),
+                entity.getStartedAt(), entity.getLastHeartbeatAt(),
+                entity.getRecoveryCount() == null ? 0 : entity.getRecoveryCount(),
+                value.promptVersion(), value.modelName(), value.errorCode(), entity.getVersion(),
+                entity.getCreatedAt(), entity.getUpdatedAt());
+    }
+
     private BankGenerationTaskEntity entity(BankGenerationTask task) {
         BankGenerationTaskEntity entity = new BankGenerationTaskEntity();
         entity.setId(task.id());
@@ -181,6 +214,11 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
         entity.setSource(task.source());
         entity.setStatus(task.status().name());
         entity.setTaskJson(write(task));
+        entity.setAttemptId(task.attemptId());
+        entity.setWorkerId(task.workerId());
+        entity.setStartedAt(task.startedAt());
+        entity.setLastHeartbeatAt(task.lastHeartbeatAt());
+        entity.setRecoveryCount(task.recoveryCount());
         entity.setVersion(task.version());
         entity.setCreatedAt(task.createdAt());
         entity.setUpdatedAt(task.updatedAt());

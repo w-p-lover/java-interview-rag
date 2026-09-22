@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javainterview.rag.interview.bank.BankGenerationService;
+import com.javainterview.rag.interview.bank.BankGenerationRecoveryPolicy;
 import com.javainterview.rag.interview.bank.BankQuestionGenerator;
 import com.javainterview.rag.interview.bank.BankSources;
 import com.javainterview.rag.interview.bank.QuestionBankService;
@@ -25,6 +26,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
@@ -69,12 +72,30 @@ public class QuestionBankConfiguration {
         return executor;
     }
 
+    @Bean(destroyMethod = "shutdownNow")
+    ScheduledExecutorService bankGenerationRecoveryScheduler() {
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2, runnable -> {
+            Thread thread = new Thread(runnable, "question-bank-recovery-");
+            thread.setDaemon(true);
+            return thread;
+        });
+        executor.setRemoveOnCancelPolicy(true);
+        return executor;
+    }
+
     @Bean
     BankGenerationService bankGenerationService(QuestionBankStore store, BankSources sources,
                                                  BankQuestionGenerator generator,
                                                  @Qualifier("bankGenerationExecutor") Executor executor,
-                                                 @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
-        return new BankGenerationService(store, sources, generator, executor, modelName);
+                                                 @Qualifier("bankGenerationRecoveryScheduler")
+                                                 ScheduledExecutorService recoveryScheduler,
+                                                 @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName,
+                                                 @Value("${java-interview-rag.question-bank.heartbeat-ms:5000}") long heartbeatMillis,
+                                                 @Value("${java-interview-rag.question-bank.stale-timeout-ms:30000}") long staleTimeoutMillis,
+                                                 @Value("${java-interview-rag.question-bank.max-recoveries:1}") int maxRecoveries) {
+        return new BankGenerationService(store, sources, generator, executor, modelName,
+                recoveryScheduler, new BankGenerationRecoveryPolicy(
+                heartbeatMillis, staleTimeoutMillis, maxRecoveries));
     }
 
     @Bean

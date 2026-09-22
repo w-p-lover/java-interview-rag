@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -22,7 +23,31 @@ public interface BankGenerationTaskMapper extends BaseMapper<BankGenerationTaskE
     @Select("SELECT * FROM t_knowledge_bank_generation_task WHERE status IN ('QUEUED','PROCESSING')")
     List<BankGenerationTaskEntity> unfinished();
 
-    @Update("UPDATE t_knowledge_bank_generation_task SET task_json=#{task.taskJson}, status=#{task.status}, active_key=#{task.activeKey}, version=#{task.version}, updated_at=#{task.updatedAt} WHERE id=#{task.id} AND version=#{expectedVersion}")
+    @Update("UPDATE t_knowledge_bank_generation_task SET task_json=#{task.taskJson}, status=#{task.status}, "
+            + "active_key=#{task.activeKey}, attempt_id=#{task.attemptId}, worker_id=#{task.workerId}, "
+            + "started_at=#{task.startedAt}, last_heartbeat_at=#{task.lastHeartbeatAt}, "
+            + "recovery_count=#{task.recoveryCount}, version=#{task.version}, updated_at=#{task.updatedAt} "
+            + "WHERE id=#{task.id} AND version=#{expectedVersion}")
     int updateVersioned(@Param("task") BankGenerationTaskEntity task,
                         @Param("expectedVersion") long expectedVersion);
+
+    @Update("UPDATE t_knowledge_bank_generation_task SET last_heartbeat_at=#{heartbeatAt}, "
+            + "updated_at=#{heartbeatAt} WHERE id=#{taskId} AND status='PROCESSING' "
+            + "AND attempt_id=#{attemptId} AND worker_id=#{workerId}")
+    int heartbeat(@Param("taskId") String taskId,
+                  @Param("attemptId") String attemptId,
+                  @Param("workerId") String workerId,
+                  @Param("heartbeatAt") LocalDateTime heartbeatAt);
+
+    @Update("UPDATE t_knowledge_bank_generation_task SET task_json=#{task.taskJson}, status=#{task.status}, "
+            + "active_key=#{task.activeKey}, attempt_id=#{task.attemptId}, worker_id=#{task.workerId}, "
+            + "started_at=#{task.startedAt}, last_heartbeat_at=#{task.lastHeartbeatAt}, "
+            + "recovery_count=#{task.recoveryCount}, version=#{task.version}, updated_at=#{task.updatedAt} "
+            + "WHERE id=#{task.id} AND version=#{expectedVersion} AND status='PROCESSING' "
+            + "AND attempt_id=#{expectedAttemptId} "
+            + "AND (last_heartbeat_at IS NULL OR last_heartbeat_at <= #{staleBefore})")
+    int recoverStale(@Param("task") BankGenerationTaskEntity task,
+                     @Param("expectedVersion") long expectedVersion,
+                     @Param("expectedAttemptId") String expectedAttemptId,
+                     @Param("staleBefore") LocalDateTime staleBefore);
 }

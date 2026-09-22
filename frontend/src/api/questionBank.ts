@@ -50,6 +50,10 @@ export interface GenerationTask {
   savedCount: number;
   skippedCount: number;
   attemptId: string | null;
+  workerId: string | null;
+  startedAt: string | null;
+  lastHeartbeatAt: string | null;
+  recoveryCount: number;
   promptVersion: string;
   modelName: string;
   errorCode: string | null;

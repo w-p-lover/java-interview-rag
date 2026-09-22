@@ -17,6 +17,11 @@ public class BankGenerationTaskEntity {
     private String source;
     private String status;
     private String taskJson;
+    private String attemptId;
+    private String workerId;
+    private LocalDateTime startedAt;
+    private LocalDateTime lastHeartbeatAt;
+    private Integer recoveryCount;
     private Long version;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
