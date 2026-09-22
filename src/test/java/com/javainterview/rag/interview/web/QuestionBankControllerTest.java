@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +75,23 @@ class QuestionBankControllerTest {
                 .andExpect(jsonPath("$.focusDimension").value("并发与边界"))
                 .andExpect(jsonPath("$.categories[1].category").value("并发与边界"))
                 .andExpect(jsonPath("$.categories[1].questionCount").value(2));
+    }
+
+    @Test
+    void cancelsQueuedTaskAndRejectsRunningTask() throws Exception {
+        BankGenerationService generation = mock(BankGenerationService.class);
+        BankGenerationTask cancelled = task().progress(BankGenerationTask.Status.CANCELLED, 0, 0, null, null);
+        when(generation.cancel("task-1")).thenReturn(cancelled);
+        when(generation.cancel("running-task")).thenThrow(
+                new InterviewSessionConflictException("仅排队中的题库任务可以取消，运行或已结束的任务保持原状态"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new QuestionBankController(
+                mock(QuestionBankService.class), generation, mock(QuestionBankStore.class))).build();
+
+        mockMvc.perform(patch("/api/interviews/question-bank/tasks/task-1/cancel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+        mockMvc.perform(patch("/api/interviews/question-bank/tasks/running-task/cancel"))
+                .andExpect(status().isConflict());
     }
 
     private BankGenerationTask task() {

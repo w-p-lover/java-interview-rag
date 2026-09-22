@@ -9,6 +9,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ public class BankGenerationService {
     private final BankGenerationRecoveryPolicy recoveryPolicy;
     private final String workerId = "question-bank-" + UUID.randomUUID();
     private final Map<String, String> scheduled = new ConcurrentHashMap<>();
+    private final Map<String, Runnable> queuedWork = new ConcurrentHashMap<>();
     private final Map<String, ScheduledFuture<?>> heartbeats = new ConcurrentHashMap<>();
     private final InterviewSkillTrainingCatalog trainingCatalog = new InterviewSkillTrainingCatalog();
     private volatile ScheduledFuture<?> recoveryScan;
@@ -138,6 +140,31 @@ public class BankGenerationService {
         return find(id);
     }
 
+    public BankGenerationTask cancel(String id) {
+        synchronized (scheduled) {
+            while (true) {
+                BankGenerationTask task = find(id);
+                if (task.status() == BankGenerationTask.Status.CANCELLED) {
+                    return task;
+                }
+                if (task.status() != BankGenerationTask.Status.QUEUED) {
+                    throw new InterviewSessionConflictException("仅排队中的题库任务可以取消，运行或已结束的任务保持原状态");
+                }
+                BankGenerationTask cancelled = task.progress(BankGenerationTask.Status.CANCELLED,
+                        task.savedCount(), task.skippedCount(), null, null);
+                if (!store.cancelQueued(cancelled, task.version())) {
+                    continue;
+                }
+                Runnable work = queuedWork.remove(id);
+                if (work != null && executor instanceof ThreadPoolTaskExecutor pool) {
+                    pool.getThreadPoolExecutor().remove(work);
+                }
+                scheduled.remove(id);
+                return cancelled;
+            }
+        }
+    }
+
     private boolean sameInput(BankGenerationTask left, BankGenerationTask right) {
         return left.source().equals(right.source()) && left.documentVersion().equals(right.documentVersion())
                 && left.skill() == right.skill() && left.difficulty() == right.difficulty()
@@ -146,16 +173,31 @@ public class BankGenerationService {
     }
 
     private void schedule(BankGenerationTask task) {
-        String dispatchId = UUID.randomUUID().toString();
-        if (scheduled.putIfAbsent(task.id(), dispatchId) != null) {
-            return;
-        }
-        try {
-            executor.execute(() -> execute(task.id(), dispatchId));
-        } catch (RuntimeException exception) {
-            scheduled.remove(task.id(), dispatchId);
-            store.updateTask(task.progress(BankGenerationTask.Status.FAILED,
-                    task.savedCount(), task.skippedCount(), null, "QUEUE_FULL"), task.version());
+        synchronized (scheduled) {
+            if (store.findTask(task.id()).filter(current -> current.status() == BankGenerationTask.Status.QUEUED)
+                    .isEmpty()) {
+                return;
+            }
+            String dispatchId = UUID.randomUUID().toString();
+            if (scheduled.putIfAbsent(task.id(), dispatchId) != null) {
+                return;
+            }
+            Runnable work = new Runnable() {
+                @Override
+                public void run() {
+                    queuedWork.remove(task.id(), this);
+                    execute(task.id(), dispatchId);
+                }
+            };
+            queuedWork.put(task.id(), work);
+            try {
+                executor.execute(work);
+            } catch (RuntimeException exception) {
+                queuedWork.remove(task.id(), work);
+                scheduled.remove(task.id(), dispatchId);
+                store.updateTask(task.progress(BankGenerationTask.Status.FAILED,
+                        task.savedCount(), task.skippedCount(), null, "QUEUE_FULL"), task.version());
+            }
         }
     }
 

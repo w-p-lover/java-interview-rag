@@ -31,6 +31,12 @@ public interface BankGenerationTaskMapper extends BaseMapper<BankGenerationTaskE
     int updateVersioned(@Param("task") BankGenerationTaskEntity task,
                         @Param("expectedVersion") long expectedVersion);
 
+    @Update("UPDATE t_knowledge_bank_generation_task SET task_json=#{task.taskJson}, status=#{task.status}, "
+            + "active_key=NULL, version=#{task.version}, updated_at=#{task.updatedAt} "
+            + "WHERE id=#{task.id} AND version=#{expectedVersion} AND status='QUEUED'")
+    int cancelQueued(@Param("task") BankGenerationTaskEntity task,
+                     @Param("expectedVersion") long expectedVersion);
+
     @Update("UPDATE t_knowledge_bank_generation_task SET last_heartbeat_at=#{heartbeatAt}, "
             + "updated_at=#{heartbeatAt} WHERE id=#{taskId} AND status='PROCESSING' "
             + "AND attempt_id=#{attemptId} AND worker_id=#{workerId}")

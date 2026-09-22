@@ -108,6 +108,12 @@ public class QuestionBankController {
         return generation.resume(id);
     }
 
+    @PatchMapping("/tasks/{id}/cancel")
+    @Operation(summary = "取消排队中的题库生成任务")
+    public BankGenerationTask cancel(@PathVariable String id) {
+        return generation.cancel(id);
+    }
+
     @PostMapping("/sessions")
     @Operation(summary = "从已审核题库创建专项面试")
     public InterviewSession start(@RequestBody QuestionBankService.SessionRequest request) {

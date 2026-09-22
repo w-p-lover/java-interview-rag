@@ -4,7 +4,7 @@ import { listKnowledgeDocuments, type KnowledgeDocumentCatalogItem } from "@/api
 import type { InterviewDifficulty, InterviewSkill } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
 import {
-  changeBankQuestionStatus, createBankQuestion, createBankSession, deleteBankQuestion,
+  cancelBankGeneration, changeBankQuestionStatus, createBankQuestion, createBankSession, deleteBankQuestion,
   getSkillTrainingPlan,
   listBankGenerationTasks, listBankQuestions, resumeBankGeneration, submitBankGeneration,
   updateBankQuestion,
@@ -196,6 +196,14 @@ export function useQuestionBank(
     }
   }
 
+  async function cancelTask(task: GenerationTask): Promise<void> {
+    const next = await perform(`cancel:${task.id}`, "取消出题任务失败", () => cancelBankGeneration(task.id));
+    if (next) {
+      tasks.value = tasks.value.map((item) => item.id === next.id ? next : item);
+      await loadTasks();
+    }
+  }
+
   async function perform<T>(key: string, message: string, action: () => Promise<T>): Promise<T | null> {
     if (busy.value) return null;
     const epoch = sourceEpoch;
@@ -319,7 +327,7 @@ export function useQuestionBank(
     focusDimension, trainingPlan, trainingPlanLoading, trainingPlanError,
     validSessionCapacity, canStartSelected, canStartRandom, isEligible,
     loadDocuments, loadQuestions, loadTasks, loadTrainingPlan,
-    generate, resumeTask, saveQuestion, setStatus, removeQuestion, toggleSelection, startSession,
+    generate, resumeTask, cancelTask, saveQuestion, setStatus, removeQuestion, toggleSelection, startSession,
   };
 }
 

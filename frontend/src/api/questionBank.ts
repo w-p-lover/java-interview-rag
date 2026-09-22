@@ -46,7 +46,7 @@ export interface GenerationTask {
   difficulty: InterviewDifficulty;
   questionCount: number;
   followUpCount: number;
-  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
+  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED";
   savedCount: number;
   skippedCount: number;
   attemptId: string | null;
@@ -133,6 +133,10 @@ export async function submitBankGeneration(payload: BankGenerationPayload): Prom
 
 export async function resumeBankGeneration(taskId: string): Promise<GenerationTask> {
   return (await request.post<GenerationTask>(`${base}/tasks/${encodeURIComponent(taskId)}/resume`)).data;
+}
+
+export async function cancelBankGeneration(taskId: string): Promise<GenerationTask> {
+  return (await request.patch<GenerationTask>(`${base}/tasks/${encodeURIComponent(taskId)}/cancel`)).data;
 }
 
 export async function createBankSession(payload: BankSessionPayload): Promise<InterviewSession> {

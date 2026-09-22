@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, shallowRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { ArrowRight, Plus, RefreshCw, Shuffle, Sparkles } from "@lucide/vue";
+import { ArrowRight, Plus, RefreshCw, Shuffle, Sparkles, X } from "@lucide/vue";
 
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import QuestionBankEditor from "@/components/interview/QuestionBankEditor.vue";
@@ -38,7 +38,7 @@ const eligibleIds = computed(() => eligibleQuestions.value.map((question) => que
 const difficultyOptions: Array<{ value: InterviewDifficulty; label: string }> = [
   { value: "BASIC", label: "基础" }, { value: "INTERMEDIATE", label: "进阶" }, { value: "ADVANCED", label: "高级场景" },
 ];
-const taskLabels: Record<GenerationTask["status"], string> = { QUEUED: "已排队", PROCESSING: "生成中", COMPLETED: "已完成", FAILED: "失败" };
+const taskLabels: Record<GenerationTask["status"], string> = { QUEUED: "已排队", PROCESSING: "生成中", COMPLETED: "已完成", FAILED: "失败", CANCELLED: "已取消" };
 
 watch([source, () => config.skill, focusDimension], ([nextSource, skill, focus]) => {
   editorOpen.value = false;
@@ -125,6 +125,7 @@ function refresh(): void {
           <div class="task-main"><strong class="task-status" :data-status="task.status">{{ taskLabels[task.status] }}</strong><span>{{ task.savedCount }} / {{ task.questionCount }} 道已保存<template v-if="task.skippedCount"> · 跳过 {{ task.skippedCount }} 道</template></span><span>{{ difficultyOptions.find(option => option.value === task.difficulty)?.label }} · 追问 {{ task.followUpCount }} 道</span></div>
           <div class="task-details"><span>{{ task.createdAt.replace('T', ' ').slice(0, 16) }} · 版本 {{ task.documentVersion }}</span><span v-if="task.recoveryCount">已自动恢复 {{ task.recoveryCount }} 次</span><span v-if="task.status === 'PROCESSING' && task.lastHeartbeatAt">最近心跳 {{ task.lastHeartbeatAt.replace('T', ' ').slice(11, 19) }}</span><span v-if="task.errorCode" class="task-failure">{{ task.errorCode === 'RECOVERY_EXHAUSTED' ? 'Worker 连续失联，已停止自动恢复' : task.errorCode }}</span></div>
           <button v-if="task.status === 'FAILED'" type="button" class="secondary-action resume-action" :disabled="busy || task.documentVersion !== currentDocument?.version" :title="task.documentVersion !== currentDocument?.version ? '资料版本失效' : '恢复未完成题目'" @click="bank.resumeTask(task)"><RefreshCw :size="16" aria-hidden="true" />{{ actionKey === `resume:${task.id}` ? '正在恢复…' : '恢复' }}</button>
+          <button v-if="task.status === 'QUEUED'" type="button" class="secondary-action resume-action" :disabled="busy" title="取消排队任务" @click="bank.cancelTask(task)"><X :size="16" aria-hidden="true" />{{ actionKey === `cancel:${task.id}` ? '正在取消…' : '取消' }}</button>
         </li>
       </ul>
     </section>

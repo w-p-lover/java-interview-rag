@@ -13,7 +13,7 @@ public record BankGenerationTask(
         String promptVersion, String modelName, String errorCode, long version,
         LocalDateTime createdAt, LocalDateTime updatedAt
 ) {
-    public enum Status { QUEUED, PROCESSING, COMPLETED, FAILED }
+    public enum Status { QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED }
 
     public BankGenerationTask {
         if (recoveryCount < 0) {

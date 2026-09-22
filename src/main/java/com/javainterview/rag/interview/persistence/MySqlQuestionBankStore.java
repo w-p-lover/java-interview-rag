@@ -119,6 +119,11 @@ public class MySqlQuestionBankStore implements QuestionBankStore {
     }
 
     @Override
+    public boolean cancelQueued(BankGenerationTask task, long expectedVersion) {
+        return tasks.cancelQueued(entity(task), expectedVersion) == 1;
+    }
+
+    @Override
     public boolean heartbeat(String taskId, String attemptId, String workerId,
                              LocalDateTime heartbeatAt) {
         return tasks.heartbeat(taskId, attemptId, workerId, heartbeatAt) == 1;

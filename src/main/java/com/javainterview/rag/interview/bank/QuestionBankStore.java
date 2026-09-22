@@ -17,6 +17,7 @@ public interface QuestionBankStore {
     List<BankGenerationTask> listTasks(String source);
     List<BankGenerationTask> unfinishedTasks();
     boolean updateTask(BankGenerationTask task, long expectedVersion);
+    boolean cancelQueued(BankGenerationTask task, long expectedVersion);
     boolean heartbeat(String taskId, String attemptId, String workerId, LocalDateTime heartbeatAt);
     boolean recoverStale(BankGenerationTask replacement, long expectedVersion,
                          String expectedAttemptId, LocalDateTime staleBefore);

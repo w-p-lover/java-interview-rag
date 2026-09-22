@@ -10,15 +10,19 @@ import com.javainterview.rag.knowledge.vector.MarkdownSearchResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -147,6 +151,7 @@ class BankGenerationServiceTest {
         AtomicReference<BankGenerationTask> taskState = new AtomicReference<>(staleTask(0, 4));
         List<Runnable> dispatched = new ArrayList<>();
         when(store.unfinishedTasks()).thenAnswer(invocation -> List.of(taskState.get()));
+        when(store.findTask("task-recovery")).thenAnswer(invocation -> Optional.of(taskState.get()));
         when(store.recoverStale(any(), anyLong(), any(), any())).thenAnswer(invocation -> {
             BankGenerationTask replacement = invocation.getArgument(0);
             taskState.set(replacement);
@@ -168,6 +173,92 @@ class BankGenerationServiceTest {
         assertEquals(BankGenerationTask.Status.FAILED, taskState.get().status());
         assertEquals("RECOVERY_EXHAUSTED", taskState.get().errorCode());
         assertEquals(0, dispatched.size());
+    }
+
+    @Test
+    void cancelsQueuedWorkAndReleasesQueueCapacity() throws Exception {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1);
+        executor.initialize();
+        CountDownLatch occupied = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch replacement = new CountDownLatch(1);
+        try {
+            executor.execute(() -> {
+                occupied.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            assertTrue(occupied.await(2, TimeUnit.SECONDS));
+            QuestionBankStore store = mock(QuestionBankStore.class);
+            BankSources sources = mock(BankSources.class);
+            BankQuestionGenerator generator = mock(BankQuestionGenerator.class);
+            KnowledgeDocumentSnapshot snapshot = snapshot();
+            AtomicReference<BankGenerationTask> state = new AtomicReference<>();
+            when(sources.currentSnapshot("java.md")).thenReturn(snapshot);
+            when(store.findTaskByRequestId("cancel-request")).thenReturn(Optional.empty());
+            when(store.findActiveTask("java.md", snapshot.document().version())).thenReturn(Optional.empty());
+            when(store.createOrFindTask(any())).thenAnswer(invocation -> {
+                BankGenerationTask task = invocation.getArgument(0);
+                state.set(task);
+                return task;
+            });
+            when(store.findTask(any())).thenAnswer(invocation -> Optional.ofNullable(state.get()));
+            when(store.cancelQueued(any(), anyLong())).thenAnswer(invocation -> {
+                BankGenerationTask cancelled = invocation.getArgument(0);
+                state.set(cancelled);
+                return true;
+            });
+            BankGenerationService service = service(store, sources, generator, executor);
+            BankGenerationTask queued = service.submit("cancel-request", "java.md", InterviewSkill.JAVA_CORE,
+                    InterviewDifficulty.INTERMEDIATE, 3, 0);
+
+            assertEquals(BankGenerationTask.Status.CANCELLED, service.cancel(queued.id()).status());
+            assertEquals(BankGenerationTask.Status.CANCELLED, service.cancel(queued.id()).status());
+            executor.execute(replacement::countDown);
+            release.countDown();
+            assertTrue(replacement.await(2, TimeUnit.SECONDS));
+            verify(store, org.mockito.Mockito.times(1)).cancelQueued(any(), anyLong());
+            verify(generator, never()).generate(any(), any(), anyMap(), any());
+        } finally {
+            release.countDown();
+            executor.shutdown();
+        }
+    }
+
+    @Test
+    void rejectsCancellationAfterWorkerClaimedTask() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        when(store.findTask("task-1")).thenReturn(Optional.of(
+                task("request-1", "v1", BankGenerationTask.Status.PROCESSING)));
+        BankGenerationService service = service(store, mock(BankSources.class),
+                mock(BankQuestionGenerator.class), Runnable::run);
+
+        assertThrows(InterviewSessionConflictException.class, () -> service.cancel("task-1"));
+        verify(store, never()).cancelQueued(any(), anyLong());
+    }
+
+    @Test
+    void rejectsCancellationWhenWorkerClaimsBetweenReadAndUpdate() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        BankGenerationTask queued = task("request-1", "v1", BankGenerationTask.Status.QUEUED);
+        AtomicReference<BankGenerationTask> state = new AtomicReference<>(queued);
+        when(store.findTask("task-1")).thenAnswer(invocation -> Optional.of(state.get()));
+        when(store.cancelQueued(any(), anyLong())).thenAnswer(invocation -> {
+            state.set(queued.startAttempt("attempt-2", "worker-2", java.time.LocalDateTime.now()));
+            return false;
+        });
+        BankGenerationService service = service(store, mock(BankSources.class),
+                mock(BankQuestionGenerator.class), Runnable::run);
+
+        assertThrows(InterviewSessionConflictException.class, () -> service.cancel("task-1"));
+        assertEquals(BankGenerationTask.Status.PROCESSING, state.get().status());
+        verify(store, org.mockito.Mockito.times(1)).cancelQueued(any(), anyLong());
     }
 
     private KnowledgeDocumentSnapshot snapshot() {

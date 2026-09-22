@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS t_knowledge_bank_generation_task (
     request_id VARCHAR(100) NOT NULL,
     active_key CHAR(64) NULL COMMENT '同资料当前版本的活动任务唯一键，终态为空',
     source VARCHAR(500) NOT NULL,
-    status VARCHAR(20) NOT NULL COMMENT 'QUEUED/PROCESSING/COMPLETED/FAILED',
+    status VARCHAR(20) NOT NULL COMMENT 'QUEUED/PROCESSING/COMPLETED/FAILED/CANCELLED',
     task_json MEDIUMTEXT NOT NULL,
     attempt_id VARCHAR(36) NULL COMMENT '当前执行 attempt ID',
     worker_id VARCHAR(100) NULL COMMENT '当前执行 Worker ID',
