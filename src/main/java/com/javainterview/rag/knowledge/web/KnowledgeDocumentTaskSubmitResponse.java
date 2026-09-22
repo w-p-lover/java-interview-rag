@@ -5,6 +5,7 @@ import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskStatus;
 
 public record KnowledgeDocumentTaskSubmitResponse(
         String taskId,
+        String attemptId,
         String source,
         KnowledgeDocumentTaskOperation operation,
         KnowledgeDocumentTaskStatus status

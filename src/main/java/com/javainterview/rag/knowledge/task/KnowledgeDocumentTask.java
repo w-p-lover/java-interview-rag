@@ -5,6 +5,7 @@ import java.util.Objects;
 
 public record KnowledgeDocumentTask(
         String taskId,
+        String attemptId,
         String source,
         KnowledgeDocumentTaskOperation operation,
         KnowledgeDocumentTaskStatus status,
@@ -22,6 +23,9 @@ public record KnowledgeDocumentTask(
     public KnowledgeDocumentTask {
         if (taskId == null || taskId.isBlank()) {
             throw new IllegalArgumentException("任务 ID 不能为空");
+        }
+        if (attemptId == null || attemptId.isBlank()) {
+            throw new IllegalArgumentException("任务执行 ID 不能为空");
         }
         if (source == null || source.isBlank()) {
             throw new IllegalArgumentException("文档来源不能为空");

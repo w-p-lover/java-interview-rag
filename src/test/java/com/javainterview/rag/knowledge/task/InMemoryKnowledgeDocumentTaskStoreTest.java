@@ -9,13 +9,14 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
     @Test
     void storesQueuedTaskAndAllowsOnlyForwardLifecycleTransitions() {
         KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
-        KnowledgeDocumentTask queued = store.create("task-1", "java/basic.md",
+        KnowledgeDocumentTask queued = store.create("task-1", "attempt-1", "java/basic.md",
                 KnowledgeDocumentTaskOperation.IMPORT);
 
         assertThat(queued.status()).isEqualTo(KnowledgeDocumentTaskStatus.QUEUED);
-        store.markRunning("task-1");
-        store.markSucceeded("task-1", "version-1", true, 2, "MARKDOWN", 0);
-        store.markFailed("task-1", "IllegalStateException");
+        assertThat(store.markRunning("task-1", "attempt-1")).isTrue();
+        assertThat(store.markSucceeded("task-1", "attempt-1", "version-1", true,
+                2, "MARKDOWN", 0)).isTrue();
+        assertThat(store.markFailed("task-1", "attempt-1", "IllegalStateException")).isFalse();
 
         KnowledgeDocumentTask result = store.find("task-1").orElseThrow();
         assertThat(result.status()).isEqualTo(KnowledgeDocumentTaskStatus.SUCCEEDED);
@@ -26,7 +27,7 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
     @Test
     void cancelsQueuedTaskAndKeepsItTerminal() {
         KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
-        store.create("task-2", "java/cancel.md", KnowledgeDocumentTaskOperation.IMPORT);
+        store.create("task-2", "attempt-2", "java/cancel.md", KnowledgeDocumentTaskOperation.IMPORT);
 
         assertThat(store.cancelQueued("task-2")).isTrue();
         assertThat(store.cancelQueued("task-2")).isFalse();
@@ -37,10 +38,29 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
     @Test
     void returnsRecentTasksNewestFirst() {
         KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
-        store.create("task-old", "old.md", KnowledgeDocumentTaskOperation.IMPORT);
-        store.create("task-new", "new.md", KnowledgeDocumentTaskOperation.REBUILD);
+        store.create("task-old", "attempt-old", "old.md", KnowledgeDocumentTaskOperation.IMPORT);
+        store.create("task-new", "attempt-new", "new.md", KnowledgeDocumentTaskOperation.REBUILD);
 
         assertThat(store.findRecent(1)).extracting(KnowledgeDocumentTask::taskId)
                 .containsExactly("task-new");
+    }
+
+    @Test
+    void rejectsLateWritesFromDifferentAttempt() {
+        KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
+        store.create("task-3", "attempt-current", "java/fencing.md",
+                KnowledgeDocumentTaskOperation.REBUILD);
+
+        assertThat(store.markSucceeded("task-3", "attempt-current", "version-early", true,
+                1, "MARKDOWN", 0)).isFalse();
+        assertThat(store.markRunning("task-3", "attempt-old")).isFalse();
+        assertThat(store.markFailed("task-3", "attempt-old", "LATE_FAILURE")).isFalse();
+        assertThat(store.markRunning("task-3", "attempt-current")).isTrue();
+        assertThat(store.markSucceeded("task-3", "attempt-old", "version-old", true,
+                1, "MARKDOWN", 0)).isFalse();
+
+        KnowledgeDocumentTask current = store.find("task-3").orElseThrow();
+        assertThat(current.status()).isEqualTo(KnowledgeDocumentTaskStatus.RUNNING);
+        assertThat(current.attemptId()).isEqualTo("attempt-current");
     }
 }

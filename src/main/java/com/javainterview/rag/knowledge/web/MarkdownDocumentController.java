@@ -116,7 +116,7 @@ public class MarkdownDocumentController {
         KnowledgeUploadContent upload = readContentUnchecked(file, source);
         KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.IMPORT,
                 toTaskInput(upload, source));
-        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.source(),
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(),
                 task.operation(), task.status());
     }
 
@@ -128,7 +128,7 @@ public class MarkdownDocumentController {
         KnowledgeUploadContent upload = readContentUnchecked(file, source);
         KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.REBUILD,
                 toTaskInput(upload, source));
-        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.source(),
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(),
                 task.operation(), task.status());
     }
 

@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS t_knowledge_document_task (
     task_id CHAR(36) NOT NULL,
+    attempt_id CHAR(36) NOT NULL COMMENT '当前执行尝试 ID，用于拒绝旧 Worker 迟到写入',
     source VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
     operation VARCHAR(16) NOT NULL COMMENT 'IMPORT 或 REBUILD',
     status VARCHAR(16) NOT NULL COMMENT 'QUEUED、RUNNING、SUCCEEDED、FAILED 或 CANCELLED',

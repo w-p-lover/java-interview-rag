@@ -5,17 +5,17 @@ import java.util.List;
 
 public interface KnowledgeDocumentTaskStore {
 
-    KnowledgeDocumentTask create(String taskId, String source,
+    KnowledgeDocumentTask create(String taskId, String attemptId, String source,
                                  KnowledgeDocumentTaskOperation operation);
 
     Optional<KnowledgeDocumentTask> find(String taskId);
 
-    void markRunning(String taskId);
+    boolean markRunning(String taskId, String attemptId);
 
-    void markSucceeded(String taskId, String version, boolean imported, int chunkCount,
-                       String format, int warningCount);
+    boolean markSucceeded(String taskId, String attemptId, String version, boolean imported,
+                          int chunkCount, String format, int warningCount);
 
-    void markFailed(String taskId, String errorType);
+    boolean markFailed(String taskId, String attemptId, String errorType);
 
     boolean cancelQueued(String taskId);
 

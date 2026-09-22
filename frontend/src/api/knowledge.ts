@@ -335,6 +335,7 @@ export type KnowledgeDocumentTaskStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "
 
 export interface KnowledgeDocumentTaskSubmitResponse {
   taskId: string;
+  attemptId: string;
   source: string;
   operation: KnowledgeDocumentTaskOperation;
   status: KnowledgeDocumentTaskStatus;
@@ -342,6 +343,7 @@ export interface KnowledgeDocumentTaskSubmitResponse {
 
 export interface KnowledgeDocumentTaskResponse {
   taskId: string;
+  attemptId: string;
   source: string;
   operation: KnowledgeDocumentTaskOperation;
   status: KnowledgeDocumentTaskStatus;

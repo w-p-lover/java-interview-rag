@@ -18,9 +18,9 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
     }
 
     @Override
-    public KnowledgeDocumentTask create(String taskId, String source,
+    public KnowledgeDocumentTask create(String taskId, String attemptId, String source,
                                         KnowledgeDocumentTaskOperation operation) {
-        mapper.insert(taskId, source.strip(), operation.name(), KnowledgeDocumentTaskStatus.QUEUED.name());
+        mapper.insert(taskId, attemptId, source.strip(), operation.name(), KnowledgeDocumentTaskStatus.QUEUED.name());
         return find(taskId).orElseThrow(() -> new IllegalStateException("资料任务创建失败"));
     }
 
@@ -31,20 +31,20 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
     }
 
     @Override
-    public void markRunning(String taskId) {
-        mapper.markRunning(taskId, KnowledgeDocumentTaskStatus.RUNNING.name());
+    public boolean markRunning(String taskId, String attemptId) {
+        return mapper.markRunning(taskId, attemptId, KnowledgeDocumentTaskStatus.RUNNING.name()) == 1;
     }
 
     @Override
-    public void markSucceeded(String taskId, String version, boolean imported, int chunkCount,
-                              String format, int warningCount) {
-        mapper.markSucceeded(taskId, KnowledgeDocumentTaskStatus.SUCCEEDED.name(), version,
-                imported, chunkCount, format, warningCount, null);
+    public boolean markSucceeded(String taskId, String attemptId, String version, boolean imported,
+                                 int chunkCount, String format, int warningCount) {
+        return mapper.markSucceeded(taskId, attemptId, KnowledgeDocumentTaskStatus.SUCCEEDED.name(),
+                version, imported, chunkCount, format, warningCount, null) == 1;
     }
 
     @Override
-    public void markFailed(String taskId, String errorType) {
-        mapper.markFailed(taskId, errorType);
+    public boolean markFailed(String taskId, String attemptId, String errorType) {
+        return mapper.markFailed(taskId, attemptId, errorType) == 1;
     }
 
     @Override
@@ -62,7 +62,7 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
     }
 
     private KnowledgeDocumentTask toTask(KnowledgeDocumentTaskEntity entity) {
-        return new KnowledgeDocumentTask(entity.getTaskId(), entity.getSource(),
+        return new KnowledgeDocumentTask(entity.getTaskId(), entity.getAttemptId(), entity.getSource(),
                 KnowledgeDocumentTaskOperation.valueOf(entity.getOperation()),
                 KnowledgeDocumentTaskStatus.valueOf(entity.getStatus()), entity.getVersion(),
                 Boolean.TRUE.equals(entity.getImported()), entity.getChunkCount() == null ? 0 : entity.getChunkCount(), entity.getFormat(),

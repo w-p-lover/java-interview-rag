@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class KnowledgeDocumentTaskEntity {
     private String taskId;
+    private String attemptId;
     private String source;
     private String operation;
     private String status;

@@ -50,24 +50,25 @@ public final class KnowledgeDocumentTaskService {
         Objects.requireNonNull(operation, "任务操作不能为空");
         Objects.requireNonNull(input, "任务输入不能为空");
         String taskId = UUID.randomUUID().toString();
-        KnowledgeDocumentTask task = taskStore.create(taskId, input.source(), operation);
+        String attemptId = UUID.randomUUID().toString();
+        KnowledgeDocumentTask task = taskStore.create(taskId, attemptId, input.source(), operation);
         completionGuards.put(taskId, new AtomicBoolean());
         metrics.submitted();
         FutureTask<Void> work = new FutureTask<>(() -> {
-            execute(taskId, operation, input);
+            execute(taskId, attemptId, operation, input);
             return null;
         });
         submittedTasks.put(taskId, work);
         try {
             ScheduledFuture<?> timeout = timeoutScheduler.schedule(
-                    () -> timeout(taskId, work), timeoutMillis, TimeUnit.MILLISECONDS);
+                    () -> timeout(taskId, attemptId, work), timeoutMillis, TimeUnit.MILLISECONDS);
             taskTimeouts.put(taskId, timeout);
             executor.execute(work);
         } catch (TaskRejectedException exception) {
-            failSubmission(taskId, work, "TASK_REJECTED");
+            failSubmission(taskId, attemptId, work, "TASK_REJECTED");
             throw exception;
         } catch (RuntimeException exception) {
-            failSubmission(taskId, work, exception.getClass().getSimpleName());
+            failSubmission(taskId, attemptId, work, exception.getClass().getSimpleName());
             throw exception;
         }
         return task;
@@ -105,10 +106,9 @@ public final class KnowledgeDocumentTaskService {
         return taskStore.findRecent(limit);
     }
 
-    private void execute(String taskId, KnowledgeDocumentTaskOperation operation,
+    private void execute(String taskId, String attemptId, KnowledgeDocumentTaskOperation operation,
                          KnowledgeDocumentTaskInput input) {
-        taskStore.markRunning(taskId);
-        if (taskStore.find(taskId).map(task -> task.status() != KnowledgeDocumentTaskStatus.RUNNING).orElse(true)) {
+        if (!taskStore.markRunning(taskId, attemptId)) {
             return;
         }
         metrics.started();
@@ -118,9 +118,10 @@ public final class KnowledgeDocumentTaskService {
                         ? importer.importStructuredContent(input.source(), input.content(), input.sections())
                         : importer.importContent(input.source(), input.content());
                 if (complete(taskId)) {
-                    taskStore.markSucceeded(taskId, result.document().version(), result.imported(), result.chunks().size(),
-                            input.format(), input.warnings().size());
-                    metrics.succeeded();
+                    if (taskStore.markSucceeded(taskId, attemptId, result.document().version(), result.imported(),
+                            result.chunks().size(), input.format(), input.warnings().size())) {
+                        metrics.succeeded();
+                    }
                 }
                 return;
             }
@@ -128,24 +129,28 @@ public final class KnowledgeDocumentTaskService {
                     ? importer.rebuildStructuredContent(input.source(), input.content(), input.sections())
                     : importer.rebuildContent(input.source(), input.content());
             if (complete(taskId)) {
-                taskStore.markSucceeded(taskId, result.document().version(), true, result.chunks().size(),
-                        input.format(), input.warnings().size());
-                metrics.succeeded();
+                if (taskStore.markSucceeded(taskId, attemptId, result.document().version(), true,
+                        result.chunks().size(), input.format(), input.warnings().size())) {
+                    metrics.succeeded();
+                }
             }
         } catch (RuntimeException exception) {
             if (complete(taskId)) {
-                taskStore.markFailed(taskId, exception.getClass().getSimpleName());
-                metrics.failed();
+                if (taskStore.markFailed(taskId, attemptId, exception.getClass().getSimpleName())) {
+                    metrics.failed();
+                }
             }
         }
     }
 
-    private void timeout(String taskId, FutureTask<Void> work) {
-        if (taskStore.find(taskId).map(task -> task.status() == KnowledgeDocumentTaskStatus.QUEUED
-                        || task.status() == KnowledgeDocumentTaskStatus.RUNNING).orElse(false)
+    private void timeout(String taskId, String attemptId, FutureTask<Void> work) {
+        if (taskStore.find(taskId).map(task -> task.attemptId().equals(attemptId)
+                        && (task.status() == KnowledgeDocumentTaskStatus.QUEUED
+                        || task.status() == KnowledgeDocumentTaskStatus.RUNNING)).orElse(false)
                 && complete(taskId)) {
-            taskStore.markFailed(taskId, "TASK_TIMEOUT");
-            metrics.timeoutTask();
+            if (taskStore.markFailed(taskId, attemptId, "TASK_TIMEOUT")) {
+                metrics.timeoutTask();
+            }
             work.cancel(true);
             executor.getThreadPoolExecutor().remove(work);
         }
@@ -161,11 +166,12 @@ public final class KnowledgeDocumentTaskService {
         return true;
     }
 
-    private void failSubmission(String taskId, FutureTask<Void> work, String errorType) {
+    private void failSubmission(String taskId, String attemptId, FutureTask<Void> work, String errorType) {
         if (complete(taskId)) {
-            taskStore.markFailed(taskId, errorType);
-            metrics.rejected();
-            metrics.failed();
+            if (taskStore.markFailed(taskId, attemptId, errorType)) {
+                metrics.rejected();
+                metrics.failed();
+            }
         }
         work.cancel(false);
         executor.getThreadPoolExecutor().remove(work);
