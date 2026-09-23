@@ -33,8 +33,16 @@ public record KnowledgeIndexConsistencyReport(
             MarkdownIndexingStatus status,
             Integer chunkCount,
             Boolean expectedChunkCountMatched,
-            String errorType
+            String errorType,
+            String publishedGeneration,
+            String buildingGeneration
     ) {
+        public IndexingStateCheck(boolean tracked, MarkdownIndexingStatus status,
+                                  Integer chunkCount, Boolean expectedChunkCountMatched,
+                                  String errorType) {
+            this(tracked, status, chunkCount, expectedChunkCountMatched, errorType,
+                    null, null);
+        }
     }
 
     public record StoreCheck(

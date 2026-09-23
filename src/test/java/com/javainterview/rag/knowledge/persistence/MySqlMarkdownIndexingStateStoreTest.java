@@ -2,6 +2,7 @@ package com.javainterview.rag.knowledge.persistence;
 
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStatus;
+import com.javainterview.rag.knowledge.document.MarkdownIndexBuild;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,5 +49,29 @@ class MySqlMarkdownIndexingStateStoreTest {
         store.removeBySource(document.source());
 
         verify(mapper).deleteBySource(document.source());
+    }
+
+    @Test
+    void publishesOnlyTheOwnedGenerationAndClearsOtherPublishedVersions() {
+        MarkdownIndexBuild build = new MarkdownIndexBuild("generation-1", "attempt-1");
+        when(mapper.publishBuild(document.source(), document.version(), 3,
+                build.generation(), build.attemptId())).thenReturn(1);
+
+        store.beginBuild(document, 3, build);
+        assertTrue(store.publishBuild(document, 3, build));
+
+        verify(mapper).beginBuild(document.source(), document.version(), 3,
+                build.generation(), build.attemptId());
+        verify(mapper).clearOtherPublishedVersions(document.source(), document.version());
+    }
+
+    @Test
+    void rejectsPublishWhenTheAttemptNoLongerOwnsTheBuild() {
+        MarkdownIndexBuild build = new MarkdownIndexBuild("generation-old", "attempt-old");
+
+        assertTrue(!store.publishBuild(document, 3, build));
+
+        verify(mapper).publishBuild(document.source(), document.version(), 3,
+                build.generation(), build.attemptId());
     }
 }

@@ -23,6 +23,7 @@ import com.javainterview.rag.knowledge.persistence.KnowledgeDocumentTaskMapper;
 import com.javainterview.rag.knowledge.persistence.MySqlKnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.vector.QdrantMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.vector.LuceneMarkdownChunkIndex;
+import com.javainterview.rag.knowledge.consistency.KnowledgeVectorIndexInspector;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -90,10 +91,12 @@ public class MarkdownImportConfiguration {
     MarkdownChunkIndexer qdrantMarkdownChunkIndexer(VectorStore vectorStore,
                                                     LuceneMarkdownChunkIndex sparseIndex,
                                                     MarkdownIndexingStateStore stateStore,
-                                                    KnowledgeIndexVersionMetadata indexVersion) {
+                                                    KnowledgeIndexVersionMetadata indexVersion,
+                                                    KnowledgeVectorIndexInspector vectorIndexInspector) {
         return new TrackingMarkdownChunkIndexer(
                 new CompositeMarkdownChunkIndexer(java.util.List.of(
-                        new QdrantMarkdownChunkIndexer(vectorStore, indexVersion), sparseIndex)), stateStore);
+                        new QdrantMarkdownChunkIndexer(vectorStore, indexVersion, vectorIndexInspector),
+                        sparseIndex)), stateStore);
     }
 
     @Bean

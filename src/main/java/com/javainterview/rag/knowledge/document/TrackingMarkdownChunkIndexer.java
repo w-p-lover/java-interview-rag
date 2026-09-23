@@ -17,12 +17,22 @@ public final class TrackingMarkdownChunkIndexer implements MarkdownChunkIndexer 
 
     @Override
     public void index(MarkdownDocument document, List<MarkdownChunk> chunks) {
-        track(document, chunks, () -> delegate.index(document, chunks));
+        index(document, chunks, null);
+    }
+
+    @Override
+    public void index(MarkdownDocument document, List<MarkdownChunk> chunks, String attemptId) {
+        trackGeneration(document, chunks, attemptId, false);
     }
 
     @Override
     public void rebuild(MarkdownDocument document, List<MarkdownChunk> chunks) {
-        track(document, chunks, () -> delegate.rebuild(document, chunks));
+        rebuild(document, chunks, null);
+    }
+
+    @Override
+    public void rebuild(MarkdownDocument document, List<MarkdownChunk> chunks, String attemptId) {
+        trackGeneration(document, chunks, attemptId, true);
     }
 
     @Override
@@ -45,10 +55,65 @@ public final class TrackingMarkdownChunkIndexer implements MarkdownChunkIndexer 
         stateStore.removeBySource(source);
     }
 
+    @Override
+    public boolean cleansFailedWrites() {
+        return delegate instanceof GenerationAwareMarkdownChunkIndexer;
+    }
+
     private void track(MarkdownDocument document, List<MarkdownChunk> chunks, Runnable operation) {
         Objects.requireNonNull(document, "Markdown 文档不能为空");
         Objects.requireNonNull(chunks, "Markdown Chunk 列表不能为空");
         track(document, chunks.size(), operation);
+    }
+
+    private void trackGeneration(MarkdownDocument document, List<MarkdownChunk> chunks,
+                                 String attemptId, boolean rebuild) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        Objects.requireNonNull(chunks, "Markdown Chunk 列表不能为空");
+        if (!(delegate instanceof GenerationAwareMarkdownChunkIndexer generationAware)) {
+            track(document, chunks, () -> {
+                if (rebuild) {
+                    delegate.rebuild(document, chunks);
+                } else {
+                    delegate.index(document, chunks);
+                }
+            });
+            return;
+        }
+        MarkdownIndexBuild build = MarkdownIndexBuild.create(attemptId);
+        stateStore.beginBuild(document, chunks.size(), build);
+        try {
+            generationAware.buildGeneration(document, chunks, build);
+            generationAware.verifyGeneration(document, chunks, build);
+        } catch (RuntimeException exception) {
+            failAndClean(document, chunks.size(), build, generationAware, exception);
+            throw exception;
+        }
+        if (!stateStore.publishBuild(document, chunks.size(), build)) {
+            IllegalStateException stale = new IllegalStateException("索引构建任务已被更新代次替代，禁止发布旧结果");
+            failAndClean(document, chunks.size(), build, generationAware, stale);
+            throw stale;
+        }
+        try {
+            generationAware.deleteOtherGenerations(document, build);
+        } catch (RuntimeException exception) {
+            stateStore.markFailed(document, chunks.size(), exception);
+            throw exception;
+        }
+    }
+
+    private void failAndClean(MarkdownDocument document, int chunkCount,
+                              MarkdownIndexBuild build,
+                              GenerationAwareMarkdownChunkIndexer generationAware,
+                              RuntimeException failure) {
+        boolean cleaned = false;
+        try {
+            generationAware.deleteGeneration(document, build);
+            cleaned = true;
+        } catch (RuntimeException cleanupException) {
+            failure.addSuppressed(cleanupException);
+        }
+        stateStore.failBuild(document, chunkCount, build, failure, cleaned);
     }
 
     private void track(MarkdownDocument document, int chunkCount, Runnable operation) {

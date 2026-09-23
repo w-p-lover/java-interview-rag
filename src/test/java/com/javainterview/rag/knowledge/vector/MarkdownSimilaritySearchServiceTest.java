@@ -1,6 +1,9 @@
 package com.javainterview.rag.knowledge.vector;
 
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
+import com.javainterview.rag.knowledge.document.InMemoryMarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.MarkdownDocument;
+import com.javainterview.rag.knowledge.document.MarkdownIndexBuild;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
@@ -15,8 +18,10 @@ import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,5 +101,45 @@ class MarkdownSimilaritySearchServiceTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    @Test
+    void excludesTemporaryGenerationUntilThePublicationPointerSwitches() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        MarkdownDocument source = MarkdownDocument.create("java/atomic.md", "同一快照");
+        Document legacy = document(source, "oldPublishedMarker", null);
+        Document temporary = document(source, "newTemporaryMarker", "generation-2");
+        when(vectorStore.similaritySearch(any(SearchRequest.class)))
+                .thenReturn(List.of(temporary, legacy), List.of(temporary, legacy));
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        stateStore.markReady(source, 1);
+        MarkdownIndexBuild build = new MarkdownIndexBuild("generation-2", "attempt-2");
+        stateStore.beginBuild(source, 1, build);
+        MarkdownSimilaritySearchService service = new MarkdownSimilaritySearchService(
+                vectorStore, null, new PublishedMarkdownIndexFilter(stateStore));
+
+        assertEquals(List.of("oldPublishedMarker"), service.search("marker", 5, 0.0).stream()
+                .map(MarkdownSearchResult::content).toList());
+
+        assertTrue(stateStore.publishBuild(source, 1, build));
+        assertEquals(List.of("newTemporaryMarker"), service.search("marker", 5, 0.0).stream()
+                .map(MarkdownSearchResult::content).toList());
+        ArgumentCaptor<SearchRequest> requests = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore, times(2)).similaritySearch(requests.capture());
+        assertTrue(requests.getAllValues().get(0).getFilterExpression().toString()
+                .contains("generation-2"));
+    }
+
+    private Document document(MarkdownDocument source, String text, String generation) {
+        java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+        metadata.put("source", source.source());
+        metadata.put("document_version", source.version());
+        metadata.put("chunk_order", 0);
+        metadata.put("heading_path", List.of("Java"));
+        metadata.put("block_type", "TEXT");
+        if (generation != null) {
+            metadata.put("index_generation", generation);
+        }
+        return Document.builder().text(text).metadata(metadata).score(0.9).build();
     }
 }

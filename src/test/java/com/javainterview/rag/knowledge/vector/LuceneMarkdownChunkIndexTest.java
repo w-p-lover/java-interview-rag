@@ -3,6 +3,8 @@ package com.javainterview.rag.knowledge.vector;
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
+import com.javainterview.rag.knowledge.document.InMemoryMarkdownIndexingStateStore;
+import com.javainterview.rag.knowledge.document.MarkdownIndexBuild;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -121,6 +123,32 @@ class LuceneMarkdownChunkIndexTest {
             assertEquals(configuredVersion, configured.indexVersionMetadata());
         } finally {
             configured.close();
+        }
+    }
+
+    @Test
+    void keepsOldGenerationSearchableUntilTheNewGenerationIsPublished() {
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        LuceneMarkdownChunkIndex generationIndex = new LuceneMarkdownChunkIndex(
+                new ByteBuffersDirectory(), KnowledgeIndexVersionMetadata.current(), stateStore);
+        MarkdownDocument document = MarkdownDocument.create("java/generation.md", "同一快照");
+        MarkdownIndexBuild build = new MarkdownIndexBuild("generation-2", "attempt-2");
+        try {
+            generationIndex.index(document, List.of(chunk(document, 0, "oldPublishedMarker")));
+            stateStore.markReady(document, 1);
+            stateStore.beginBuild(document, 1, build);
+            generationIndex.buildGeneration(document,
+                    List.of(chunk(document, 0, "newTemporaryMarker")), build);
+
+            assertEquals(1, generationIndex.search("oldPublishedMarker", 5).size());
+            assertTrue(generationIndex.search("newTemporaryMarker", 5).isEmpty());
+
+            assertTrue(stateStore.publishBuild(document, 1, build));
+            generationIndex.deleteOtherGenerations(document, build);
+            assertTrue(generationIndex.search("oldPublishedMarker", 5).isEmpty());
+            assertEquals(1, generationIndex.search("newTemporaryMarker", 5).size());
+        } finally {
+            generationIndex.close();
         }
     }
 

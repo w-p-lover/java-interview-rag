@@ -56,6 +56,16 @@ public final class QdrantKnowledgeVectorIndexInspector implements KnowledgeVecto
         return new KnowledgeIndexCounts(currentCount, sourceCount, count(metadataFilter));
     }
 
+    @Override
+    public long countGeneration(String source, String documentVersion, String generation) {
+        Points.Filter generationFilter = Points.Filter.newBuilder()
+                .addMust(ConditionFactory.matchKeyword("source", source))
+                .addMust(ConditionFactory.matchKeyword("document_version", documentVersion))
+                .addMust(ConditionFactory.matchKeyword("index_generation", generation))
+                .build();
+        return count(generationFilter);
+    }
+
     private long count(Points.Filter filter) {
         try {
             return client.countAsync(collectionName, filter, true)

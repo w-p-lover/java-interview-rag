@@ -7,7 +7,11 @@ public record MarkdownIndexingState(
         String documentVersion,
         int chunkCount,
         MarkdownIndexingStatus status,
-        String errorType
+        String errorType,
+        String publishedGeneration,
+        String buildingGeneration,
+        Integer buildingChunkCount,
+        String attemptId
 ) {
 
     public MarkdownIndexingState {
@@ -17,5 +21,8 @@ public record MarkdownIndexingState(
             throw new IllegalArgumentException("Chunk 数量不能小于 0");
         }
         Objects.requireNonNull(status, "索引状态不能为空");
+        if (buildingChunkCount != null && buildingChunkCount < 0) {
+            throw new IllegalArgumentException("构建 Chunk 数量不能小于 0");
+        }
     }
 }

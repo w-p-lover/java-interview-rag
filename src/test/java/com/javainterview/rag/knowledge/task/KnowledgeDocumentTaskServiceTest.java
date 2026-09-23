@@ -36,7 +36,7 @@ class KnowledgeDocumentTaskServiceTest {
     void cancellingQueuedTaskImmediatelyReleasesQueueCapacity() throws Exception {
         MarkdownContentImporter importer = mock(MarkdownContentImporter.class);
         CountDownLatch runningTaskStarted = new CountDownLatch(1);
-        when(importer.importContent(anyString(), anyString())).thenAnswer(invocation -> {
+        when(importer.importContent(anyString(), anyString(), anyString())).thenAnswer(invocation -> {
             String source = invocation.getArgument(0);
             if ("java/running.md".equals(source)) {
                 runningTaskStarted.countDown();

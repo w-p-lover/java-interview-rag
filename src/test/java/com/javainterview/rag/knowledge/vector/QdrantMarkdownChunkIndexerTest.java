@@ -3,6 +3,7 @@ package com.javainterview.rag.knowledge.vector;
 import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.KnowledgeBlockType;
+import com.javainterview.rag.knowledge.document.MarkdownIndexBuild;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
@@ -223,5 +224,28 @@ class QdrantMarkdownChunkIndexerTest {
         verify(vectorStore).delete(filter.capture());
         FilterExpressionBuilder builder = new FilterExpressionBuilder();
         assertEquals(builder.eq("source", document.source()).build(), filter.getValue());
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void buildsTemporaryGenerationWithGenerationScopedIdsAndMetadata() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        QdrantMarkdownChunkIndexer indexer = new QdrantMarkdownChunkIndexer(vectorStore);
+        MarkdownDocument document = MarkdownDocument.create("java/generation.md", "内容");
+        MarkdownIndexBuild first = new MarkdownIndexBuild("generation-1", "attempt-1");
+        MarkdownIndexBuild second = new MarkdownIndexBuild("generation-2", "attempt-2");
+        List<MarkdownChunk> chunks = List.of(new MarkdownChunk(
+                document.source(), 0, 0, 1, List.of("Java"), "内容"));
+
+        indexer.buildGeneration(document, chunks, first);
+        indexer.buildGeneration(document, chunks, second);
+
+        ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+        verify(vectorStore, times(2)).add(captor.capture());
+        Document firstDocument = (Document) captor.getAllValues().get(0).get(0);
+        Document secondDocument = (Document) captor.getAllValues().get(1).get(0);
+        assertEquals("generation-1", firstDocument.getMetadata().get("index_generation"));
+        assertEquals(true, firstDocument.getMetadata().get("index_temporary"));
+        assertNotEquals(firstDocument.getId(), secondDocument.getId());
     }
 }

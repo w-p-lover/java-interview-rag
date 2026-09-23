@@ -16,4 +16,14 @@ public class KnowledgeIndexingStateEntity {
     private Integer chunkCount;
     private String status;
     private String errorType;
+    private String publishedGeneration;
+    private String buildingGeneration;
+    private Integer buildingChunkCount;
+    private String attemptId;
+
+    public KnowledgeIndexingStateEntity(String source, String documentVersion, Integer chunkCount,
+                                        String status, String errorType) {
+        this(source, documentVersion, chunkCount, status, errorType,
+                null, null, null, null);
+    }
 }

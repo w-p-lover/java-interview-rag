@@ -115,8 +115,8 @@ public final class KnowledgeDocumentTaskService {
         try {
             if (operation == KnowledgeDocumentTaskOperation.IMPORT) {
                 MarkdownImportResult result = input.structured()
-                        ? importer.importStructuredContent(input.source(), input.content(), input.sections())
-                        : importer.importContent(input.source(), input.content());
+                        ? importer.importStructuredContent(input.source(), input.content(), input.sections(), attemptId)
+                        : importer.importContent(input.source(), input.content(), attemptId);
                 if (complete(taskId)) {
                     if (taskStore.markSucceeded(taskId, attemptId, result.document().version(), result.imported(),
                             result.chunks().size(), input.format(), input.warnings().size())) {
@@ -126,8 +126,8 @@ public final class KnowledgeDocumentTaskService {
                 return;
             }
             MarkdownRebuildResult result = input.structured()
-                    ? importer.rebuildStructuredContent(input.source(), input.content(), input.sections())
-                    : importer.rebuildContent(input.source(), input.content());
+                    ? importer.rebuildStructuredContent(input.source(), input.content(), input.sections(), attemptId)
+                    : importer.rebuildContent(input.source(), input.content(), attemptId);
             if (complete(taskId)) {
                 if (taskStore.markSucceeded(taskId, attemptId, result.document().version(), true,
                         result.chunks().size(), input.format(), input.warnings().size())) {

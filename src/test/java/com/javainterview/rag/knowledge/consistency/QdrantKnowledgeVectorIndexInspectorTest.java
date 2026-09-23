@@ -40,4 +40,25 @@ class QdrantKnowledgeVectorIndexInspectorTest {
                 .addMust(ConditionFactory.matchKeyword("source", "java/basic.md"))
                 .build(), filters.getAllValues().get(1));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void countsOneTemporaryGenerationWithAnExactFilter() {
+        QdrantClient client = mock(QdrantClient.class);
+        when(client.countAsync(eq("chunks"), org.mockito.ArgumentMatchers.any(), eq(true)))
+                .thenReturn(Futures.immediateFuture(4L));
+        QdrantKnowledgeVectorIndexInspector inspector =
+                new QdrantKnowledgeVectorIndexInspector(client, "chunks");
+
+        assertEquals(4L, inspector.countGeneration(
+                "java/basic.md", "version-1", "generation-1"));
+
+        ArgumentCaptor<Points.Filter> filter = ArgumentCaptor.forClass(Points.Filter.class);
+        verify(client).countAsync(eq("chunks"), filter.capture(), eq(true));
+        assertEquals(Points.Filter.newBuilder()
+                .addMust(ConditionFactory.matchKeyword("source", "java/basic.md"))
+                .addMust(ConditionFactory.matchKeyword("document_version", "version-1"))
+                .addMust(ConditionFactory.matchKeyword("index_generation", "generation-1"))
+                .build(), filter.getValue());
+    }
 }

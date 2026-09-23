@@ -15,6 +15,7 @@ public class MarkdownSimilaritySearchService {
 
     private final VectorStore vectorStore;
     private final KnowledgeRetrievalDeadline deadline;
+    private final PublishedMarkdownIndexFilter publishedFilter;
 
     public MarkdownSimilaritySearchService(VectorStore vectorStore) {
         this(vectorStore, null);
@@ -22,8 +23,15 @@ public class MarkdownSimilaritySearchService {
 
     public MarkdownSimilaritySearchService(VectorStore vectorStore,
                                            KnowledgeRetrievalDeadline deadline) {
+        this(vectorStore, deadline, null);
+    }
+
+    public MarkdownSimilaritySearchService(VectorStore vectorStore,
+                                           KnowledgeRetrievalDeadline deadline,
+                                           PublishedMarkdownIndexFilter publishedFilter) {
         this.vectorStore = Objects.requireNonNull(vectorStore, "向量存储不能为空");
         this.deadline = deadline;
+        this.publishedFilter = publishedFilter;
     }
 
     public List<MarkdownSearchResult> search(String query, int topK, double similarityThreshold) {
@@ -38,16 +46,24 @@ public class MarkdownSimilaritySearchService {
             throw new IllegalArgumentException("相似度阈值必须在 0 到 1 之间");
         }
 
-        SearchRequest request = SearchRequest.builder()
+        PublishedMarkdownIndexFilter.Snapshot publication = publishedFilter == null
+                ? null : publishedFilter.snapshot();
+        int requestedTopK = publication == null ? topK : Math.min(topK * 4, 80);
+        SearchRequest.Builder requestBuilder = SearchRequest.builder()
                 .query(query)
-                .topK(topK)
-                .similarityThreshold(similarityThreshold)
-                .build();
+                .topK(requestedTopK)
+                .similarityThreshold(similarityThreshold);
+        if (publication != null) {
+            requestBuilder.filterExpression(publication.allPublished());
+        }
+        SearchRequest request = requestBuilder.build();
         List<Document> documents = deadline == null
                 ? vectorStore.similaritySearch(request)
                 : deadline.execute("Dense 向量检索", () -> vectorStore.similaritySearch(request));
         return documents.stream()
+                .filter(document -> publication == null || publication.isPublished(document))
                 .map(this::toSearchResult)
+                .limit(topK)
                 .toList();
     }
 

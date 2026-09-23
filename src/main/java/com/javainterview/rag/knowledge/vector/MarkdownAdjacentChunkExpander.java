@@ -23,9 +23,16 @@ public final class MarkdownAdjacentChunkExpander {
     private static final int MAX_EXPANDED_RESULTS = 8;
 
     private final VectorStore vectorStore;
+    private final PublishedMarkdownIndexFilter publishedFilter;
 
     public MarkdownAdjacentChunkExpander(VectorStore vectorStore) {
+        this(vectorStore, null);
+    }
+
+    public MarkdownAdjacentChunkExpander(VectorStore vectorStore,
+                                         PublishedMarkdownIndexFilter publishedFilter) {
         this.vectorStore = Objects.requireNonNull(vectorStore, "向量存储不能为空");
+        this.publishedFilter = publishedFilter;
     }
 
     public List<MarkdownSearchResult> expand(List<MarkdownSearchResult> initialResults) {
@@ -66,23 +73,29 @@ public final class MarkdownAdjacentChunkExpander {
         int minOrder = Math.max(0, seed.chunkOrder() - MAX_NEIGHBOR_WINDOW);
         int maxOrder = seed.chunkOrder() + MAX_NEIGHBOR_WINDOW;
         FilterExpressionBuilder builder = new FilterExpressionBuilder();
+        var sourceAndVersion = builder.and(
+                builder.eq("source", seed.source()),
+                builder.eq("document_version", seed.documentVersion())).build();
+        PublishedMarkdownIndexFilter.Snapshot publication = publishedFilter == null
+                ? null : publishedFilter.snapshot();
+        var published = publication == null
+                ? sourceAndVersion
+                : publication.publishedFor(seed.source(), seed.documentVersion());
         SearchRequest request = SearchRequest.builder()
                 .query(seed.content())
                 .topK(MAX_NEIGHBOR_WINDOW * 2 + 1)
                 .similarityThresholdAll()
-                .filterExpression(builder.and(
-                        builder.and(
-                                builder.eq("source", seed.source()),
-                                builder.eq("document_version", seed.documentVersion())
-                        ),
+                .filterExpression(new org.springframework.ai.vectorstore.filter.Filter.Expression(
+                        org.springframework.ai.vectorstore.filter.Filter.ExpressionType.AND,
+                        published,
                         builder.and(
                                 builder.gte("chunk_order", minOrder),
                                 builder.lte("chunk_order", maxOrder)
-                        )
-                ).build())
+                        ).build()))
                 .build();
 
         return vectorStore.similaritySearch(request).stream()
+                .filter(document -> publication == null || publication.isPublished(document))
                 .map(this::toSearchResult)
                 .filter(candidate -> candidate.source().equals(seed.source())
                         && candidate.documentVersion().equals(seed.documentVersion())

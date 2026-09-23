@@ -4,6 +4,10 @@ import com.javainterview.rag.knowledge.document.MarkdownChunk;
 import com.javainterview.rag.knowledge.document.MarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.MarkdownDocument;
 import com.javainterview.rag.knowledge.document.KnowledgeIndexVersionMetadata;
+import com.javainterview.rag.knowledge.document.GenerationAwareMarkdownChunkIndexer;
+import com.javainterview.rag.knowledge.document.MarkdownIndexBuild;
+import com.javainterview.rag.knowledge.document.MarkdownIndexPublication;
+import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -34,7 +38,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** 使用 Lucene 倒排索引提供 BM25 稀疏检索。 */
-public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, AutoCloseable {
+public final class LuceneMarkdownChunkIndex implements GenerationAwareMarkdownChunkIndexer, AutoCloseable {
 
     private static final String ID_FIELD = "id";
     private static final String SOURCE_FIELD = "source";
@@ -54,6 +58,7 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     private static final String CHUNK_POLICY_VERSION_FIELD = "chunk_policy_version";
     private static final String PARSER_VERSION_FIELD = "parser_version";
     private static final String INDEX_SCHEMA_VERSION_FIELD = "index_schema_version";
+    private static final String INDEX_GENERATION_FIELD = "index_generation";
     private static final String HEADING_SEPARATOR = "\u001f";
     private static final Pattern JAVA_IDENTIFIER_PATTERN = Pattern.compile(
             "(?<![A-Za-z0-9_$])[A-Za-z_$][A-Za-z0-9_$]*(?:\\.[A-Za-z_$][A-Za-z0-9_$]*)*(?![A-Za-z0-9_$])");
@@ -69,15 +74,23 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
     private final Analyzer analyzer;
     private final IndexWriter writer;
     private final KnowledgeIndexVersionMetadata indexVersion;
+    private final MarkdownIndexingStateStore indexingStateStore;
 
     public LuceneMarkdownChunkIndex(Directory directory) {
-        this(directory, KnowledgeIndexVersionMetadata.current());
+        this(directory, KnowledgeIndexVersionMetadata.current(), null);
     }
 
     public LuceneMarkdownChunkIndex(Directory directory,
                                     KnowledgeIndexVersionMetadata indexVersion) {
+        this(directory, indexVersion, null);
+    }
+
+    public LuceneMarkdownChunkIndex(Directory directory,
+                                    KnowledgeIndexVersionMetadata indexVersion,
+                                    MarkdownIndexingStateStore indexingStateStore) {
         this.directory = Objects.requireNonNull(directory, "Lucene 索引目录不能为空");
         this.indexVersion = Objects.requireNonNull(indexVersion, "索引版本元数据不能为空");
+        this.indexingStateStore = indexingStateStore;
         this.analyzer = new StandardAnalyzer();
         try {
             IndexWriterConfig config = new IndexWriterConfig(analyzer)
@@ -96,11 +109,65 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         try {
             for (MarkdownChunk chunk : chunks) {
                 writer.updateDocument(new Term(ID_FIELD, stableDocumentId(document, chunk)),
-                        toLuceneDocument(document, chunk));
+                        toLuceneDocument(document, chunk, null));
             }
             writer.commit();
         } catch (IOException exception) {
             throw new IllegalStateException("写入 BM25 索引失败", exception);
+        }
+    }
+
+    @Override
+    public synchronized void buildGeneration(MarkdownDocument document, List<MarkdownChunk> chunks,
+                                             MarkdownIndexBuild build) {
+        Objects.requireNonNull(document, "Markdown 文档不能为空");
+        Objects.requireNonNull(chunks, "Markdown Chunk 列表不能为空");
+        Objects.requireNonNull(build, "索引构建信息不能为空");
+        try {
+            for (MarkdownChunk chunk : chunks) {
+                writer.updateDocument(new Term(ID_FIELD, stableDocumentId(document, chunk, build)),
+                        toLuceneDocument(document, chunk, build));
+            }
+            writer.commit();
+        } catch (IOException exception) {
+            throw new IllegalStateException("写入 BM25 临时代际失败", exception);
+        }
+    }
+
+    @Override
+    public synchronized void verifyGeneration(MarkdownDocument document, List<MarkdownChunk> chunks,
+                                              MarkdownIndexBuild build) {
+        long actual = count(generationQuery(document, build.generation()));
+        if (actual != chunks.size()) {
+            throw new IllegalStateException("BM25 临时代际 Chunk 数量不一致：expected="
+                    + chunks.size() + ", actual=" + actual);
+        }
+    }
+
+    @Override
+    public synchronized void deleteGeneration(MarkdownDocument document, MarkdownIndexBuild build) {
+        try {
+            writer.deleteDocuments(generationQuery(document, build.generation()));
+            writer.commit();
+        } catch (IOException exception) {
+            throw new IllegalStateException("清理 BM25 临时代际失败", exception);
+        }
+    }
+
+    @Override
+    public synchronized void deleteOtherGenerations(MarkdownDocument document,
+                                                    MarkdownIndexBuild publishedBuild) {
+        try {
+            org.apache.lucene.search.BooleanQuery keepPublished = generationQuery(
+                    document, publishedBuild.generation());
+            writer.deleteDocuments(new org.apache.lucene.search.BooleanQuery.Builder()
+                    .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, document.source())),
+                            org.apache.lucene.search.BooleanClause.Occur.MUST)
+                    .add(keepPublished, org.apache.lucene.search.BooleanClause.Occur.MUST_NOT)
+                    .build());
+            writer.commit();
+        } catch (IOException exception) {
+            throw new IllegalStateException("清理 BM25 旧代际失败", exception);
         }
     }
 
@@ -111,7 +178,7 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         try {
             writer.deleteDocuments(new Term(SOURCE_FIELD, document.source()));
             for (MarkdownChunk chunk : chunks) {
-                writer.addDocument(toLuceneDocument(document, chunk));
+                writer.addDocument(toLuceneDocument(document, chunk, null));
             }
             writer.commit();
             deleteOtherVersionsInternal(document);
@@ -173,7 +240,8 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
             } catch (ParseException exception) {
                 throw new IllegalArgumentException("检索问题包含无法解析的关键词", exception);
             }
-            TopDocs topDocs = searcher.search(parsedQuery, topK);
+            Query searchableQuery = publishedQuery(parsedQuery);
+            TopDocs topDocs = searcher.search(searchableQuery, topK);
             List<MarkdownSearchResult> results = new ArrayList<>(topDocs.scoreDocs.length);
             for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                 results.add(toSearchResult(searcher.doc(scoreDoc.doc), scoreDoc.score));
@@ -264,9 +332,10 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
                 .build();
     }
 
-    private Document toLuceneDocument(MarkdownDocument document, MarkdownChunk chunk) {
+    private Document toLuceneDocument(MarkdownDocument document, MarkdownChunk chunk,
+                                      MarkdownIndexBuild build) {
         Document result = new Document();
-        result.add(new StringField(ID_FIELD, stableDocumentId(document, chunk), Field.Store.YES));
+        result.add(new StringField(ID_FIELD, stableDocumentId(document, chunk, build), Field.Store.YES));
         result.add(new StringField(SOURCE_FIELD, document.source(), Field.Store.YES));
         result.add(new StringField(VERSION_FIELD, document.version(), Field.Store.YES));
         result.add(new IntField(CHUNK_ORDER_FIELD, chunk.order(), Field.Store.YES));
@@ -287,6 +356,9 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
         result.add(new StringField(CHUNK_POLICY_VERSION_FIELD, indexVersion.chunkPolicyVersion(), Field.Store.YES));
         result.add(new StringField(PARSER_VERSION_FIELD, indexVersion.parserVersion(), Field.Store.YES));
         result.add(new StringField(INDEX_SCHEMA_VERSION_FIELD, indexVersion.indexSchemaVersion(), Field.Store.YES));
+        if (build != null) {
+            result.add(new StringField(INDEX_GENERATION_FIELD, build.generation(), Field.Store.YES));
+        }
         return result;
     }
 
@@ -327,6 +399,58 @@ public final class LuceneMarkdownChunkIndex implements MarkdownChunkIndexer, Aut
 
     private String stableDocumentId(MarkdownDocument document, MarkdownChunk chunk) {
         return document.source() + "\u0000" + document.version() + "\u0000" + chunk.order();
+    }
+
+    private String stableDocumentId(MarkdownDocument document, MarkdownChunk chunk,
+                                    MarkdownIndexBuild build) {
+        return build == null ? stableDocumentId(document, chunk)
+                : document.source() + "\u0000" + document.version() + "\u0000"
+                + build.generation() + "\u0000" + chunk.order();
+    }
+
+    private org.apache.lucene.search.BooleanQuery generationQuery(MarkdownDocument document,
+                                                                   String generation) {
+        return new org.apache.lucene.search.BooleanQuery.Builder()
+                .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, document.source())),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(VERSION_FIELD, document.version())),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(new org.apache.lucene.search.TermQuery(new Term(INDEX_GENERATION_FIELD, generation)),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .build();
+    }
+
+    private Query publishedQuery(Query contentQuery) {
+        if (indexingStateStore == null) {
+            return contentQuery;
+        }
+        List<MarkdownIndexPublication> publications = indexingStateStore.findPublished();
+        if (publications.isEmpty()) {
+            return new org.apache.lucene.search.MatchNoDocsQuery();
+        }
+        org.apache.lucene.search.BooleanQuery.Builder published = new org.apache.lucene.search.BooleanQuery.Builder();
+        for (MarkdownIndexPublication publication : publications) {
+            org.apache.lucene.search.BooleanQuery.Builder branch = new org.apache.lucene.search.BooleanQuery.Builder()
+                    .add(new org.apache.lucene.search.TermQuery(new Term(SOURCE_FIELD, publication.source())),
+                            org.apache.lucene.search.BooleanClause.Occur.MUST)
+                    .add(new org.apache.lucene.search.TermQuery(new Term(VERSION_FIELD,
+                                    publication.documentVersion())),
+                            org.apache.lucene.search.BooleanClause.Occur.MUST);
+            if (publication.legacy()) {
+                branch.add(new org.apache.lucene.search.WildcardQuery(
+                                new Term(INDEX_GENERATION_FIELD, "*")),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST_NOT);
+            } else {
+                branch.add(new org.apache.lucene.search.TermQuery(new Term(INDEX_GENERATION_FIELD,
+                                publication.generation())),
+                        org.apache.lucene.search.BooleanClause.Occur.MUST);
+            }
+            published.add(branch.build(), org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+        }
+        return new org.apache.lucene.search.BooleanQuery.Builder()
+                .add(contentQuery, org.apache.lucene.search.BooleanClause.Occur.MUST)
+                .add(published.build(), org.apache.lucene.search.BooleanClause.Occur.FILTER)
+                .build();
     }
 
     private String codeText(MarkdownChunk chunk) {

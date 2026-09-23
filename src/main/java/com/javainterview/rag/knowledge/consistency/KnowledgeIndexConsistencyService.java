@@ -87,7 +87,7 @@ public final class KnowledgeIndexConsistencyService {
         return indexingStateStore.find(document.source(), document.version())
                 .map(state -> trackedState(state, expectedChunkCount))
                 .orElseGet(() -> new KnowledgeIndexConsistencyReport.IndexingStateCheck(
-                        false, null, null, null, null));
+                        false, null, null, null, null, null, null));
     }
 
     private KnowledgeIndexConsistencyReport.IndexingStateCheck trackedState(
@@ -95,7 +95,8 @@ public final class KnowledgeIndexConsistencyService {
         Boolean matched = expectedChunkCount == null
                 ? null : state.chunkCount() == expectedChunkCount;
         return new KnowledgeIndexConsistencyReport.IndexingStateCheck(
-                true, state.status(), state.chunkCount(), matched, state.errorType());
+                true, state.status(), state.chunkCount(), matched, state.errorType(),
+                state.publishedGeneration(), state.buildingGeneration());
     }
 
     private KnowledgeIndexConsistencyReport.StoreCheck inspectStore(
