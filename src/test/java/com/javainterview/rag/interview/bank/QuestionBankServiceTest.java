@@ -30,6 +30,52 @@ import static org.mockito.Mockito.when;
 
 class QuestionBankServiceTest {
     @Test
+    void createsManualQuestionWithRelevantEvidence() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);
+        MarkdownDocument document = MarkdownDocument.create("java.md", """
+                # 线程池
+
+                ## 容量
+
+                线程数需要服从下游连接池容量。
+
+                ## execute 流程
+
+                workerCount 小于 corePoolSize 时先创建核心 Worker。任务入队后要二次检查运行状态，
+                队列已满时才尝试扩容到 maximumPoolSize。
+
+                ## 线程命名
+
+                线程名用于线程转储和日志定位。
+                """);
+        KnowledgeDocumentSnapshot snapshot = new KnowledgeDocumentSnapshot(document,
+                new com.javainterview.rag.knowledge.document.MarkdownHeadingParser().parse(document));
+        when(registry.findVersionsBySource("java.md")).thenReturn(List.of(
+                new com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary(
+                        "java.md", document.version(), document.content().length(), LocalDateTime.now(),
+                        new com.javainterview.rag.knowledge.document.KnowledgeDocumentOutline(3, 3, List.of()))));
+        when(registry.findSnapshot("java.md", document.version())).thenReturn(Optional.of(snapshot));
+        when(store.insertQuestion(any())).thenReturn(true);
+        QuestionBankService service = new QuestionBankService(
+                store, new BankSources(registry, 600), mock(InterviewSessionService.class),
+                mock(InterviewSessionStore.class), "test");
+
+        BankQuestion created = service.create("java.md", InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.INTERMEDIATE, new QuestionBankService.EditFields(
+                        "原理与实现",
+                        "ThreadPoolExecutor 为什么不直接扩容到 maximumPoolSize？",
+                        "execute 任务接收顺序",
+                        "workerCount 小于 corePoolSize 时先创建核心 Worker，入队后二次检查状态。",
+                        List.of("corePoolSize", "入队后二次检查", "maximumPoolSize"),
+                        "按 execute 真实顺序评分", List.of()));
+
+        assertEquals(List.of("线程池", "execute 流程"),
+                created.evidence().get(0).headingPath());
+        assertTrue(created.evidence().get(0).content().contains("入队后要二次检查"));
+    }
+
+    @Test
     void rejectsSessionWhenFixedFollowUpCapacityIsInsufficient() {
         QuestionBankStore store = mock(QuestionBankStore.class);
         MarkdownImportRegistry registry = mock(MarkdownImportRegistry.class);

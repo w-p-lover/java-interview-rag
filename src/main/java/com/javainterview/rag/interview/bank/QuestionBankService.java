@@ -83,7 +83,13 @@ public class QuestionBankService {
             throw new IllegalArgumentException("请选择具体 Skill 和难度");
         }
         String version = sources.currentSnapshot(source).document().version();
-        var evidence = sources.evidence(source, version).stream().limit(3).toList();
+        String evidenceQuery = String.join("\n", fields.question(), fields.topicSummary(),
+                fields.referenceAnswer(), String.join("\n", fields.keyPoints()),
+                fields.followUps().stream()
+                        .map(followUp -> String.join("\n", followUp.question(),
+                                followUp.referenceAnswer(), String.join("\n", followUp.keyPoints())))
+                        .collect(java.util.stream.Collectors.joining("\n")));
+        var evidence = sources.relevantEvidence(source, version, evidenceQuery, 3);
         LocalDateTime now = LocalDateTime.now();
         BankQuestion question = new BankQuestion(UUID.randomUUID().toString(), null, source, version,
                 skill, difficulty, fields.category(), fields.question(), fields.topicSummary(),
