@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class InterviewQuestionPlanService {
 
@@ -21,14 +22,21 @@ public class InterviewQuestionPlanService {
 
     private final InterviewQuestionGenerationService generationService;
     private final FixedInterviewQuestionCatalog fixedQuestionCatalog;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
 
     public InterviewQuestionPlanService(InterviewQuestionGenerationService generationService,
                                         FixedInterviewQuestionCatalog fixedQuestionCatalog,
                                         String modelName) {
+        this(generationService, fixedQuestionCatalog, () -> modelName);
+    }
+
+    public InterviewQuestionPlanService(InterviewQuestionGenerationService generationService,
+                                        FixedInterviewQuestionCatalog fixedQuestionCatalog,
+                                        Supplier<String> modelNameSupplier) {
         this.generationService = Objects.requireNonNull(generationService, "面试出题服务不能为空");
         this.fixedQuestionCatalog = Objects.requireNonNull(fixedQuestionCatalog, "固定题目录不能为空");
-        this.modelName = requireText(modelName, "模型名称不能为空");
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
+        modelName();
     }
 
     public InterviewQuestionGenerationResult generate(String targetRole,
@@ -157,7 +165,7 @@ public class InterviewQuestionPlanService {
     }
 
     public String modelName() {
-        return modelName;
+        return requireText(modelNameSupplier.get(), "模型名称不能为空");
     }
 
     private List<PlannedQuestion> deduplicate(List<PlannedQuestion> questions,
@@ -224,7 +232,7 @@ public class InterviewQuestionPlanService {
         InterviewConfigurationSnapshot configuration = new InterviewConfigurationSnapshot(
                 STRATEGY_VERSION, InterviewSessionMode.STANDARD, skill, difficulty,
                 initialQuestionCount, maxQuestionCount, sourceQuotas, allocations,
-                preparationPromptVersion, questionPromptVersion, modelName);
+                preparationPromptVersion, questionPromptVersion, modelName());
         return new InterviewQuestionGenerationResult(
                 targetRole, questionPromptVersion,
                 plannedQuestions.stream().map(PlannedQuestion::question).toList(),

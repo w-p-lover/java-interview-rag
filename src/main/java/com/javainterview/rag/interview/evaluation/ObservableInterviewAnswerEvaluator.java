@@ -140,13 +140,14 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
                                               String baselineCaseId,
                                               Supplier<InterviewAnswerAssessment> action) {
         long startedAt = System.nanoTime();
+        String modelName = modelName();
         try {
             InterviewAnswerAssessment assessment = action.get();
-            record(mode, baselineRunId, baselineCaseId, assessment.evaluation(), startedAt, null);
+            record(mode, baselineRunId, baselineCaseId, assessment.evaluation(), startedAt, null, modelName);
             return assessment;
         } catch (RuntimeException exception) {
             record(mode, baselineRunId, baselineCaseId, null, startedAt,
-                    exception.getClass().getSimpleName());
+                    exception.getClass().getSimpleName(), modelName);
             throw exception;
         }
     }
@@ -156,7 +157,8 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
                         String baselineCaseId,
                         InterviewAnswerEvaluation evaluation,
                         long startedAt,
-                        String errorType) {
+                        String errorType,
+                        String modelName) {
         try {
             InterviewAnswerEvaluationLog.Status status = evaluation == null
                     ? InterviewAnswerEvaluationLog.Status.FAILED
@@ -169,7 +171,7 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
                     baselineCaseId,
                     promptVersion(),
                     rubricVersion(),
-                    modelName(),
+                    modelName,
                     status,
                     evaluation == null ? null : evaluation.knowledgeGrounded(),
                     evaluation == null ? null : evaluation.technicalScore(),

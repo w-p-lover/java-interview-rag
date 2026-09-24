@@ -23,7 +23,7 @@ public record ResumeAnalysisResult(
             throw new IllegalArgumentException("简历分析输入指纹格式无效");
         }
         contractVersion = ResumeRecord.text(contractVersion, 100, "简历分析契约版本");
-        modelName = ResumeRecord.text(modelName, 100, "简历分析模型名称");
+        modelName = ResumeRecord.text(modelName, 200, "简历分析模型名称");
         if (resultJson == null || resultJson.isBlank()) {
             throw new IllegalArgumentException("简历分析结果不能为空");
         }

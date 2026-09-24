@@ -9,6 +9,7 @@ import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -36,7 +37,7 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     private final ChatClient chatClient;
     private final MarkdownSimilaritySearchService searchService;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
     private final InterviewSkillRubricCatalog rubricCatalog = new InterviewSkillRubricCatalog();
 
     public InterviewAnswerEvaluationService(ChatClient chatClient,
@@ -47,9 +48,15 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     public InterviewAnswerEvaluationService(ChatClient chatClient,
                                             MarkdownSimilaritySearchService searchService,
                                             String modelName) {
+        this(chatClient, searchService, () -> modelName);
+    }
+
+    public InterviewAnswerEvaluationService(ChatClient chatClient,
+                                            MarkdownSimilaritySearchService searchService,
+                                            Supplier<String> modelNameSupplier) {
         this.chatClient = Objects.requireNonNull(chatClient, "聊天客户端不能为空");
         this.searchService = Objects.requireNonNull(searchService, "相似度检索服务不能为空");
-        this.modelName = modelName == null || modelName.isBlank() ? "unknown" : modelName;
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
     }
 
     @Override
@@ -156,7 +163,8 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
 
     @Override
     public String modelName() {
-        return modelName;
+        String modelName = modelNameSupplier.get();
+        return modelName == null || modelName.isBlank() ? "unknown" : modelName.strip();
     }
 
     private InterviewAnswerAssessment evaluate(InterviewPreparationProfile profile,

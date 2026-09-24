@@ -38,13 +38,13 @@ import com.javainterview.rag.interview.evaluation.ObservableInterviewAnswerEvalu
 import com.javainterview.rag.interview.preparation.InterviewPreparationService;
 import com.javainterview.rag.interview.question.InterviewQuestionGenerationService;
 import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
+import com.javainterview.rag.modelprovider.ModelProviderRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.beans.factory.annotation.Value;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
@@ -139,12 +139,12 @@ public class InterviewSessionConfiguration {
             ChatClient ragAnswerChatClient,
             ToolCallbackProvider interviewReviewToolCallbackProvider,
             InterviewAssistantRequestLogStore requestLogStore,
-            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
+            ModelProviderRegistry modelProviderRegistry) {
         return new InterviewReviewAssistantService(
                 ragAnswerChatClient,
                 interviewReviewToolCallbackProvider,
                 requestLogStore,
-                modelName);
+                modelProviderRegistry::currentChatContract);
     }
 
     @Bean
@@ -152,9 +152,10 @@ public class InterviewSessionConfiguration {
             ChatClient ragAnswerChatClient,
             MarkdownSimilaritySearchService searchService,
             InterviewAnswerEvaluationLogStore logStore,
-            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
+            ModelProviderRegistry modelProviderRegistry) {
         InterviewAnswerEvaluator evaluator =
-                new InterviewAnswerEvaluationService(ragAnswerChatClient, searchService, modelName);
+                new InterviewAnswerEvaluationService(
+                        ragAnswerChatClient, searchService, modelProviderRegistry::currentChatContract);
         return new ObservableInterviewAnswerEvaluator(evaluator, logStore);
     }
 

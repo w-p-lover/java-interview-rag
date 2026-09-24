@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -52,14 +53,14 @@ public class ResumeEvidenceAuditService {
 
     private final ChatClient chatClient;
     private final ResumeEvidenceAuditRequestLogStore logStore;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
     private final java.time.Duration auditTimeout;
     private final Executor auditExecutor;
 
     public ResumeEvidenceAuditService(ChatClient chatClient,
                                       ResumeEvidenceAuditRequestLogStore logStore,
                                       String modelName) {
-        this(chatClient, logStore, modelName, java.time.Duration.ofSeconds(420), Runnable::run);
+        this(chatClient, logStore, () -> modelName, java.time.Duration.ofSeconds(420), Runnable::run);
     }
 
     public ResumeEvidenceAuditService(ChatClient chatClient,
@@ -67,12 +68,18 @@ public class ResumeEvidenceAuditService {
                                       String modelName,
                                       java.time.Duration auditTimeout,
                                       Executor auditExecutor) {
+        this(chatClient, logStore, () -> modelName, auditTimeout, auditExecutor);
+    }
+
+    public ResumeEvidenceAuditService(ChatClient chatClient,
+                                      ResumeEvidenceAuditRequestLogStore logStore,
+                                      Supplier<String> modelNameSupplier,
+                                      java.time.Duration auditTimeout,
+                                      Executor auditExecutor) {
         this.chatClient = Objects.requireNonNull(chatClient, "ChatClient 不能为空");
         this.logStore = Objects.requireNonNull(logStore, "简历审计请求日志存储不能为空");
-        if (modelName == null || modelName.isBlank()) {
-            throw new IllegalArgumentException("简历审计模型名称不能为空");
-        }
-        this.modelName = modelName.strip();
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
+        modelName();
         this.auditTimeout = Objects.requireNonNull(auditTimeout, "简历审计超时时间不能为空");
         if (auditTimeout.isNegative() || auditTimeout.isZero()) {
             throw new IllegalArgumentException("简历审计超时时间必须大于 0");
@@ -92,6 +99,7 @@ public class ResumeEvidenceAuditService {
         String normalizedResume = requireResume(resumeText);
         SanitizedResume sanitizedResume = sanitize(normalizedResume);
         String requestId = UUID.randomUUID().toString();
+        String modelName = modelName();
         long startedAt = System.nanoTime();
         ResponseEntity<ChatResponse, ResumeEvidenceAuditDraft> modelResponse = null;
         ResumeEvidenceAuditDraft draft = null;
@@ -127,7 +135,7 @@ public class ResumeEvidenceAuditService {
             TokenUsage usage = tokenUsage(modelResponse.response());
             long elapsedMillis = elapsedMillis(startedAt);
             record(requestId, ResumeEvidenceAuditRequestLog.Status.SUCCEEDED,
-                    usage, null, elapsedMillis);
+                    usage, null, elapsedMillis, modelName);
             return EvaluationAttempt.succeeded(
                     result, draft.facts().size(), draft.facts().size(),
                     usage, elapsedMillis);
@@ -135,7 +143,7 @@ public class ResumeEvidenceAuditService {
             TokenUsage usage = tokenUsage(modelResponse == null ? null : modelResponse.response());
             long elapsedMillis = elapsedMillis(startedAt);
             record(requestId, ResumeEvidenceAuditRequestLog.Status.FAILED,
-                    usage, errorType(exception), elapsedMillis);
+                    usage, errorType(exception), elapsedMillis, modelName);
             int candidateFactCount = draft == null ? 0 : draft.facts().size();
             int legalEvidenceCount = draft == null ? 0 : (int) draft.facts().stream()
                     .filter(fact -> sanitizedResume.modelInput().contains(fact.evidence()))
@@ -166,7 +174,14 @@ public class ResumeEvidenceAuditService {
     }
 
     public String modelName() {
-        return modelName;
+        String value = modelNameSupplier.get();
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("简历审计模型名称不能为空");
+        }
+        if (value.strip().length() > 200) {
+            throw new IllegalArgumentException("简历审计模型名称不能超过 200 个字符");
+        }
+        return value.strip();
     }
 
     private String requireResume(String resumeText) {
@@ -261,7 +276,8 @@ public class ResumeEvidenceAuditService {
                         ResumeEvidenceAuditRequestLog.Status status,
                         TokenUsage usage,
                         String errorType,
-                        long elapsedMillis) {
+                        long elapsedMillis,
+                        String modelName) {
         try {
             logStore.record(new ResumeEvidenceAuditRequestLog(
                     null,

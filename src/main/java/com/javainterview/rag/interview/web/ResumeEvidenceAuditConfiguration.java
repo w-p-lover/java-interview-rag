@@ -12,6 +12,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditEvaluationRunSt
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogQueryService;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditRequestLogStore;
 import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
+import com.javainterview.rag.modelprovider.ModelProviderRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -66,10 +67,11 @@ public class ResumeEvidenceAuditConfiguration {
     ResumeEvidenceAuditService resumeEvidenceAuditService(
             ChatClient ragAnswerChatClient,
             ResumeEvidenceAuditRequestLogStore logStore,
-            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName,
+            ModelProviderRegistry modelProviderRegistry,
             @Value("${java-interview-rag.resume-audit.timeout:420s}") Duration timeout,
             @org.springframework.beans.factory.annotation.Qualifier("resumeEvidenceAuditExecutor") Executor executor) {
-        return new ResumeEvidenceAuditService(ragAnswerChatClient, logStore, modelName, timeout, executor);
+        return new ResumeEvidenceAuditService(
+                ragAnswerChatClient, logStore, modelProviderRegistry::currentChatContract, timeout, executor);
     }
 
     @Bean

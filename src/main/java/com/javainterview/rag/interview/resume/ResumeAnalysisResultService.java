@@ -52,7 +52,7 @@ public class ResumeAnalysisResultService {
         String normalizedVersionId = requireVersion(resumeVersionId);
         Objects.requireNonNull(analysisType, "简历分析类型不能为空");
         String normalizedContract = ResumeRecord.text(contractVersion, 100, "简历分析契约版本");
-        String normalizedModel = ResumeRecord.text(modelName, 100, "简历分析模型名称");
+        String normalizedModel = ResumeRecord.text(modelName, 200, "简历分析模型名称");
         String fingerprint = fingerprint(
                 analysisType, fingerprintInput, normalizedContract, normalizedModel);
 

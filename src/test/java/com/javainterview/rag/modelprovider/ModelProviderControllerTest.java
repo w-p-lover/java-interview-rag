@@ -15,7 +15,8 @@ class ModelProviderControllerTest {
     @Test
     void delegatesOverviewAndCapabilityTest() {
         ModelProviderService service = mock(ModelProviderService.class);
-        ModelProviderOverview overview = new ModelProviderOverview(Instant.EPOCH, List.of());
+        ModelProviderOverview overview = new ModelProviderOverview(
+                Instant.EPOCH, List.of(), "chat", "embedding", 0, List.of());
         ModelProviderTestResult testResult = new ModelProviderTestResult(
                 ModelCapability.CHAT, true, "OK", "连接成功。", "qwen-test",
                 null, 12, Instant.EPOCH);

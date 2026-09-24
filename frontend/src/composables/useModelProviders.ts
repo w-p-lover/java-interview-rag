@@ -1,10 +1,16 @@
 import { onMounted, readonly, shallowRef } from "vue";
 
 import {
+  createModelProvider,
+  deleteModelProvider,
   getModelProviderOverview,
-  testModelProviderCapability,
+  testSpecificModelProviderCapability,
+  updateModelProvider,
+  updateModelProviderDefaults,
   type ModelCapability,
+  type ModelProviderDefaultsRequest,
   type ModelProviderOverview,
+  type ModelProviderRequest,
   type ModelProviderTestResult,
 } from "@/api/modelProvider";
 import { resolveApiError } from "@/api/request";
@@ -13,9 +19,10 @@ export function useModelProviders() {
   const overview = shallowRef<ModelProviderOverview | null>(null);
   const loading = shallowRef(false);
   const loadError = shallowRef("");
-  const testing = shallowRef<Partial<Record<ModelCapability, boolean>>>({});
-  const testResults = shallowRef<Partial<Record<ModelCapability, ModelProviderTestResult>>>({});
-  const testErrors = shallowRef<Partial<Record<ModelCapability, string>>>({});
+  const actionKey = shallowRef("");
+  const actionError = shallowRef("");
+  const testResults = shallowRef<Record<string, ModelProviderTestResult>>({});
+  const testErrors = shallowRef<Record<string, string>>({});
 
   async function refresh(): Promise<void> {
     loading.value = true;
@@ -29,19 +36,46 @@ export function useModelProviders() {
     }
   }
 
-  async function runTest(capability: ModelCapability): Promise<void> {
-    testing.value = { ...testing.value, [capability]: true };
-    testErrors.value = { ...testErrors.value, [capability]: "" };
+  async function mutate(key: string, action: () => Promise<ModelProviderOverview>): Promise<boolean> {
+    actionKey.value = key;
+    actionError.value = "";
     try {
-      const result = await testModelProviderCapability(capability);
-      testResults.value = { ...testResults.value, [capability]: result };
+      overview.value = await action();
+      return true;
     } catch (error) {
-      testErrors.value = {
-        ...testErrors.value,
-        [capability]: resolveApiError(error, "模型能力验证失败"),
-      };
+      actionError.value = resolveApiError(error, "Provider 操作失败");
+      return false;
     } finally {
-      testing.value = { ...testing.value, [capability]: false };
+      actionKey.value = "";
+    }
+  }
+
+  function saveProvider(payload: ModelProviderRequest, editing: boolean): Promise<boolean> {
+    return mutate(`save:${payload.id}`, () => editing
+      ? updateModelProvider(payload.id, payload)
+      : createModelProvider(payload));
+  }
+
+  function removeProvider(id: string, version: number): Promise<boolean> {
+    return mutate(`delete:${id}`, () => deleteModelProvider(id, version));
+  }
+
+  function saveDefaults(payload: ModelProviderDefaultsRequest): Promise<boolean> {
+    return mutate("defaults", () => updateModelProviderDefaults(payload));
+  }
+
+  async function runTest(id: string, capability: ModelCapability): Promise<void> {
+    const key = `${id}:${capability}`;
+    actionKey.value = `test:${key}`;
+    actionError.value = "";
+    testErrors.value = { ...testErrors.value, [key]: "" };
+    try {
+      const result = await testSpecificModelProviderCapability(id, capability);
+      testResults.value = { ...testResults.value, [key]: result };
+    } catch (error) {
+      testErrors.value = { ...testErrors.value, [key]: resolveApiError(error, "模型能力验证失败") };
+    } finally {
+      actionKey.value = "";
     }
   }
 
@@ -53,10 +87,14 @@ export function useModelProviders() {
     overview: readonly(overview),
     loading: readonly(loading),
     loadError: readonly(loadError),
-    testing: readonly(testing),
+    actionKey: readonly(actionKey),
+    actionError: readonly(actionError),
     testResults: readonly(testResults),
     testErrors: readonly(testErrors),
     refresh,
+    saveProvider,
+    removeProvider,
+    saveDefaults,
     runTest,
   };
 }

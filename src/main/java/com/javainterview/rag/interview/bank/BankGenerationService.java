@@ -25,6 +25,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class BankGenerationService {
     private static final Logger log = LoggerFactory.getLogger(BankGenerationService.class);
@@ -33,7 +34,7 @@ public class BankGenerationService {
     private final BankSources sources;
     private final BankQuestionGenerator generator;
     private final Executor executor;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
     private final ScheduledExecutorService recoveryScheduler;
     private final BankGenerationRecoveryPolicy recoveryPolicy;
     private final String workerId = "question-bank-" + UUID.randomUUID();
@@ -47,11 +48,19 @@ public class BankGenerationService {
                                   BankQuestionGenerator generator, Executor executor,
                                   String modelName, ScheduledExecutorService recoveryScheduler,
                                   BankGenerationRecoveryPolicy recoveryPolicy) {
+        this(store, sources, generator, executor, () -> modelName, recoveryScheduler, recoveryPolicy);
+    }
+
+    public BankGenerationService(QuestionBankStore store, BankSources sources,
+                                  BankQuestionGenerator generator, Executor executor,
+                                  Supplier<String> modelNameSupplier,
+                                  ScheduledExecutorService recoveryScheduler,
+                                  BankGenerationRecoveryPolicy recoveryPolicy) {
         this.store = store;
         this.sources = sources;
         this.generator = generator;
         this.executor = executor;
-        this.modelName = modelName;
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
         this.recoveryScheduler = recoveryScheduler;
         this.recoveryPolicy = recoveryPolicy;
     }
@@ -87,6 +96,7 @@ public class BankGenerationService {
             throw new IllegalArgumentException("生成题数必须在 1 到 8 之间，固定追问数在 0 到 2 之间");
         }
         var snapshot = sources.currentSnapshot(source);
+        String modelName = currentModelName();
         LocalDateTime now = LocalDateTime.now();
         BankGenerationTask requested = new BankGenerationTask(UUID.randomUUID().toString(),
                 requestId, source, snapshot.document().version(), skill, difficulty,
@@ -123,7 +133,7 @@ public class BankGenerationService {
         if (!sources.isCurrent(task.source(), task.documentVersion())) {
             throw new InterviewSessionConflictException("资料已更新或删除，不能恢复旧版本任务");
         }
-        if (!modelName.equals(task.modelName())
+        if (!currentModelName().equals(task.modelName())
                 || !BankQuestionGenerator.PROMPT_VERSION.equals(task.promptVersion())) {
             throw new InterviewSessionConflictException("生成契约已变化，请创建新的生成任务");
         }
@@ -138,6 +148,14 @@ public class BankGenerationService {
             schedule(queued);
         }
         return find(id);
+    }
+
+    private String currentModelName() {
+        String value = modelNameSupplier.get();
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("题库生成模型契约不能为空");
+        }
+        return value.strip();
     }
 
     public BankGenerationTask cancel(String id) {

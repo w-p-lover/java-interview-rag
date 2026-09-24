@@ -25,25 +25,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.IntStream;
+import java.util.function.Supplier;
 
 public class QuestionBankService {
     private final QuestionBankStore store;
     private final BankSources sources;
     private final InterviewSessionService sessionService;
     private final InterviewSessionStore sessionStore;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
     private final InterviewSkillTrainingCatalog trainingCatalog = new InterviewSkillTrainingCatalog();
 
     public QuestionBankService(QuestionBankStore store, BankSources sources,
                                InterviewSessionService sessionService,
                                InterviewSessionStore sessionStore, String modelName) {
+        this(store, sources, sessionService, sessionStore, () -> modelName);
+    }
+
+    public QuestionBankService(QuestionBankStore store, BankSources sources,
+                               InterviewSessionService sessionService,
+                               InterviewSessionStore sessionStore, Supplier<String> modelNameSupplier) {
         this.store = store;
         this.sources = sources;
         this.sessionService = sessionService;
         this.sessionStore = sessionStore;
-        this.modelName = modelName;
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
     }
 
     public List<BankQuestion> list(String source, BankQuestion.Status status,
@@ -262,11 +270,19 @@ public class QuestionBankService {
                 "knowledge-question-bank-v3", InterviewSessionMode.STANDARD, request.skill(),
                 request.difficulty(), questions.size(), questions.size(),
                 Map.of(InterviewQuestionSource.KNOWLEDGE, questions.size()), allocations,
-                "knowledge-bank-profile-v1", BankQuestionGenerator.PROMPT_VERSION, modelName);
+                "knowledge-bank-profile-v1", BankQuestionGenerator.PROMPT_VERSION, currentModelName());
         InterviewSession session = sessionService.start("知识资料专项面试", profile, questions,
                 questions.size(), configuration, requestId);
         recordUsage(session);
         return session;
+    }
+
+    private String currentModelName() {
+        String value = modelNameSupplier.get();
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("知识题库模型契约不能为空");
+        }
+        return value.strip();
     }
 
     private void recordUsage(InterviewSession session) {

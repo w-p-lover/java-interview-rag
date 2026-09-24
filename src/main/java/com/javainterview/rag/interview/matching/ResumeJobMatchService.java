@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Slf4j
 public class ResumeJobMatchService {
@@ -36,18 +37,26 @@ public class ResumeJobMatchService {
 
     private final ChatClient chatClient;
     private final ResumeJobMatchRequestLogStore logStore;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
 
     public ResumeJobMatchService(ChatClient chatClient,
                                  ResumeJobMatchRequestLogStore logStore,
                                  String modelName) {
+        this(chatClient, logStore, () -> modelName);
+    }
+
+    public ResumeJobMatchService(ChatClient chatClient,
+                                 ResumeJobMatchRequestLogStore logStore,
+                                 Supplier<String> modelNameSupplier) {
         this.chatClient = Objects.requireNonNull(chatClient, "岗位匹配聊天客户端不能为空");
         this.logStore = Objects.requireNonNull(logStore, "岗位匹配请求日志存储不能为空");
-        this.modelName = requireText(modelName, 100, "岗位匹配模型名称不能为空", "岗位匹配模型名称不能超过 100 个字符");
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
+        modelName();
     }
 
     public ResumeJobMatchResult match(ResumeJobMatchRequest request) {
         ValidatedInput input = validate(request);
+        String modelName = modelName();
         long startedAt = System.nanoTime();
         ResponseEntity<ChatResponse, ResumeJobMatchDraft> modelResponse = null;
         try {
@@ -60,12 +69,12 @@ public class ResumeJobMatchService {
             }
             ResumeJobMatchResult result = toVerifiedResult(input, draft);
             record(input.requestId(), ResumeJobMatchRequestLog.Status.SUCCEEDED,
-                    tokenUsage(modelResponse.response()), null, elapsedMillis(startedAt));
+                    tokenUsage(modelResponse.response()), null, elapsedMillis(startedAt), modelName);
             return result;
         } catch (RuntimeException exception) {
             record(input.requestId(), ResumeJobMatchRequestLog.Status.FAILED,
                     tokenUsage(modelResponse == null ? null : modelResponse.response()),
-                    exception.getClass().getSimpleName(), elapsedMillis(startedAt));
+                    exception.getClass().getSimpleName(), elapsedMillis(startedAt), modelName);
             throw exception;
         }
     }
@@ -79,7 +88,7 @@ public class ResumeJobMatchService {
     }
 
     public String modelName() {
-        return modelName;
+        return requireText(modelNameSupplier.get(), 200, "岗位匹配模型名称不能为空", "岗位匹配模型名称不能超过 200 个字符");
     }
 
     private ValidatedInput validate(ResumeJobMatchRequest request) {
@@ -183,7 +192,7 @@ public class ResumeJobMatchService {
     }
 
     private void record(String requestId, ResumeJobMatchRequestLog.Status status,
-                        TokenUsage usage, String errorType, long elapsedMillis) {
+                        TokenUsage usage, String errorType, long elapsedMillis, String modelName) {
         try {
             logStore.record(new ResumeJobMatchRequestLog(
                     null, requestId, ROLE_NAME, PROMPT_VERSION, modelName, status,

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Slf4j
 public class InterviewReviewAssistantService {
@@ -38,21 +39,26 @@ public class InterviewReviewAssistantService {
     private final ChatClient chatClient;
     private final ToolCallbackProvider toolCallbackProvider;
     private final InterviewAssistantRequestLogStore requestLogStore;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
 
     public InterviewReviewAssistantService(ChatClient chatClient,
                                            ToolCallbackProvider toolCallbackProvider,
                                            InterviewAssistantRequestLogStore requestLogStore,
                                            String modelName) {
+        this(chatClient, toolCallbackProvider, requestLogStore, () -> modelName);
+    }
+
+    public InterviewReviewAssistantService(ChatClient chatClient,
+                                           ToolCallbackProvider toolCallbackProvider,
+                                           InterviewAssistantRequestLogStore requestLogStore,
+                                           Supplier<String> modelNameSupplier) {
         this.chatClient = Objects.requireNonNull(chatClient, "ChatClient 不能为空");
         this.toolCallbackProvider = Objects.requireNonNull(
                 toolCallbackProvider, "复习工具 Provider 不能为空");
         this.requestLogStore = Objects.requireNonNull(
                 requestLogStore, "复习助手请求日志存储不能为空");
-        if (modelName == null || modelName.isBlank()) {
-            throw new IllegalArgumentException("复习助手模型名称不能为空");
-        }
-        this.modelName = modelName.strip();
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
+        modelName();
     }
 
     public InterviewReviewAssistantResult respond(
@@ -74,6 +80,7 @@ public class InterviewReviewAssistantService {
         InterviewAssistantRequestContext requestContext =
                 InterviewAssistantRequestContext.create(
                         normalizedSessionId, scheduleConfirmation);
+        String modelName = modelName();
         long startedAt = System.nanoTime();
         ChatResponse response = null;
         try {
@@ -89,11 +96,11 @@ public class InterviewReviewAssistantService {
                 throw new IllegalStateException("复习助手未返回有效内容");
             }
             recordRequest(requestContext, InterviewAssistantRequestLog.Status.SUCCEEDED,
-                    response, true, null, startedAt);
+                    response, true, null, startedAt, modelName);
             return new InterviewReviewAssistantResult(requestContext.requestId(), content);
         } catch (RuntimeException exception) {
             recordRequest(requestContext, InterviewAssistantRequestLog.Status.FAILED,
-                    response, false, exception.getClass().getSimpleName(), startedAt);
+                    response, false, exception.getClass().getSimpleName(), startedAt, modelName);
             throw exception;
         }
     }
@@ -125,7 +132,8 @@ public class InterviewReviewAssistantService {
                                ChatResponse response,
                                boolean finalResponsePresent,
                                String errorType,
-                               long startedAt) {
+                               long startedAt,
+                               String modelName) {
         TokenUsage tokenUsage = tokenUsage(response);
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
         try {
@@ -146,6 +154,14 @@ public class InterviewReviewAssistantService {
             log.warn("记录复习助手请求日志失败，requestId={}",
                     requestContext.requestId(), exception);
         }
+    }
+
+    private String modelName() {
+        String value = modelNameSupplier.get();
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("复习助手模型名称不能为空");
+        }
+        return value.strip();
     }
 
     private TokenUsage tokenUsage(ChatResponse response) {

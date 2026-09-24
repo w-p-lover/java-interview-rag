@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -37,15 +38,20 @@ public class ResumeExpressionCoachService {
             """;
 
     private final ChatClient chatClient;
-    private final String modelName;
+    private final Supplier<String> modelNameSupplier;
 
     public ResumeExpressionCoachService(ChatClient chatClient) {
         this(chatClient, "unknown");
     }
 
     public ResumeExpressionCoachService(ChatClient chatClient, String modelName) {
+        this(chatClient, () -> modelName);
+    }
+
+    public ResumeExpressionCoachService(ChatClient chatClient, Supplier<String> modelNameSupplier) {
         this.chatClient = Objects.requireNonNull(chatClient, "简历表达教练聊天客户端不能为空");
-        this.modelName = ResumeRecord.text(modelName, 100, "简历表达教练模型名称");
+        this.modelNameSupplier = Objects.requireNonNull(modelNameSupplier, "模型契约提供器不能为空");
+        modelName();
     }
 
     public ResumeExpressionCoachResult coach(ResumeExpressionCoachRequest request) {
@@ -71,7 +77,7 @@ public class ResumeExpressionCoachService {
     }
 
     public String modelName() {
-        return modelName;
+        return ResumeRecord.text(modelNameSupplier.get(), 200, "简历表达教练模型名称");
     }
 
     private ValidatedInput validate(ResumeExpressionCoachRequest request) {

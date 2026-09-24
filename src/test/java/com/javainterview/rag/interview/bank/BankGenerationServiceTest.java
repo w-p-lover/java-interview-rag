@@ -146,6 +146,35 @@ class BankGenerationServiceTest {
     }
 
     @Test
+    void snapshotsCurrentDynamicModelContractWhenSubmittingTask() {
+        QuestionBankStore store = mock(QuestionBankStore.class);
+        BankSources sources = mock(BankSources.class);
+        KnowledgeDocumentSnapshot snapshot = snapshot();
+        AtomicReference<String> contract = new AtomicReference<>("provider-a/qwen#3");
+        AtomicReference<BankGenerationTask> taskState = new AtomicReference<>();
+        when(sources.currentSnapshot("java.md")).thenReturn(snapshot);
+        when(store.findTaskByRequestId("dynamic-contract")).thenReturn(Optional.empty());
+        when(store.findActiveTask("java.md", snapshot.document().version())).thenReturn(Optional.empty());
+        when(store.createOrFindTask(any())).thenAnswer(invocation -> {
+            BankGenerationTask task = invocation.getArgument(0);
+            taskState.set(task);
+            return task;
+        });
+        when(store.findTask(any())).thenAnswer(invocation -> Optional.ofNullable(taskState.get()));
+        BankGenerationService service = new BankGenerationService(
+                store, sources, mock(BankQuestionGenerator.class), ignored -> { }, contract::get,
+                recoveryScheduler, new BankGenerationRecoveryPolicy(1_000, 2_000, 1));
+
+        BankGenerationTask submitted = service.submit(
+                "dynamic-contract", "java.md", InterviewSkill.JAVA_CORE,
+                InterviewDifficulty.INTERMEDIATE, 3, 0);
+        contract.set("provider-b/qwen#4");
+
+        assertEquals("provider-a/qwen#3", submitted.modelName());
+        assertEquals("provider-a/qwen#3", taskState.get().modelName());
+    }
+
+    @Test
     void recoversStaleAttemptOnceThenFailsAfterRecoveryBudgetIsExhausted() {
         QuestionBankStore store = mock(QuestionBankStore.class);
         AtomicReference<BankGenerationTask> taskState = new AtomicReference<>(staleTask(0, 4));

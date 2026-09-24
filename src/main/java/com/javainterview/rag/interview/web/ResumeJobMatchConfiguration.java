@@ -5,8 +5,8 @@ import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLogQuerySer
 import com.javainterview.rag.interview.matching.ResumeJobMatchRequestLogStore;
 import com.javainterview.rag.interview.persistence.MySqlResumeJobMatchRequestLogStore;
 import com.javainterview.rag.interview.persistence.ResumeJobMatchRequestLogMapper;
+import com.javainterview.rag.modelprovider.ModelProviderRegistry;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -30,7 +30,8 @@ public class ResumeJobMatchConfiguration {
     ResumeJobMatchService resumeJobMatchService(
             ChatClient ragAnswerChatClient,
             ResumeJobMatchRequestLogStore logStore,
-            @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
-        return new ResumeJobMatchService(ragAnswerChatClient, logStore, modelName);
+            ModelProviderRegistry modelProviderRegistry) {
+        return new ResumeJobMatchService(
+                ragAnswerChatClient, logStore, modelProviderRegistry::currentChatContract);
     }
 }

@@ -14,6 +14,8 @@ spring:
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeMultimodalEmbeddingAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeVideoAutoConfiguration
       - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeChatAutoConfiguration
+      - com.alibaba.cloud.ai.autoconfigure.dashscope.DashScopeEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
@@ -69,6 +71,8 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 java-interview-rag:
+  provider:
+    encryption-key: ${JAVA_INTERVIEW_RAG_PROVIDER_ENCRYPTION_KEY:}
   embedding:
     connect-timeout: ${JAVA_INTERVIEW_RAG_EMBEDDING_CONNECT_TIMEOUT:5s}
     response-timeout: ${JAVA_INTERVIEW_RAG_EMBEDDING_RESPONSE_TIMEOUT:30s}

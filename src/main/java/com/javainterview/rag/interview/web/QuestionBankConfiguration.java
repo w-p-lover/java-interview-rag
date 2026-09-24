@@ -13,6 +13,7 @@ import com.javainterview.rag.interview.persistence.QuestionBankMapper;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
+import com.javainterview.rag.modelprovider.ModelProviderRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,11 +90,12 @@ public class QuestionBankConfiguration {
                                                  @Qualifier("bankGenerationExecutor") Executor executor,
                                                  @Qualifier("bankGenerationRecoveryScheduler")
                                                  ScheduledExecutorService recoveryScheduler,
-                                                 @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName,
+                                                 ModelProviderRegistry modelProviderRegistry,
                                                  @Value("${java-interview-rag.question-bank.heartbeat-ms:5000}") long heartbeatMillis,
                                                  @Value("${java-interview-rag.question-bank.stale-timeout-ms:30000}") long staleTimeoutMillis,
                                                  @Value("${java-interview-rag.question-bank.max-recoveries:1}") int maxRecoveries) {
-        return new BankGenerationService(store, sources, generator, executor, modelName,
+        return new BankGenerationService(store, sources, generator, executor,
+                modelProviderRegistry::currentChatContract,
                 recoveryScheduler, new BankGenerationRecoveryPolicy(
                 heartbeatMillis, staleTimeoutMillis, maxRecoveries));
     }
@@ -101,7 +103,8 @@ public class QuestionBankConfiguration {
     @Bean
     QuestionBankService questionBankService(QuestionBankStore store, BankSources sources,
                                              InterviewSessionService sessions, InterviewSessionStore sessionStore,
-                                             @Value("${spring.ai.openai.chat.options.model:unknown}") String modelName) {
-        return new QuestionBankService(store, sources, sessions, sessionStore, modelName);
+                                             ModelProviderRegistry modelProviderRegistry) {
+        return new QuestionBankService(
+                store, sources, sessions, sessionStore, modelProviderRegistry::currentChatContract);
     }
 }
