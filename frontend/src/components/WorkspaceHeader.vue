@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { Activity, BookOpen, BookOpenCheck, Command, Database, FileUser, ListChecks, MessageCircleQuestion, Search } from "@lucide/vue";
+import { Activity, BookOpen, BookOpenCheck, Command, Database, FileUser, ListChecks, MessageCircleQuestion, Search, Settings2 } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,7 +8,7 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "resumes" | "observability";
+  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "resumes" | "observability" | "model-providers";
 }>(), {
   mode: "knowledge",
 });
@@ -41,6 +41,13 @@ const commands = computed<WorkspaceCommand[]>(() => {
     return [
       { id: "observability-overview", label: "运行概览", description: "查看业务请求和失败率" },
       { id: "observability-operations", label: "路由表现", description: "查看各业务路由耗时" },
+    ];
+  }
+  if (props.mode === "model-providers") {
+    return [
+      { id: "model-provider-overview", label: "Provider 概览", description: "查看当前 Chat 与 Embedding 配置" },
+      { id: "model-provider-capabilities", label: "能力配置", description: "核对模型、端点和业务用途" },
+      { id: "model-provider-tests", label: "能力验证", description: "执行固定样本连通性验证" },
     ];
   }
   if (props.mode === "review") {
@@ -132,6 +139,10 @@ onUnmounted(() => {
         <RouterLink to="/observability" class="nav-link" aria-label="打开运行观测">
           <Activity :size="16" aria-hidden="true" />
           <span>运行观测</span>
+        </RouterLink>
+        <RouterLink to="/model-providers" class="nav-link" aria-label="打开模型 Provider">
+          <Settings2 :size="16" aria-hidden="true" />
+          <span>模型配置</span>
         </RouterLink>
       </nav>
 

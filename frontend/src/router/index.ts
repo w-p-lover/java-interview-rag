@@ -34,6 +34,11 @@ const router = createRouter({
       component: () => import("@/views/ObservabilityView.vue"),
     },
     {
+      path: "/model-providers",
+      name: "model-providers",
+      component: () => import("@/views/ModelProviderView.vue"),
+    },
+    {
       path: "/observability/feedback",
       name: "observability-feedback",
       component: () => import("@/views/ObservabilityFeedbackView.vue"),
