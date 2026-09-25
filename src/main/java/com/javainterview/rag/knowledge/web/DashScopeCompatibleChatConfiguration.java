@@ -9,40 +9,16 @@ import org.springframework.util.Assert;
 import org.springframework.web.client.ResponseErrorHandler;
 
 import java.io.IOException;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.http.HttpTimeoutException;
-import java.time.Duration;
 
 public final class DashScopeCompatibleChatConfiguration {
-
-    private static final int CHAT_MAX_ATTEMPTS = 2;
-    private static final Duration CHAT_RETRY_BACKOFF = Duration.ofMillis(500);
 
     private DashScopeCompatibleChatConfiguration() {
     }
 
     public static RetryTemplate limitedChatRetryTemplate() {
-        return RetryTemplate.builder()
-                .maxAttempts(CHAT_MAX_ATTEMPTS)
-                .retryOn(DashScopeCompatibleChatConfiguration::isRetryableChatFailure)
-                .fixedBackoff(CHAT_RETRY_BACKOFF)
-                .build();
-    }
-
-    public static boolean isRetryableChatFailure(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            if (current instanceof TransientAiException
-                    || current instanceof ConnectException
-                    || current instanceof SocketTimeoutException
-                    || current instanceof HttpTimeoutException) {
-                return true;
-            }
-            current = current.getCause();
-        }
-        return false;
+        // Chat 超时可能发生在 Provider 已开始计费后，由业务恢复入口决定是否再次调用。
+        return RetryTemplate.builder().maxAttempts(1).build();
     }
 
     public static ResponseErrorHandler limitedChatResponseErrorHandler() {

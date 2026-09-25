@@ -9,10 +9,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
@@ -32,9 +35,23 @@ public class ModelProviderConfiguration {
 
     @Bean
     ModelProviderClientFactory modelProviderClientFactory(
+            @Qualifier("modelProviderChatRestClientBuilder") RestClient.Builder chatRestClientBuilder,
             @Qualifier("dashScopeEmbeddingRestClientBuilder") RestClient.Builder restClientBuilder,
             @Qualifier("dashScopeEmbeddingRetryTemplate") RetryTemplate embeddingRetryTemplate) {
-        return new OpenAiCompatibleModelProviderClientFactory(restClientBuilder, embeddingRetryTemplate);
+        return new OpenAiCompatibleModelProviderClientFactory(
+                chatRestClientBuilder, restClientBuilder, embeddingRetryTemplate);
+    }
+
+    @Bean
+    RestClient.Builder modelProviderChatRestClientBuilder(
+            @Value("${java-interview-rag.provider.chat.connect-timeout:5s}") Duration connectTimeout,
+            @Value("${java-interview-rag.provider.chat.response-timeout:180s}") Duration responseTimeout) {
+        requirePositive(connectTimeout, "Chat 连接超时");
+        requirePositive(responseTimeout, "Chat 响应超时");
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(connectTimeout);
+        requestFactory.setReadTimeout(responseTimeout);
+        return RestClient.builder().requestFactory(requestFactory);
     }
 
     @Bean
@@ -63,5 +80,11 @@ public class ModelProviderConfiguration {
     @Primary
     EmbeddingModel routingEmbeddingModel(ModelProviderRegistry registry) {
         return new RoutingEmbeddingModel(registry);
+    }
+
+    private void requirePositive(Duration timeout, String name) {
+        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException(name + "必须大于 0");
+        }
     }
 }

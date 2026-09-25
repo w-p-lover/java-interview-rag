@@ -14,13 +14,16 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestClient;
 
 public class OpenAiCompatibleModelProviderClientFactory implements ModelProviderClientFactory {
-    private final RestClient.Builder restClientBuilder;
+    private final RestClient.Builder chatRestClientBuilder;
+    private final RestClient.Builder embeddingRestClientBuilder;
     private final RetryTemplate embeddingRetryTemplate;
 
     public OpenAiCompatibleModelProviderClientFactory(
-            RestClient.Builder restClientBuilder,
+            RestClient.Builder chatRestClientBuilder,
+            RestClient.Builder embeddingRestClientBuilder,
             RetryTemplate embeddingRetryTemplate) {
-        this.restClientBuilder = restClientBuilder;
+        this.chatRestClientBuilder = chatRestClientBuilder;
+        this.embeddingRestClientBuilder = embeddingRestClientBuilder;
         this.embeddingRetryTemplate = embeddingRetryTemplate;
     }
 
@@ -30,7 +33,7 @@ public class OpenAiCompatibleModelProviderClientFactory implements ModelProvider
             throw new IllegalArgumentException("Provider 未配置 Chat 模型");
         }
         return OpenAiChatModel.builder()
-                .openAiApi(api(provider))
+                .openAiApi(api(provider, chatRestClientBuilder))
                 .defaultOptions(OpenAiChatOptions.builder()
                         .model(provider.chatModel())
                         .temperature(provider.temperature() == null ? 0.2 : provider.temperature())
@@ -48,11 +51,11 @@ public class OpenAiCompatibleModelProviderClientFactory implements ModelProvider
                 .model(provider.embeddingModel())
                 .dimensions(provider.embeddingDimensions())
                 .build();
-        return new OpenAiEmbeddingModel(api(provider), MetadataMode.EMBED,
+        return new OpenAiEmbeddingModel(api(provider, embeddingRestClientBuilder), MetadataMode.EMBED,
                 options, embeddingRetryTemplate);
     }
 
-    private OpenAiApi api(ModelProviderRuntimeConfig provider) {
+    private OpenAiApi api(ModelProviderRuntimeConfig provider, RestClient.Builder restClientBuilder) {
         return OpenAiApi.builder()
                 .baseUrl(provider.baseUrl())
                 .apiKey(new SimpleApiKey(provider.apiKey()))
