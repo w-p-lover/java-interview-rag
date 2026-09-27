@@ -21,6 +21,8 @@ public interface ResumeCenterStore {
     boolean switchCurrent(String resumeId, String versionId,
                           long expectedVersion, LocalDateTime updatedAt);
 
+    boolean enrichVersionStorage(String versionId, String fileId, String fullText);
+
     record SaveVersionRequest(
             String resumeId,
             String name,
@@ -29,6 +31,7 @@ public interface ResumeCenterStore {
             String originalFilename,
             String contentType,
             long fileSize,
+            String fileId,
             String fullText,
             LocalDateTime createdAt
     ) { }

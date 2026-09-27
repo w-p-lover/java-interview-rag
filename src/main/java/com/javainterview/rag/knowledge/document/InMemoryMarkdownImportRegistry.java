@@ -21,7 +21,7 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
             return false;
         }
         registeredImports.put(key, new KnowledgeDocumentSummary(
-                document.source(), document.version(), document.content().length(), LocalDateTime.now(), outline));
+                document.source(), document.version(), document.content().length(), LocalDateTime.now(), outline, null));
         snapshots.put(key, new KnowledgeDocumentSnapshot(document, sections));
         currentImports.put(document.source(), key);
         return true;
@@ -61,7 +61,20 @@ public final class InMemoryMarkdownImportRegistry implements MarkdownImportRegis
             throw new IllegalArgumentException("文档版本尚未登记，不能更新章节目录");
         }
         registeredImports.put(key, new KnowledgeDocumentSummary(
-                current.source(), current.version(), current.contentLength(), current.registeredAt(), outline));
+                current.source(), current.version(), current.contentLength(), current.registeredAt(), outline,
+                current.fileId()));
+    }
+
+    @Override
+    public void attachFile(String source, String version, String fileId) {
+        ImportKey key = new ImportKey(source, version);
+        KnowledgeDocumentSummary current = registeredImports.get(key);
+        if (current == null) {
+            throw new IllegalArgumentException("文档版本尚未登记，不能关联原文件");
+        }
+        registeredImports.put(key, new KnowledgeDocumentSummary(
+                current.source(), current.version(), current.contentLength(), current.registeredAt(),
+                current.outline(), fileId));
     }
 
     @Override

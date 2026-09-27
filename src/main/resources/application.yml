@@ -36,6 +36,16 @@ server:
   port: 18080
 
 java-interview-rag:
+  files:
+    backend: ${JAVA_INTERVIEW_RAG_FILES_BACKEND:local}
+    local-root: ${JAVA_INTERVIEW_RAG_FILES_LOCAL_ROOT:.tmp/file-objects}
+    s3:
+      endpoint: ${JAVA_INTERVIEW_RAG_S3_ENDPOINT:}
+      bucket: ${JAVA_INTERVIEW_RAG_S3_BUCKET:java-interview-rag}
+      region: ${JAVA_INTERVIEW_RAG_S3_REGION:us-east-1}
+      access-key: ${JAVA_INTERVIEW_RAG_S3_ACCESS_KEY:}
+      secret-key: ${JAVA_INTERVIEW_RAG_S3_SECRET_KEY:}
+      auto-create-bucket: ${JAVA_INTERVIEW_RAG_S3_AUTO_CREATE_BUCKET:true}
   retrieval:
     timeout: ${JAVA_INTERVIEW_RAG_RETRIEVAL_TIMEOUT:5s}
   answer:

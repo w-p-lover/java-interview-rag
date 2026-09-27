@@ -15,6 +15,8 @@ public class KnowledgeDocumentTaskEntity {
     private String taskId;
     private String attemptId;
     private String source;
+    private String fileId;
+    private Integer recoveryCount;
     private String operation;
     private String status;
     private String version;

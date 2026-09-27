@@ -9,12 +9,14 @@ public record KnowledgeDocumentVersionItem(
         int contentLength,
         LocalDateTime registeredAt,
         boolean current,
-        boolean restorable
+        boolean restorable,
+        String fileId
 ) {
 
     static KnowledgeDocumentVersionItem from(KnowledgeDocumentSummary version, boolean current,
                                               boolean restorable) {
         return new KnowledgeDocumentVersionItem(
-                version.version(), version.contentLength(), version.registeredAt(), current, restorable);
+                version.version(), version.contentLength(), version.registeredAt(), current, restorable,
+                version.fileId());
     }
 }

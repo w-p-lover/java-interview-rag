@@ -39,9 +39,14 @@ public final class MarkdownContentImporter {
     }
 
     public MarkdownImportResult importContent(String source, String content, String attemptId) {
+        return importContent(source, content, attemptId, null);
+    }
+
+    public MarkdownImportResult importContent(String source, String content,
+                                              String attemptId, String fileId) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
         List<MarkdownSection> sections = headingParser.parse(document);
-        return importDocument(document, sections, attemptId);
+        return importDocument(document, sections, attemptId, fileId);
     }
 
     public MarkdownImportResult importStructuredContent(String source, String content,
@@ -52,16 +57,23 @@ public final class MarkdownContentImporter {
     public MarkdownImportResult importStructuredContent(String source, String content,
                                                         List<MarkdownSection> sections,
                                                         String attemptId) {
+        return importStructuredContent(source, content, sections, attemptId, null);
+    }
+
+    public MarkdownImportResult importStructuredContent(String source, String content,
+                                                        List<MarkdownSection> sections,
+                                                        String attemptId, String fileId) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
-        return importDocument(document, validateSections(document, sections), attemptId);
+        return importDocument(document, validateSections(document, sections), attemptId, fileId);
     }
 
     private MarkdownImportResult importDocument(MarkdownDocument document,
                                                 List<MarkdownSection> sections,
-                                                String attemptId) {
+                                                String attemptId,
+                                                String fileId) {
         List<MarkdownChunk> chunks = sectionChunker.chunk(sections, maxChunkTokens);
         KnowledgeDocumentOutline outline = outlineBuilder.build(sections, chunks);
-        if (!registry.register(document, outline, sections)) {
+        if (!registry.register(document, outline, sections, fileId)) {
             retryFailedCleanup(document);
             return new MarkdownImportResult(document, false, List.of());
         }
@@ -116,8 +128,13 @@ public final class MarkdownContentImporter {
     }
 
     public MarkdownRebuildResult rebuildContent(String source, String content, String attemptId) {
+        return rebuildContent(source, content, attemptId, null);
+    }
+
+    public MarkdownRebuildResult rebuildContent(String source, String content,
+                                                String attemptId, String fileId) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
-        return rebuildDocument(document, headingParser.parse(document), attemptId);
+        return rebuildDocument(document, headingParser.parse(document), attemptId, fileId);
     }
 
     public MarkdownRebuildResult rebuildStructuredContent(String source, String content,
@@ -128,8 +145,14 @@ public final class MarkdownContentImporter {
     public MarkdownRebuildResult rebuildStructuredContent(String source, String content,
                                                            List<MarkdownSection> sections,
                                                            String attemptId) {
+        return rebuildStructuredContent(source, content, sections, attemptId, null);
+    }
+
+    public MarkdownRebuildResult rebuildStructuredContent(String source, String content,
+                                                           List<MarkdownSection> sections,
+                                                           String attemptId, String fileId) {
         MarkdownDocument document = MarkdownDocument.create(source, content);
-        return rebuildDocument(document, validateSections(document, sections), attemptId);
+        return rebuildDocument(document, validateSections(document, sections), attemptId, fileId);
     }
 
     public MarkdownRebuildResult rebuildCurrentSnapshot(String source) {
@@ -145,7 +168,7 @@ public final class MarkdownContentImporter {
         List<MarkdownSection> sections = snapshot.sections().isEmpty()
                 ? headingParser.parse(snapshot.document())
                 : validateSections(snapshot.document(), snapshot.sections());
-        return rebuildDocument(snapshot.document(), sections, null);
+        return rebuildDocument(snapshot.document(), sections, null, null);
     }
 
     public MarkdownRebuildResult rollbackToVersion(String source, String version) {
@@ -229,7 +252,8 @@ public final class MarkdownContentImporter {
 
     private MarkdownRebuildResult rebuildDocument(MarkdownDocument document,
                                                    List<MarkdownSection> sections,
-                                                   String attemptId) {
+                                                   String attemptId,
+                                                   String fileId) {
         List<KnowledgeDocumentSummary> versions = registry.findVersionsBySource(document.source());
         boolean registered = versions.stream()
                 .anyMatch(version -> version.version().equals(document.version()));
@@ -247,6 +271,9 @@ public final class MarkdownContentImporter {
                 chunkIndexer.rebuild(document, chunks, attemptId);
             }
             registry.updateOutline(document, outlineBuilder.build(sections, chunks));
+            if (fileId != null) {
+                registry.attachFile(document.source(), document.version(), fileId);
+            }
         } catch (RuntimeException exception) {
             // 章节目录更新失败时，不能让索引状态继续保持 READY；下次巡检必须暴露这次重建未完整收口。
             if (indexingStateStore != null) {

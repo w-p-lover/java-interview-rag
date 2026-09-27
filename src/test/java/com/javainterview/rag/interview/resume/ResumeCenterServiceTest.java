@@ -2,6 +2,7 @@ package com.javainterview.rag.interview.resume;
 
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.nio.file.Path;
+import com.javainterview.rag.file.FileAssetService;
+import com.javainterview.rag.file.InMemoryFileAssetStore;
+import com.javainterview.rag.file.LocalFileObjectStorage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -19,11 +24,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResumeCenterServiceTest {
 
+    @TempDir
+    Path fileRoot;
+
     @Test
     void createsRecordAppendsVersionAndKeepsFullTextOptIn() {
         InMemoryStore store = new InMemoryStore();
         ResumeCenterService service = new ResumeCenterService(
-                store, new PdfKnowledgeDocumentExtractor());
+                store, new PdfKnowledgeDocumentExtractor(), files());
 
         ResumeCenterService.SaveResult first = service.save(
                 textFile("resume-v1.md", "项目：知识库\n负责：RAG 检索"),
@@ -39,15 +47,17 @@ class ResumeCenterServiceTest {
         assertEquals(second.savedVersionId(), second.detail().currentVersionId());
         assertEquals("Java / AI 工程师", second.detail().targetRole());
         assertNull(second.detail().versions().get(0).fullText());
+        assertNull(second.detail().versions().get(0).fileId());
         assertEquals("项目：知识库\n负责：RAG 检索",
                 second.detail().versions().get(1).fullText());
+        assertTrue(second.detail().versions().get(1).originalFileSaved());
     }
 
     @Test
     void returnsExistingVersionForDuplicateContentWithoutCreatingAnotherRecord() {
         InMemoryStore store = new InMemoryStore();
         ResumeCenterService service = new ResumeCenterService(
-                store, new PdfKnowledgeDocumentExtractor());
+                store, new PdfKnowledgeDocumentExtractor(), files());
         MockMultipartFile file = textFile("resume.md", "项目：面试训练平台");
 
         ResumeCenterService.SaveResult first = service.save(
@@ -63,10 +73,30 @@ class ResumeCenterServiceTest {
     }
 
     @Test
+    void enrichesMetadataOnlyDuplicateWhenUserExplicitlySavesOriginal() {
+        InMemoryStore store = new InMemoryStore();
+        ResumeCenterService service = new ResumeCenterService(
+                store, new PdfKnowledgeDocumentExtractor(), files());
+        MockMultipartFile file = textFile("resume.md", "项目：文件对象存储");
+
+        ResumeCenterService.SaveResult metadataOnly = service.save(
+                file, null, "主简历", "Java 后端工程师", false);
+        ResumeCenterService.SaveResult enriched = service.save(
+                file, null, "主简历", "Java 后端工程师", true);
+        ResumeVersion version = enriched.detail().versions().get(0);
+
+        assertTrue(enriched.duplicate());
+        assertEquals(metadataOnly.savedVersionId(), enriched.savedVersionId());
+        assertTrue(version.originalFileSaved());
+        assertTrue(version.fullTextSaved());
+        assertEquals(1, enriched.detail().versions().size());
+    }
+
+    @Test
     void switchesCurrentVersionAndRejectsVersionFromAnotherRecord() {
         InMemoryStore store = new InMemoryStore();
         ResumeCenterService service = new ResumeCenterService(
-                store, new PdfKnowledgeDocumentExtractor());
+                store, new PdfKnowledgeDocumentExtractor(), files());
         ResumeCenterService.SaveResult first = service.save(
                 textFile("a-v1.txt", "A 第一版"), null, "A", "Java", true);
         ResumeCenterService.SaveResult second = service.save(
@@ -86,7 +116,7 @@ class ResumeCenterServiceTest {
     void rejectsUnsupportedOrOversizedFilesBeforeStorage() {
         InMemoryStore store = new InMemoryStore();
         ResumeCenterService service = new ResumeCenterService(
-                store, new PdfKnowledgeDocumentExtractor());
+                store, new PdfKnowledgeDocumentExtractor(), files());
 
         assertThrows(IllegalArgumentException.class, () -> service.save(
                 new MockMultipartFile("file", "resume.docx", "application/octet-stream", "x".getBytes()),
@@ -155,7 +185,7 @@ class ResumeCenterServiceTest {
             ResumeVersion version = new ResumeVersion(
                     versionId, recordId, versionNumber, request.contentHash(),
                     request.originalFilename(), request.contentType(), request.fileSize(),
-                    request.fullText(), now);
+                    request.fileId(), request.fullText(), now);
             ResumeRecord updated = new ResumeRecord(
                     recordId, request.name(), request.targetRole(), versionId,
                     current == null ? 0 : current.version() + 1,
@@ -179,5 +209,23 @@ class ResumeCenterServiceTest {
                     current.version() + 1, current.createdAt(), updatedAt));
             return true;
         }
+
+        @Override
+        public boolean enrichVersionStorage(String versionId, String fileId, String fullText) {
+            ResumeVersion current = versions.get(versionId);
+            if (current == null) {
+                return false;
+            }
+            versions.put(versionId, new ResumeVersion(
+                    current.id(), current.resumeId(), current.versionNumber(), current.contentHash(),
+                    current.originalFilename(), current.contentType(), current.fileSize(),
+                    current.fileId() == null ? fileId : current.fileId(),
+                    current.fullText() == null ? fullText : current.fullText(), current.createdAt()));
+            return true;
+        }
+    }
+
+    private FileAssetService files() {
+        return new FileAssetService(new InMemoryFileAssetStore(), new LocalFileObjectStorage(fileRoot));
     }
 }

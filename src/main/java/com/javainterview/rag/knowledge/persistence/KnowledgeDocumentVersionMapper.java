@@ -28,6 +28,11 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
     int updateOutline(@Param("source") String source, @Param("version") String version,
                       @Param("outlineJson") String outlineJson);
 
+    @Update("UPDATE t_knowledge_document_version SET file_id = #{fileId} "
+            + "WHERE BINARY source = BINARY #{source} AND version = #{version}")
+    int attachFile(@Param("source") String source, @Param("version") String version,
+                   @Param("fileId") String fileId);
+
     @Update("UPDATE t_knowledge_document_version SET activated_at = ("
             + "SELECT next_activated_at FROM ("
             + "SELECT GREATEST(CURRENT_TIMESTAMP(6), "
@@ -43,14 +48,14 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
     int countSnapshotBySourceAndVersion(@Param("source") String source,
                                         @Param("version") String version);
 
-    @Select("SELECT id, source, version, content_length, outline_json, content, sections_json, activated_at, created_at "
+    @Select("SELECT id, source, version, content_length, outline_json, content, sections_json, file_id, activated_at, created_at "
             + "FROM t_knowledge_document_version WHERE BINARY source = BINARY #{source} AND version = #{version}")
     KnowledgeDocumentVersionEntity selectBySourceAndVersion(@Param("source") String source,
                                                              @Param("version") String version);
 
     @Select("SELECT current_version.id, current_version.source, current_version.version, "
             + "current_version.content_length, current_version.outline_json, current_version.content, "
-            + "current_version.sections_json, current_version.activated_at, current_version.created_at "
+            + "current_version.sections_json, current_version.file_id, current_version.activated_at, current_version.created_at "
             + "FROM t_knowledge_document_version current_version "
             + "LEFT JOIN t_knowledge_document_version newer_version "
             + "ON BINARY newer_version.source = BINARY current_version.source "
@@ -60,7 +65,7 @@ public interface KnowledgeDocumentVersionMapper extends BaseMapper<KnowledgeDocu
             + "ORDER BY current_version.activated_at DESC, current_version.id DESC")
     List<KnowledgeDocumentVersionEntity> selectCurrentVersions();
 
-    @Select("SELECT id, source, version, content_length, outline_json, content, sections_json, activated_at, created_at "
+    @Select("SELECT id, source, version, content_length, outline_json, content, sections_json, file_id, activated_at, created_at "
             + "FROM t_knowledge_document_version "
             + "WHERE BINARY source = BINARY #{source} "
             + "ORDER BY activated_at DESC, id DESC")

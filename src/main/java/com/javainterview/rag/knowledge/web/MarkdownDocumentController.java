@@ -7,9 +7,12 @@ import com.javainterview.rag.knowledge.document.MarkdownContentImporter;
 import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownImportResult;
 import com.javainterview.rag.knowledge.document.MarkdownRebuildResult;
-import com.javainterview.rag.knowledge.document.MarkdownSection;
-import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtraction;
-import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
+import com.javainterview.rag.knowledge.document.KnowledgeStoredFileParser;
+import com.javainterview.rag.file.FileAsset;
+import com.javainterview.rag.file.FileAssetConflictException;
+import com.javainterview.rag.file.FileAssetService;
+import com.javainterview.rag.file.FileAssetUnavailableException;
+import com.javainterview.rag.file.FilePurpose;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTask;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskInput;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskOperation;
@@ -29,14 +32,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.core.task.TaskRejectedException;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/knowledge/documents")
@@ -45,17 +43,20 @@ public class MarkdownDocumentController {
 
     private final MarkdownContentImporter contentImporter;
     private final MarkdownImportRegistry importRegistry;
-    private final PdfKnowledgeDocumentExtractor pdfExtractor;
     private final KnowledgeDocumentTaskService taskService;
+    private final FileAssetService files;
+    private final KnowledgeStoredFileParser storedFileParser;
 
     public MarkdownDocumentController(MarkdownContentImporter contentImporter,
                                       MarkdownImportRegistry importRegistry,
-                                      PdfKnowledgeDocumentExtractor pdfExtractor,
-                                      KnowledgeDocumentTaskService taskService) {
+                                      KnowledgeDocumentTaskService taskService,
+                                      FileAssetService files,
+                                      KnowledgeStoredFileParser storedFileParser) {
         this.contentImporter = contentImporter;
         this.importRegistry = importRegistry;
-        this.pdfExtractor = pdfExtractor;
         this.taskService = taskService;
+        this.files = files;
+        this.storedFileParser = storedFileParser;
     }
 
     @GetMapping
@@ -88,10 +89,11 @@ public class MarkdownDocumentController {
     @Operation(summary = "导入知识资料", description = "支持 UTF-8 Markdown/TXT 和带文本层的 PDF 文件")
     public MarkdownImportResponse importDocument(@RequestParam MultipartFile file,
                                                  @RequestParam String source) throws IOException {
-        KnowledgeUploadContent upload = readContent(file, source);
+        KnowledgeDocumentTaskInput upload = storeAndParse(file, source);
         MarkdownImportResult result = upload.structured()
-                ? contentImporter.importStructuredContent(source, upload.content(), upload.sections())
-                : contentImporter.importContent(source, upload.content());
+                ? contentImporter.importStructuredContent(source, upload.content(), upload.sections(),
+                null, upload.fileId())
+                : contentImporter.importContent(source, upload.content(), null, upload.fileId());
         return MarkdownImportResponse.from(result, upload.format(), upload.pageCount(),
                 upload.pagesNeedingOcr(), upload.warnings());
     }
@@ -100,10 +102,11 @@ public class MarkdownDocumentController {
     @Operation(summary = "重建知识资料向量")
     public MarkdownRebuildResponse rebuildDocument(@RequestParam MultipartFile file,
                                                     @RequestParam String source) throws IOException {
-        KnowledgeUploadContent upload = readContent(file, source);
+        KnowledgeDocumentTaskInput upload = storeAndParse(file, source);
         MarkdownRebuildResult result = upload.structured()
-                ? contentImporter.rebuildStructuredContent(source, upload.content(), upload.sections())
-                : contentImporter.rebuildContent(source, upload.content());
+                ? contentImporter.rebuildStructuredContent(source, upload.content(), upload.sections(),
+                null, upload.fileId())
+                : contentImporter.rebuildContent(source, upload.content(), null, upload.fileId());
         return MarkdownRebuildResponse.from(result,
                 upload.format(), upload.pageCount(), upload.pagesNeedingOcr(), upload.warnings());
     }
@@ -113,10 +116,10 @@ public class MarkdownDocumentController {
     @Operation(summary = "异步导入知识资料")
     public KnowledgeDocumentTaskSubmitResponse submitImportTask(@RequestParam MultipartFile file,
                                                                  @RequestParam String source) {
-        KnowledgeUploadContent upload = readContentUnchecked(file, source);
-        KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.IMPORT,
-                toTaskInput(upload, source));
-        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(),
+        FileAsset asset = storeUpload(file, source);
+        KnowledgeDocumentTask task = taskService.submit(
+                KnowledgeDocumentTaskOperation.IMPORT, source, asset.id());
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(), task.fileId(),
                 task.operation(), task.status());
     }
 
@@ -125,10 +128,10 @@ public class MarkdownDocumentController {
     @Operation(summary = "异步重建知识资料")
     public KnowledgeDocumentTaskSubmitResponse submitRebuildTask(@RequestParam MultipartFile file,
                                                                   @RequestParam String source) {
-        KnowledgeUploadContent upload = readContentUnchecked(file, source);
-        KnowledgeDocumentTask task = taskService.submit(KnowledgeDocumentTaskOperation.REBUILD,
-                toTaskInput(upload, source));
-        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(),
+        FileAsset asset = storeUpload(file, source);
+        KnowledgeDocumentTask task = taskService.submit(
+                KnowledgeDocumentTaskOperation.REBUILD, source, asset.id());
+        return new KnowledgeDocumentTaskSubmitResponse(task.taskId(), task.attemptId(), task.source(), task.fileId(),
                 task.operation(), task.status());
     }
 
@@ -158,7 +161,16 @@ public class MarkdownDocumentController {
     @DeleteMapping
     @Operation(summary = "删除知识资料")
     public MarkdownDeleteResponse deleteDocument(@RequestParam String source) {
-        return new MarkdownDeleteResponse(source, contentImporter.deleteBySource(source));
+        List<String> fileIds = importRegistry.findVersionsBySource(source).stream()
+                .map(com.javainterview.rag.knowledge.document.KnowledgeDocumentSummary::fileId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        boolean deleted = contentImporter.deleteBySource(source);
+        if (deleted) {
+            fileIds.forEach(this::deleteFileWhenUnreferenced);
+        }
+        return new MarkdownDeleteResponse(source, deleted);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -185,6 +197,18 @@ public class MarkdownDocumentController {
         return Map.of("message", "当前资料索引任务较多，请稍后重试");
     }
 
+    @ExceptionHandler(FileAssetConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, String> handleFileConflict(FileAssetConflictException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
+    @ExceptionHandler(FileAssetUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Map<String, String> handleFileUnavailable(FileAssetUnavailableException exception) {
+        return Map.of("message", exception.getMessage());
+    }
+
     private void validateSource(String source) {
         if (source == null || source.isBlank()) {
             throw new IllegalArgumentException("文档来源不能为空");
@@ -194,7 +218,8 @@ public class MarkdownDocumentController {
         }
     }
 
-    private KnowledgeUploadContent readContent(MultipartFile file, String source) throws IOException {
+    private FileAsset storeUpload(MultipartFile file, String source) {
+        validateSource(source);
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("资料文件不能为空");
         }
@@ -202,52 +227,33 @@ public class MarkdownDocumentController {
         if (filename == null || filename.isBlank()) {
             throw new IllegalArgumentException("资料文件名不能为空");
         }
-        String normalizedFilename = filename.toLowerCase(Locale.ROOT);
-        if (normalizedFilename.endsWith(".pdf")) {
-            PdfKnowledgeDocumentExtraction extraction = pdfExtractor.extract(file);
-            return new KnowledgeUploadContent(extraction.markdownContent(), "PDF",
-                    extraction.pageCount(), extraction.pagesNeedingOcr(), extraction.warnings(),
-                    pdfExtractor.toSections(source, extraction.blocks()));
-        }
-        if (!normalizedFilename.endsWith(".md") && !normalizedFilename.endsWith(".markdown")
-                && !normalizedFilename.endsWith(".txt")) {
-            throw new IllegalArgumentException("当前仅支持 Markdown、TXT 或 PDF 文件");
-        }
-        return new KnowledgeUploadContent(decodeUtf8(file.getBytes()),
-                "MARKDOWN", null, List.of(), List.of(), List.of());
-    }
-
-    private String decodeUtf8(byte[] content) {
+        storedFileParser.validateFilename(filename);
         try {
-            return StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(CodingErrorAction.REPORT)
-                    .decode(ByteBuffer.wrap(content))
-                    .toString();
-        } catch (CharacterCodingException exception) {
-            throw new IllegalArgumentException("文本资料必须使用 UTF-8 编码");
-        }
-    }
-
-    private KnowledgeUploadContent readContentUnchecked(MultipartFile file, String source) {
-        try {
-            return readContent(file, source);
+            return files.store(FilePurpose.KNOWLEDGE, filename, file.getContentType(), file.getBytes());
         } catch (IOException exception) {
             throw new IllegalArgumentException("资料文件读取失败");
         }
     }
 
-    private KnowledgeDocumentTaskInput toTaskInput(KnowledgeUploadContent upload, String source) {
-        return new KnowledgeDocumentTaskInput(source, upload.content(), upload.format(), upload.pageCount(),
-                upload.pagesNeedingOcr(), upload.warnings(), upload.sections());
+    private KnowledgeDocumentTaskInput storeAndParse(MultipartFile file, String source) {
+        FileAsset asset = storeUpload(file, source);
+        try {
+            return storedFileParser.load(source, asset.id());
+        } catch (RuntimeException exception) {
+            try {
+                files.deleteIfUnreferenced(asset.id());
+            } catch (RuntimeException cleanupException) {
+                exception.addSuppressed(cleanupException);
+            }
+            throw exception;
+        }
     }
 
-    private record KnowledgeUploadContent(String content, String format, Integer pageCount,
-                                          List<Integer> pagesNeedingOcr, List<String> warnings,
-                                          List<MarkdownSection> sections) {
-
-        private boolean structured() {
-            return "PDF".equals(format);
+    private void deleteFileWhenUnreferenced(String fileId) {
+        try {
+            files.deleteIfUnreferenced(fileId);
+        } catch (FileAssetConflictException ignored) {
+            // 同一 Hash 可被多个资料版本复用；仍有引用时保留共享对象即可。
         }
     }
 }

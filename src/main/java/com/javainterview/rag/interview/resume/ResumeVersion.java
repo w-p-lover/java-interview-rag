@@ -13,6 +13,7 @@ public record ResumeVersion(
         String originalFilename,
         String contentType,
         long fileSize,
+        String fileId,
         @JsonIgnore String fullText,
         LocalDateTime createdAt
 ) {
@@ -39,8 +40,20 @@ public record ResumeVersion(
         }
     }
 
+    public ResumeVersion(String id, String resumeId, int versionNumber,
+                         String contentHash, String originalFilename, String contentType,
+                         long fileSize, String fullText, LocalDateTime createdAt) {
+        this(id, resumeId, versionNumber, contentHash, originalFilename, contentType,
+                fileSize, null, fullText, createdAt);
+    }
+
     @JsonProperty("fullTextSaved")
     public boolean fullTextSaved() {
         return fullText != null;
+    }
+
+    @JsonProperty("originalFileSaved")
+    public boolean originalFileSaved() {
+        return fileId != null;
     }
 }

@@ -6,7 +6,12 @@ import java.util.List;
 public interface KnowledgeDocumentTaskStore {
 
     KnowledgeDocumentTask create(String taskId, String attemptId, String source,
-                                 KnowledgeDocumentTaskOperation operation);
+                                 String fileId, KnowledgeDocumentTaskOperation operation);
+
+    default KnowledgeDocumentTask create(String taskId, String attemptId, String source,
+                                         KnowledgeDocumentTaskOperation operation) {
+        return create(taskId, attemptId, source, null, operation);
+    }
 
     Optional<KnowledgeDocumentTask> find(String taskId);
 
@@ -20,4 +25,9 @@ public interface KnowledgeDocumentTaskStore {
     boolean cancelQueued(String taskId);
 
     List<KnowledgeDocumentTask> findRecent(int limit);
+
+    List<KnowledgeDocumentTask> findRecoverable(int limit);
+
+    boolean requeueAfterRestart(String taskId, String oldAttemptId,
+                                String newAttemptId, int maxRecoveryCount);
 }

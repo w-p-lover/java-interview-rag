@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef, useTemplateRef, watch } from "vue";
-import { CircleAlert, History, RefreshCw, RotateCw, Settings2, ShieldCheck, Trash2, Wrench, X } from "@lucide/vue";
+import { CircleAlert, Download, History, RefreshCw, RotateCw, Settings2, ShieldCheck, Trash2, Wrench, X } from "@lucide/vue";
 
 import type { KnowledgeDocumentDetailsResponse, KnowledgeIndexConsistencyResponse } from "@/api/knowledge";
 import KnowledgeDocumentOutline from "@/components/knowledge/KnowledgeDocumentOutline.vue";
@@ -218,6 +218,16 @@ function chunkCountLabel(value: number | null): string {
                     <dd><time :datetime="version.registeredAt">{{ formatRegisteredAt(version.registeredAt) }}</time></dd>
                   </div>
                 </dl>
+                <a
+                  v-if="version.fileId"
+                  class="version-download-button"
+                  :href="`/api/files/${encodeURIComponent(version.fileId)}/content`"
+                  title="下载此版本原文件"
+                  aria-label="下载此版本原文件"
+                >
+                  <Download :size="15" aria-hidden="true" />
+                  <span>下载原文件</span>
+                </a>
                 <button
                   v-if="!version.current"
                   type="button"
@@ -566,6 +576,22 @@ function chunkCountLabel(value: number | null): string {
 .version-history code {
   color: var(--color-ink-2);
   font-family: var(--font-mono);
+}
+
+.version-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  width: 100%;
+  min-height: 2.5rem;
+  border: var(--rule-thin) solid var(--color-rule-2);
+  border-radius: var(--radius-control);
+  color: var(--color-accent-strong);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .version-history {

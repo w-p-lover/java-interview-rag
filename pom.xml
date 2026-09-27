@@ -28,6 +28,7 @@
         <spring-ai-alibaba.version>1.1.2.3</spring-ai-alibaba.version>
         <knife4j.version>4.4.0</knife4j.version>
         <lucene.version>9.12.1</lucene.version>
+        <aws-sdk.version>2.29.51</aws-sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -43,6 +44,13 @@
                 <groupId>com.alibaba.cloud.ai</groupId>
                 <artifactId>spring-ai-alibaba-bom</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws-sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -144,6 +152,11 @@
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
             <version>${lucene.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
         </dependency>
 
         <dependency>

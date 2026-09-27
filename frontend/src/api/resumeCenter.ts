@@ -9,7 +9,9 @@ export interface ResumeVersion {
   readonly originalFilename: string;
   readonly contentType: string;
   readonly fileSize: number;
+  readonly fileId: string | null;
   readonly fullTextSaved: boolean;
+  readonly originalFileSaved: boolean;
   readonly createdAt: string;
 }
 

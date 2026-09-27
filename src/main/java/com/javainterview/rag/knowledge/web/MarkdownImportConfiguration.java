@@ -11,6 +11,8 @@ import com.javainterview.rag.knowledge.document.MarkdownImportRegistry;
 import com.javainterview.rag.knowledge.document.MarkdownIndexingStateStore;
 import com.javainterview.rag.knowledge.document.TrackingMarkdownChunkIndexer;
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
+import com.javainterview.rag.knowledge.document.KnowledgeStoredFileParser;
+import com.javainterview.rag.file.FileAssetService;
 import com.javainterview.rag.knowledge.task.InMemoryKnowledgeDocumentTaskStore;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskService;
 import com.javainterview.rag.knowledge.task.KnowledgeDocumentTaskMetrics;
@@ -114,6 +116,13 @@ public class MarkdownImportConfiguration {
     }
 
     @Bean
+    KnowledgeStoredFileParser knowledgeStoredFileParser(
+            FileAssetService files,
+            PdfKnowledgeDocumentExtractor pdfExtractor) {
+        return new KnowledgeStoredFileParser(files, pdfExtractor);
+    }
+
+    @Bean
     @Profile("!storage")
     KnowledgeDocumentTaskStore knowledgeDocumentTaskStore() {
         return new InMemoryKnowledgeDocumentTaskStore();
@@ -126,25 +135,23 @@ public class MarkdownImportConfiguration {
     }
 
     @Bean
-    @Profile("storage")
-    ApplicationRunner failRunningKnowledgeDocumentTasksOnRestart(
-            KnowledgeDocumentTaskStore taskStore) {
-        return args -> {
-            if (taskStore instanceof MySqlKnowledgeDocumentTaskStore mysqlStore) {
-                mysqlStore.failRunningAfterRestart();
-            }
-        };
-    }
-
-    @Bean
     KnowledgeDocumentTaskService knowledgeDocumentTaskService(
             MarkdownContentImporter importer,
             KnowledgeDocumentTaskStore taskStore,
+            KnowledgeStoredFileParser inputLoader,
             @Qualifier("knowledgeDocumentTaskExecutor") ThreadPoolTaskExecutor executor,
             KnowledgeDocumentTaskMetrics metrics,
             @Qualifier("knowledgeDocumentTaskTimeoutScheduler") ScheduledExecutorService timeoutScheduler,
             @Value("${java-interview-rag.knowledge.task.timeout-ms:600000}") long timeoutMillis) {
-        return new KnowledgeDocumentTaskService(importer, taskStore, executor, metrics, timeoutScheduler, timeoutMillis);
+        return new KnowledgeDocumentTaskService(
+                importer, taskStore, inputLoader, executor, metrics, timeoutScheduler, timeoutMillis);
+    }
+
+    @Bean
+    @Profile("storage")
+    ApplicationRunner recoverKnowledgeDocumentTasksOnRestart(
+            KnowledgeDocumentTaskService taskService) {
+        return args -> taskService.resumePendingTasks();
     }
 
     @Bean(name = "knowledgeDocumentTaskTimeoutScheduler", destroyMethod = "shutdownNow")

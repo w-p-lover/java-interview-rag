@@ -32,6 +32,7 @@ class KnowledgeDocumentTaskControllerTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.taskId").isNotEmpty())
                 .andExpect(jsonPath("$.attemptId").isNotEmpty())
+                .andExpect(jsonPath("$.fileId").isNotEmpty())
                 .andExpect(jsonPath("$.status").value("QUEUED"))
                 .andReturn().getResponse().getContentAsString()
                 .replaceAll(".*\\\"taskId\\\":\\\"([^\\\"]+)\\\".*", "$1");

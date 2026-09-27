@@ -19,8 +19,8 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
 
     @Override
     public KnowledgeDocumentTask create(String taskId, String attemptId, String source,
-                                        KnowledgeDocumentTaskOperation operation) {
-        mapper.insert(taskId, attemptId, source.strip(), operation.name(), KnowledgeDocumentTaskStatus.QUEUED.name());
+                                        String fileId, KnowledgeDocumentTaskOperation operation) {
+        mapper.insert(taskId, attemptId, source.strip(), fileId, operation.name(), KnowledgeDocumentTaskStatus.QUEUED.name());
         return find(taskId).orElseThrow(() -> new IllegalStateException("资料任务创建失败"));
     }
 
@@ -57,12 +57,20 @@ public final class MySqlKnowledgeDocumentTaskStore implements KnowledgeDocumentT
         return mapper.findRecent(limit).stream().map(this::toTask).collect(Collectors.toList());
     }
 
-    public int failRunningAfterRestart() {
-        return mapper.failRunningAfterRestart();
+    @Override
+    public List<KnowledgeDocumentTask> findRecoverable(int limit) {
+        return mapper.findRecoverable(limit).stream().map(this::toTask).collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean requeueAfterRestart(String taskId, String oldAttemptId,
+                                       String newAttemptId, int maxRecoveryCount) {
+        return mapper.requeueAfterRestart(taskId, oldAttemptId, newAttemptId, maxRecoveryCount) == 1;
     }
 
     private KnowledgeDocumentTask toTask(KnowledgeDocumentTaskEntity entity) {
         return new KnowledgeDocumentTask(entity.getTaskId(), entity.getAttemptId(), entity.getSource(),
+                entity.getFileId(), entity.getRecoveryCount() == null ? 0 : entity.getRecoveryCount(),
                 KnowledgeDocumentTaskOperation.valueOf(entity.getOperation()),
                 KnowledgeDocumentTaskStatus.valueOf(entity.getStatus()), entity.getVersion(),
                 Boolean.TRUE.equals(entity.getImported()), entity.getChunkCount() == null ? 0 : entity.getChunkCount(), entity.getFormat(),

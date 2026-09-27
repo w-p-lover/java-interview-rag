@@ -1,6 +1,9 @@
 package com.javainterview.rag.interview.resume;
 
 import com.javainterview.rag.knowledge.document.PdfKnowledgeDocumentExtractor;
+import com.javainterview.rag.file.FileAsset;
+import com.javainterview.rag.file.FileAssetService;
+import com.javainterview.rag.file.FilePurpose;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -24,11 +27,14 @@ public class ResumeCenterService {
 
     private final ResumeCenterStore store;
     private final PdfKnowledgeDocumentExtractor pdfExtractor;
+    private final FileAssetService files;
 
     public ResumeCenterService(ResumeCenterStore store,
-                               PdfKnowledgeDocumentExtractor pdfExtractor) {
+                               PdfKnowledgeDocumentExtractor pdfExtractor,
+                               FileAssetService files) {
         this.store = Objects.requireNonNull(store, "简历中心存储不能为空");
         this.pdfExtractor = Objects.requireNonNull(pdfExtractor, "PDF 解析器不能为空");
+        this.files = Objects.requireNonNull(files, "文件服务不能为空");
     }
 
     public List<ResumeSummary> list() {
@@ -58,11 +64,6 @@ public class ResumeCenterService {
                            boolean saveFullText) {
         byte[] content = requireFile(file);
         String contentHash = hash(content);
-        ResumeVersion duplicate = store.findVersionByHash(contentHash).orElse(null);
-        if (duplicate != null) {
-            return new SaveResult(detail(duplicate.resumeId()), duplicate.id(), true);
-        }
-
         ResumeRecord existing = resumeId == null || resumeId.isBlank()
                 ? null : requireRecord(resumeId.strip());
         String normalizedName = name == null || name.isBlank()
@@ -73,12 +74,25 @@ public class ResumeCenterService {
         normalizedTargetRole = ResumeRecord.text(normalizedTargetRole, 200, "目标岗位");
 
         String filename = requireFilename(file.getOriginalFilename());
-        String text = parse(filename, file, content);
+        String text = parse(filename, content);
+        ResumeVersion duplicate = store.findVersionByHash(contentHash).orElse(null);
+        if (duplicate != null) {
+            if (saveFullText && (!duplicate.fullTextSaved() || !duplicate.originalFileSaved())) {
+                FileAsset asset = files.store(FilePurpose.RESUME, filename, contentType(filename), content);
+                if (!store.enrichVersionStorage(duplicate.id(), asset.id(), text)) {
+                    throw new IllegalStateException("简历版本存储信息补充失败");
+                }
+            }
+            return new SaveResult(detail(duplicate.resumeId()), duplicate.id(), true);
+        }
+        FileAsset asset = saveFullText
+                ? files.store(FilePurpose.RESUME, filename, contentType(filename), content)
+                : null;
         ResumeCenterStore.SaveVersionResult result = store.saveVersion(
                 new ResumeCenterStore.SaveVersionRequest(
                         existing == null ? null : existing.id(), normalizedName, normalizedTargetRole,
                         contentHash, filename, contentType(filename), content.length,
-                        saveFullText ? text : null, LocalDateTime.now()));
+                        asset == null ? null : asset.id(), saveFullText ? text : null, LocalDateTime.now()));
         return new SaveResult(detail(result.record().id()), result.version().id(), result.duplicate());
     }
 
@@ -127,9 +141,9 @@ public class ResumeCenterService {
         return normalized;
     }
 
-    private String parse(String filename, MultipartFile file, byte[] content) {
+    private String parse(String filename, byte[] content) {
         String text = filename.toLowerCase(Locale.ROOT).endsWith(".pdf")
-                ? pdfExtractor.extract(file).markdownContent()
+                ? pdfExtractor.extract(filename, content).markdownContent()
                 : decodeUtf8(content);
         String normalized = text.strip();
         if (normalized.isBlank()) {

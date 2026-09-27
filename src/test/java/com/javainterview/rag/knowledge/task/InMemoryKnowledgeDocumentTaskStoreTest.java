@@ -63,4 +63,20 @@ class InMemoryKnowledgeDocumentTaskStoreTest {
         assertThat(current.status()).isEqualTo(KnowledgeDocumentTaskStatus.RUNNING);
         assertThat(current.attemptId()).isEqualTo("attempt-current");
     }
+
+    @Test
+    void requeuesRunningTaskWithNewAttemptOnlyOnce() {
+        KnowledgeDocumentTaskStore store = new InMemoryKnowledgeDocumentTaskStore();
+        store.create("task-recovery", "attempt-old", "java/recovery.md", "file-1",
+                KnowledgeDocumentTaskOperation.IMPORT);
+        assertThat(store.markRunning("task-recovery", "attempt-old")).isTrue();
+
+        assertThat(store.requeueAfterRestart(
+                "task-recovery", "attempt-old", "attempt-new", 1)).isTrue();
+        KnowledgeDocumentTask recovered = store.find("task-recovery").orElseThrow();
+        assertThat(recovered.status()).isEqualTo(KnowledgeDocumentTaskStatus.QUEUED);
+        assertThat(recovered.attemptId()).isEqualTo("attempt-new");
+        assertThat(recovered.recoveryCount()).isEqualTo(1);
+        assertThat(store.markFailed("task-recovery", "attempt-old", "LATE_FAILURE")).isFalse();
+    }
 }

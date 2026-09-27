@@ -17,7 +17,8 @@ class MySqlKnowledgeDocumentTaskStoreTest {
     @Test
     void restoresTaskMetadataWithoutPayload() {
         KnowledgeDocumentTaskEntity entity = new KnowledgeDocumentTaskEntity(
-                "task-1", "attempt-1", "java/basic.md", "IMPORT", "SUCCEEDED", "version-1", true,
+                "task-1", "attempt-1", "java/basic.md", "file-1", 0,
+                "IMPORT", "SUCCEEDED", "version-1", true,
                 2, "MARKDOWN", 1, null, java.time.LocalDateTime.now(),
                 java.time.LocalDateTime.now(), java.time.LocalDateTime.now());
         when(mapper.find("task-1")).thenReturn(entity);
@@ -30,13 +31,16 @@ class MySqlKnowledgeDocumentTaskStoreTest {
         assertThat(task.imported()).isTrue();
         assertThat(task.chunkCount()).isEqualTo(2);
         assertThat(task.source()).isEqualTo("java/basic.md");
+        assertThat(task.fileId()).isEqualTo("file-1");
     }
 
     @Test
-    void marksRunningTasksAsFailedAfterRestart() {
-        store.failRunningAfterRestart();
+    void requeuesRunningTaskWithNewAttemptAfterRestart() {
+        when(mapper.requeueAfterRestart("task-1", "attempt-old", "attempt-new", 1))
+                .thenReturn(1);
 
-        verify(mapper).failRunningAfterRestart();
+        assertThat(store.requeueAfterRestart("task-1", "attempt-old", "attempt-new", 1)).isTrue();
+        verify(mapper).requeueAfterRestart("task-1", "attempt-old", "attempt-new", 1);
     }
 
     @Test

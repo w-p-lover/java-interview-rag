@@ -14,7 +14,7 @@ public interface ResumeCenterMapper {
 
     String RECORD_COLUMNS = "id, name, target_role, current_version_id, version, created_at, updated_at";
     String VERSION_COLUMNS = "id, resume_id, version_number, content_hash, original_filename, "
-            + "content_type, file_size, full_text, created_at";
+            + "content_type, file_size, file_id, full_text, created_at";
 
     @Select("SELECT " + RECORD_COLUMNS + " FROM t_resume_record ORDER BY updated_at DESC, id DESC")
     List<ResumeRecordEntity> findAllRecords();
@@ -43,9 +43,15 @@ public interface ResumeCenterMapper {
     int insertRecord(ResumeRecordEntity entity);
 
     @Insert("INSERT INTO t_resume_version (id, resume_id, version_number, content_hash, original_filename, "
-            + "content_type, file_size, full_text, created_at) VALUES (#{id}, #{resumeId}, #{versionNumber}, "
-            + "#{contentHash}, #{originalFilename}, #{contentType}, #{fileSize}, #{fullText}, #{createdAt})")
+            + "content_type, file_size, file_id, full_text, created_at) VALUES (#{id}, #{resumeId}, #{versionNumber}, "
+            + "#{contentHash}, #{originalFilename}, #{contentType}, #{fileSize}, #{fileId}, #{fullText}, #{createdAt})")
     int insertVersion(ResumeVersionEntity entity);
+
+    @Update("UPDATE t_resume_version SET file_id = COALESCE(file_id, #{fileId}), "
+            + "full_text = COALESCE(full_text, #{fullText}) WHERE id = #{versionId}")
+    int enrichVersionStorage(@Param("versionId") String versionId,
+                             @Param("fileId") String fileId,
+                             @Param("fullText") String fullText);
 
     @Update("UPDATE t_resume_record SET name = #{name}, target_role = #{targetRole}, "
             + "current_version_id = #{currentVersionId}, version = version + 1, updated_at = #{updatedAt} "

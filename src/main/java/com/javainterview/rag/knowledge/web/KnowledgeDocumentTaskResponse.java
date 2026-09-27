@@ -10,6 +10,8 @@ public record KnowledgeDocumentTaskResponse(
         String taskId,
         String attemptId,
         String source,
+        String fileId,
+        int recoveryCount,
         KnowledgeDocumentTaskOperation operation,
         KnowledgeDocumentTaskStatus status,
         String version,
@@ -24,7 +26,8 @@ public record KnowledgeDocumentTaskResponse(
 ) {
 
     public static KnowledgeDocumentTaskResponse from(KnowledgeDocumentTask task) {
-        return new KnowledgeDocumentTaskResponse(task.taskId(), task.attemptId(), task.source(), task.operation(),
+        return new KnowledgeDocumentTaskResponse(task.taskId(), task.attemptId(), task.source(), task.fileId(),
+                task.recoveryCount(), task.operation(),
                 task.status(), task.version(), task.imported(), task.chunkCount(), task.format(), task.warningCount(),
                 task.errorType(), task.createdAt(), task.updatedAt(), task.completedAt());
     }

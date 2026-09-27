@@ -15,13 +15,14 @@ public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocume
 
     @Override
     public synchronized KnowledgeDocumentTask create(String taskId, String attemptId, String source,
+                                                      String fileId,
                                                       KnowledgeDocumentTaskOperation operation) {
         Objects.requireNonNull(taskId, "任务 ID 不能为空");
         if (tasks.containsKey(taskId)) {
             return tasks.get(taskId);
         }
         LocalDateTime now = LocalDateTime.now();
-        KnowledgeDocumentTask task = new KnowledgeDocumentTask(taskId, attemptId, source.strip(), operation,
+        KnowledgeDocumentTask task = new KnowledgeDocumentTask(taskId, attemptId, source.strip(), fileId, 0, operation,
                 KnowledgeDocumentTaskStatus.QUEUED, null, false, 0, null, 0, null, now, now, null);
         tasks.put(taskId, task);
         return task;
@@ -88,6 +89,32 @@ public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocume
         return recent.stream().limit(limit).collect(Collectors.toList());
     }
 
+    @Override
+    public synchronized List<KnowledgeDocumentTask> findRecoverable(int limit) {
+        return tasks.values().stream()
+                .filter(task -> task.status() == KnowledgeDocumentTaskStatus.QUEUED
+                        || task.status() == KnowledgeDocumentTaskStatus.RUNNING)
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public synchronized boolean requeueAfterRestart(String taskId, String oldAttemptId,
+                                                    String newAttemptId, int maxRecoveryCount) {
+        KnowledgeDocumentTask task = requiredTask(taskId);
+        if (task.status() != KnowledgeDocumentTaskStatus.RUNNING
+                || !task.attemptId().equals(oldAttemptId)
+                || task.recoveryCount() >= maxRecoveryCount) {
+            return false;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        tasks.put(taskId, new KnowledgeDocumentTask(task.taskId(), newAttemptId, task.source(),
+                task.fileId(), task.recoveryCount() + 1, task.operation(), KnowledgeDocumentTaskStatus.QUEUED,
+                task.version(), task.imported(), task.chunkCount(), task.format(), task.warningCount(),
+                null, task.createdAt(), now, null));
+        return true;
+    }
+
     private boolean update(String taskId, String attemptId,
                            java.util.function.UnaryOperator<KnowledgeDocumentTask> updater) {
         KnowledgeDocumentTask existing = requiredTask(taskId);
@@ -112,7 +139,8 @@ public final class InMemoryKnowledgeDocumentTaskStore implements KnowledgeDocume
                                        int warningCount, String errorType,
                                        LocalDateTime completedAt) {
         LocalDateTime now = LocalDateTime.now();
-        return new KnowledgeDocumentTask(task.taskId(), task.attemptId(), task.source(), task.operation(), status,
+        return new KnowledgeDocumentTask(task.taskId(), task.attemptId(), task.source(), task.fileId(),
+                task.recoveryCount(), task.operation(), status,
                 version, imported, chunkCount, format, warningCount, errorType,
                 task.createdAt(), now, completedAt);
     }

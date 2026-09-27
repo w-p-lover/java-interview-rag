@@ -17,6 +17,7 @@ public class ResumeVersionEntity {
     private String originalFilename;
     private String contentType;
     private long fileSize;
+    private String fileId;
     private String fullText;
     private LocalDateTime createdAt;
 }

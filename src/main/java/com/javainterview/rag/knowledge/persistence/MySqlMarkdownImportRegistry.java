@@ -29,10 +29,16 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     @Override
     public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
                             List<MarkdownSection> sections) {
+        return register(document, outline, sections, null);
+    }
+
+    @Override
+    public boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
+                            List<MarkdownSection> sections, String fileId) {
         Objects.requireNonNull(document, "Markdown 文档不能为空");
         KnowledgeDocumentVersionEntity entity = KnowledgeDocumentVersionEntity.create(
                 document.source(), document.version(), document.content().length(), writeOutline(outline),
-                document.content(), writeSections(sections));
+                document.content(), writeSections(sections), fileId);
         try {
             return mapper.insert(entity) == 1;
         } catch (DuplicateKeyException exception) {
@@ -83,6 +89,13 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     }
 
     @Override
+    public void attachFile(String source, String version, String fileId) {
+        if (mapper.attachFile(source, version, fileId) != 1) {
+            throw new IllegalArgumentException("文档版本尚未登记，不能关联原文件");
+        }
+    }
+
+    @Override
     public Optional<KnowledgeDocumentSnapshot> findSnapshot(String source, String version) {
         Objects.requireNonNull(source, "文档来源不能为空");
         Objects.requireNonNull(version, "文档版本不能为空");
@@ -117,7 +130,7 @@ public final class MySqlMarkdownImportRegistry implements MarkdownImportRegistry
     private KnowledgeDocumentSummary toSummary(KnowledgeDocumentVersionEntity entity) {
         return new KnowledgeDocumentSummary(
                 entity.getSource(), entity.getVersion(), entity.getContentLength(), entity.getCreatedAt(),
-                readOutline(entity.getOutlineJson()));
+                readOutline(entity.getOutlineJson()), entity.getFileId());
     }
 
     private String writeOutline(KnowledgeDocumentOutline outline) {

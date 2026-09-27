@@ -83,7 +83,7 @@ defineExpose({ clearFile });
       </label>
       <label class="privacy-toggle">
         <input v-model="form.saveFullText" type="checkbox" :disabled="busy" />
-        <span><strong>保存完整正文</strong><small>未勾选时仅保存版本与文件元数据</small></span>
+        <span><strong>保存原文件与正文</strong><small>未勾选时仅保存版本元数据，不能下载原文件</small></span>
       </label>
       <button class="primary-action" type="submit" :disabled="busy || !valid">
         <Upload :size="17" aria-hidden="true" />{{ busy ? "正在保存…" : "保存版本" }}

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 public record KnowledgeDocumentTaskInput(
+        String fileId,
         String source,
         String content,
         String format,
@@ -16,6 +17,9 @@ public record KnowledgeDocumentTaskInput(
 ) {
 
     public KnowledgeDocumentTaskInput {
+        if (fileId == null || fileId.isBlank()) {
+            throw new IllegalArgumentException("文件 ID 不能为空");
+        }
         if (source == null || source.isBlank()) {
             throw new IllegalArgumentException("文档来源不能为空");
         }

@@ -7,6 +7,7 @@ public record KnowledgeDocumentTaskSubmitResponse(
         String taskId,
         String attemptId,
         String source,
+        String fileId,
         KnowledgeDocumentTaskOperation operation,
         KnowledgeDocumentTaskStatus status
 ) {

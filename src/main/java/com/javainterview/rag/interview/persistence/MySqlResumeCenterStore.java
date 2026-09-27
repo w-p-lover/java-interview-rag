@@ -116,6 +116,11 @@ public class MySqlResumeCenterStore implements ResumeCenterStore {
         }));
     }
 
+    @Override
+    public boolean enrichVersionStorage(String versionId, String fileId, String fullText) {
+        return mapper.enrichVersionStorage(versionId, fileId, fullText) == 1;
+    }
+
     private SaveVersionResult duplicate(ResumeVersion version) {
         ResumeRecord record = findRecord(version.resumeId())
                 .orElseThrow(() -> new IllegalStateException("重复简历版本缺少所属记录"));
@@ -127,7 +132,7 @@ public class MySqlResumeCenterStore implements ResumeCenterStore {
         return new ResumeVersionEntity(
                 versionId, resumeId, versionNumber, request.contentHash(),
                 request.originalFilename(), request.contentType(), request.fileSize(),
-                request.fullText(), request.createdAt());
+                request.fileId(), request.fullText(), request.createdAt());
     }
 
     private ResumeRecord record(ResumeRecordEntity entity) {
@@ -141,6 +146,6 @@ public class MySqlResumeCenterStore implements ResumeCenterStore {
         return new ResumeVersion(
                 entity.getId(), entity.getResumeId(), entity.getVersionNumber(),
                 entity.getContentHash(), entity.getOriginalFilename(), entity.getContentType(),
-                entity.getFileSize(), entity.getFullText(), entity.getCreatedAt());
+                entity.getFileSize(), entity.getFileId(), entity.getFullText(), entity.getCreatedAt());
     }
 }

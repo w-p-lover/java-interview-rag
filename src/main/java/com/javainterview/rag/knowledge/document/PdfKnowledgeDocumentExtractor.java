@@ -36,7 +36,16 @@ public final class PdfKnowledgeDocumentExtractor {
 
     public PdfKnowledgeDocumentExtraction extract(MultipartFile file) {
         validateFile(file);
-        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+        try {
+            return extract(file.getOriginalFilename(), file.getBytes());
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("PDF 解析失败，请确认文件完整");
+        }
+    }
+
+    public PdfKnowledgeDocumentExtraction extract(String filename, byte[] content) {
+        validateFile(filename, content);
+        try (PDDocument document = Loader.loadPDF(content)) {
             List<PdfPageAnalysis> analyses = analyzer.analyze(document);
             List<PdfKnowledgePage> pages = analyses.stream()
                     .map(page -> new PdfKnowledgePage(page.pageNumber(), page.content(), page.contentType(),
@@ -85,6 +94,18 @@ public final class PdfKnowledgeDocumentExtractor {
             throw new IllegalArgumentException("PDF 文件不能超过 10 MiB");
         }
         String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            throw new IllegalArgumentException("当前仅支持 PDF 文件");
+        }
+    }
+
+    private void validateFile(String filename, byte[] content) {
+        if (content == null || content.length == 0) {
+            throw new IllegalArgumentException("PDF 文件不能为空");
+        }
+        if (content.length > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("PDF 文件不能超过 10 MiB");
+        }
         if (filename == null || !filename.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
             throw new IllegalArgumentException("当前仅支持 PDF 文件");
         }

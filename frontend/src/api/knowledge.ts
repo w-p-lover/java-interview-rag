@@ -245,6 +245,7 @@ export interface KnowledgeDocumentVersionItem {
   registeredAt: string;
   current: boolean;
   restorable: boolean;
+  fileId: string | null;
 }
 
 export interface KnowledgeDocumentOutlineNode {
@@ -337,6 +338,7 @@ export interface KnowledgeDocumentTaskSubmitResponse {
   taskId: string;
   attemptId: string;
   source: string;
+  fileId: string;
   operation: KnowledgeDocumentTaskOperation;
   status: KnowledgeDocumentTaskStatus;
 }
@@ -345,6 +347,8 @@ export interface KnowledgeDocumentTaskResponse {
   taskId: string;
   attemptId: string;
   source: string;
+  fileId: string | null;
+  recoveryCount: number;
   operation: KnowledgeDocumentTaskOperation;
   status: KnowledgeDocumentTaskStatus;
   version: string | null;

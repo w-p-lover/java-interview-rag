@@ -7,6 +7,11 @@ public record KnowledgeDocumentSummary(
         String version,
         int contentLength,
         LocalDateTime registeredAt,
-        KnowledgeDocumentOutline outline
+        KnowledgeDocumentOutline outline,
+        String fileId
 ) {
+    public KnowledgeDocumentSummary(String source, String version, int contentLength,
+                                    LocalDateTime registeredAt, KnowledgeDocumentOutline outline) {
+        this(source, version, contentLength, registeredAt, outline, null);
+    }
 }

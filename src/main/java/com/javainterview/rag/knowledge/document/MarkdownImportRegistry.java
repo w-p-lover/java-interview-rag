@@ -16,6 +16,18 @@ public interface MarkdownImportRegistry {
     boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
                      List<MarkdownSection> sections);
 
+    default boolean register(MarkdownDocument document, KnowledgeDocumentOutline outline,
+                             List<MarkdownSection> sections, String fileId) {
+        boolean registered = register(document, outline, sections);
+        if (registered && fileId != null) {
+            attachFile(document.source(), document.version(), fileId);
+        }
+        return registered;
+    }
+
+    default void attachFile(String source, String version, String fileId) {
+    }
+
     boolean isRegistered(MarkdownDocument document);
 
     boolean unregister(MarkdownDocument document);

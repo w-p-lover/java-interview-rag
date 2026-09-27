@@ -12,21 +12,27 @@ import java.util.List;
 public interface KnowledgeDocumentTaskMapper {
 
     @Insert("INSERT INTO t_knowledge_document_task "
-            + "(task_id, attempt_id, source, operation, status, created_at, updated_at) "
-            + "VALUES (#{taskId}, #{attemptId}, #{source}, #{operation}, #{status}, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))")
+            + "(task_id, attempt_id, source, file_id, recovery_count, operation, status, created_at, updated_at) "
+            + "VALUES (#{taskId}, #{attemptId}, #{source}, #{fileId}, 0, #{operation}, #{status}, CURRENT_TIMESTAMP(6), CURRENT_TIMESTAMP(6))")
     int insert(@Param("taskId") String taskId, @Param("attemptId") String attemptId,
                @Param("source") String source,
+               @Param("fileId") String fileId,
                @Param("operation") String operation, @Param("status") String status);
 
-    @Select("SELECT task_id, attempt_id, source, operation, status, version, imported, chunk_count, format, warning_count, "
+    @Select("SELECT task_id, attempt_id, source, file_id, recovery_count, operation, status, version, imported, chunk_count, format, warning_count, "
             + "error_type, created_at, updated_at, completed_at FROM t_knowledge_document_task "
             + "WHERE task_id = #{taskId}")
     KnowledgeDocumentTaskEntity find(@Param("taskId") String taskId);
 
-    @Select("SELECT task_id, attempt_id, source, operation, status, version, imported, chunk_count, format, warning_count, "
+    @Select("SELECT task_id, attempt_id, source, file_id, recovery_count, operation, status, version, imported, chunk_count, format, warning_count, "
             + "error_type, created_at, updated_at, completed_at FROM t_knowledge_document_task "
             + "ORDER BY created_at DESC LIMIT #{limit}")
     List<KnowledgeDocumentTaskEntity> findRecent(@Param("limit") int limit);
+
+    @Select("SELECT task_id, attempt_id, source, file_id, recovery_count, operation, status, version, imported, chunk_count, format, warning_count, "
+            + "error_type, created_at, updated_at, completed_at FROM t_knowledge_document_task "
+            + "WHERE status IN ('QUEUED','RUNNING') ORDER BY created_at ASC LIMIT #{limit}")
+    List<KnowledgeDocumentTaskEntity> findRecoverable(@Param("limit") int limit);
 
     @Update("UPDATE t_knowledge_document_task SET status = #{status}, version = #{version}, imported = #{imported}, "
             + "chunk_count = #{chunkCount}, format = #{format}, warning_count = #{warningCount}, "
@@ -57,8 +63,12 @@ public interface KnowledgeDocumentTaskMapper {
     int markRunning(@Param("taskId") String taskId, @Param("attemptId") String attemptId,
                     @Param("status") String status);
 
-    @Update("UPDATE t_knowledge_document_task SET status = 'FAILED', error_type = 'APPLICATION_RESTARTED', "
-            + "updated_at = CURRENT_TIMESTAMP(6), completed_at = CURRENT_TIMESTAMP(6) "
-            + "WHERE status = 'RUNNING'")
-    int failRunningAfterRestart();
+    @Update("UPDATE t_knowledge_document_task SET attempt_id = #{newAttemptId}, status = 'QUEUED', "
+            + "recovery_count = recovery_count + 1, error_type = NULL, updated_at = CURRENT_TIMESTAMP(6), "
+            + "completed_at = NULL WHERE task_id = #{taskId} AND attempt_id = #{oldAttemptId} "
+            + "AND status = 'RUNNING' AND recovery_count < #{maxRecoveryCount}")
+    int requeueAfterRestart(@Param("taskId") String taskId,
+                            @Param("oldAttemptId") String oldAttemptId,
+                            @Param("newAttemptId") String newAttemptId,
+                            @Param("maxRecoveryCount") int maxRecoveryCount);
 }

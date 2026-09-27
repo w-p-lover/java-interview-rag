@@ -23,12 +23,14 @@ public class KnowledgeDocumentVersionEntity {
     private String outlineJson;
     private String content;
     private String sectionsJson;
+    private String fileId;
     private LocalDateTime activatedAt;
     private LocalDateTime createdAt;
 
     public static KnowledgeDocumentVersionEntity create(String source, String version,
                                                         int contentLength, String outlineJson,
-                                                        String content, String sectionsJson) {
+                                                        String content, String sectionsJson,
+                                                        String fileId) {
         KnowledgeDocumentVersionEntity entity = new KnowledgeDocumentVersionEntity();
         entity.source = source;
         entity.version = version;
@@ -36,6 +38,7 @@ public class KnowledgeDocumentVersionEntity {
         entity.outlineJson = outlineJson;
         entity.content = content;
         entity.sectionsJson = sectionsJson;
+        entity.fileId = fileId;
         entity.activatedAt = LocalDateTime.now();
         entity.createdAt = LocalDateTime.now();
         return entity;
@@ -43,7 +46,7 @@ public class KnowledgeDocumentVersionEntity {
 
     public static KnowledgeDocumentVersionEntity create(String source, String version,
                                                          int contentLength, String outlineJson) {
-        return create(source, version, contentLength, outlineJson, null, null);
+        return create(source, version, contentLength, outlineJson, null, null, null);
     }
 
 }
