@@ -7,6 +7,8 @@ import java.util.List;
 @Component
 public class FixedRagEvaluationDataset {
 
+    public static final String VERSION = "rag-retrieval-v4";
+
     private static final String COLLECTIONS = "java/collections.md";
     private static final String CONCURRENCY = "java/concurrency.md";
     private static final String CONCURRENT_COLLECTIONS = "java/concurrent-collections.md";

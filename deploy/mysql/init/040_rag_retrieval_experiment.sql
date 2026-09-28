@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS t_rag_retrieval_experiment_run (
+    run_id CHAR(36) NOT NULL COMMENT '检索实验运行 ID',
+    name VARCHAR(100) NOT NULL COMMENT '用户可读实验名称',
+    strategy VARCHAR(16) NOT NULL COMMENT 'DENSE、SPARSE 或 HYBRID',
+    dataset_version VARCHAR(100) NOT NULL COMMENT '固定评估集版本',
+    dataset_split VARCHAR(16) NOT NULL COMMENT 'DEV 或 HOLDOUT',
+    corpus_hash CHAR(64) NOT NULL COMMENT '当前来源与版本组成的语料 SHA-256',
+    index_contract VARCHAR(255) NOT NULL COMMENT 'Embedding、切片、解析器与索引 Schema 契约',
+    git_sha VARCHAR(64) NOT NULL COMMENT '运行代码 Git SHA 或明确的本地标识',
+    contract_hash CHAR(64) NOT NULL COMMENT '策略与完整运行契约 SHA-256',
+    status VARCHAR(32) NOT NULL COMMENT 'QUEUED/RUNNING/SUCCEEDED/PARTIAL_FAILED',
+    total_case_count INT UNSIGNED NOT NULL COMMENT '本次数据切分样本数',
+    case_results_json MEDIUMTEXT NOT NULL COMMENT '逐样本低敏检索结果',
+    report_json MEDIUMTEXT NULL COMMENT '成功运行的聚合报告',
+    error_type VARCHAR(100) NULL COMMENT '运行级失败类型',
+    baseline_run_id CHAR(36) NULL COMMENT '人工决策对应的基线运行',
+    decision VARCHAR(16) NULL COMMENT 'ADOPTED 或 REJECTED',
+    decision_note VARCHAR(500) NULL COMMENT '人工采用或回退说明',
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    completed_at DATETIME(6) NULL,
+    decided_at DATETIME(6) NULL,
+    PRIMARY KEY (run_id),
+    UNIQUE KEY uk_rag_retrieval_experiment_contract (contract_hash),
+    KEY idx_rag_retrieval_experiment_status_created (status, created_at),
+    KEY idx_rag_retrieval_experiment_split_created (dataset_split, created_at),
+    CONSTRAINT fk_rag_retrieval_experiment_baseline
+        FOREIGN KEY (baseline_run_id) REFERENCES t_rag_retrieval_experiment_run (run_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+COMMENT='可恢复、可比较的 RAG 检索实验运行';

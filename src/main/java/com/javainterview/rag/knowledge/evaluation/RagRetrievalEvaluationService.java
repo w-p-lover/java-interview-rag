@@ -83,6 +83,35 @@ public class RagRetrievalEvaluationService {
                 EVALUATION_TOP_K, EVALUATION_SIMILARITY_THRESHOLD));
     }
 
+    public List<RagEvaluationCase> evaluationCases() {
+        return dataset.findAll();
+    }
+
+    public RagRetrievalEvaluationCaseResult evaluateCase(
+            RagEvaluationCase evaluationCase,
+            Function<String, List<MarkdownSearchResult>> retriever,
+            RagRetrievalRejectionPolicy rejectionPolicy) {
+        Objects.requireNonNull(evaluationCase, "评估样本不能为空");
+        Objects.requireNonNull(retriever, "检索器不能为空");
+        Objects.requireNonNull(rejectionPolicy, "拒答策略不能为空");
+        long startedAt = System.nanoTime();
+        List<RagRetrievalSource> sources = retriever.apply(evaluationCase.question()).stream()
+                .map(RagRetrievalSource::from)
+                .toList();
+        double latencyMs = (System.nanoTime() - startedAt) / 1_000_000.0;
+        return evaluateCase(evaluationCase, sources, rejectionPolicy,
+                rejectionPolicy.reportThreshold(), latencyMs, currentDocuments());
+    }
+
+    public RagRetrievalEvaluationReport summarize(
+            List<RagRetrievalEvaluationCaseResult> results,
+            RagRetrievalRejectionPolicy rejectionPolicy) {
+        Objects.requireNonNull(results, "逐样本评估结果不能为空");
+        Objects.requireNonNull(rejectionPolicy, "拒答策略不能为空");
+        return buildReport(List.copyOf(results), rejectionPolicy.reportThreshold(),
+                results.stream().map(RagRetrievalEvaluationCaseResult::retrievalLatencyMs).toList());
+    }
+
     public RagRetrievalEvaluationReport evaluateWith(Function<String, List<MarkdownSearchResult>> retriever) {
         return evaluateWith(retriever, ANSWER_SIMILARITY_THRESHOLD);
     }

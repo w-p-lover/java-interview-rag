@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, shallowRef, useTemplateRef } from "vue";
-import { Activity, BookOpen, BookOpenCheck, Command, Database, FileUser, ListChecks, MessageCircleQuestion, Search, Settings2 } from "@lucide/vue";
+import { Activity, BookOpen, BookOpenCheck, Command, Database, FileUser, FlaskConical, ListChecks, MessageCircleQuestion, Search, Settings2 } from "@lucide/vue";
 
 import CommandPalette, { type WorkspaceCommand } from "@/components/CommandPalette.vue";
 
@@ -8,7 +8,7 @@ const paletteOpen = shallowRef(false);
 const searchTrigger = useTemplateRef<HTMLButtonElement>("searchTrigger");
 
 const props = withDefaults(defineProps<{
-  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "resumes" | "observability" | "model-providers";
+  mode?: "knowledge" | "answer" | "interview" | "question-bank" | "review" | "resumes" | "observability" | "model-providers" | "evaluations";
 }>(), {
   mode: "knowledge",
 });
@@ -48,6 +48,13 @@ const commands = computed<WorkspaceCommand[]>(() => {
       { id: "model-provider-overview", label: "Provider 概览", description: "查看当前 Chat 与 Embedding 配置" },
       { id: "model-provider-capabilities", label: "能力配置", description: "核对模型、端点和业务用途" },
       { id: "model-provider-tests", label: "能力验证", description: "执行固定样本连通性验证" },
+    ];
+  }
+  if (props.mode === "evaluations") {
+    return [
+      { id: "evaluation-start", label: "启动实验", description: "选择检索策略和数据切分" },
+      { id: "evaluation-runs", label: "实验运行", description: "查看契约、进度和恢复状态" },
+      { id: "evaluation-comparison", label: "基线与候选", description: "比较指标并保存采用结论" },
     ];
   }
   if (props.mode === "review") {
@@ -143,6 +150,10 @@ onUnmounted(() => {
         <RouterLink to="/model-providers" class="nav-link" aria-label="打开模型 Provider">
           <Settings2 :size="16" aria-hidden="true" />
           <span>模型配置</span>
+        </RouterLink>
+        <RouterLink to="/evaluations" class="nav-link" aria-label="打开评估实验中心">
+          <FlaskConical :size="16" aria-hidden="true" />
+          <span>评估实验</span>
         </RouterLink>
       </nav>
 

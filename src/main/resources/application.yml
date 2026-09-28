@@ -61,6 +61,8 @@ java-interview-rag:
     chunk-policy-version: ${JAVA_INTERVIEW_RAG_CHUNK_POLICY_VERSION:markdown-section-chunker-v5}
     parser-version: ${JAVA_INTERVIEW_RAG_PARSER_VERSION:pdf-knowledge-parser-v6}
     schema-version: ${JAVA_INTERVIEW_RAG_INDEX_SCHEMA_VERSION:knowledge-index-v2}
+  evaluation:
+    git-sha: ${JAVA_INTERVIEW_RAG_GIT_SHA:auto}
 
 management:
   endpoints:
