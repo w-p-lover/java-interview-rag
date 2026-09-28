@@ -18,17 +18,17 @@ CREATE TABLE IF NOT EXISTS t_file_asset (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件对象元数据';
 
 ALTER TABLE t_knowledge_document_version
-    ADD COLUMN file_id CHAR(36) NULL COMMENT '原始文件 ID' AFTER sections_json,
+    ADD COLUMN file_id CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '原始文件 ID' AFTER sections_json,
     ADD KEY idx_knowledge_document_file (file_id),
     ADD CONSTRAINT fk_knowledge_document_file FOREIGN KEY (file_id) REFERENCES t_file_asset (id);
 
 ALTER TABLE t_knowledge_document_task
-    ADD COLUMN file_id CHAR(36) NULL COMMENT '任务输入文件 ID' AFTER source,
+    ADD COLUMN file_id CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '任务输入文件 ID' AFTER source,
     ADD COLUMN recovery_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '应用重启恢复次数' AFTER file_id,
     ADD KEY idx_knowledge_task_file (file_id),
     ADD CONSTRAINT fk_knowledge_task_file FOREIGN KEY (file_id) REFERENCES t_file_asset (id);
 
 ALTER TABLE t_resume_version
-    ADD COLUMN file_id CHAR(36) NULL COMMENT '用户明确保存的原文件 ID' AFTER file_size,
+    ADD COLUMN file_id CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL COMMENT '用户明确保存的原文件 ID' AFTER file_size,
     ADD KEY idx_resume_version_file (file_id),
     ADD CONSTRAINT fk_resume_version_file FOREIGN KEY (file_id) REFERENCES t_file_asset (id);
