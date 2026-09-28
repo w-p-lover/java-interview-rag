@@ -3,6 +3,7 @@ import { BookOpenCheck, Info, Send, Target } from "@lucide/vue";
 import { shallowRef, watch } from "vue";
 
 import type { InterviewQuestion } from "@/api/interview";
+import InterviewVoiceControls from "@/components/interview/InterviewVoiceControls.vue";
 
 const props = defineProps<{
   question: InterviewQuestion;
@@ -30,6 +31,15 @@ function handleSubmit(): void {
   if (normalized) {
     emit("submit", normalized);
   }
+}
+
+function handleVoiceTranscript(transcript: string): void {
+  const normalized = transcript.trim();
+  if (!normalized) {
+    return;
+  }
+  const current = answer.value.trimEnd();
+  answer.value = (current ? `${current}\n${normalized}` : normalized).slice(0, 10_000);
 }
 </script>
 
@@ -67,6 +77,12 @@ function handleSubmit(): void {
 
     <form @submit.prevent="handleSubmit">
       <label for="interview-answer">你的回答</label>
+      <InterviewVoiceControls
+        :key="questionIndex"
+        :question="question.question"
+        :disabled="busy"
+        @transcript="handleVoiceTranscript"
+      />
       <textarea
         id="interview-answer"
         v-model="answer"
