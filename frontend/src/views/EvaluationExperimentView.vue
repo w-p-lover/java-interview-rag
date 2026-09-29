@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import RetrievalExperimentPanel from "@/components/evaluation/RetrievalExperimentPanel.vue";
+import AnswerExperimentPanel from "@/components/evaluation/AnswerExperimentPanel.vue";
 </script>
 
 <template>
   <WorkspaceHeader mode="evaluations" />
   <main class="evaluation-workspace">
     <RetrievalExperimentPanel />
+    <AnswerExperimentPanel />
   </main>
 </template>
 

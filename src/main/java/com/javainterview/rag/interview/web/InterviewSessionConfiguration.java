@@ -5,6 +5,10 @@ import com.javainterview.rag.interview.persistence.InterviewSessionMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewTaskMapper;
 import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
 import com.javainterview.rag.interview.persistence.InterviewAnswerEvaluationLogMapper;
+import com.javainterview.rag.interview.persistence.AnswerExperimentRunMapper;
+import com.javainterview.rag.interview.persistence.MySqlAnswerExperimentStore;
+import com.javainterview.rag.interview.evaluation.AnswerExperimentStore;
+import com.javainterview.rag.interview.evaluation.AnswerExperimentService;
 import com.javainterview.rag.interview.persistence.InterviewToolExecutionLogMapper;
 import com.javainterview.rag.interview.persistence.InterviewAssistantRequestLogMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
@@ -45,10 +49,23 @@ import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
 public class InterviewSessionConfiguration {
+
+    @Bean(name = "answerExperimentExecutor", destroyMethod = "shutdown")
+    ThreadPoolTaskExecutor answerExperimentExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(2);
+        executor.setThreadNamePrefix("answer-experiment-");
+        executor.initialize();
+        return executor;
+    }
 
     @Bean
     InterviewSessionStore interviewSessionStore(InterviewSessionMapper mapper, ObjectMapper objectMapper) {
@@ -164,6 +181,19 @@ public class InterviewSessionConfiguration {
             FixedInterviewAnswerEvaluationDataset dataset,
             InterviewAnswerEvaluator answerEvaluator) {
         return new FixedInterviewAnswerEvaluationService(dataset, answerEvaluator);
+    }
+
+    @Bean
+    AnswerExperimentStore answerExperimentStore(AnswerExperimentRunMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlAnswerExperimentStore(mapper, objectMapper);
+    }
+
+    @Bean
+    AnswerExperimentService answerExperimentService(FixedInterviewAnswerEvaluationDataset dataset,
+                                                    InterviewAnswerEvaluator evaluator,
+                                                    AnswerExperimentStore store,
+                                                    @Qualifier("answerExperimentExecutor") java.util.concurrent.Executor taskExecutor) {
+        return new AnswerExperimentService(dataset, evaluator, store, taskExecutor);
     }
 
     @Bean
