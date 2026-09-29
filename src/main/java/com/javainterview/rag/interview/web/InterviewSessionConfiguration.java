@@ -7,8 +7,12 @@ import com.javainterview.rag.interview.persistence.InterviewReviewAttemptMapper;
 import com.javainterview.rag.interview.persistence.InterviewAnswerEvaluationLogMapper;
 import com.javainterview.rag.interview.persistence.AnswerExperimentRunMapper;
 import com.javainterview.rag.interview.persistence.MySqlAnswerExperimentStore;
+import com.javainterview.rag.interview.persistence.ScoreStabilityRunMapper;
+import com.javainterview.rag.interview.persistence.MySqlScoreStabilityStore;
 import com.javainterview.rag.interview.evaluation.AnswerExperimentStore;
 import com.javainterview.rag.interview.evaluation.AnswerExperimentService;
+import com.javainterview.rag.interview.evaluation.ScoreStabilityStore;
+import com.javainterview.rag.interview.evaluation.ScoreStabilityService;
 import com.javainterview.rag.interview.persistence.InterviewToolExecutionLogMapper;
 import com.javainterview.rag.interview.persistence.InterviewAssistantRequestLogMapper;
 import com.javainterview.rag.interview.persistence.MySqlInterviewSessionStore;
@@ -63,6 +67,17 @@ public class InterviewSessionConfiguration {
         executor.setMaxPoolSize(1);
         executor.setQueueCapacity(2);
         executor.setThreadNamePrefix("answer-experiment-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "scoreStabilityExperimentExecutor", destroyMethod = "shutdown")
+    ThreadPoolTaskExecutor scoreStabilityExperimentExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1);
+        executor.setThreadNamePrefix("score-stability-");
         executor.initialize();
         return executor;
     }
@@ -194,6 +209,20 @@ public class InterviewSessionConfiguration {
                                                     AnswerExperimentStore store,
                                                     @Qualifier("answerExperimentExecutor") java.util.concurrent.Executor taskExecutor) {
         return new AnswerExperimentService(dataset, evaluator, store, taskExecutor);
+    }
+
+    @Bean
+    ScoreStabilityStore scoreStabilityStore(ScoreStabilityRunMapper mapper, ObjectMapper objectMapper) {
+        return new MySqlScoreStabilityStore(mapper, objectMapper);
+    }
+
+    @Bean
+    ScoreStabilityService scoreStabilityService(
+            FixedInterviewAnswerEvaluationDataset dataset,
+            InterviewAnswerEvaluator evaluator,
+            ScoreStabilityStore store,
+            @Qualifier("scoreStabilityExperimentExecutor") java.util.concurrent.Executor taskExecutor) {
+        return new ScoreStabilityService(dataset, evaluator, store, taskExecutor);
     }
 
     @Bean

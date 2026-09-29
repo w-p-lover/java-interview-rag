@@ -61,6 +61,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `storage` profile 的 OpenAI 兼容 ChatModel 只在模型 HTTP 层对连接失败/超时、HTTP 429 和 5xx 最多重试一次，固定退避 500ms；其他 4xx、业务异常和工具异常不重试。重试不包裹 ChatClient 助手或工具执行，因此不会重放已经执行的改期工具。
 - `GET /api/interviews/sessions/{sessionId}/tool-executions?limit=20` 查询单个会话最近 1 到 100 条工具执行记录。记录包含执行 UUID、可空助手请求 UUID、工具名、成功/失败、结果数量、耗时和异常类型，不保存工具参数 JSON、回答正文、知识正文或异常消息；日志存储失败只告警，不改变工具结果。
 - `POST /api/interviews/evaluations/answers` 在 `storage` profile 下依次执行空回答、无关回答、部分回答、完整回答和无知识来源回答五类脱敏样本，返回本次 `baselineRunId`、实际总分是否落入宽松预期区间，以及成功评价的回答证据/知识证据条数；不返回引文正文。五个稳定 `caseId` 共享同一运行标识，空回答在服务端拒绝，其余样本最多产生 4 次 Chat 调用。
+- `POST/GET /api/interviews/evaluation-experiments/score-stability` 在 `storage` profile 下启动、查询和恢复评分稳定性实验；固定 5 题，每个可评分样本重复 2 次，持久化分数序列、知识依据判断、平均波动和 P95，支持同契约幂等、基线/候选比较及人工采用/回退。一次完整运行最多 8 次 Chat，拒答样本不调用模型。
 - `GET /api/interviews/evaluations/logs?mode=BASELINE&baselineRunId=...&baselineCaseId=...&limit=20` 在 `storage` profile 下查询最近 1 到 100 条评价日志；两个基线标识可独立或联合筛选。响应同时提供版本汇总和按稳定样本跨运行的成功/失败、总分范围、平均值、总体方差、耗时及失败类型，查询不调用模型。
 - Vue `/interview` 在简历证据检查完成且填写岗位描述后提供岗位匹配顾问；岗位描述、目标岗位或审计结果变化后旧结果标记为待更新，匹配失败不阻断开始面试。
 - Vue `/interview` 在简历证据检查确认到项目后提供项目深挖面试官：可以切换已确认项目、显式选择是否补充资料库背景，并查看固定四维问题与可展开的真实来源；项目或审计结果变化后旧结果标记为待更新。

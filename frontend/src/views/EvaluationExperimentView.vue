@@ -2,6 +2,7 @@
 import WorkspaceHeader from "@/components/WorkspaceHeader.vue";
 import RetrievalExperimentPanel from "@/components/evaluation/RetrievalExperimentPanel.vue";
 import AnswerExperimentPanel from "@/components/evaluation/AnswerExperimentPanel.vue";
+import ScoreStabilityPanel from "@/components/evaluation/ScoreStabilityPanel.vue";
 </script>
 
 <template>
@@ -9,6 +10,7 @@ import AnswerExperimentPanel from "@/components/evaluation/AnswerExperimentPanel
   <main class="evaluation-workspace">
     <RetrievalExperimentPanel />
     <AnswerExperimentPanel />
+    <ScoreStabilityPanel />
   </main>
 </template>
 
