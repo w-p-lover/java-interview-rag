@@ -142,8 +142,16 @@ python evaluation/run_local_smoke.py
 本机具备 Docker Compose 且需要新建本地基础设施时，先根据 [`.env.example`](.env.example) 创建本地 `.env`，再启动基础设施：
 
 ```shell
-docker compose up -d mysql qdrant
+docker compose up -d --build
 ```
+
+该 Compose 会按 `deploy/mysql/init/001_*.sql` 到最新迁移顺序初始化独立数据库，等待 MySQL、Qdrant、Redis 健康后创建缺失的 `java-interview-rag-chunks` collection，再启动 storage 后端和 Nginx 前端。部署完成后执行只读检查：
+
+```shell
+python evaluation/run_deploy_smoke.py
+```
+
+检查覆盖后端 Actuator 健康、资料目录、评分实验入口、前端首页和 `/api` 反向代理；不会导入资料、调用 Chat/Embedding 或写入业务数据。容器部署的备份/恢复演练仍需在具备 Docker 与数据库备份工具的环境执行。
 
 项目也会只读导入 `D:/IdeaProjects/blog/blog-springboot/.env`。因此在已有服务器环境下，不需要复制主项目密码或 API Key；新项目会复用其中的 MySQL 主机、端口、账号、密码、Qdrant 地址和 DashScope Key，但强制使用独立数据库 `java_interview_rag` 与 collection `java-interview-rag-chunks`。如需覆盖，可使用 `JAVA_INTERVIEW_RAG_` 前缀变量。
 

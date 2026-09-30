@@ -10,6 +10,17 @@ python evaluation/run_demo.py --keep-running
 
 成功后访问 `http://127.0.0.1:5173/`。脚本固定输出后端健康地址、前端入口、推荐操作顺序和日志位置；`local` 演示不依赖 MySQL、Qdrant 或付费模型。默认端口被占用时可使用 `--backend-port 18082 --frontend-port 5174`，脚本会同步调整前端 `/api` 代理目标。未指定 `--keep-running` 时，smoke 通过后会自动停止本轮启动的进程。
 
+## Compose 部署检查
+
+在已创建 `.env` 并具备 Docker Compose 的环境中，启动完整的 MySQL、Qdrant、Redis、storage 后端和 Nginx 前端：
+
+```shell
+docker compose up -d --build
+python evaluation/run_deploy_smoke.py
+```
+
+`run_deploy_smoke.py` 只读检查迁移编号连续性、后端健康、资料目录、评分实验入口、前端首页和 `/api` 反向代理，不调用模型、不导入资料，也不改写业务数据。脚本不能替代生产备份恢复演练；备份文件和恢复目标应在部署环境单独准备。
+
 PDF 正文提取的独立质量基线见 `evaluation/pdf/README.md`。该基线不依赖 RAG 语料、
 数据库或模型调用。
 

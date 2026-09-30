@@ -39,6 +39,24 @@ services:
       timeout: 5s
       retries: 20
 
+  qdrant-init:
+    image: curlimages/curl:8.10.1
+    restart: "no"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        if curl --fail --silent http://qdrant:6333/collections/java-interview-rag-chunks >/dev/null; then
+          echo 'Qdrant collection already exists';
+        else
+          curl --fail --silent --show-error -X PUT http://qdrant:6333/collections/java-interview-rag-chunks
+          -H 'Content-Type: application/json'
+          -d '{"vectors":{"size":1024,"distance":"Cosine"}}';
+        fi
+
   redis:
     image: redis:7.4-alpine
     container_name: java-interview-rag-redis
@@ -53,6 +71,56 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: storage
+      JAVA_INTERVIEW_RAG_DB_URL: jdbc:mysql://mysql:3306/java_interview_rag?serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+      JAVA_INTERVIEW_RAG_DB_USERNAME: ${JAVA_INTERVIEW_RAG_DB_USERNAME:-java_interview_rag}
+      JAVA_INTERVIEW_RAG_DB_PASSWORD: ${JAVA_INTERVIEW_RAG_DB_PASSWORD:-replace-me}
+      JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY: ${JAVA_INTERVIEW_RAG_DASHSCOPE_API_KEY:-}
+      JAVA_INTERVIEW_RAG_PROVIDER_ENCRYPTION_KEY: ${JAVA_INTERVIEW_RAG_PROVIDER_ENCRYPTION_KEY:-}
+      JAVA_INTERVIEW_RAG_QDRANT_HOST: qdrant
+      JAVA_INTERVIEW_RAG_QDRANT_PORT: 6334
+      JAVA_INTERVIEW_RAG_QDRANT_COLLECTION: java-interview-rag-chunks
+      JAVA_INTERVIEW_RAG_REDIS_HOST: redis
+      JAVA_INTERVIEW_RAG_SPARSE_INDEX_PATH: /app/.tmp/sparse-index
+    ports:
+      - "18080:18080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      qdrant-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:18080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 45s
+      retries: 10
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --output-document=- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
 
 volumes:
   mysql-data:

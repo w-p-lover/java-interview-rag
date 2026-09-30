@@ -1,0 +1,17 @@
+.git
+.idea
+.m2
+.npm
+.playwright
+.playwright-cli
+.tmp
+target
+output
+frontend/node_modules
+frontend/dist
+*.log
+.env
+config/application-private.yml
+config/application-private.example.yml
+hs_err_pid*
+replay_pid*
