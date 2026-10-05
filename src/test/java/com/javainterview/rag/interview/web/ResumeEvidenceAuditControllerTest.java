@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.resume.ResumeEvidenceAuditService;
 import com.javainterview.rag.interview.resume.ResumeAnalysisResultService;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -110,6 +111,25 @@ class ResumeEvidenceAuditControllerTest {
                 mock(ResumeEvidenceAuditRequestLogQueryService.class);
         when(service.audit("真实简历"))
                 .thenThrow(new ResourceAccessException("模型服务连接失败"));
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
+                new ResumeEvidenceAuditController(service, logQueryService,
+                        mock(ResumeAnalysisResultService.class))).build();
+
+        mockMvc.perform(post("/api/interviews/resume-audits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"resumeText\":\"真实简历\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message")
+                        .value("模型服务暂时不可用，请稍后重试"));
+    }
+
+    @Test
+    void mapsWrappedRestClientFailureToSafeBadGatewayMessage() throws Exception {
+        ResumeEvidenceAuditService service = mock(ResumeEvidenceAuditService.class);
+        ResumeEvidenceAuditRequestLogQueryService logQueryService =
+                mock(ResumeEvidenceAuditRequestLogQueryService.class);
+        when(service.audit("真实简历"))
+                .thenThrow(new RestClientException("读取模型响应超时"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new ResumeEvidenceAuditController(service, logQueryService,
                         mock(ResumeAnalysisResultService.class))).build();

@@ -38,7 +38,7 @@ Java 求职面试知识库与智能训练平台，基于 Java 17、Spring Boot 3
 - `POST /api/interviews/job-matches` 只接收岗位描述和已确认简历事实，返回已有证据、部分覆盖、尚无证据和需要核对的岗位要求；岗位原文与简历证据均由 Java 服务端逐字验真，不接收或保存原始简历。
 - `GET /api/interviews/job-matches/requests?limit=20` 查询岗位匹配模型请求的脱敏元数据，包括模型、Prompt、token、耗时、状态和失败类型，不返回岗位描述、简历证据或匹配正文。
 - `POST /api/interviews/project-deep-dives` 只接收一条 `PROJECT` 类型的已确认事实，确定性生成基础、取舍、故障和扩展四类深挖题；默认不调用模型或向量检索，显式开启后只读检索知识库并把真实来源作为答题背景，不用资料补写项目经历。
-- `POST /api/interviews/drafts` 统一生成准备画像和多来源题目草稿；有简历证据时按约 60%/40% 并行生成简历题和 Skill/方向题，无简历时全部生成方向题。分支失败按可用来源降级，双失败或规范化去重产生的缺口由 Skill 固定题补足；近期同 Skill 历史知识点进入两路 Prompt，近期原题不会再次进入新题单。相同材料、题数、Skill、难度、Prompt、模型和组卷策略在当前实例 30 分钟内复用同一结果，并发重复请求共享一次计算，`regenerate=true` 才显式重新生成；单题知识检索失败时保留题目并返回不可用来源。
+- `POST /api/interviews/drafts` 统一生成准备画像和多来源题目草稿；有简历证据时按约 60%/40% 先生成简历题，再把本场简历题作为排除上下文生成 Skill/方向题，无简历时全部生成方向题。分支失败按可用来源降级，双失败或规范化去重产生的缺口由 Skill 固定题补足；近期同 Skill 历史知识点进入两路 Prompt，近期原题和本场已生成主题不会再次进入方向题单。相同材料、题数、Skill、难度、Prompt、模型和组卷策略在当前实例 30 分钟内复用同一结果，并发重复请求共享一次计算，`regenerate=true` 才显式重新生成；单题知识检索失败时保留题目并返回不可用来源。
 - `POST /api/interviews/drafts/{draftId}/questions/{questionIndex}/replace` 只替换指定草稿题并重算来源分配；Skill 固定题从本地目录替换，不调用模型，画像题使用一次独立替换调用且排除当前题单。草稿仅在当前进程有界缓存中保存，不持久化原始简历或 JD。
 - `POST /api/interviews/questions` 在 `storage` profile 下接收目标岗位和已确认的面试准备画像，通过一次结构化模型调用生成 3 到 8 道首轮面试题；每题返回考察目标、画像依据类型、知识检索查询、可靠知识命中状态和实际 Markdown chunk 来源。
 - `POST /api/interviews/sessions/start` 接收目标岗位、简历、可选 JD、初始题数与整场题数上限，一次完成画像、首轮出题和持久化会话创建；默认首轮 5 道、整场最多 8 道，整场上限可配置到 12 道。
@@ -178,7 +178,7 @@ python evaluation/run_deploy_smoke.py
 
 固定 RAG 评估集只用于比较检索、Prompt 和模型版本，不是用户侧面试题库。用户侧从 `POST /api/interviews/preparations` 开始：请求必须提供 `targetRole` 和 `resumeText`，`jobDescription` 可选。服务使用 `interview-preparation-v1` Prompt 要求模型只依据输入生成结构化画像，不推断不存在的经历，不生成面试题、评分或录用判断。响应中的 `resumeEvidence`、`jobRequirements` 与 `focusAreas` 将作为后续生成可追踪面试题前的可确认草稿。
 
-前端默认把目标岗位、简历/JD、3 到 8 的 `questionCount`、整场题数上限、Skill 和难度提交到 `POST /api/interviews/drafts`。服务先校验配置，再用 `interview-guide-multi-source-v2` 编排：有简历证据时按约 60% 简历题、40% Skill/方向题并行生成，无简历时全部生成方向题；简历分支失败会全量改走方向分支，方向分支失败保留简历题，两路失败或同场/近期历史规范化去重产生缺口时由 Skill 固定题补足。支持 Java 核心、Spring、数据库、系统设计和 RAG/AI 五类 Skill 及三档难度。每题保存主来源与辅助来源，生成题使用独立 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库；可靠命中时返回实际 chunk，没有命中时不伪造引用，单题检索异常也不会清空其余草稿。相同输入与运行契约在当前实例 30 分钟、最多 100 份草稿范围内复用；显式重新生成绕过复用，失败计算会移除以允许重试。前端正式确认时生成并在重试期间复用 `requestId`，MySQL 唯一键保证并发或重启后恢复同一会话；草稿缓存不作为正式幂等依据。前端显示目标/实际题数和不可用来源，少于 3 题不能创建正式会话。Skill、难度、题数、来源配额、每题来源、模型和 Prompt/策略版本会作为配置快照随正式会话持久化。原 `/preparations` 与 `/questions` 仍保留为独立能力入口。
+前端默认把目标岗位、简历/JD、3 到 8 的 `questionCount`、整场题数上限、Skill 和难度提交到 `POST /api/interviews/drafts`。服务先校验配置，再用 `interview-guide-multi-source-v3` 编排：有简历证据时按约 60% 先生成简历题，再把本场题面和考察目标加入排除上下文生成 40% Skill/方向题；无简历时全部生成方向题。简历分支失败会全量改走方向分支，方向分支失败保留简历题，两路失败或同场/近期历史规范化去重产生缺口时由 Skill 固定题补足。支持 Java 核心、Spring、数据库、系统设计和 RAG/AI 五类 Skill 及三档难度。每题保存主来源与辅助来源，生成题使用独立 `knowledgeQuery` 以 `topK=3`、相似度阈值 `0.60` 检索知识库；可靠命中时返回实际 chunk，没有命中时不伪造引用，单题检索异常也不会清空其余草稿。相同输入与运行契约在当前实例 30 分钟、最多 100 份草稿范围内复用；显式重新生成绕过复用，失败计算会移除以允许重试。前端正式确认时生成并在重试期间复用 `requestId`，MySQL 唯一键保证并发或重启后恢复同一会话；草稿缓存不作为正式幂等依据。前端显示目标/实际题数和不可用来源，少于 3 题不能创建正式会话。Skill、难度、题数、来源配额、每题来源、模型和 Prompt/策略版本会作为配置快照随正式会话持久化。原 `/preparations` 与 `/questions` 仍保留为独立能力入口。
 
 `POST /api/interviews/sessions/start` 可以直接串联画像、指定数量的首轮出题和会话创建。会话只允许按当前题号顺序回答；每次提交先校验 `questionIndex` 和 `expectedVersion`，再调用模型生成结构化评价。评价只把题目已有的真实 chunk 视为可靠知识依据；没有来源时不会声称技术事实已经验证。模型认为存在关键遗漏时可以生成一条追问，服务再次检索真实知识来源并把追问追加到队列末尾，但不会超过 12 道整场上限，也不会追加完全重复的题目。
 

@@ -18,7 +18,7 @@ import java.util.function.Supplier;
 
 public class InterviewQuestionPlanService {
 
-    public static final String STRATEGY_VERSION = "interview-guide-multi-source-v2";
+    public static final String STRATEGY_VERSION = "interview-guide-multi-source-v3";
 
     private final InterviewQuestionGenerationService generationService;
     private final FixedInterviewQuestionCatalog fixedQuestionCatalog;

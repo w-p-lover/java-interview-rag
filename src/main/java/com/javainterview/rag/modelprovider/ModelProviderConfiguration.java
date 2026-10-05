@@ -45,7 +45,7 @@ public class ModelProviderConfiguration {
     @Bean
     RestClient.Builder modelProviderChatRestClientBuilder(
             @Value("${java-interview-rag.provider.chat.connect-timeout:5s}") Duration connectTimeout,
-            @Value("${java-interview-rag.provider.chat.response-timeout:180s}") Duration responseTimeout) {
+            @Value("${java-interview-rag.provider.chat.response-timeout:420s}") Duration responseTimeout) {
         requirePositive(connectTimeout, "Chat 连接超时");
         requirePositive(responseTimeout, "Chat 响应超时");
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();

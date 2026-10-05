@@ -13,7 +13,7 @@ import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.ai.retry.TransientAiException;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -87,7 +87,7 @@ public class ResumeEvidenceAuditController {
     }
 
     @ExceptionHandler({NonTransientAiException.class, TransientAiException.class,
-            ResourceAccessException.class, ResumeEvidenceAuditTimeoutException.class})
+            RestClientException.class, ResumeEvidenceAuditTimeoutException.class})
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public Map<String, String> handleModelFailure(RuntimeException exception) {
         String detail = exception.getMessage();

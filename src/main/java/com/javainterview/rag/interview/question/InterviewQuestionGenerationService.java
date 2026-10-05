@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 public class InterviewQuestionGenerationService {
@@ -81,16 +79,11 @@ public class InterviewQuestionGenerationService {
 
         int resumeCount = Math.max(1, (int) Math.round(questionCount * RESUME_QUESTION_RATIO));
         int directionCount = questionCount - resumeCount;
-        CompletableFuture<BranchResult> resumeFuture = CompletableFuture.supplyAsync(() ->
-                generateBranch(normalizedTargetRole, profile, resumeCount, Branch.RESUME, history));
-        CompletableFuture<BranchResult> directionFuture = CompletableFuture.supplyAsync(() ->
-                generateBranch(normalizedTargetRole, profile, directionCount, Branch.DIRECTION, history));
-
         BranchResult resumeResult;
         try {
-            resumeResult = resumeFuture.join();
-        } catch (CompletionException exception) {
-            directionFuture.cancel(true);
+            resumeResult = generateBranch(
+                    normalizedTargetRole, profile, resumeCount, Branch.RESUME, history);
+        } catch (RuntimeException exception) {
             try {
                 BranchResult fallback = generateBranch(
                         normalizedTargetRole, profile, questionCount, Branch.DIRECTION, history);
@@ -109,8 +102,14 @@ public class InterviewQuestionGenerationService {
             }
         }
 
+        List<HistoricalInterviewQuestion> directionHistory = new ArrayList<>(history);
+        resumeResult.questions().stream()
+                .map(question -> new HistoricalInterviewQuestion(
+                        question.question(), "RESUME", question.objective()))
+                .forEach(directionHistory::add);
         try {
-            BranchResult directionResult = directionFuture.join();
+            BranchResult directionResult = generateBranch(
+                    normalizedTargetRole, profile, directionCount, Branch.DIRECTION, directionHistory);
             List<InterviewQuestion> merged = new ArrayList<>(resumeResult.questions());
             merged.addAll(directionResult.questions());
             List<InterviewQuestionSource> unavailable = new ArrayList<>();
@@ -121,7 +120,7 @@ public class InterviewQuestionGenerationService {
                     PROMPT_VERSION,
                     merged,
                     unavailable.stream().distinct().toList());
-        } catch (CompletionException exception) {
+        } catch (RuntimeException exception) {
             List<InterviewQuestionSource> unavailable = new ArrayList<>(resumeResult.unavailableSources());
             unavailable.add(InterviewQuestionSource.TARGET_ROLE);
             return new InterviewQuestionSourceGenerationResult(

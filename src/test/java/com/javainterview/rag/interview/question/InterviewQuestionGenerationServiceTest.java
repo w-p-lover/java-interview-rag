@@ -242,6 +242,8 @@ class InterviewQuestionGenerationServiceTest {
         ArgumentCaptor<String> promptCaptor = ArgumentCaptor.forClass(String.class);
         verify(chatClient, times(2)).prompt(promptCaptor.capture());
         assertTrue(promptCaptor.getAllValues().stream().allMatch(prompt -> prompt.contains("旧知识点")));
+        assertTrue(promptCaptor.getAllValues().get(1).contains("RESUME：考察目标0"));
+        assertTrue(promptCaptor.getAllValues().get(1).contains("RESUME：考察目标2"));
     }
 
     @Test

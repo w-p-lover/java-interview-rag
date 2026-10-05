@@ -75,7 +75,7 @@ java-interview-rag:
     encryption-key: ${JAVA_INTERVIEW_RAG_PROVIDER_ENCRYPTION_KEY:}
     chat:
       connect-timeout: ${JAVA_INTERVIEW_RAG_CHAT_CONNECT_TIMEOUT:5s}
-      response-timeout: ${JAVA_INTERVIEW_RAG_CHAT_RESPONSE_TIMEOUT:180s}
+      response-timeout: ${JAVA_INTERVIEW_RAG_CHAT_RESPONSE_TIMEOUT:420s}
   embedding:
     connect-timeout: ${JAVA_INTERVIEW_RAG_EMBEDDING_CONNECT_TIMEOUT:5s}
     response-timeout: ${JAVA_INTERVIEW_RAG_EMBEDDING_RESPONSE_TIMEOUT:30s}
