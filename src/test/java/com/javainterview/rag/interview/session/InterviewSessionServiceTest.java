@@ -107,6 +107,30 @@ class InterviewSessionServiceTest {
     }
 
     @Test
+    void disablesFollowUpEvaluationWhenQuestionCapIsReached() {
+        InterviewSessionStore store = mock(InterviewSessionStore.class);
+        InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);
+        InterviewSessionService service = new InterviewSessionService(store, evaluator);
+        LocalDateTime createdAt = LocalDateTime.of(2026, 7, 27, 10, 0);
+        InterviewSession initial = new InterviewSession(
+                "session-1", "Java AI 应用开发工程师", InterviewSessionMode.STANDARD,
+                profile(), questions(), questions().size(), List.of(), 0,
+                InterviewSessionStatus.IN_PROGRESS, 0L, null, createdAt, createdAt);
+        when(store.findById("session-1")).thenReturn(Optional.of(initial));
+        when(evaluator.evaluateWithoutFollowUp(
+                any(), any(), eq("回答"), eq(InterviewSkill.GENERAL)))
+                .thenReturn(assessment(null));
+        when(store.update(any(InterviewSession.class), eq(0L))).thenReturn(true);
+
+        InterviewSession updated = service.submitAnswer("session-1", 0, 0L, "回答");
+
+        assertEquals(questions().size(), updated.questions().size());
+        verify(evaluator).evaluateWithoutFollowUp(
+                any(), any(), eq("回答"), eq(InterviewSkill.GENERAL));
+        verify(evaluator, never()).evaluate(any(), any(), any(), any(InterviewSkill.class));
+    }
+
+    @Test
     void rejectsCompletedStaleAndConcurrentSubmissionsBeforeTheyCanOverwriteAnswers() {
         InterviewSessionStore store = mock(InterviewSessionStore.class);
         InterviewAnswerEvaluator evaluator = mock(InterviewAnswerEvaluator.class);

@@ -40,6 +40,16 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            InterviewSkill skill) {
+        return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
+                () -> delegate.evaluateWithoutFollowUp(profile, question, answer, skill));
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
                                                          InterviewQuestion question,
                                                          String answer,
@@ -56,6 +66,18 @@ public class ObservableInterviewAnswerEvaluator implements InterviewAnswerEvalua
                                                          InterviewSkill skill) {
         return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
                 () -> delegate.evaluateWithContext(
+                        profile, question, answer, conversationContext, skill));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateWithContextWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            String conversationContext,
+            InterviewSkill skill) {
+        return observe(InterviewAnswerEvaluationLog.Mode.INTERVIEW,
+                () -> delegate.evaluateWithContextWithoutFollowUp(
                         profile, question, answer, conversationContext, skill));
     }
 

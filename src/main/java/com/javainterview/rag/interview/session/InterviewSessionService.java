@@ -186,12 +186,24 @@ public class InterviewSessionService {
             throw new InterviewSessionConflictException("面试会话已经完成");
         }
         InterviewQuestion currentQuestion = existing.questions().get(existing.currentQuestionIndex());
-        InterviewAnswerAssessment assessment = conversationContext == null
-                ? answerEvaluator.evaluate(existing.profile(), currentQuestion, normalizedAnswer,
-                existing.configuration().skill())
-                : answerEvaluator.evaluateWithContext(existing.profile(), currentQuestion,
-                normalizedAnswer, conversationContext, existing.configuration().skill());
-        InterviewQuestion followUpQuestion = existing.questions().size() < existing.maxQuestionCount()
+        boolean allowFollowUp = existing.questions().size() < existing.maxQuestionCount();
+        InterviewAnswerAssessment assessment;
+        if (conversationContext == null) {
+            assessment = allowFollowUp
+                    ? answerEvaluator.evaluate(existing.profile(), currentQuestion, normalizedAnswer,
+                    existing.configuration().skill())
+                    : answerEvaluator.evaluateWithoutFollowUp(
+                    existing.profile(), currentQuestion, normalizedAnswer,
+                    existing.configuration().skill());
+        } else {
+            assessment = allowFollowUp
+                    ? answerEvaluator.evaluateWithContext(existing.profile(), currentQuestion,
+                    normalizedAnswer, conversationContext, existing.configuration().skill())
+                    : answerEvaluator.evaluateWithContextWithoutFollowUp(
+                    existing.profile(), currentQuestion, normalizedAnswer, conversationContext,
+                    existing.configuration().skill());
+        }
+        InterviewQuestion followUpQuestion = allowFollowUp
                 ? assessment.followUpQuestion() : null;
         InterviewSession updated = existing.answer(
                 normalizedAnswer, assessment.evaluation(), followUpQuestion, LocalDateTime.now());

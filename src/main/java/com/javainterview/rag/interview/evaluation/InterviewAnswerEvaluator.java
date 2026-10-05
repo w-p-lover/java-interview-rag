@@ -20,6 +20,14 @@ public interface InterviewAnswerEvaluator {
         return evaluate(profile, question, answer);
     }
 
+    default InterviewAnswerAssessment evaluateWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            InterviewSkill skill) {
+        return evaluate(profile, question, answer, skill);
+    }
+
     /** 使用当前会话的受控上下文评价回答。 */
     default InterviewAnswerAssessment evaluateWithContext(
             InterviewPreparationProfile profile,
@@ -36,6 +44,15 @@ public interface InterviewAnswerEvaluator {
             String conversationContext,
             InterviewSkill skill) {
         return evaluateWithContext(profile, question, answer, conversationContext);
+    }
+
+    default InterviewAnswerAssessment evaluateWithContextWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            String conversationContext,
+            InterviewSkill skill) {
+        return evaluateWithContext(profile, question, answer, conversationContext, skill);
     }
 
     default InterviewAnswerAssessment evaluateForReview(

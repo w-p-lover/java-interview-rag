@@ -82,6 +82,16 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
     }
 
     @Override
+    public InterviewAnswerAssessment evaluateWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            InterviewSkill skill) {
+        return evaluate(profile, question, answer, List.of(), false,
+                rubricCatalog.forSkill(skill));
+    }
+
+    @Override
     public InterviewAnswerAssessment evaluateWithContext(InterviewPreparationProfile profile,
                                                          InterviewQuestion question,
                                                          String answer,
@@ -99,6 +109,18 @@ public class InterviewAnswerEvaluationService implements InterviewAnswerEvaluato
                                                          InterviewSkill skill) {
         Objects.requireNonNull(conversationContext, "会话上下文不能为空");
         return evaluate(profile, question, answer, List.of(), question.bankContext() == null,
+                conversationContext, rubricCatalog.forSkill(skill));
+    }
+
+    @Override
+    public InterviewAnswerAssessment evaluateWithContextWithoutFollowUp(
+            InterviewPreparationProfile profile,
+            InterviewQuestion question,
+            String answer,
+            String conversationContext,
+            InterviewSkill skill) {
+        Objects.requireNonNull(conversationContext, "会话上下文不能为空");
+        return evaluate(profile, question, answer, List.of(), false,
                 conversationContext, rubricCatalog.forSkill(skill));
     }
 
