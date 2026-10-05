@@ -73,12 +73,20 @@ public final class PublishedMarkdownIndexFilter {
         if (publications.isEmpty()) {
             return builder.eq("source", "__no_published_index__").build();
         }
-        Filter.Expression combined = branch(builder, publications.get(0));
-        for (int index = 1; index < publications.size(); index++) {
-            combined = new Filter.Expression(Filter.ExpressionType.OR,
-                    combined, branch(builder, publications.get(index)));
+        List<Filter.Expression> branches = publications.stream()
+                .map(publication -> branch(builder, publication))
+                .toList();
+        return combineBranches(branches, 0, branches.size());
+    }
+
+    private Filter.Expression combineBranches(List<Filter.Expression> branches, int from, int to) {
+        if (to - from == 1) {
+            return branches.get(from);
         }
-        return combined;
+        int middle = from + (to - from) / 2;
+        return new Filter.Expression(Filter.ExpressionType.OR,
+                combineBranches(branches, from, middle),
+                combineBranches(branches, middle, to));
     }
 
     private Filter.Expression branch(FilterExpressionBuilder builder,

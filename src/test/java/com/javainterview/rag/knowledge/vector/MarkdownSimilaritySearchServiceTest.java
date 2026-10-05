@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 
 import java.util.List;
 import java.util.Map;
@@ -128,6 +129,31 @@ class MarkdownSimilaritySearchServiceTest {
         verify(vectorStore, times(2)).similaritySearch(requests.capture());
         assertTrue(requests.getAllValues().get(0).getFilterExpression().toString()
                 .contains("generation-2"));
+    }
+
+    @Test
+    void balancesPublishedSourceFilterAtProductionScale() {
+        VectorStore vectorStore = mock(VectorStore.class);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+        InMemoryMarkdownIndexingStateStore stateStore = new InMemoryMarkdownIndexingStateStore();
+        for (int index = 0; index < 64; index++) {
+            stateStore.markReady(MarkdownDocument.create("source-" + index + ".md", "content-" + index), 1);
+        }
+        MarkdownSimilaritySearchService service = new MarkdownSimilaritySearchService(
+                vectorStore, null, new PublishedMarkdownIndexFilter(stateStore));
+
+        service.search("Spring Boot", 5, 0.0);
+
+        ArgumentCaptor<SearchRequest> request = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore).similaritySearch(request.capture());
+        assertTrue(expressionDepth(request.getValue().getFilterExpression()) <= 10);
+    }
+
+    private int expressionDepth(Filter.Operand operand) {
+        if (!(operand instanceof Filter.Expression expression)) {
+            return 0;
+        }
+        return 1 + Math.max(expressionDepth(expression.left()), expressionDepth(expression.right()));
     }
 
     private Document document(MarkdownDocument source, String text, String generation) {
