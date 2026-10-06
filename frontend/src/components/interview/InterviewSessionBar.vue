@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle2, FileCheck2, RotateCcw } from "@lucide/vue";
+import { CheckCircle2, FileCheck2, History, RotateCcw } from "@lucide/vue";
 
 import type { InterviewSessionMode } from "@/api/interview";
 
@@ -15,6 +15,7 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
+  history: [];
   reset: [];
 }>();
 </script>
@@ -38,10 +39,21 @@ const emit = defineEmits<{
       <span :style="{ transform: `scaleX(${progress / 100})` }"></span>
     </div>
 
-    <button type="button" :disabled="loading" @click="emit('reset')">
-      <RotateCcw :size="16" aria-hidden="true" />
-      <span>{{ status === "COMPLETED" ? "新面试" : "重新开始" }}</span>
-    </button>
+    <div class="session-bar__actions">
+      <button type="button" aria-label="历史面试" :disabled="loading" @click="emit('history')">
+        <History :size="16" aria-hidden="true" />
+        <span>历史面试</span>
+      </button>
+      <button
+        type="button"
+        :aria-label="status === 'COMPLETED' ? '新面试' : '重新开始'"
+        :disabled="loading"
+        @click="emit('reset')"
+      >
+        <RotateCcw :size="16" aria-hidden="true" />
+        <span>{{ status === "COMPLETED" ? "新面试" : "重新开始" }}</span>
+      </button>
+    </div>
   </section>
 </template>
 
@@ -67,6 +79,12 @@ const emit = defineEmits<{
 .session-bar__main strong,
 button {
   white-space: nowrap;
+}
+
+.session-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
 }
 
 .session-bar__role {

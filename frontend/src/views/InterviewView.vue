@@ -9,9 +9,10 @@ import type {
 } from "@/api/interview";
 import InterviewFeedbackPanel from "@/components/interview/InterviewFeedbackPanel.vue";
 import InterviewAnswerRehearsalCard from "@/components/interview/InterviewAnswerRehearsalCard.vue";
+import InterviewAnswerTimeline from "@/components/interview/InterviewAnswerTimeline.vue";
 import InterviewConversationTimeline from "@/components/interview/InterviewConversationTimeline.vue";
+import InterviewHistoryPanel from "@/components/interview/InterviewHistoryPanel.vue";
 import InterviewQuestionPanel from "@/components/interview/InterviewQuestionPanel.vue";
-import InterviewRecentSessionsPanel from "@/components/interview/InterviewRecentSessionsPanel.vue";
 import InterviewReportPanel from "@/components/interview/InterviewReportPanel.vue";
 import InterviewReviewAssistantPanel from "@/components/interview/InterviewReviewAssistantPanel.vue";
 import InterviewReviewPathPanel from "@/components/interview/InterviewReviewPathPanel.vue";
@@ -107,8 +108,14 @@ function handleSubmit(answer: string): void {
   void submit(answer);
 }
 
-function handleRestore(sessionId: string): void {
-  void restore(sessionId);
+async function handleRestore(sessionId: string): Promise<void> {
+  await router.push({ name: "interview", query: { sessionId } });
+  await restore(sessionId);
+}
+
+async function handleExitSession(): Promise<void> {
+  await router.replace({ name: "interview", query: {} });
+  reset();
 }
 
 async function handleReviewPathOpen(sessionId: string, taskId: string): Promise<void> {
@@ -175,7 +182,7 @@ function handleAssistantScheduled(): void {
         @start="handleStart"
         @start-project-deep-dive="handleProjectDeepDiveStart"
       />
-      <InterviewRecentSessionsPanel
+      <InterviewHistoryPanel
         :sessions="recentSessions"
         :loading="recentSessionsLoading"
         :error="recentSessionsError"
@@ -198,7 +205,8 @@ function handleAssistantScheduled(): void {
         :question-count="session.questions.length"
         :progress="progress"
         :loading="loading"
-        @reset="reset"
+        @history="handleExitSession"
+        @reset="handleExitSession"
       />
 
       <InterviewConversationTimeline
@@ -210,7 +218,11 @@ function handleAssistantScheduled(): void {
         <InterviewReportPanel
           id="interview-report"
           :session="session"
-          @restart="reset"
+          @restart="handleExitSession"
+        />
+        <InterviewAnswerTimeline
+          :session="session"
+          :history="reviewHistory"
         />
         <InterviewAnswerRehearsalCard
           v-if="latestAnswer && latestAnswerQuestion"
@@ -276,6 +288,11 @@ function handleAssistantScheduled(): void {
           @practice="handleRehearsalPractice"
         />
       </section>
+      <InterviewAnswerTimeline
+        v-if="session.status === 'IN_PROGRESS' && session.answers.length"
+        :session="session"
+        :history="reviewHistory"
+      />
     </template>
   </main>
 </template>

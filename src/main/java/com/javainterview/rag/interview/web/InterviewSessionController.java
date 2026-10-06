@@ -7,6 +7,7 @@ import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewConversationContext;
 import com.javainterview.rag.interview.session.InterviewConversationEvent;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
+import com.javainterview.rag.interview.session.InterviewSessionSummary;
 import com.javainterview.rag.interview.resume.ResumeCenterStore;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -96,6 +98,13 @@ public class InterviewSessionController {
     @Operation(summary = "查询面试会话")
     public InterviewSession find(@PathVariable String sessionId) {
         return sessionService.find(sessionId);
+    }
+
+    @GetMapping
+    @Operation(summary = "查询历史面试", description = "按最近更新时间返回持久化会话摘要，不返回回答正文")
+    public List<InterviewSessionSummary> findRecent(
+            @RequestParam(defaultValue = "20") int limit) {
+        return sessionService.findRecent(limit);
     }
 
     @PostMapping("/{sessionId}/answers")

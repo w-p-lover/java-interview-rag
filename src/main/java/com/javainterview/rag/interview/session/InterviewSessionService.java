@@ -168,6 +168,13 @@ public class InterviewSessionService {
                 .orElseThrow(() -> new NoSuchElementException("面试会话不存在"));
     }
 
+    public List<InterviewSessionSummary> findRecent(int limit) {
+        if (limit < 1 || limit > 50) {
+            throw new IllegalArgumentException("面试历史数量必须在 1 到 50 之间");
+        }
+        return store.findRecent(limit);
+    }
+
     public InterviewSession submitAnswer(String sessionId, int questionIndex,
                                          long expectedVersion, String answer) {
         return submitAnswer(sessionId, questionIndex, expectedVersion, answer, null);

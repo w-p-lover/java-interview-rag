@@ -93,6 +93,30 @@ class MySqlInterviewSessionStoreTest {
     }
 
     @Test
+    void listsRecentSessionsAsSummariesWithoutReturningAnswerSnapshots() throws Exception {
+        InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
+        ObjectMapper objectMapper = objectMapper();
+        MySqlInterviewSessionStore store = new MySqlInterviewSessionStore(mapper, objectMapper);
+        InterviewSession completed = completedSession();
+        InterviewSessionEntity entity = InterviewSessionEntity.from(
+                completed,
+                objectMapper.writeValueAsString(completed.profile()),
+                objectMapper.writeValueAsString(completed.questions()),
+                objectMapper.writeValueAsString(completed.answers()),
+                objectMapper.writeValueAsString(completed.report()));
+        when(mapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(entity));
+
+        var summaries = store.findRecent(20);
+
+        assertEquals(1, summaries.size());
+        assertEquals("session-1", summaries.get(0).id());
+        assertEquals(3, summaries.get(0).answeredQuestionCount());
+        assertEquals(3, summaries.get(0).questionCount());
+        assertEquals(80.0, summaries.get(0).overallAverageScore());
+        verify(mapper).selectList(any(QueryWrapper.class));
+    }
+
+    @Test
     void restoresProjectDeepDiveSessionMode() throws Exception {
         InterviewSessionMapper mapper = mock(InterviewSessionMapper.class);
         ObjectMapper objectMapper = objectMapper();

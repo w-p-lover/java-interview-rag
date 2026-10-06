@@ -15,6 +15,7 @@ import com.javainterview.rag.interview.session.InterviewSessionAnswer;
 import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
 import com.javainterview.rag.interview.session.InterviewSessionStore;
+import com.javainterview.rag.interview.session.InterviewSessionSummary;
 
 import java.util.List;
 import java.util.Objects;
@@ -64,6 +65,25 @@ public class MySqlInterviewSessionStore implements InterviewSessionStore {
             return Optional.empty();
         }
         return Optional.ofNullable(mapper.selectByRequestId(requestId.strip())).map(this::toSession);
+    }
+
+    @Override
+    public List<InterviewSessionSummary> findRecent(int limit) {
+        if (limit < 1) {
+            return List.of();
+        }
+        List<InterviewSessionSummary> summaries = new ArrayList<>();
+        List<InterviewSessionEntity> entities = mapper.selectList(new QueryWrapper<InterviewSessionEntity>()
+                .orderByDesc("updated_at")
+                .last("LIMIT " + Math.min(limit, 50)));
+        for (InterviewSessionEntity entity : entities) {
+            try {
+                summaries.add(InterviewSessionSummary.from(toSession(entity)));
+            } catch (RuntimeException ignored) {
+                // 单条旧会话损坏时跳过，避免阻断其他历史会话查询。
+            }
+        }
+        return List.copyOf(summaries);
     }
 
     @Override

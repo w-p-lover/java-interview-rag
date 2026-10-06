@@ -9,6 +9,7 @@ import {
   getInterviewReviewTasks,
   getInterviewSession,
   getInterviewSessionEvents,
+  getInterviewSessions,
   scheduleInterviewReviewTask,
   startProjectDeepDiveSession as requestProjectDeepDiveSession,
   submitInterviewAnswerStream,
@@ -18,35 +19,22 @@ import {
   type InterviewReviewTask,
   type InterviewReviewTaskQuery,
   type InterviewSession,
+  type InterviewSessionSummary,
   type InterviewConversationEvent,
   type InterviewSessionCreatePayload,
   type ProjectDeepDiveSessionStartPayload,
 } from "@/api/interview";
 import { resolveApiError } from "@/api/request";
-import {
-  readRecentInterviewSessionIds,
-  writeRecentInterviewSessionIds,
-} from "@/utils/interviewSessionStorage";
 
 const SESSION_STORAGE_KEY = "java-interview-rag.active-interview-session";
-const RECENT_SESSION_LIMIT = 8;
-
-export interface RecentInterviewSession {
-  id: string;
-  targetRole: string;
-  mode: InterviewSession["mode"];
-  status: InterviewSession["status"];
-  currentQuestionIndex: number;
-  questionCount: number;
-  updatedAt: string;
-}
+const SESSION_HISTORY_LIMIT = 20;
 
 export function useInterviewSession() {
   const session = shallowRef<InterviewSession | null>(null);
   const loading = shallowRef(false);
   const restoring = shallowRef(false);
   const error = shallowRef("");
-  const recentSessions = shallowRef<RecentInterviewSession[]>([]);
+  const recentSessions = shallowRef<InterviewSessionSummary[]>([]);
   const recentSessionsLoading = shallowRef(false);
   const recentSessionsError = shallowRef("");
   const restoringSessionId = shallowRef("");
@@ -77,9 +65,7 @@ export function useInterviewSession() {
 
   async function initialize(requestedSessionId?: string): Promise<void> {
     await restore(requestedSessionId);
-    if (!session.value) {
-      await loadRecentSessions();
-    }
+    await loadRecentSessions();
   }
 
   async function restore(requestedSessionId?: string): Promise<void> {
@@ -119,36 +105,15 @@ export function useInterviewSession() {
   }
 
   async function loadRecentSessions(): Promise<void> {
-    const sessionIds = readRecentInterviewSessionIds();
-    if (!sessionIds.length) {
-      recentSessions.value = [];
-      recentSessionsError.value = "";
-      return;
-    }
     recentSessionsLoading.value = true;
     recentSessionsError.value = "";
-    const results = await Promise.all(sessionIds.map(async (sessionId) => {
-      try {
-        return { sessionId, restored: await getInterviewSession(sessionId), error: null };
-      } catch (requestError) {
-        return { sessionId, restored: null, error: requestError };
-      }
-    }));
-    const missingSessionIds = results
-      .filter((result) => axios.isAxiosError(result.error) && result.error.response?.status === 404)
-      .map((result) => result.sessionId);
-    if (missingSessionIds.length) {
-      writeRecentInterviewSessionIds(
-        sessionIds.filter((sessionId) => !missingSessionIds.includes(sessionId)),
-      );
+    try {
+      recentSessions.value = await getInterviewSessions(SESSION_HISTORY_LIMIT);
+    } catch (requestError) {
+      recentSessionsError.value = resolveApiError(requestError, "读取历史面试失败");
+    } finally {
+      recentSessionsLoading.value = false;
     }
-    recentSessions.value = results
-      .filter((result): result is typeof result & { restored: InterviewSession } => result.restored !== null)
-      .map((result) => toRecentSession(result.restored));
-    if (results.some((result) => result.error && !missingSessionIds.includes(result.sessionId))) {
-      recentSessionsError.value = "部分最近面试暂时无法读取，请稍后重试。";
-    }
-    recentSessionsLoading.value = false;
   }
 
   async function start(payload: InterviewSessionCreatePayload): Promise<void> {
@@ -380,28 +345,24 @@ export function useInterviewSession() {
     recentSessions.value = [
       toRecentSession(interviewSession),
       ...recentSessions.value.filter((item) => item.id !== interviewSession.id),
-    ].slice(0, RECENT_SESSION_LIMIT);
-    writeRecentInterviewSessionIds([
-      interviewSession.id,
-      ...readRecentInterviewSessionIds().filter((sessionId) => sessionId !== interviewSession.id),
-    ]);
+    ].slice(0, SESSION_HISTORY_LIMIT);
   }
 
   function forgetRecentSession(sessionId: string): void {
     recentSessions.value = recentSessions.value.filter((item) => item.id !== sessionId);
-    writeRecentInterviewSessionIds(
-      readRecentInterviewSessionIds().filter((item) => item !== sessionId),
-    );
   }
 
-  function toRecentSession(interviewSession: InterviewSession): RecentInterviewSession {
+  function toRecentSession(interviewSession: InterviewSession): InterviewSessionSummary {
     return {
       id: interviewSession.id,
       targetRole: interviewSession.targetRole,
+      resumeVersionId: interviewSession.resumeVersionId,
       mode: interviewSession.mode,
       status: interviewSession.status,
-      currentQuestionIndex: interviewSession.currentQuestionIndex,
+      answeredQuestionCount: interviewSession.answers.length,
       questionCount: interviewSession.questions.length,
+      overallAverageScore: interviewSession.report?.overallAverageScore ?? null,
+      createdAt: interviewSession.createdAt,
       updatedAt: interviewSession.updatedAt,
     };
   }

@@ -17,6 +17,7 @@ import com.javainterview.rag.interview.session.InterviewSessionMode;
 import com.javainterview.rag.interview.session.InterviewSessionService;
 import com.javainterview.rag.interview.session.InterviewSessionStartService;
 import com.javainterview.rag.interview.session.InterviewSessionStatus;
+import com.javainterview.rag.interview.session.InterviewSessionSummary;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,6 +63,7 @@ class InterviewSessionControllerTest {
                 initial.targetRole(), initial.profile(), initial.questions(), 8,
                 initial.configuration(), "request-1")).thenReturn(initial);
         when(service.find("session-1")).thenReturn(initial);
+        when(service.findRecent(20)).thenReturn(List.of(InterviewSessionSummary.from(answered)));
         when(service.submitAnswer(
                 "session-1", 0, 0L,
                 "使用稳定向量 ID，并在新版本写入成功后清理旧版本。"))
@@ -128,6 +130,13 @@ class InterviewSessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.profile.candidateSummary")
                         .value("具备 Java 后端和 RAG 项目经验。"));
+
+        mockMvc.perform(get("/api/interviews/sessions").param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("session-1"))
+                .andExpect(jsonPath("$[0].answeredQuestionCount").value(1))
+                .andExpect(jsonPath("$[0].questionCount").value(3))
+                .andExpect(jsonPath("$[0].overallAverageScore").doesNotExist());
 
         mockMvc.perform(post("/api/interviews/sessions/session-1/answers")
                         .contentType(MediaType.APPLICATION_JSON)

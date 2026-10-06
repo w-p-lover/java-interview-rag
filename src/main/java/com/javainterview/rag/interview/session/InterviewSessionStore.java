@@ -25,5 +25,9 @@ public interface InterviewSessionStore {
         return List.of();
     }
 
+    default List<InterviewSessionSummary> findRecent(int limit) {
+        return List.of();
+    }
+
     boolean update(InterviewSession session, long expectedVersion);
 }

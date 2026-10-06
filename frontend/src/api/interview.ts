@@ -146,6 +146,19 @@ export interface InterviewSession {
   updatedAt: string;
 }
 
+export interface InterviewSessionSummary {
+  id: string;
+  targetRole: string;
+  resumeVersionId: string | null;
+  mode: InterviewSessionMode;
+  status: InterviewSession["status"];
+  answeredQuestionCount: number;
+  questionCount: number;
+  overallAverageScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface InterviewConversationEvent {
   type: "ANSWER_SUBMITTED" | "EVALUATION_STARTED" | "EVALUATION_COMPLETED" | "FOLLOW_UP_GENERATED" | "SESSION_COMPLETED";
   sequence: number;
@@ -621,6 +634,13 @@ export async function startProjectDeepDiveSession(
 
 export async function getInterviewSession(sessionId: string): Promise<InterviewSession> {
   const response = await request.get<InterviewSession>(`/interviews/sessions/${sessionId}`);
+  return response.data;
+}
+
+export async function getInterviewSessions(limit = 20): Promise<InterviewSessionSummary[]> {
+  const response = await request.get<InterviewSessionSummary[]>("/interviews/sessions", {
+    params: { limit },
+  });
   return response.data;
 }
 
