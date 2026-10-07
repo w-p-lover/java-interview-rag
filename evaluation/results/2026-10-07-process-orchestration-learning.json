@@ -1,0 +1,135 @@
+{
+  "runAt": "2026-10-07T09:11:59+08:00",
+  "topic": "Java 与 Python 子进程编排项目答辩",
+  "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+  "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+  "contentSha256": "9de71dc4b2e6d7f2520c75bc1369f0c22efca2cdd7cd9467c6004709aff691c8",
+  "upstreamCommit": "969e2af8550f680688f5b50f0d895186a661a319",
+  "referenceCommit": "46bfc235cf8cb1fb753ca2f7db5a05f46937b1b7",
+  "transformation": "独立编写，仅学习提问顺序和公开概念；参考仓库只读",
+  "paidPlan": {
+    "topic": "Java/Python process orchestration",
+    "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+    "query": "PythonScriptRunner 先 readLine 直到 EOF 再 waitFor(timeoutSeconds)，为何不能保证 Python 子进程整体超时？应怎样处理输出与终止？",
+    "limits": {
+      "chat": 3,
+      "import_embedding_batches": 6,
+      "query_embedding": 1,
+      "retries": 0
+    },
+    "criteria": {
+      "import": "READY, Dense/Sparse count equals chunks, no old versions",
+      "retrieval": "course appears in RAG sources, no degradation",
+      "answer": "explains read-before-wait deadline gap without claiming improvements are implemented",
+      "practice": "two persisted attempts, improved answer covers lifecycle and side effects; score is demonstration only"
+    },
+    "failure_action": "Preserve the course and report failed gates; no paid repeat or automatic score chasing."
+  },
+  "actualModelInvocations": {
+    "chatRequests": 3,
+    "importEmbeddingBatches": 4,
+    "queryEmbeddingRequests": 1,
+    "paidRetryRequests": 0,
+    "note": "先导入课程，再修正前端阅读/复习入口名称并发布第二版本；未重复查询 Embedding。计数为应用提交请求，不含 Provider 内部行为；token 和费用未估算。"
+  },
+  "storage": {
+    "database": "java_interview_rag",
+    "serverVersion": "5.7.36",
+    "migrationRequired": false,
+    "storedContentLength": 7206,
+    "chunkCount": 18,
+    "consistent": true,
+    "indexingStatus": "READY",
+    "denseCount": 18,
+    "sparseCount": 18,
+    "denseStaleCount": 0,
+    "sparseStaleCount": 0
+  },
+  "retrieval": {
+    "ragStrategy": "HYBRID",
+    "ragDegraded": false,
+    "ragSourceHits": 5,
+    "ragSourceVersion": "d111f01210fbe846426d862d878d5f7ce2054afdb91b56c29062db4ae96a8df1",
+    "note": "RAG 来源验证的是首版；更正页面入口后，最终版本使用零 Embedding 的 Sparse 验证。",
+    "finalSparseTop5": [
+      {
+        "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+        "version": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+        "headingPath": [
+          "Java 与 Python 子进程编排项目答辩",
+          "二、30 秒结论"
+        ]
+      },
+      {
+        "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+        "version": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+        "headingPath": [
+          "Java 与 Python 子进程编排项目答辩",
+          "四、3 分钟完整讲解：从输入到收尾",
+          "3. 读取顺序让超时范围不完整"
+        ]
+      },
+      {
+        "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+        "version": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+        "headingPath": [
+          "Java 与 Python 子进程编排项目答辩",
+          "四、3 分钟完整讲解：从输入到收尾",
+          "3. 读取顺序让超时范围不完整"
+        ]
+      },
+      {
+        "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+        "version": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+        "headingPath": [
+          "Java 与 Python 子进程编排项目答辩",
+          "六、固定提问、示范答题与再练"
+        ]
+      },
+      {
+        "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+        "version": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+        "headingPath": [
+          "Java 与 Python 子进程编排项目答辩",
+          "三、90 秒标准回答"
+        ]
+      }
+    ]
+  },
+  "ragAnswer": {
+    "passed": false,
+    "response": "知识库回答生成超时，请稍后重试。",
+    "elapsedSeconds": 61.42,
+    "action": "记录未通过，不重跑；检索来源和独立练习仍可使用"
+  },
+  "practice": {
+    "taskId": "99d720941a143ae4b3d1048ea3c534870eaadd14a0c329d1081eec00d5976f53",
+    "status": "PENDING",
+    "agentDemonstrationOnly": true,
+    "firstAttemptId": "7d6c6bb0-3074-4015-a3f7-2e88ce618cfa",
+    "repracticeAttemptId": "5fb93f91-43f8-489a-891a-381c8ca7bbf5",
+    "firstScore": 55,
+    "repracticeScore": 92,
+    "improvement": 37,
+    "persistedAttemptCount": 2,
+    "firstGaps": [
+      "未说明先 readLine 再 waitFor 的阻塞关系和单一截止时间",
+      "未覆盖有界输出、持续排空和输出容量边界",
+      "未说明终止进程后确认退出、关闭 stdin、受控进程树和中断处理",
+      "未区分进程退出码成功与业务副作用成功，也未说明重试幂等"
+    ],
+    "remainingGaps": [
+      "部分项目事实未提供验证方式",
+      "建议方案缺少代码级落地示例",
+      "进程树平台约束未说明验证方法"
+    ],
+    "knowledgeGrounded": false,
+    "note": "知识复习评分协议没有携带课程证据快照，评价结果为 knowledgeGrounded=false、knowledgeEvidence=[]；仅证明纠错与再练流程，不是证据化评价或用户本人能力。"
+  },
+  "formalBackendSession": {
+    "id": "4a0bfddf-7842-4611-bd8f-486181c3ffe5",
+    "status": "IN_PROGRESS",
+    "answerCount": 0
+  },
+  "userEntry": "http://127.0.0.1:5173/answer?reviewTaskId=99d720941a143ae4b3d1048ea3c534870eaadd14a0c329d1081eec00d5976f53"
+}
