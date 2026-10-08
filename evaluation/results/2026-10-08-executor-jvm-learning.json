@@ -1,0 +1,196 @@
+{
+  "runAt": "2026-10-08T09:17:51+08:00",
+  "topic": "并发执行器与 JVM 故障诊断项目答辩",
+  "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+  "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+  "contentSha256": "5aaf977939c3333fd0c78fcd9793813da3827859f4af01397b440cfaf3201165",
+  "upstreamCommit": "969e2af8550f680688f5b50f0d895186a661a319",
+  "referenceCommit": "46bfc235cf8cb1fb753ca2f7db5a05f46937b1b7",
+  "transformation": "独立编写正文、题面、答案与Rubric；参考仓库只读，未复制上游原文/Prompt/源码",
+  "paidPlan": {
+    "topic": "并发执行器与 JVM 诊断答辩",
+    "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+    "query": "资料任务池 core=max=2、queueCapacity=8，为何超时 FAILED 不代表线程已停止？请用课程简短说明中断与旧结果防护。",
+    "limits": {
+      "chat": 5,
+      "importEmbeddingBatches": 6,
+      "queryEmbedding": 1,
+      "paidRetries": 0
+    },
+    "criteria": {
+      "import": "READY、Dense/Sparse计数等于Chunk、旧版本0",
+      "question": "一次知识回答召回新课程，说明协作中断/attempt而不伪造实现",
+      "practice": "3题同版本证据、独立会话3回答、1次持久再练；正式本人会话0回答",
+      "failure": "保留失败与已完成成果，不付费重跑"
+    }
+  },
+  "actualModelInvocations": {
+    "chatRequests": 5,
+    "importEmbeddingBatches": 4,
+    "queryEmbeddingRequests": 1,
+    "paidRetryRequests": 0,
+    "note": "导入两版各16 Chunk、每批最多10；第二版纠正会话模式标签，重新绑定当前版本题库。应用级请求/批次计数，不包含Provider内部行为，未估算tokens或费用。"
+  },
+  "storage": {
+    "db": "java_interview_rag",
+    "server_version": "5.7.36",
+    "migrationRequired": false,
+    "snapshotMatchesAfterNewlineNormalization": true,
+    "storedContentLength": 8196,
+    "indexing": {
+      "status": "READY",
+      "chunk_count": 16,
+      "document_version": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e"
+    },
+    "consistency": {
+      "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+      "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+      "expectedChunkCount": 16,
+      "consistent": true,
+      "indexingState": {
+        "tracked": true,
+        "status": "READY",
+        "chunkCount": 16,
+        "expectedChunkCountMatched": true,
+        "errorType": null,
+        "publishedGeneration": "9c0df633-5ece-4f58-9cb7-0e3097d0d6cd",
+        "buildingGeneration": null
+      },
+      "dense": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 16,
+        "currentVersionMetadataMatchCount": 16,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 16,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      },
+      "sparse": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 16,
+        "currentVersionMetadataMatchCount": 16,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 16,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      }
+    }
+  },
+  "publicationCorrection": {
+    "supersededVersion": "0399f9238a0e57bc20f18763c8f9184e5390194e96eea86ab6f659122a604a5e",
+    "supersededQuestionIds": [
+      "9f23d6a2-bca2-4fdc-ad9b-1d474d6ea4a7",
+      "3c1400e9-688e-4d3b-b10c-f0d5b516ecc2",
+      "134c661f-800f-4829-8b77-4dc4047ffbeb"
+    ],
+    "supersededQuestionStatus": "ARCHIVED",
+    "unusedInitialSessionId": "65cc9a9c-5d0f-4b08-b389-3cfcd4f78b95",
+    "unusedInitialSessionAnswerCount": 0
+  },
+  "ragAnswer": {
+    "passed": false,
+    "answer": "知识库回答生成超时，请稍后重试。",
+    "grounded": false,
+    "retrievalStrategy": "HYBRID",
+    "degraded": false,
+    "courseSourceHits": 5,
+    "sourceCount": 5,
+    "documentVersion": "0399f9238a0e57bc20f18763c8f9184e5390194e96eea86ab6f659122a604a5e",
+    "elapsedSecondsApprox": 61,
+    "paidRetry": false
+  },
+  "finalSparse": {
+    "resultCount": 5,
+    "courseHits": 5,
+    "query": "KnowledgeDocumentTaskService 线程池 cancel FAILED JVM RSS",
+    "queryEmbeddingRequests": 0
+  },
+  "questionBank": {
+    "activeQuestionIds": [
+      "e72be326-17d4-47cd-929f-de807ee5d9ac",
+      "d153c460-2c5c-4147-890a-5c9c40c22c1f",
+      "b64d359c-19e6-432a-9da4-81b69bcfe7df"
+    ],
+    "skill": "JAVA_CORE",
+    "difficulty": "INTERMEDIATE",
+    "categories": [
+      "原理与实现",
+      "并发与边界",
+      "结论与推理表达"
+    ],
+    "evidenceCounts": [
+      3,
+      3,
+      3
+    ],
+    "followUpsPerQuestion": 1,
+    "generationChatRequests": 0
+  },
+  "practice": {
+    "sessionId": "ec19f482-9343-49e0-a5d6-e3d0dd8d3df7",
+    "status": "COMPLETED",
+    "agentDemonstrationOnly": true,
+    "scores": [
+      43,
+      95,
+      95
+    ],
+    "report": {
+      "answeredQuestions": 3,
+      "averageTechnicalScore": 77.0,
+      "averageCompletenessScore": 77.0,
+      "averageCommunicationScore": 79.7,
+      "overallAverageScore": 77.7,
+      "strengths": [
+        "准确说明 core=max=2、队列容量为 8 的池配置",
+        "说明队列满后拒绝并保存 FAILED/TASK_REJECTED，具备拒绝可观察性",
+        "承认参数未按真实负载压测，边界意识较清晰",
+        "准确说明 cancel(true) 只是中断请求，不保证阻塞 I/O 停止",
+        "完整覆盖上下文提交快照、执行设置、finally 恢复和 CallerRuns 保护"
+      ],
+      "gaps": [
+        "未说明 core、队列、max、拒绝的任务接收顺序",
+        "未解释 core=max=2 时 max 无法额外扩容救积压",
+        "未说明有界队列只限制任务数，仍需限制单任务载荷和下游并发",
+        "未说明 CallerRunsPolicy 会占用提交者线程并破坏长任务快速返回",
+        "未明确真实 active、队列等待和拒绝计数等观测指标如何区分线程占用"
+      ],
+      "completedAt": "2026-10-08T09:14:23.4496089"
+    },
+    "reviewTaskCount": 3,
+    "reviewTaskId": "0a787f11-0407-373b-be57-6185899e746d",
+    "attemptId": "2233bda4-daf1-46c7-a02e-85840f9eb198",
+    "repracticeScore": 93,
+    "scoreDeltaFromOriginal": 50,
+    "initialGaps": [
+      "未说明 core、队列、max、拒绝的任务接收顺序",
+      "未解释 core=max=2 时 max 无法额外扩容救积压",
+      "未说明有界队列只限制任务数，仍需限制单任务载荷和下游并发",
+      "未说明 CallerRunsPolicy 会占用提交者线程并破坏长任务快速返回"
+    ],
+    "repracticeGaps": [
+      "未具体说明拒绝后的失败状态持久化、告警和重试闭环。",
+      "对 CallerRunsPolicy 阻塞提交线程后的替代降级或恢复路径展开不足。",
+      "容量估算公式与 2/2/8 场景的突发边界推导可进一步收敛。"
+    ],
+    "allEvaluationsKnowledgeGrounded": true,
+    "allQuotesVerifiedAgainstStoredVersion": true,
+    "reviewTaskStatus": "PENDING",
+    "entry": "http://127.0.0.1:5173/interview?sessionId=ec19f482-9343-49e0-a5d6-e3d0dd8d3df7&taskId=0a787f11-0407-373b-be57-6185899e746d"
+  },
+  "protectedFormalInterview": {
+    "sessionId": "4a0bfddf-7842-4611-bd8f-486181c3ffe5",
+    "status": "IN_PROGRESS",
+    "answerCount": 0
+  },
+  "verification": {
+    "sqlReadOnly": true,
+    "javaVueOrDdlChanged": false,
+    "fullTestsOrBuildRun": false
+  },
+  "next": "JRAG-008：优先修复知识回答生成超时并交付可继续操作的回答链，之后由本人完成Q5训练与正式面试"
+}
