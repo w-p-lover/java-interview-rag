@@ -10,6 +10,7 @@ import com.javainterview.rag.knowledge.vector.MarkdownSimilaritySearchService;
 import com.javainterview.rag.knowledge.vector.KnowledgeRetrievalUnavailableException;
 import org.springframework.ai.chat.client.ChatClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
@@ -44,7 +45,7 @@ public class RagAnswerService {
     private static final String PROMPT_VERSION = "rag-answer-v6";
     private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
-    private static final String TIMEOUT_ANSWER = "知识库回答生成超时，请稍后重试。";
+    private static final String TIMEOUT_ANSWER = "知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。";
     private static final String RETRIEVAL_UNAVAILABLE_ANSWER = "知识检索暂时不可用，请稍后重试。";
     private static final String OVERLOADED_ANSWER = "当前知识问答较繁忙，请稍后重试。";
     private static final String ANSWER_INSTRUCTIONS = """
@@ -291,11 +292,20 @@ public class RagAnswerService {
         if (!answerBulkhead.tryAcquire()) {
             throw new RagAnswerOverloadedException();
         }
-        CompletableFuture<String> future;
+        FutureTask<String> future = new FutureTask<>(
+                () -> chatClient.prompt(prompt).call().content()) {
+            @Override
+            public void run() {
+                try {
+                    super.run();
+                } finally {
+                    // 中断只是请求；工作真正退出后才归还并发名额。
+                    answerBulkhead.release();
+                }
+            }
+        };
         try {
-            future = CompletableFuture.supplyAsync(
-                    () -> chatClient.prompt(prompt).call().content(), answerExecutor);
-            future.whenComplete((result, error) -> answerBulkhead.release());
+            answerExecutor.execute(future);
         } catch (RejectedExecutionException exception) {
             answerBulkhead.release();
             throw new RagAnswerOverloadedException();
@@ -306,6 +316,7 @@ public class RagAnswerService {
             future.cancel(true);
             throw new RagAnswerTimeoutException();
         } catch (InterruptedException exception) {
+            future.cancel(true);
             Thread.currentThread().interrupt();
             throw new IllegalStateException("回答生成被中断", exception);
         } catch (ExecutionException exception) {
@@ -372,6 +383,7 @@ public class RagAnswerService {
             List<MarkdownSearchResult> finalSources = sources;
             AtomicReference<String> pending = new AtomicReference<>("");
             AtomicBoolean streamBlocked = new AtomicBoolean();
+            long generationDeadline = System.nanoTime() + answerTimeout.toNanos();
             try {
                 return chatClient.prompt(promptContext.prompt()).stream().content()
                     .doOnNext(answer::append)
@@ -430,7 +442,9 @@ public class RagAnswerService {
                         }
                         return Flux.just(RagAnswerStreamEvent.complete(result));
                     }))
-                    .timeout(answerTimeout)
+                    // 固定生成截止时间，不能因持续输出而无限续期。
+                    .timeout(Mono.delay(answerTimeout), ignored -> Mono.delay(Duration.ofNanos(
+                            Math.max(0, generationDeadline - System.nanoTime()))))
                     .onErrorResume(TimeoutException.class, exception -> {
                         RagAnswerResult timeoutResult = toAnswerResult(
                                 TIMEOUT_ANSWER, false, finalSources, List.of(), retrieval);
@@ -438,6 +452,8 @@ public class RagAnswerService {
                                 false, startedAt, "SERVER_TIMEOUT");
                         return Flux.just(RagAnswerStreamEvent.complete(timeoutResult));
                     })
+                    .startWith(new RagAnswerStreamEvent("sources", "", false, finalSources,
+                            List.of(), retrieval.strategy(), retrieval.degraded(), retrieval.degradationReason()))
                     .doOnError(exception -> {
                         if (!(exception instanceof TimeoutException)) {
                             record(question, finalSources, RagRetrievalLogStatus.FAILED, false,

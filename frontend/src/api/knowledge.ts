@@ -209,7 +209,7 @@ export interface KnowledgeConversationTurn {
 }
 
 export interface KnowledgeAnswerStreamEvent {
-  type: "delta" | "complete";
+  type: "sources" | "delta" | "complete";
   content: string;
   grounded: boolean;
   sources: KnowledgeAnswerSource[];

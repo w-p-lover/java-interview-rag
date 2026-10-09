@@ -57,6 +57,29 @@ class ModelProviderRegistryTest {
         mutation.get(2, TimeUnit.SECONDS);
     }
 
+    @Test
+    void streamCanCompleteOnAnotherThreadAndThenReloadProvider() throws Exception {
+        InMemoryStore store = new InMemoryStore(provider("primary", "chat-a", "embed-a", 3));
+        ChatModel model = mock(ChatModel.class);
+        org.mockito.Mockito.when(model.stream(org.mockito.ArgumentMatchers.any(Prompt.class)))
+                .thenReturn(reactor.core.publisher.Flux.just(new ChatResponse(List.of()))
+                        .delayElements(java.time.Duration.ofMillis(10)));
+        ModelProviderClientFactory factory = new ModelProviderClientFactory() {
+            @Override public ChatModel createChatModel(ModelProviderRuntimeConfig provider) { return model; }
+            @Override public EmbeddingModel createEmbeddingModel(ModelProviderRuntimeConfig provider) {
+                return mock(EmbeddingModel.class);
+            }
+        };
+        ModelProviderRegistry registry = new ModelProviderRegistry(store,
+                new ProviderApiKeyCipher("test-key"), factory);
+        assertEquals(1, registry.streamChat(new Prompt("probe")).collectList()
+                .block(java.time.Duration.ofSeconds(1)).size());
+        var subscription = registry.streamChat(new Prompt("probe")).subscribe();
+        CompletableFuture.runAsync(subscription::dispose).get(1, TimeUnit.SECONDS);
+        CompletableFuture.runAsync(registry::reload).get(1, TimeUnit.SECONDS);
+        assertEquals("primary/chat-a#3", registry.currentChatContract());
+    }
+
     private ModelProvider provider(String id, String chatModel, String embeddingModel, long version) {
         ProviderApiKeyCipher.EncryptedValue encrypted =
                 new ProviderApiKeyCipher("test-key").encrypt("sk-test");

@@ -527,7 +527,7 @@ class RagAnswerServiceTest {
 
         RagAnswerResult result = service.answer("HashMap");
 
-        assertEquals("知识库回答生成超时，请稍后重试。", result.answer());
+        assertEquals("知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。", result.answer());
         assertEquals(false, result.grounded());
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
@@ -552,12 +552,79 @@ class RagAnswerServiceTest {
 
         RagAnswerStreamEvent complete = events.get(events.size() - 1);
         assertEquals("complete", complete.type());
-        assertEquals("知识库回答生成超时，请稍后重试。", complete.content());
+        assertEquals("知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。", complete.content());
         assertEquals(false, complete.grounded());
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.TIMEOUT, logCaptor.getValue().status());
         assertEquals("SERVER_TIMEOUT", logCaptor.getValue().errorType());
+    }
+
+    @Test
+    void timeoutInterruptsWorkerButKeepsCapacityUntilItActuallyExits() throws Exception {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search(anyString(), org.mockito.ArgumentMatchers.eq(5),
+                org.mockito.ArgumentMatchers.eq(0.60))).thenReturn(List.of(source));
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var interrupted = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        when(chatClient.prompt(anyString()).call().content()).thenAnswer(invocation -> {
+            entered.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException exception) {
+                interrupted.countDown();
+                release.await();
+            }
+            return "HashMap 使用数组 [资料 1]。";
+        });
+        var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {
+            RagAnswerService service = new RagAnswerService(searchService, null, null,
+                    chatClient, logStore, Duration.ofMillis(100), executor, 1);
+            RagAnswerResult timedOut = service.answer("HashMap");
+            assertTrue(entered.await(1, java.util.concurrent.TimeUnit.SECONDS));
+            assertTrue(interrupted.await(1, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(false, timedOut.grounded());
+            assertEquals("当前知识问答较繁忙，请稍后重试。", service.answer("HashMap").answer());
+            release.countDown();
+            executor.submit(() -> {}).get(1, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue(service.answer("HashMap").grounded());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void emitsSourcesBeforeGenerationAndStopsAtFixedDeadlineDespiteDeltas() throws Exception {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。", "java/collections.md", "version-1", 0,
+                List.of("Java", "集合"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        var cancelled = new java.util.concurrent.CountDownLatch(1);
+        when(chatClient.prompt(anyString()).stream().content()).thenReturn(
+                Flux.interval(Duration.ofMillis(10)).map(ignored -> "HashMap 使用数组 [资料 1]。")
+                        .doOnCancel(cancelled::countDown));
+        RagAnswerService service = new RagAnswerService(searchService, null, null,
+                chatClient, logStore, Duration.ofMillis(100));
+
+        List<RagAnswerStreamEvent> events = service.streamAnswer("HashMap")
+                .collectList().block(Duration.ofSeconds(1));
+
+        assertEquals("sources", events.get(0).type());
+        assertEquals(List.of(source), events.get(0).sources());
+        assertTrue(events.stream().anyMatch(event -> event.type().equals("delta")));
+        assertTrue(cancelled.await(1, java.util.concurrent.TimeUnit.SECONDS));
+        assertTrue(events.get(events.size() - 1).content().contains("生成超时"));
     }
 
     @Test

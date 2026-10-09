@@ -50,6 +50,47 @@ class ModelProviderConfigurationTest {
     }
 
     @Test
+    void interruptsChatHttpWaitBeforeProviderResponds() throws Exception {
+        var received = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var finished = new java.util.concurrent.CountDownLatch(1);
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/chat", exchange -> {
+            received.countDown();
+            try {
+                release.await(2, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } finally {
+                exchange.close();
+            }
+        });
+        server.start();
+        var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        try {
+            RestClient client = configuration.modelProviderChatRestClientBuilder(
+                            Duration.ofSeconds(1), Duration.ofSeconds(10))
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+            var future = executor.submit(() -> {
+                try {
+                    client.get().uri("/chat").retrieve().body(String.class);
+                } catch (ResourceAccessException expected) {
+                    // 取消请求后 HTTP 等待以中断异常退出。
+                } finally {
+                    finished.countDown();
+                }
+            });
+            assertTrue(received.await(1, java.util.concurrent.TimeUnit.SECONDS));
+            future.cancel(true);
+            assertTrue(finished.await(1, java.util.concurrent.TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            server.stop(0);
+        }
+    }
+
+    @Test
     void rejectsNonPositiveChatTimeouts() {
         assertThrows(IllegalArgumentException.class,
                 () -> configuration.modelProviderChatRestClientBuilder(

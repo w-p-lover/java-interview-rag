@@ -1,0 +1,154 @@
+{
+  "runAt": "2026-10-09T09:19:15+08:00",
+  "issue": "JRAG-008",
+  "delivered": "知识问答生成前先返回课程来源，超时/取消/引用失败后可阅读资料与继续既有复习；修复实际工作取消、并发容量与跨线程流式Provider锁。",
+  "upstream": {
+    "repository": "Snailclimb/interview-guide",
+    "commit": "ebe2697aeaa1c35fc780238f626165cf3e807782",
+    "license": "AGPL-3.0",
+    "read": [
+      "LICENSE",
+      "app/src/main/java/interview/guide/common/ai/LlmProviderRegistry.java",
+      "app/src/test/java/interview/guide/common/ai/LlmProviderRegistryPathIntegrationTest.java"
+    ],
+    "transformation": "学习按用途隔离ChatClient与缓存Provider快照的结构，独立实现本地取消与来源先行；无源码/Prompt复制。"
+  },
+  "paidPlan": {
+    "topic": "JRAG-008 知识问答生成与取消闭环",
+    "chatLimit": 2,
+    "queryEmbeddingLimit": 2,
+    "paidRetries": 0,
+    "samples": [
+      {
+        "path": "/api/knowledge/answer",
+        "question": "资料任务池 core=max=2、queueCapacity=8，为何超时 FAILED 不代表线程已停止？请用课程简短说明中断与旧结果防护。"
+      },
+      {
+        "path": "/api/knowledge/answer/stream",
+        "question": "PythonScriptRunner 为什么先 readLine 到 EOF 再 waitFor(timeout) 不能覆盖整个子进程生命周期？请根据课程简短说明。"
+      }
+    ],
+    "criteria": [
+      "同步回答在60秒生成预算内结束且grounded=true",
+      "流式先返回sources，随后完成带有效引用的回答",
+      "超时取消不虚假释放仍在运行的同步工作名额",
+      "流式跨线程完成取消后Provider变更可继续",
+      "正式后端会话仍为0回答"
+    ],
+    "failureAction": "不重复付费；保留来源阅读与专项练习，记录生成未通过事实"
+  },
+  "actualModelInvocations": {
+    "applicationChatCalls": 2,
+    "queryEmbeddings": 2,
+    "importEmbeddings": 0,
+    "manualPaidRetries": 0,
+    "currencyCost": "未取得Provider账单，未估算金额"
+  },
+  "generationCandidate": {
+    "promptVersion": "rag-answer-v7",
+    "changes": [
+      "回答核心问题优先<=300字",
+      "maxTokens=1200与原预留响应预算对齐"
+    ],
+    "decision": "REJECTED_AND_ROLLED_BACK",
+    "reason": "同步超时，流式引用校验失败；不足以证明质量或时延改善。最终代码恢复rag-answer-v6及原模型输出配置，未重复付费。"
+  },
+  "samples": [
+    {
+      "transport": "JSON",
+      "question": "资料任务池 core=max=2、queueCapacity=8，为何超时 FAILED 不代表线程已停止？请用课程简短说明中断与旧结果防护。",
+      "httpStatus": 200,
+      "elapsedMs": 61656,
+      "grounded": false,
+      "answer": "知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。",
+      "sourceCount": 5,
+      "courseHits": 5,
+      "accepted": false
+    },
+    {
+      "transport": "SSE via real browser",
+      "question": "PythonScriptRunner 为什么先 readLine 到 EOF 再 waitFor(timeout) 不能覆盖整个子进程生命周期？请根据课程简短说明。",
+      "elapsedMs": 35654,
+      "grounded": false,
+      "claimCount": 8,
+      "supportedClaimCount": 0,
+      "sourceCount": 5,
+      "courseHits": 5,
+      "course": "interview-guide/project/java-python-process-orchestration-defense.md",
+      "sourcesVisibleBeforeComplete": true,
+      "browserFinalStatus": "回答引用无效",
+      "browserFinalText": "本次回答的引用未通过核对，可先阅读下方资料并继续复习。",
+      "accepted": false
+    }
+  ],
+  "sql": {
+    "target": "java_interview_rag",
+    "ddlRequired": false,
+    "logs": [
+      {
+        "id": 135,
+        "status": "CITATION_INVALID",
+        "grounded": 0,
+        "prompt_version": "rag-answer-v7",
+        "elapsed_millis": 35654,
+        "error_type": null,
+        "created_at": "2026-10-09 09:12:44.347012"
+      },
+      {
+        "id": 134,
+        "status": "TIMEOUT",
+        "grounded": 0,
+        "prompt_version": "rag-answer-v7",
+        "elapsed_millis": 61579,
+        "error_type": "SERVER_TIMEOUT",
+        "created_at": "2026-10-09 09:12:07.172553"
+      }
+    ],
+    "protectedFormalSession": {
+      "id": "4a0bfddf-7842-4611-bd8f-486181c3ffe5",
+      "status": "IN_PROGRESS",
+      "answers": 0
+    }
+  },
+  "verification": {
+    "targetedTests": [
+      {
+        "name": "com.javainterview.rag.knowledge.rag.RagAnswerServiceTest",
+        "tests": "27",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.javainterview.rag.modelprovider.ModelProviderRegistryTest",
+        "tests": "3",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.javainterview.rag.modelprovider.ModelProviderConfigurationTest",
+        "tests": "3",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      }
+    ],
+    "frontend": "npm run typecheck passed",
+    "browser": "生成期间5条来源可见；终态拒绝未验证回答；展开同版本第7号课程切片可读；没有追加模型调用。",
+    "limitations": [
+      "真实付费样本属于已回退输出候选，最终默认生成参数没有付费重跑。",
+      "本地HTTP中断退出经过受控服务器验证，不证明远端停止计算或停止计费。",
+      "未做全量测试、构建、压测或生产部署。"
+    ]
+  },
+  "remaining": "JRAG-008保持近期处理：Provider时延与引用输出契约尚未收口；后续必须固定新行为候选再最小验收，不重复同版本追分。",
+  "finalRuntime": {
+    "storagePort": 18080,
+    "frontendPort": 5173,
+    "storagePid": 32612,
+    "health": "UP",
+    "generationSettings": "原rag-answer-v6/原输出配置",
+    "paidRecheckAfterRollback": false
+  }
+}

@@ -9,13 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
+import java.net.http.HttpClient;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("storage")
@@ -48,8 +49,9 @@ public class ModelProviderConfiguration {
             @Value("${java-interview-rag.provider.chat.response-timeout:420s}") Duration responseTimeout) {
         requirePositive(connectTimeout, "Chat 连接超时");
         requirePositive(responseTimeout, "Chat 响应超时");
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(connectTimeout);
+        // JDK HTTP 的阻塞请求支持中断，业务取消可终止本地等待。
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(
+                HttpClient.newBuilder().connectTimeout(connectTimeout).build());
         requestFactory.setReadTimeout(responseTimeout);
         return RestClient.builder().requestFactory(requestFactory);
     }

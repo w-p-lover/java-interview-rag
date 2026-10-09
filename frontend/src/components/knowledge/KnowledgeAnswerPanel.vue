@@ -20,7 +20,14 @@ const feedback = shallowRef<"HELPFUL" | "NOT_HELPFUL" | "">("");
 const feedbackError = shallowRef("");
 const answerStatus = computed(() => {
   if (props.result?.retrievalStrategy === "UNAVAILABLE") return "检索不可用";
+  if (props.result?.answer.includes("生成超时")) return "生成超时";
+  if (!props.result?.grounded && props.result?.claimEvidence.some((claim) => claim.status === "CITATION_INVALID")) return "回答引用无效";
+  if (!props.result?.answer && props.result?.sources.length) return "可先阅读来源";
   return props.result?.grounded ? "资料已支撑" : "资料不足";
+});
+const displayAnswer = computed(() => {
+  if (answerStatus.value === "回答引用无效") return "本次回答的引用未通过核对，可先阅读下方资料并继续复习。";
+  return props.result?.answer || (props.result?.sources.length ? "已找到相关资料，可先阅读下方来源。" : "正在检索资料…");
 });
 const degradationNotice = computed(() => {
   switch (props.result?.retrievalStrategy) {
@@ -90,8 +97,8 @@ async function submitFeedback(value: "HELPFUL" | "NOT_HELPFUL"): Promise<void> {
         <span>{{ degradationNotice }}</span>
       </p>
 
-      <p class="answer-content">{{ result.answer }}</p>
-      <div v-if="result.retrievalStrategy !== 'UNAVAILABLE'" class="answer-feedback" aria-label="回答反馈">
+      <p class="answer-content">{{ displayAnswer }}</p>
+      <div v-if="result.answer && !streaming && result.retrievalStrategy !== 'UNAVAILABLE'" class="answer-feedback" aria-label="回答反馈">
         <span>这份回答对你有帮助吗？</span>
         <button type="button" :class="{ selected: feedback === 'HELPFUL' }" @click="submitFeedback('HELPFUL')">有帮助</button>
         <button type="button" :class="{ selected: feedback === 'NOT_HELPFUL' }" @click="submitFeedback('NOT_HELPFUL')">没帮助</button>

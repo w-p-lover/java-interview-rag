@@ -1,4 +1,4 @@
-import { shallowRef } from "vue";
+import { onScopeDispose, shallowRef } from "vue";
 
 import {
   streamKnowledgeQuestion,
@@ -8,7 +8,7 @@ import {
 import { resolveApiError } from "@/api/request";
 
 export const KNOWLEDGE_QUESTION_MAX_LENGTH = 2_000;
-export const KNOWLEDGE_ANSWER_TIMEOUT_MS = 60_000;
+export const KNOWLEDGE_ANSWER_TIMEOUT_MS = 75_000;
 
 export function useKnowledgeAnswer() {
   const question = shallowRef("");
@@ -35,7 +35,11 @@ export function useKnowledgeAnswer() {
     loading.value = true;
     streaming.value = true;
     activeController = new AbortController();
-    timeoutHandle = setTimeout(() => activeController?.abort(), KNOWLEDGE_ANSWER_TIMEOUT_MS);
+    let timedOut = false;
+    timeoutHandle = setTimeout(() => {
+      timedOut = true;
+      activeController?.abort();
+    }, KNOWLEDGE_ANSWER_TIMEOUT_MS);
     error.value = "";
     result.value = {
       answer: "",
@@ -49,15 +53,21 @@ export function useKnowledgeAnswer() {
     submittedQuestion.value = normalizedQuestion;
     try {
       await streamKnowledgeQuestion(normalizedQuestion, (event) => {
+        if (event.type === "sources") {
+          result.value = { ...result.value!, sources: event.sources,
+            retrievalStrategy: event.retrievalStrategy, degraded: event.degraded,
+            degradationReason: event.degradationReason };
+          return;
+        }
         if (event.type === "delta") {
           result.value = {
             answer: `${result.value?.answer ?? ""}${event.content}`,
             grounded: false,
-            sources: [],
+            sources: result.value?.sources ?? [],
             claimEvidence: [],
             retrievalStrategy: result.value?.retrievalStrategy ?? "HYBRID",
-            degraded: false,
-            degradationReason: null,
+            degraded: result.value?.degraded ?? false,
+            degradationReason: result.value?.degradationReason ?? null,
           };
           return;
         }
@@ -76,7 +86,7 @@ export function useKnowledgeAnswer() {
       }
     } catch (requestError) {
       error.value = requestError instanceof DOMException && requestError.name === "AbortError"
-        ? "本次问答已取消。"
+        ? timedOut ? "回答等待超时，可先阅读已命中的资料。" : "本次问答已取消，可继续阅读已命中的资料。"
         : requestError instanceof Error
           ? requestError.message
           : resolveApiError(requestError, "知识问答失败");
@@ -102,6 +112,11 @@ export function useKnowledgeAnswer() {
   function cancel(): void {
     activeController?.abort();
   }
+
+  onScopeDispose(() => {
+    activeController?.abort();
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  });
 
   return {
     question,

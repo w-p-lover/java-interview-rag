@@ -96,14 +96,15 @@ public class ModelProviderRegistry {
 
     public Flux<ChatResponse> streamChat(Prompt prompt) {
         return Flux.defer(() -> {
+            ChatModel selectedModel;
             lock.readLock().lock();
             try {
-                return chatModel(snapshot.defaults().chatProviderId()).stream(prompt)
-                        .doFinally(ignored -> lock.readLock().unlock());
-            } catch (RuntimeException exception) {
+                selectedModel = chatModel(snapshot.defaults().chatProviderId());
+            } finally {
                 lock.readLock().unlock();
-                return Flux.error(exception);
             }
+            // 固定本次模型实例；响应和取消可能切换线程，不能跨线程持有读锁。
+            return selectedModel.stream(prompt);
         });
     }
 
