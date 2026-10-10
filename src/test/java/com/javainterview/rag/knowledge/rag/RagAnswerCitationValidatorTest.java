@@ -13,6 +13,37 @@ class RagAnswerCitationValidatorTest {
     private final RagAnswerCitationValidator validator = new RagAnswerCitationValidator();
 
     @Test
+    void bindsPostSentenceCitationsOnlyToTheImmediatelyPrecedingClaim() {
+        RagAnswerCitationValidation result = validator.validate(
+                "HashMap 使用数组。[资料 1] HashMap 平均查询为 O(1)。 [资料 2][资料 1]", 2);
+
+        assertTrue(result.valid());
+        assertEquals(2, result.claims().size());
+        assertEquals(List.of(1), result.claims().get(0).sourceNumbers());
+        assertEquals(List.of(2, 1), result.claims().get(1).sourceNumbers());
+    }
+
+    @Test
+    void doesNotSpreadTrailingCitationToEarlierOrFollowingClaims() {
+        RagAnswerCitationValidation result = validator.validate(
+                "并发写入安全。HashMap 使用数组。[资料 1] 并发写入安全。", 1);
+
+        assertFalse(result.valid());
+        assertEquals(List.of(RagAnswerClaimCitationStatus.MISSING_CITATION,
+                        RagAnswerClaimCitationStatus.VALID_CITATION,
+                        RagAnswerClaimCitationStatus.MISSING_CITATION),
+                result.claims().stream().map(RagAnswerClaimCitation::status).toList());
+    }
+
+    @Test
+    void rejectsPostSentenceOutOfRangeCitationAndDoesNotBindAcrossLines() {
+        assertFalse(validator.validate("HashMap 使用数组。[资料 2]", 1).valid());
+        assertEquals(List.of(2), validator.validate(
+                "HashMap 使用数组。[资料 2]", 1).invalidSourceNumbers());
+        assertFalse(validator.validate("HashMap 使用数组。\n[资料 1]", 1).valid());
+    }
+
+    @Test
     void acceptsClaimsCitingExistingSources() {
         RagAnswerCitationValidation result = validator.validate(
                 "HashMap 平均查询复杂度为 O(1) [资料 1]。冲突严重时可能树化 [资料 2]。", 2);

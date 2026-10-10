@@ -31,6 +31,32 @@ import static org.mockito.Mockito.when;
 class RagAnswerServiceTest {
 
     @Test
+    void waitsForSplitPostSentenceCitationsAndEmitsMultipleClaimsInOneChunk() {
+        MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
+        ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
+        RagRetrievalLogStore logStore = mock(RagRetrievalLogStore.class);
+        MarkdownSearchResult source = new MarkdownSearchResult(
+                "HashMap 使用数组。HashMap 使用链表。HashMap 使用红黑树。",
+                "java/collections.md", "version-1", 0, List.of("HashMap"), 0.91);
+        when(searchService.search("HashMap", 5, 0.60)).thenReturn(List.of(source));
+        when(chatClient.prompt(anyString()).stream().content()).thenReturn(Flux.just(
+                "HashMap 使用数组。", "[资", "料 1]", "[资料 1]",
+                "HashMap 使用链表。[资料 1] HashMap 使用红黑树 [资料 1]。"));
+        RagAnswerService service = new RagAnswerService(searchService, chatClient, logStore);
+
+        List<RagAnswerStreamEvent> events = service.streamAnswer("HashMap").collectList().block();
+
+        RagAnswerStreamEvent complete = events.get(events.size() - 1);
+        assertTrue(complete.grounded());
+        assertEquals(3, complete.claimEvidence().size());
+        assertTrue(complete.claimEvidence().stream().allMatch(
+                claim -> claim.status() == RagAnswerClaimEvidenceStatus.SUPPORTED));
+        assertEquals(1, events.stream().filter(event -> event.type().equals("delta")).count());
+        assertTrue(events.stream().filter(event -> event.type().equals("delta"))
+                .findFirst().orElseThrow().content().contains("HashMap 使用链表"));
+    }
+
+    @Test
     void rejectsBlankQuestionBeforeSearchingOrRecording() {
         MarkdownSimilaritySearchService searchService = mock(MarkdownSimilaritySearchService.class);
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
@@ -82,7 +108,7 @@ class RagAnswerServiceTest {
         var logCaptor = org.mockito.ArgumentCaptor.forClass(RagRetrievalLog.class);
         verify(logStore).record(logCaptor.capture());
         assertEquals(RagRetrievalLogStatus.ANSWERED, logCaptor.getValue().status());
-        assertEquals("rag-answer-v6", logCaptor.getValue().promptVersion());
+        assertEquals("rag-answer-v8", logCaptor.getValue().promptVersion());
         assertEquals(2, logCaptor.getValue().sources().size());
         assertEquals("java/collections.pdf", logCaptor.getValue().sources().get(0).source());
         assertEquals(3, logCaptor.getValue().sources().get(0).pageNumber());

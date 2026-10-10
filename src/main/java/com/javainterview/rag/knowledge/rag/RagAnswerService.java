@@ -29,7 +29,6 @@ import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
 import java.util.function.Supplier;
@@ -42,8 +41,7 @@ public class RagAnswerService {
     private static final int DEFAULT_CONTEXT_TOKEN_BUDGET = 6000;
     private static final int DEFAULT_RESPONSE_TOKEN_RESERVE = 1200;
     private static final double ANSWER_SIMILARITY_THRESHOLD = 0.60;
-    private static final String PROMPT_VERSION = "rag-answer-v6";
-    private static final Pattern STREAM_CLAIM_BOUNDARY = Pattern.compile("[^。！？!?；;\\r\\n]+[。！？!?；;]");
+    private static final String PROMPT_VERSION = "rag-answer-v8";
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final String TIMEOUT_ANSWER = "知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。";
     private static final String RETRIEVAL_UNAVAILABLE_ANSWER = "知识检索暂时不可用，请稍后重试。";
@@ -394,22 +392,31 @@ public class RagAnswerService {
                         pending.updateAndGet(value -> value + chunk);
                         String buffered = pending.get();
                         int consumed = 0;
-                        var matcher = STREAM_CLAIM_BOUNDARY.matcher(buffered);
+                        StringBuilder verified = new StringBuilder();
+                        var matcher = RagAnswerCitationValidator.CLAIM.matcher(buffered);
                         while (matcher.find()) {
                             int end = matcher.end();
-                            String claim = buffered.substring(consumed, end);
+                            String remainder = buffered.substring(end).stripLeading();
+                            // 等下一句开始或整流结束，避免句末/引用被网络切片拆开时过早拒绝。
+                            if (remainder.isEmpty() || remainder.startsWith("[")) {
+                                break;
+                            }
+                            String claim = matcher.group();
                             if (!claim.isBlank()) {
                                 RagAnswerEvidenceValidation validation = evidenceValidator.validate(claim, finalSources);
                                 if (!validation.claims().isEmpty() && !validation.valid()) {
                                     streamBlocked.set(true);
-                                    return;
+                                    break;
                                 }
-                                sink.next(RagAnswerStreamEvent.delta(claim));
+                                verified.append(claim);
                             }
                             consumed = end;
                         }
                         if (consumed > 0) {
                             pending.set(buffered.substring(consumed));
+                        }
+                        if (!verified.isEmpty()) {
+                            sink.next(RagAnswerStreamEvent.delta(verified.toString()));
                         }
                     })
                     .concatWith(Flux.defer(() -> {

@@ -11,15 +11,18 @@ final class RagAnswerCitationValidator {
 
     private static final String INSUFFICIENT_ANSWER = "知识库中没有足够可靠的资料回答这个问题。";
     private static final Pattern CITATION = Pattern.compile("\\[资料\\s*(\\d+)]");
-    private static final Pattern CLAIM_SEPARATOR = Pattern.compile("(?<=[。！？!?；;])|\\R+");
+    // 句号后的同一行引用只归属于紧邻的事实句，不能漂移到下一句。
+    static final Pattern CLAIM = Pattern.compile(
+            "[^。！？!?；;\\r\\n]+(?:[。！？!?；;](?:[ \\t]*\\[资料\\s*\\d+])*)?");
 
     RagAnswerCitationValidation validate(String answer, int sourceCount) {
         List<RagAnswerClaimCitation> claims = new ArrayList<>();
         Set<Integer> citedSourceNumbers = new LinkedHashSet<>();
         Set<Integer> invalidSourceNumbers = new LinkedHashSet<>();
 
-        for (String segment : CLAIM_SEPARATOR.split(answer)) {
-            String claim = segment.strip();
+        Matcher claimMatcher = CLAIM.matcher(answer);
+        while (claimMatcher.find()) {
+            String claim = claimMatcher.group().strip();
             if (!hasClaimText(claim)) {
                 continue;
             }

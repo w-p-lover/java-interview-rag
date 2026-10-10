@@ -1,0 +1,299 @@
+{
+  "runAt": "2026-10-10T09:08:33+08:00",
+  "issue": "JRAG-008",
+  "delivered": "知识问答句后引用正确归属；SSE等待完整引用后验证，单个模型分片可包含多句而不违反handle单输出约束。",
+  "upstream": {
+    "repository": "Snailclimb/interview-guide",
+    "commit": "ebe2697aeaa1c35fc780238f626165cf3e807782",
+    "license": "AGPL-3.0",
+    "read": [
+      "LICENSE",
+      "app/src/main/java/interview/guide/modules/knowledgebase/service/KnowledgeBaseQueryService.java",
+      "app/src/test/java/interview/guide/modules/knowledgebase/service/KnowledgeBaseQueryServiceTest.java",
+      "app/src/main/resources/prompts/knowledgebase-query-system.st"
+    ],
+    "transformation": "学习有序来源绑定与流式规范；本地独立修复句子归属/分片等待，保留claim证据和冲突校验，未复制上游代码、Prompt或原文。"
+  },
+  "reproduction": {
+    "before": "新增的2个固定回归均失败：句后引用丢失/漂移至下一句。",
+    "after": "句前/句后引用、紧邻归属、缺引用、越界、跨行和拆开的引用均经直接测试核对。",
+    "historicalRootCauseBoundary": "没有保存10-09的原始模型分片，不能断言这两个缺陷是上轮0/8的唯一根因。"
+  },
+  "paidPlan": {
+    "runDate": "2026-10-10",
+    "candidate": "rag-answer-v8: 句后引用归属与流式分片等待；模型、输出上限、超时和证据阈值不变",
+    "limits": {
+      "chat": 2,
+      "queryEmbedding": 2,
+      "importEmbedding": 0,
+      "retries": 0
+    },
+    "samples": [
+      {
+        "transport": "SSE",
+        "question": "PythonScriptRunner 为什么先 readLine 到 EOF 再 waitFor(timeout) 不能覆盖整个子进程生命周期？请根据课程简短说明。",
+        "course": "interview-guide/project/java-python-process-orchestration-defense.md"
+      },
+      {
+        "transport": "JSON",
+        "question": "资料任务池 core=max=2、queueCapacity=8，为何超时 FAILED 不代表线程已停止？请用课程简短说明中断与旧结果防护。",
+        "course": "interview-guide/project/executor-jvm-diagnostics-defense.md"
+      }
+    ],
+    "criteria": [
+      "生成在原60秒预算内结束",
+      "grounded=true且至少一个SUPPORTED claim",
+      "流式sources先于有效delta，最终引用只能在1..sources数量内",
+      "SQL日志与Prompt版本一致；正式会话仍0回答"
+    ],
+    "failureAction": "不重试；超时或Provider失败停止后续付费。质量失败保留原始claim证据、明确不关闭JRAG-008；不降低阈值或扩大timeout。"
+  },
+  "actualModelInvocations": {
+    "chat": 2,
+    "queryEmbedding": 2,
+    "importEmbedding": 0,
+    "retry": 0
+  },
+  "samples": [
+    {
+      "transport": "SSE",
+      "question": "PythonScriptRunner 为什么先 readLine 到 EOF 再 waitFor(timeout) 不能覆盖整个子进程生命周期？请根据课程简短说明。",
+      "course": "interview-guide/project/java-python-process-orchestration-defense.md",
+      "httpStatus": 200,
+      "elapsedMs": 29110,
+      "grounded": true,
+      "accepted": true,
+      "answer": "PythonScriptRunner 的当前顺序是先 `readLine` 循环直到输出 EOF [资料 2]。\n如果 Python 一直不关闭输出，Java 线程会卡在读取阶段 [资料 1]。\n此时 `waitFor(timeout)` 尚未开始 [资料 1]。\n`BufferedReader.readLine()` 需要等换行或 EOF 才返回 [资料 4]。\nPython 不输出也不退出时，Java 会阻塞在读取阶段 [资料 4]。",
+      "courseHits": 5,
+      "sourceCount": 5,
+      "sources": [
+        {
+          "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+          "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+          "chunkOrder": 2
+        },
+        {
+          "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+          "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+          "chunkOrder": 7
+        },
+        {
+          "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+          "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+          "chunkOrder": 16
+        },
+        {
+          "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+          "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+          "chunkOrder": 5
+        },
+        {
+          "source": "interview-guide/project/java-python-process-orchestration-defense.md",
+          "documentVersion": "62d8ca665955ad6a9977b5a69da3279961081cacd9003f7a4b143bf62836cef0",
+          "chunkOrder": 1
+        }
+      ],
+      "claimEvidence": [
+        {
+          "claim": "PythonScriptRunner 的当前顺序是先 `readLine` 循环直到输出 EOF [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.5
+        },
+        {
+          "claim": "随后才执行 `waitFor(timeoutSeconds)` [资料 2]。",
+          "sourceNumbers": [
+            2
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.3333333333333333
+        },
+        {
+          "claim": "如果 Python 一直不关闭输出，Java 线程会卡在读取阶段 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        },
+        {
+          "claim": "此时 `waitFor(timeout)` 尚未开始 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.8333333333333334
+        },
+        {
+          "claim": "`BufferedReader.readLine()` 需要等换行或 EOF 才返回 [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 1.0
+        },
+        {
+          "claim": "Python 不输出也不退出时，Java 会阻塞在读取阶段 [资料 4]。",
+          "sourceNumbers": [
+            4
+          ],
+          "status": "SUPPORTED",
+          "anchorCoverage": 0.625
+        },
+        {
+          "claim": "读取输出阶段不在该 `waitFor(timeout)` 的覆盖范围内 [资料 1]。",
+          "sourceNumbers": [
+            1
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.4
+        },
+        {
+          "claim": "因此该做法不能覆盖整个子进程生命周期 [资料 1][资料 2]。",
+          "sourceNumbers": [
+            1,
+            2
+          ],
+          "status": "EVIDENCE_INSUFFICIENT",
+          "anchorCoverage": 0.17647058823529413
+        }
+      ],
+      "eventTimings": [
+        {
+          "type": "sources",
+          "elapsedMs": 1500
+        },
+        {
+          "type": "delta",
+          "elapsedMs": 26828
+        },
+        {
+          "type": "complete",
+          "elapsedMs": 29110
+        }
+      ],
+      "retrievalStrategy": "HYBRID",
+      "degraded": false
+    },
+    {
+      "transport": "JSON",
+      "question": "资料任务池 core=max=2、queueCapacity=8，为何超时 FAILED 不代表线程已停止？请用课程简短说明中断与旧结果防护。",
+      "course": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+      "httpStatus": 200,
+      "elapsedMs": 61032,
+      "grounded": false,
+      "accepted": false,
+      "answer": "知识库回答生成超时。已保留命中资料，可先阅读下方来源继续学习。",
+      "courseHits": 5,
+      "sourceCount": 5,
+      "sources": [
+        {
+          "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+          "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+          "chunkOrder": 13
+        },
+        {
+          "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+          "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+          "chunkOrder": 1
+        },
+        {
+          "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+          "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+          "chunkOrder": 8
+        },
+        {
+          "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+          "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+          "chunkOrder": 5
+        },
+        {
+          "source": "interview-guide/project/executor-jvm-diagnostics-defense.md",
+          "documentVersion": "ff4149dbe7a47d002f505214de25b4437eb4b2e559ea787306f254bfc4ee480e",
+          "chunkOrder": 3
+        }
+      ],
+      "claimEvidence": [],
+      "eventTimings": [],
+      "retrievalStrategy": "HYBRID",
+      "degraded": false
+    }
+  ],
+  "sql": {
+    "target": {
+      "db": "java_interview_rag",
+      "version": "5.7.36"
+    },
+    "ddlRequired": false,
+    "logs": [
+      {
+        "id": 136,
+        "status": "PARTIAL_ANSWER",
+        "grounded": 1,
+        "prompt_version": "rag-answer-v8",
+        "elapsed_millis": 28985,
+        "error_type": null
+      },
+      {
+        "id": 137,
+        "status": "TIMEOUT",
+        "grounded": 0,
+        "prompt_version": "rag-answer-v8",
+        "elapsed_millis": 60975,
+        "error_type": "SERVER_TIMEOUT"
+      }
+    ],
+    "formal": {
+      "status": "IN_PROGRESS",
+      "answerCount": 0
+    },
+    "verificationNote": "验收脚本初次只读事务的快照未见新日志；随后新连接实时核对，无重复模型调用。"
+  },
+  "decision": {
+    "citationAndStreamFix": "RETAIN",
+    "fullJRAG008Closure": "NOT_ACCEPTED",
+    "reason": "SSE返回5/8条SUPPORTED的部分回答；同步仍超时，未满足两题完整验收。仅保留已直接验证的代码修复，不宣称Provider时延已改善或所有陈述都有效。",
+    "generationSettingsChanged": false,
+    "evidenceThresholdChanged": false,
+    "timeoutChanged": false,
+    "paidRetry": false
+  },
+  "verification": {
+    "tests": [
+      {
+        "name": "RagAnswerCitationValidatorTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "RagAnswerEvidenceValidatorTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "RagAnswerServiceTest",
+        "tests": 28,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "fullTestsOrBuild": false,
+    "frontendChanged": false,
+    "browserRecheck": false,
+    "runtime": "最新源码storage18080健康，既有前端5173/answer返回200；真实SSE与JSON已调用。"
+  },
+  "remaining": [
+    "同步生成60秒预算仍超时；只有新的Provider/调用行为候选才有限验收。",
+    "流式本题为部分回答，3条模型陈述未通过词面证据覆盖，不能算完整回答。",
+    "流式最后一句等终态完整校验，引用拆分时最多有一事实句的等待；不降低证据护栏。"
+  ],
+  "entry": "http://127.0.0.1:5173/answer",
+  "reviewEntry": "http://127.0.0.1:5173/answer?reviewTaskId=99d720941a143ae4b3d1048ea3c534870eaadd14a0c329d1081eec00d5976f53"
+}
