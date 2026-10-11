@@ -1,0 +1,201 @@
+{
+  "runAt": "2026-10-11T09:15:57+08:00",
+  "topic": "Spring Boot接口监控与异常治理答辩（正式后端Q8准备）",
+  "source": "interview-guide/project/observability-error-governance-defense.md",
+  "documentVersion": "e1d6ef7d44a7dc5e9214a4e0ee43e24ea48c0c8f896411b11056fca7de5c8ab1",
+  "contentSha256": "dd73b08595799b676a70ea99e69de074dd1f401f7c5ea09347cf4afb706b5205",
+  "upstreamCommit": "ebe2697aeaa1c35fc780238f626165cf3e807782",
+  "localBaseline": "3ee3cff",
+  "transformation": "独立编写正文、案例与题面，未复制上游原文/Prompt/源码；参考blog仅读取既有开发库配置",
+  "paidPlan": {
+    "source": "interview-guide/project/observability-error-governance-defense.md",
+    "query": "BusinessRequestMetricsFilter HTTP 200 TIMEOUT grounded failureRate Counter Timer MDC 监控异常治理",
+    "limits": {
+      "chat": 4,
+      "importEmbeddingBatches": 4,
+      "queryEmbedding": 1,
+      "paidRetries": 0
+    },
+    "criteria": {
+      "import": "READY、Dense/Sparse同版本同generation、计数匹配、旧版本0",
+      "retrieval": "一次Hybrid Top5至少3条命中新课程、无降级；不调用知识生成器",
+      "practice": "3道同版本证据ACTIVE题、三题独立示范会话、首答及第一题一次再练持久化且引用逐字存在；本人会话零回答",
+      "failure": "任一付费失败停止该链路；不重试追分，保留课程/题库和失败证据"
+    },
+    "note": "首答刻意只讲工具名，二答补齐；分数不代表本人水平，不用改善分数作为验收硬门槛",
+    "budgetRevisionBeforeChat": "真实规则要求3题起且完成后才可复习；尚无Chat调用，调整为3次首答+1次再练，不重复评分"
+  },
+  "actualModelInvocations": {
+    "chatRequests": 4,
+    "latenciesSeconds": [
+      115.92,
+      113.41,
+      84.92,
+      112.45
+    ],
+    "paidRetries": 0,
+    "importEmbeddingBatches": 4,
+    "queryEmbeddingRequests": 1,
+    "ragAnswerChatRequests": 0,
+    "note": "应用级调用/批次；两版各13 Chunk，批上限10。未估算Provider内部重试、token或费用。"
+  },
+  "publicationCorrection": {
+    "firstVersion": "98e7956062091037c4626b0fd54a0c0be8ee3203ad85f8af646863ed990f3280",
+    "reason": "移除正文内固定验收检索问题，避免自命中；首次Hybrid仅作链路证据，不当泛化评估。"
+  },
+  "storage": {
+    "db": "java_interview_rag",
+    "serverVersion": "5.7.36",
+    "migrationRequired": false,
+    "snapshotMatches": true,
+    "indexing": {
+      "status": "READY",
+      "chunk_count": 13,
+      "published_generation": "c11a85a7-16e3-4030-a1ce-38d04e2ba37c",
+      "building_generation": null
+    },
+    "consistency": {
+      "source": "interview-guide/project/observability-error-governance-defense.md",
+      "documentVersion": "e1d6ef7d44a7dc5e9214a4e0ee43e24ea48c0c8f896411b11056fca7de5c8ab1",
+      "expectedChunkCount": 13,
+      "consistent": true,
+      "indexingState": {
+        "tracked": true,
+        "status": "READY",
+        "chunkCount": 13,
+        "expectedChunkCountMatched": true,
+        "errorType": null,
+        "publishedGeneration": "c11a85a7-16e3-4030-a1ce-38d04e2ba37c",
+        "buildingGeneration": null
+      },
+      "dense": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 13,
+        "currentVersionMetadataMatchCount": 13,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 13,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      },
+      "sparse": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 13,
+        "currentVersionMetadataMatchCount": 13,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 13,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      }
+    }
+  },
+  "retrieval": {
+    "initialHybridCourseHits": 5,
+    "initialHybridUsedAsGeneralizationEvidence": false,
+    "finalSparseCourseHits": 5,
+    "finalSparseOrders": [
+      6,
+      11,
+      2,
+      3,
+      4
+    ],
+    "queryEmbeddingRetries": 0,
+    "initialHybridDegraded": false
+  },
+  "questionBank": {
+    "questionIds": [
+      "acf0de64-53f8-44ed-9d53-a3154acce8f3",
+      "b4a87d33-9bfd-4bce-8b8e-168b9a8f75dd",
+      "cce2087c-67d1-434a-9918-ee5b6c2341fe"
+    ],
+    "skill": "SYSTEM_DESIGN",
+    "categories": [
+      "方案可行性",
+      "容量、一致性与恢复",
+      "取舍表达"
+    ],
+    "evidenceCounts": [
+      3,
+      3,
+      3
+    ],
+    "status": "ACTIVE",
+    "entry": "http://127.0.0.1:5173/question-bank?source=interview-guide%2Fproject%2Fobservability-error-governance-defense.md&skill=SYSTEM_DESIGN"
+  },
+  "practice": {
+    "sessionId": "e41be15e-b2a8-4d8b-9d64-6235973f20e3",
+    "status": "COMPLETED",
+    "answerCount": 3,
+    "scores": [
+      22,
+      79,
+      92
+    ],
+    "report": {
+      "answeredQuestions": 3,
+      "averageTechnicalScore": 69.3,
+      "averageCompletenessScore": 58.7,
+      "averageCommunicationScore": 64.7,
+      "overallAverageScore": 64.3,
+      "strengths": [
+        "能提出用 Actuator 和 Micrometer 记录请求数量、失败数及耗时，具备基础监控方向",
+        "能意识到回答缺少业务返回值、指标标签、异步处理和具体统计口径",
+        "明确指出平均耗时、窗口max和逻辑running不能作为恢复依据",
+        "列出同窗口流量、失败分类、真实active、队列等待、拒绝和下游延迟等定位信号",
+        "提出先限制新工作、保留阅读，并用有界探测和一次受控恢复验证"
+      ],
+      "gaps": [
+        "未说明过滤器只对 /api/ 生效、创建 X-Request-Id、MDC 和 Timer.Sample 的入口职责",
+        "未说明 operation 使用路由模板、Counter 用有限 outcome 区分 4xx/5xx、requestId 不作为指标标签",
+        "未说明同步链结束或 AsyncListener 终态用 AtomicBoolean 保证只记录一次",
+        "未解释 HTTP 200、任务成功与 grounded 分层，且回答中将 200 直接按请求成功统计",
+        "未说明概览仅本进程累计、平均与窗口 max，不包含 P95/P99 或生产 SLO"
+      ],
+      "completedAt": "2026-10-11T09:13:55.1109491"
+    },
+    "agentDemonstrationOnly": true,
+    "reviewTaskCount": 3,
+    "reviewTaskId": "6c0292bd-6480-38f5-b379-5149781eae1a",
+    "attemptId": "b99580c4-cc74-4083-b497-ef13b5679eed",
+    "repracticeScore": 95,
+    "scoreDeltaFromOriginal": 73,
+    "reviewTaskStatus": "PENDING",
+    "initialGaps": [
+      "未说明过滤器只对 /api/ 生效、创建 X-Request-Id、MDC 和 Timer.Sample 的入口职责",
+      "未说明 operation 使用路由模板、Counter 用有限 outcome 区分 4xx/5xx、requestId 不作为指标标签",
+      "未说明同步链结束或 AsyncListener 终态用 AtomicBoolean 保证只记录一次",
+      "未解释 HTTP 200、任务成功与 grounded 分层，且回答中将 200 直接按请求成功统计",
+      "未说明概览仅本进程累计、平均与窗口 max，不包含 P95/P99 或生产 SLO",
+      "未给出故障信号、减载或恢复边界"
+    ],
+    "repracticeGaps": [
+      "异步场景下 MDC 快照、设置和 finally 恢复只说明为建议，未给出当前实现是否已验证。",
+      "正式 SLI 的时间窗口、失败定义和采集验证方式尚未展开。"
+    ],
+    "allEvaluationsKnowledgeGrounded": true,
+    "verifiedQuoteCount": 12,
+    "quotesMatchStoredSnapshot": true,
+    "entry": "http://127.0.0.1:5173/interview?sessionId=e41be15e-b2a8-4d8b-9d64-6235973f20e3&taskId=6c0292bd-6480-38f5-b379-5149781eae1a"
+  },
+  "protectedFormalInterview": {
+    "sessionId": "4a0bfddf-7842-4611-bd8f-486181c3ffe5",
+    "status": "IN_PROGRESS",
+    "answerCount": 0
+  },
+  "verification": {
+    "sqlExecuted": "只读核对正文、发布状态、题库、回答和复习持久化；无DDL",
+    "javaVueChanged": false,
+    "fullTestsOrBuildRun": false,
+    "browserQaRun": false
+  },
+  "remaining": [
+    "JRAG-008同步生成时延尚未修复",
+    "异步MDC传播与统一错误协议仍为已知边界，本轮未修改",
+    "没有生产SLO、自动告警、P95/P99或完整Tracing的验证证据"
+  ],
+  "next": "用户关闭材料复述Q8并本人练习；自动开发只处理新Provider行为候选或真实高影响学习缺口"
+}
