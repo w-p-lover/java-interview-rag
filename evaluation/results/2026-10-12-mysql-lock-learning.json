@@ -1,0 +1,209 @@
+{
+  "runAt": "2026-10-12T09:13:41+08:00",
+  "topic": "正式后端Q7：MySQL RR锁等待双连接实战",
+  "source": "interview-guide/project/mysql-rr-lock-investigation-lab.md",
+  "documentVersion": "749607f22cfc9187b250c5582a74a3302e108aad355a6e3d73f4aa95c2120a07",
+  "contentSha256": "749607f22cfc9187b250c5582a74a3302e108aad355a6e3d73f4aa95c2120a07",
+  "upstreamCommit": "ebe2697aeaa1c35fc780238f626165cf3e807782",
+  "localBaseline": "4f17bb2",
+  "transformation": "独立编写实验、讲解和题面；上游AGPL资料仅作概念参考，blog仓库仅只读配置",
+  "paidPlan": {
+    "source": "interview-guide/project/mysql-rr-lock-investigation-lab.md",
+    "query": "已命中主键的 SQL 仍长时间等待，怎样定位未提交事务，并判断换隔离级别是否合适？",
+    "limits": {
+      "chat": 4,
+      "importEmbeddingBatches": 3,
+      "queryEmbedding": 1,
+      "paidRetries": 0
+    },
+    "criteria": {
+      "import": "READY、同版本generation、Dense/Sparse计数匹配、旧版本0",
+      "retrieval": "一次Hybrid Top5至少3条当前课程且无降级；不运行知识回答生成器",
+      "practice": "三维各1题ACTIVE，三题独立示范会话及首题一次再练持久化、引用核对；本人正式零回答",
+      "failure": "付费失败停止该链路、不追分；保留实验脚本、课程、题库与失败证据"
+    },
+    "sample": "三题分别解释快照/当前读、RR/RC锁竞争、执行计划与等待证据；首题示范遗漏后再练，不以分差为硬门槛"
+  },
+  "actualModelInvocations": {
+    "chatRequests": 4,
+    "latenciesSeconds": [
+      64.33,
+      57.02,
+      56.25,
+      66.53
+    ],
+    "paidRetries": 0,
+    "importEmbeddingBatches": 2,
+    "queryEmbeddingRequests": 1,
+    "ragAnswerChatRequests": 0,
+    "note": "应用级提交/批次，11 Chunk按10分两批。未估算Provider内部重试、token或费用。"
+  },
+  "storage": {
+    "db": "java_interview_rag",
+    "serverVersion": "5.7.36",
+    "snapshotMatches": true,
+    "indexing": {
+      "status": "READY",
+      "chunk_count": 11,
+      "published_generation": "4fb04a3b-da54-4976-a732-899cbe9ec730",
+      "building_generation": null
+    },
+    "consistency": {
+      "source": "interview-guide/project/mysql-rr-lock-investigation-lab.md",
+      "documentVersion": "749607f22cfc9187b250c5582a74a3302e108aad355a6e3d73f4aa95c2120a07",
+      "expectedChunkCount": 11,
+      "consistent": true,
+      "indexingState": {
+        "tracked": true,
+        "status": "READY",
+        "chunkCount": 11,
+        "expectedChunkCountMatched": true,
+        "errorType": null,
+        "publishedGeneration": "4fb04a3b-da54-4976-a732-899cbe9ec730",
+        "buildingGeneration": null
+      },
+      "dense": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 11,
+        "currentVersionMetadataMatchCount": 11,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 11,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      },
+      "sparse": {
+        "status": "CONSISTENT",
+        "currentVersionChunkCount": 11,
+        "currentVersionMetadataMatchCount": 11,
+        "staleVersionChunkCount": 0,
+        "sourceChunkCount": 11,
+        "expectedChunkCountMatched": true,
+        "indexVersionMatched": true,
+        "indexVersionStatus": "MATCHED",
+        "errorType": null
+      }
+    },
+    "ddlExecuted": "CREATE TABLE IF NOT EXISTS t_learning_mysql_lock_lab，仅开发教学表，不纳入生产迁移",
+    "retainedLabRows": 3,
+    "businessTableSchemaChanged": false
+  },
+  "sqlLab": {
+    "result": "evaluation/results/2026-10-12-mysql-lock-lab.json",
+    "runId": "d5b14568-0853-4efb-8553-a22a3bcc9716",
+    "passedScenarios": 5,
+    "snapshotObserved": [
+      100,
+      100,
+      101
+    ],
+    "businessTablesWritten": false
+  },
+  "retrieval": {
+    "hybridCourseHits": 5,
+    "orders": [
+      9,
+      6,
+      10,
+      7,
+      5
+    ],
+    "elapsedMillis": 501,
+    "degraded": false,
+    "scope": "一次课程路径验收，不是通用检索质量基线"
+  },
+  "questionBank": {
+    "questionIds": [
+      "022c793c-2998-4996-baca-c99c5a67015c",
+      "84f11a43-8581-4fb8-a1f9-f3b02f0f761c",
+      "a21e1b96-3177-4d9b-89c5-2c2cc2c1b7bc"
+    ],
+    "skill": "DATABASE",
+    "categories": [
+      "数据库机制与方案",
+      "一致性与性能边界",
+      "证据化表达"
+    ],
+    "evidenceCounts": [
+      3,
+      3,
+      3
+    ],
+    "status": "ACTIVE",
+    "entry": "http://127.0.0.1:5173/question-bank?source=interview-guide%2Fproject%2Fmysql-rr-lock-investigation-lab.md&skill=DATABASE"
+  },
+  "practice": {
+    "sessionId": "c4b023f9-e5e6-4b20-9329-17fddf013fc2",
+    "status": "COMPLETED",
+    "answerCount": 3,
+    "scores": [
+      10,
+      90,
+      94
+    ],
+    "report": {
+      "answeredQuestions": 3,
+      "averageTechnicalScore": 68.0,
+      "averageCompletenessScore": 63.7,
+      "averageCommunicationScore": 63.0,
+      "overallAverageScore": 64.7,
+      "strengths": [
+        "能意识到尚未解释读到101的原因和简历保存并发边界。",
+        "准确区分完整唯一键等值锁与 RR 范围锁对插入 15 的不同影响",
+        "明确 1205 是锁等待超时，1213 才是死锁，不能按死锁无界重试",
+        "给出显式回滚、短事务、合理索引、固定加锁顺序和有界重试的恢复边界",
+        "明确指出const/PRIMARY/rows=1与ALL/rows=3不能证明生产性能或锁范围"
+      ],
+      "gaps": [
+        "未解释 RR 首次普通一致性读建立 ReadView，后续普通读复用旧视图的机制。",
+        "未说明 FOR UPDATE 属于当前读，会读取并锁定当前可用记录，因此可看到已提交的 101。",
+        "未区分事务开始时点与普通快照建立时点，未解释事务开始不等于普通 SELECT 快照已建立。",
+        "未对应 MySqlResumeCenterStore.saveVersion 中事务外快速路径、事务内 FOR UPDATE 串行、唯一键兜底和 version 条件防旧覆盖。",
+        "未提供执行计划、等待关系、指标或数据变化等证据支撑结论。"
+      ],
+      "completedAt": "2026-10-12T09:11:32.9331342"
+    },
+    "agentDemonstrationOnly": true,
+    "reviewTaskCount": 3,
+    "reviewTaskId": "b786caa3-a2b8-36d2-866a-f7fc7db2d438",
+    "attemptId": "1628fbf7-c24c-4d08-8f1f-af6ccef548c7",
+    "repracticeScore": 89,
+    "scoreDeltaFromOriginal": 79,
+    "reviewTaskStatus": "PENDING",
+    "initialGaps": [
+      "未解释 RR 首次普通一致性读建立 ReadView，后续普通读复用旧视图的机制。",
+      "未说明 FOR UPDATE 属于当前读，会读取并锁定当前可用记录，因此可看到已提交的 101。",
+      "未区分事务开始时点与普通快照建立时点，未解释事务开始不等于普通 SELECT 快照已建立。",
+      "未对应 MySqlResumeCenterStore.saveVersion 中事务外快速路径、事务内 FOR UPDATE 串行、唯一键兜底和 version 条件防旧覆盖。",
+      "未提供执行计划、等待关系、指标或数据变化等证据支撑结论。",
+      "倾向调大锁等待超时，未说明短事务、合理索引和排障验证边界。"
+    ],
+    "repracticeGaps": [
+      "未用执行计划、等待事件或指标进一步证据化结论",
+      "未说明容量、退化条件或异常排障验证",
+      "未展开唯一键冲突或version条件失败后的处理路径"
+    ],
+    "allEvaluationsKnowledgeGrounded": true,
+    "verifiedQuoteCount": 12,
+    "quotesMatchStoredSnapshot": true,
+    "entry": "http://127.0.0.1:5173/interview?sessionId=c4b023f9-e5e6-4b20-9329-17fddf013fc2&taskId=b786caa3-a2b8-36d2-866a-f7fc7db2d438"
+  },
+  "protectedFormalInterview": {
+    "sessionId": "4a0bfddf-7842-4611-bd8f-486181c3ffe5",
+    "status": "IN_PROGRESS",
+    "answerCount": 0
+  },
+  "verification": {
+    "sqlExecuted": "独立教学表DDL/种子/事务实验；正文、索引、题库、评分、再练与本人会话只读核对",
+    "javaVueChanged": false,
+    "fullTestsOrBuildRun": false,
+    "browserQaRun": false
+  },
+  "remaining": [
+    "未模拟1213死锁或采集锁管理视图；不宣称生产性能提升",
+    "未并发运行真实简历保存接口；当前代码映射只属静态核对",
+    "JRAG-008同步生成延迟仍开放，没有新候选或重跑旧样本"
+  ],
+  "next": "用户先预测并复现实验，再闭卷解释Q7和本人再练；后续只按真实理解/运行缺口推进"
+}

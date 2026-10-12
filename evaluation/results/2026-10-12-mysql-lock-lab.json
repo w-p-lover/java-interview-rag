@@ -1,0 +1,108 @@
+{
+  "runAt": "2026-10-12T01:04:20.196115+00:00",
+  "runId": "d5b14568-0853-4efb-8553-a22a3bcc9716",
+  "target": {
+    "db": "java_interview_rag",
+    "serverVersion": "5.7.36"
+  },
+  "table": "t_learning_mysql_lock_lab",
+  "plans": {
+    "uniqueLookup": [
+      {
+        "id": 1,
+        "select_type": "SIMPLE",
+        "table": "t_learning_mysql_lock_lab",
+        "partitions": null,
+        "type": "const",
+        "possible_keys": "PRIMARY",
+        "key": "PRIMARY",
+        "key_len": "40",
+        "ref": "const,const",
+        "rows": 1,
+        "filtered": 100.0,
+        "Extra": null
+      }
+    ],
+    "unindexedPredicate": [
+      {
+        "id": 1,
+        "select_type": "SIMPLE",
+        "table": "t_learning_mysql_lock_lab",
+        "partitions": null,
+        "type": "ALL",
+        "possible_keys": null,
+        "key": null,
+        "key_len": null,
+        "ref": null,
+        "rows": 3,
+        "filtered": 33.33,
+        "Extra": "Using where"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "rr_snapshot_vs_current",
+      "first": 100,
+      "repeated": 100,
+      "current": 101,
+      "passed": true
+    },
+    {
+      "name": "rr_existing_unique",
+      "isolation": "REPEATABLE READ",
+      "holderSql": "SELECT balance FROM t_learning_mysql_lock_lab WHERE run_id=%s AND item_id=20 FOR UPDATE",
+      "contenderSql": "INSERT INTO t_learning_mysql_lock_lab VALUES (%s,15,100)",
+      "errorCode": null,
+      "elapsedSeconds": 0.032,
+      "afterReleaseSucceeded": true,
+      "passed": true
+    },
+    {
+      "name": "rr_range_insert",
+      "isolation": "REPEATABLE READ",
+      "holderSql": "SELECT item_id FROM t_learning_mysql_lock_lab WHERE run_id=%s AND item_id>=10 AND item_id<30 FOR UPDATE",
+      "contenderSql": "INSERT INTO t_learning_mysql_lock_lab VALUES (%s,15,100)",
+      "errorCode": 1205,
+      "elapsedSeconds": 2.016,
+      "afterReleaseSucceeded": true,
+      "passed": true
+    },
+    {
+      "name": "rc_range_insert",
+      "isolation": "READ COMMITTED",
+      "holderSql": "SELECT item_id FROM t_learning_mysql_lock_lab WHERE run_id=%s AND item_id>=10 AND item_id<30 FOR UPDATE",
+      "contenderSql": "INSERT INTO t_learning_mysql_lock_lab VALUES (%s,15,100)",
+      "errorCode": null,
+      "elapsedSeconds": 0.031,
+      "afterReleaseSucceeded": true,
+      "passed": true
+    },
+    {
+      "name": "rr_same_row_update",
+      "isolation": "REPEATABLE READ",
+      "holderSql": "SELECT balance FROM t_learning_mysql_lock_lab WHERE run_id=%s AND item_id=20 FOR UPDATE",
+      "contenderSql": "UPDATE t_learning_mysql_lock_lab SET balance=balance+1 WHERE run_id=%s AND item_id=20",
+      "errorCode": 1205,
+      "elapsedSeconds": 2.031,
+      "afterReleaseSucceeded": true,
+      "passed": true
+    }
+  ],
+  "retainedRows": [
+    {
+      "item_id": 10,
+      "balance": 100
+    },
+    {
+      "item_id": 20,
+      "balance": 101
+    },
+    {
+      "item_id": 30,
+      "balance": 100
+    }
+  ],
+  "businessTablesWritten": false,
+  "note": "保留本轮三行教学数据；未清理其他运行。EXPLAIN 是估计，不是性能或精确锁区间证明。"
+}
